@@ -21,7 +21,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 
 # Build application
 COPY . .
-RUN cargo build --release --locked
+RUN cargo build --release
 
 # Stage 4: Runtime - Minimal image
 FROM gcr.io/distroless/cc-debian12
