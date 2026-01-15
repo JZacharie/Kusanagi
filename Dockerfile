@@ -30,6 +30,9 @@ WORKDIR /app
 # Copy binary from builder
 COPY --from=builder /app/target/release/kusanagi /app/kusanagi
 
+# Copy static files
+COPY --from=builder /app/static /app/static
+
 # Expose port
 EXPOSE 8080
 

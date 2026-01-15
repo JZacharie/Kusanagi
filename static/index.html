@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Kusanagi - Agent Controller for K3s Infrastructure">
+    <title>Kusanagi | 草薙</title>
+    <link rel="stylesheet" href="/static/css/cyberpunk.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+</head>
+<body>
+    <!-- Background Effects -->
+    <div class="grid-bg"></div>
+    <div class="scanlines"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="logo">KUSANAGI</h1>
+            <p class="subtitle">Agent Controller System</p>
+            <p class="japanese-text">草薙素子 // MOTOKO</p>
+        </header>
+
+        <!-- Terminal Section -->
+        <section class="terminal">
+            <div class="terminal-header">
+                root@kusanagi:~# ./system_status.sh
+            </div>
+            <div class="terminal-content">
+                <div class="terminal-line">
+                    <span class="prompt">$</span> <span class="command">echo</span> <span class="output">"Initializing Kusanagi Agent Controller..."</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="prompt">$</span> <span class="output">System Status: </span><span class="highlight">ONLINE</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="prompt">$</span> <span class="output">Neural Network: </span><span class="highlight">CONNECTED</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="prompt">$</span> <span class="output">Ghost Synchronization: </span><span class="highlight">100%</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="prompt">$</span> <span class="command">ready</span><span class="cursor"></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status Cards -->
+        <section class="status-grid">
+            <div class="status-card">
+                <h3 class="card-title">System Status</h3>
+                <div class="card-value">ACTIVE</div>
+                <p class="card-label">All systems operational</p>
+            </div>
+            <div class="status-card">
+                <h3 class="card-title">Network</h3>
+                <div class="card-value">K3S</div>
+                <p class="card-label">Kubernetes cluster connected</p>
+            </div>
+            <div class="status-card">
+                <h3 class="card-title">Version</h3>
+                <div class="card-value">0.1.0</div>
+                <p class="card-label">Built with Rust & Actix</p>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="footer-quote">"Your effort to remain what you are is what limits you."</p>
+            <p>KUSANAGI // Ghost in the Shell Inspired // Built with ⚡ by Rust</p>
+        </footer>
+    </div>
+</body>
+</html>

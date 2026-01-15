@@ -1,0 +1,348 @@
+/* ============================================
+   KUSANAGI - Ghost in the Shell Cyberpunk Theme
+   ============================================ */
+
+:root {
+  --neon-green: #00ff41;
+  --neon-cyan: #00ffff;
+  --neon-magenta: #ff00ff;
+  --neon-pink: #ff2a6d;
+  --dark-bg: #0a0a0f;
+  --darker-bg: #050508;
+  --grid-color: rgba(0, 255, 65, 0.1);
+  --text-primary: #e0e0e0;
+  --text-secondary: #888;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', 'Fira Code', monospace;
+  background-color: var(--dark-bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Animated Grid Background */
+.grid-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
+  z-index: -2;
+}
+
+@keyframes gridMove {
+  0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+  100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+}
+
+/* Scan Lines Overlay */
+.scanlines {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.1) 0px,
+    rgba(0, 0, 0, 0.1) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Main Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  padding: 4rem 0;
+  position: relative;
+}
+
+.logo {
+  font-size: 5rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5rem;
+  color: var(--neon-green);
+  text-shadow: 
+    0 0 10px var(--neon-green),
+    0 0 20px var(--neon-green),
+    0 0 40px var(--neon-green),
+    0 0 80px var(--neon-green);
+  animation: glitch 3s infinite;
+  position: relative;
+}
+
+.logo::before,
+.logo::after {
+  content: 'KUSANAGI';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.logo::before {
+  color: var(--neon-cyan);
+  animation: glitch-1 2s infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+}
+
+.logo::after {
+  color: var(--neon-magenta);
+  animation: glitch-2 2s infinite;
+  clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+}
+
+@keyframes glitch {
+  0%, 90%, 100% { transform: translate(0); }
+  91% { transform: translate(-2px, 1px); }
+  92% { transform: translate(2px, -1px); }
+  93% { transform: translate(-1px, 2px); }
+}
+
+@keyframes glitch-1 {
+  0%, 90%, 100% { transform: translate(0); opacity: 0; }
+  91% { transform: translate(3px, 0); opacity: 0.8; }
+  92% { transform: translate(-3px, 0); opacity: 0.8; }
+  93% { transform: translate(0); opacity: 0; }
+}
+
+@keyframes glitch-2 {
+  0%, 90%, 100% { transform: translate(0); opacity: 0; }
+  91% { transform: translate(-3px, 0); opacity: 0.8; }
+  92% { transform: translate(3px, 0); opacity: 0.8; }
+  93% { transform: translate(0); opacity: 0; }
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: var(--neon-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.3rem;
+  margin-top: 1rem;
+  opacity: 0.8;
+}
+
+/* Japanese Text Decoration */
+.japanese-text {
+  font-size: 0.9rem;
+  color: var(--neon-magenta);
+  opacity: 0.6;
+  margin-top: 0.5rem;
+  letter-spacing: 0.5rem;
+}
+
+/* Terminal Section */
+.terminal {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--neon-green);
+  border-radius: 4px;
+  padding: 2rem;
+  margin: 3rem 0;
+  position: relative;
+  box-shadow: 
+    0 0 20px rgba(0, 255, 65, 0.2),
+    inset 0 0 60px rgba(0, 255, 65, 0.05);
+}
+
+.terminal::before {
+  content: '● ● ●';
+  position: absolute;
+  top: 0.5rem;
+  left: 1rem;
+  color: var(--neon-green);
+  font-size: 0.8rem;
+  letter-spacing: 0.3rem;
+}
+
+.terminal-header {
+  color: var(--neon-cyan);
+  font-size: 0.8rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.terminal-content {
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.terminal-line {
+  margin: 0.5rem 0;
+  opacity: 0;
+  animation: typeIn 0.5s forwards;
+}
+
+.terminal-line:nth-child(1) { animation-delay: 0.5s; }
+.terminal-line:nth-child(2) { animation-delay: 1s; }
+.terminal-line:nth-child(3) { animation-delay: 1.5s; }
+.terminal-line:nth-child(4) { animation-delay: 2s; }
+.terminal-line:nth-child(5) { animation-delay: 2.5s; }
+
+@keyframes typeIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.prompt {
+  color: var(--neon-green);
+}
+
+.command {
+  color: var(--neon-cyan);
+}
+
+.output {
+  color: var(--text-primary);
+}
+
+.highlight {
+  color: var(--neon-magenta);
+}
+
+/* Status Cards */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin: 3rem 0;
+}
+
+.status-card {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(20, 20, 30, 0.9) 100%);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 4px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.status-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.status-card:hover::before {
+  left: 100%;
+}
+
+.status-card:hover {
+  border-color: var(--neon-green);
+  box-shadow: 0 0 30px rgba(0, 255, 65, 0.3);
+  transform: translateY(-5px);
+}
+
+.card-title {
+  color: var(--neon-cyan);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-title::before {
+  content: '▸';
+  color: var(--neon-green);
+}
+
+.card-value {
+  font-size: 2rem;
+  color: var(--neon-green);
+  font-weight: bold;
+}
+
+.card-label {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+/* Blinking Cursor */
+.cursor {
+  display: inline-block;
+  width: 10px;
+  height: 1.2em;
+  background: var(--neon-green);
+  margin-left: 2px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 3rem 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  border-top: 1px solid rgba(0, 255, 65, 0.2);
+  margin-top: 3rem;
+}
+
+.footer-quote {
+  color: var(--neon-cyan);
+  font-style: italic;
+  margin-bottom: 1rem;
+  opacity: 0.8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .logo {
+    font-size: 2.5rem;
+    letter-spacing: 0.2rem;
+  }
+  
+  .subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .container {
+    padding: 1rem;
+  }
+  
+  .terminal {
+    padding: 1.5rem;
+  }
+}
