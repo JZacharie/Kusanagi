@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Kusanagi - Agent Controller for K3s Infrastructure">
     <title>Kusanagi | 草薙</title>
     <link rel="stylesheet" href="/static/css/cyberpunk.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
 </head>
+
 <body>
     <!-- Background Effects -->
     <div class="grid-bg"></div>
@@ -28,19 +31,65 @@
             </div>
             <div class="terminal-content">
                 <div class="terminal-line">
-                    <span class="prompt">$</span> <span class="command">echo</span> <span class="output">"Initializing Kusanagi Agent Controller..."</span>
+                    <span class="prompt">$</span> <span class="command">echo</span> <span class="output">"Initializing
+                        Kusanagi Agent Controller..."</span>
                 </div>
                 <div class="terminal-line">
-                    <span class="prompt">$</span> <span class="output">System Status: </span><span class="highlight">ONLINE</span>
+                    <span class="prompt">$</span> <span class="output">System Status: </span><span
+                        class="highlight">ONLINE</span>
                 </div>
                 <div class="terminal-line">
-                    <span class="prompt">$</span> <span class="output">Neural Network: </span><span class="highlight">CONNECTED</span>
+                    <span class="prompt">$</span> <span class="output">Neural Network: </span><span
+                        class="highlight">CONNECTED</span>
                 </div>
                 <div class="terminal-line">
-                    <span class="prompt">$</span> <span class="output">Ghost Synchronization: </span><span class="highlight">100%</span>
+                    <span class="prompt">$</span> <span class="output">Ghost Synchronization: </span><span
+                        class="highlight">100%</span>
                 </div>
                 <div class="terminal-line">
                     <span class="prompt">$</span> <span class="command">ready</span><span class="cursor"></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ArgoCD Status Section -->
+        <section class="argocd-section">
+            <h2 class="section-title">ArgoCD Applications Status</h2>
+
+            <div class="argocd-stats" id="argocd-stats">
+                <div class="stat-box info">
+                    <div class="stat-value" id="stat-total">-</div>
+                    <div class="stat-label">Total Apps</div>
+                </div>
+                <div class="stat-box healthy">
+                    <div class="stat-value" id="stat-healthy">-</div>
+                    <div class="stat-label">Healthy</div>
+                </div>
+                <div class="stat-box unhealthy">
+                    <div class="stat-value" id="stat-unhealthy">-</div>
+                    <div class="stat-label">Unhealthy</div>
+                </div>
+                <div class="stat-box healthy">
+                    <div class="stat-value" id="stat-synced">-</div>
+                    <div class="stat-label">Synced</div>
+                </div>
+                <div class="stat-box unhealthy">
+                    <div class="stat-value" id="stat-outofsync">-</div>
+                    <div class="stat-label">Out of Sync</div>
+                </div>
+                <div class="stat-box warning">
+                    <div class="stat-value" id="stat-progressing">-</div>
+                    <div class="stat-label">Progressing</div>
+                </div>
+            </div>
+
+            <div class="issues-table-container" id="issues-container">
+                <div class="issues-table-header">
+                    <span class="issues-table-title">⚠ Applications with Issues</span>
+                    <span class="issues-count" id="issues-count">0</span>
+                </div>
+                <div id="issues-content">
+                    <div class="loading">Loading ArgoCD status...</div>
                 </div>
             </div>
         </section>
@@ -70,5 +119,83 @@
             <p>KUSANAGI // Ghost in the Shell Inspired // Built with ⚡ by Rust</p>
         </footer>
     </div>
+
+    <script>
+        async function fetchArgoStatus() {
+            try {
+                const response = await fetch('/api/argocd/status');
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                updateStats(data);
+                updateIssuesTable(data.apps_with_issues);
+            } catch (error) {
+                showError('Failed to connect to ArgoCD API');
+            }
+        }
+
+        function updateStats(data) {
+            document.getElementById('stat-total').textContent = data.total;
+            document.getElementById('stat-healthy').textContent = data.healthy;
+            document.getElementById('stat-unhealthy').textContent = data.unhealthy;
+            document.getElementById('stat-synced').textContent = data.synced;
+            document.getElementById('stat-outofsync').textContent = data.out_of_sync;
+            document.getElementById('stat-progressing').textContent = data.progressing;
+            document.getElementById('issues-count').textContent = data.apps_with_issues.length;
+        }
+
+        function updateIssuesTable(issues) {
+            const container = document.getElementById('issues-content');
+
+            if (issues.length === 0) {
+                container.innerHTML = '<div class="no-issues">All applications are healthy!</div>';
+                return;
+            }
+
+            const table = `
+                <table class="issues-table">
+                    <thead>
+                        <tr>
+                            <th>Application</th>
+                            <th>Namespace</th>
+                            <th>Health</th>
+                            <th>Sync</th>
+                            <th>Duration</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${issues.map(app => `
+                            <tr>
+                                <td class="app-name">${app.name}</td>
+                                <td>${app.namespace || '-'}</td>
+                                <td><span class="status-badge ${app.health_status.toLowerCase()}">${app.health_status}</span></td>
+                                <td><span class="status-badge ${app.sync_status.toLowerCase().replace(' ', '')}">${app.sync_status}</span></td>
+                                <td class="error-duration">${app.error_duration || '-'}</td>
+                                <td class="error-message" title="${app.message || ''}">${app.message || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = table;
+        }
+
+        function showError(message) {
+            const container = document.getElementById('issues-content');
+            container.innerHTML = `<div class="loading" style="color: #ff4444;">Error: ${message}</div>`;
+        }
+
+        // Initial fetch
+        fetchArgoStatus();
+
+        // Refresh every 30 seconds
+        setInterval(fetchArgoStatus, 30000);
+    </script>
 </body>
+
 </html>
