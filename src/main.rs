@@ -1,8 +1,14 @@
-use actix_web::{get, App, HttpServer, Responder, HttpResponse};
+use actix_web::{get, post, web, App, HttpServer, Responder, HttpResponse};
 use actix_files::Files;
+use serde::Deserialize;
 use tracing::info;
 
 mod argocd;
+
+#[derive(Deserialize)]
+struct SyncRequest {
+    app_name: String,
+}
 
 #[get("/health")]
 async fn health_check() -> impl Responder {
@@ -29,6 +35,22 @@ async fn argocd_status() -> impl Responder {
     }
 }
 
+#[post("/api/argocd/sync")]
+async fn argocd_sync(body: web::Json<SyncRequest>) -> impl Responder {
+    info!("Sync requested for application: {}", body.app_name);
+    
+    match argocd::sync_application(&body.app_name).await {
+        Ok(response) => HttpResponse::Ok().json(response),
+        Err(e) => {
+            tracing::error!("Failed to sync application {}: {}", body.app_name, e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "message": e
+            }))
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -41,9 +63,11 @@ async fn main() -> std::io::Result<()> {
             .service(health_check)
             .service(index)
             .service(argocd_status)
+            .service(argocd_sync)
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
+

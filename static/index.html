@@ -81,15 +81,33 @@
                     <div class="stat-value" id="stat-progressing">-</div>
                     <div class="stat-label">Progressing</div>
                 </div>
+                <div class="stat-box info">
+                    <div class="stat-value" id="stat-upgrades">-</div>
+                    <div class="stat-label">Upgrades</div>
+                </div>
             </div>
 
+            <!-- Real Issues Table -->
             <div class="issues-table-container" id="issues-container">
                 <div class="issues-table-header">
-                    <span class="issues-table-title">⚠ Applications with Issues</span>
+                    <span class="issues-table-title">⚠ Real Issues</span>
                     <span class="issues-count" id="issues-count">0</span>
                 </div>
                 <div id="issues-content">
                     <div class="loading">Loading ArgoCD status...</div>
+                </div>
+            </div>
+
+            <!-- Upgrades Available Table -->
+            <div class="issues-table-container upgrades-container" id="upgrades-container"
+                style="margin-top: 2rem; border-color: var(--neon-cyan);">
+                <div class="issues-table-header"
+                    style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                    <span class="issues-table-title" style="color: var(--neon-cyan);">🔄 Upgrades Available</span>
+                    <span class="issues-count" id="upgrades-count" style="background: var(--neon-cyan);">0</span>
+                </div>
+                <div id="upgrades-content">
+                    <div class="no-issues">No upgrades available</div>
                 </div>
             </div>
         </section>
@@ -133,6 +151,7 @@
 
                 updateStats(data);
                 updateIssuesTable(data.apps_with_issues);
+                updateUpgradesTable(data.apps_with_upgrades);
             } catch (error) {
                 showError('Failed to connect to ArgoCD API');
             }
@@ -145,13 +164,38 @@
             document.getElementById('stat-synced').textContent = data.synced;
             document.getElementById('stat-outofsync').textContent = data.out_of_sync;
             document.getElementById('stat-progressing').textContent = data.progressing;
+            document.getElementById('stat-upgrades').textContent = data.upgrades_available || 0;
             document.getElementById('issues-count').textContent = data.apps_with_issues.length;
+            document.getElementById('upgrades-count').textContent = (data.apps_with_upgrades || []).length;
+        }
+
+        function renderAppRow(app, showSync = false) {
+            return `
+                <tr>
+                    <td class="app-name">
+                        <a href="${app.argocd_url}" target="_blank" title="Open in ArgoCD" style="color: var(--neon-green); text-decoration: none;">
+                            ${app.name} 🔗
+                        </a>
+                    </td>
+                    <td>${app.namespace || '-'}</td>
+                    <td><span class="status-badge ${app.health_status.toLowerCase()}">${app.health_status}</span></td>
+                    <td><span class="status-badge ${app.sync_status.toLowerCase().replace(' ', '')}">${app.sync_status}</span></td>
+                    <td class="error-duration">${app.error_duration || '-'}</td>
+                    ${showSync && app.can_sync ? `
+                        <td>
+                            <button class="sync-btn" onclick="syncApp('${app.name}')" title="Sync ${app.name}">
+                                ⟳ Sync
+                            </button>
+                        </td>
+                    ` : `<td class="error-message" title="${app.message || ''}">${app.message || '-'}</td>`}
+                </tr>
+            `;
         }
 
         function updateIssuesTable(issues) {
             const container = document.getElementById('issues-content');
 
-            if (issues.length === 0) {
+            if (!issues || issues.length === 0) {
                 container.innerHTML = '<div class="no-issues">All applications are healthy!</div>';
                 return;
             }
@@ -169,20 +213,75 @@
                         </tr>
                     </thead>
                     <tbody>
-                        ${issues.map(app => `
-                            <tr>
-                                <td class="app-name">${app.name}</td>
-                                <td>${app.namespace || '-'}</td>
-                                <td><span class="status-badge ${app.health_status.toLowerCase()}">${app.health_status}</span></td>
-                                <td><span class="status-badge ${app.sync_status.toLowerCase().replace(' ', '')}">${app.sync_status}</span></td>
-                                <td class="error-duration">${app.error_duration || '-'}</td>
-                                <td class="error-message" title="${app.message || ''}">${app.message || '-'}</td>
-                            </tr>
-                        `).join('')}
+                        ${issues.map(app => renderAppRow(app, false)).join('')}
                     </tbody>
                 </table>
             `;
             container.innerHTML = table;
+        }
+
+        function updateUpgradesTable(upgrades) {
+            const container = document.getElementById('upgrades-content');
+
+            if (!upgrades || upgrades.length === 0) {
+                container.innerHTML = '<div class="no-issues" style="color: var(--neon-cyan);">No upgrades available</div>';
+                return;
+            }
+
+            const table = `
+                <table class="issues-table">
+                    <thead>
+                        <tr>
+                            <th>Application</th>
+                            <th>Namespace</th>
+                            <th>Health</th>
+                            <th>Sync</th>
+                            <th>Duration</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${upgrades.map(app => renderAppRow(app, true)).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = table;
+        }
+
+        async function syncApp(appName) {
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Syncing...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/argocd/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ app_name: appName })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    btn.textContent = '✓ Done';
+                    btn.style.background = 'var(--neon-green)';
+                    setTimeout(() => fetchArgoStatus(), 2000);
+                } else {
+                    btn.textContent = '✗ Failed';
+                    btn.style.background = '#ff4444';
+                    console.error(data.message);
+                }
+            } catch (error) {
+                btn.textContent = '✗ Error';
+                btn.style.background = '#ff4444';
+                console.error('Sync failed:', error);
+            }
+
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                btn.style.background = '';
+            }, 3000);
         }
 
         function showError(message) {
