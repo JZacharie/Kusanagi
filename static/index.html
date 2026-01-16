@@ -576,12 +576,8 @@
                 return;
             }
 
-            // Sort nodes: errors first, then by architecture, then by name
-            nodes.sort((a, b) => {
-                if (a.pods_in_error !== b.pods_in_error) return b.pods_in_error - a.pods_in_error;
-                if (a.architecture !== b.architecture) return a.architecture.localeCompare(b.architecture);
-                return a.name.localeCompare(b.name);
-            });
+            // Sort nodes alphabetically by name
+            nodes.sort((a, b) => a.name.localeCompare(b.name));
 
             const html = nodes.map(node => {
                 const archClass = node.architecture === 'arm64' ? 'arch-arm' : 'arch-amd';
