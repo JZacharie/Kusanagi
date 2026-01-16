@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="/static/css/cyberpunk.css">
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+    <!-- RUM (Real User Monitoring) -->
+    <script src="/static/js/rum.js"></script>
 </head>
 
 <body>
@@ -634,6 +636,16 @@
             container.innerHTML = table;
         }
 
+        // Initialize RUM tracking
+        if (typeof KusanagiRUM !== 'undefined') {
+            KusanagiRUM.init({
+                serviceName: 'kusanagi',
+                serviceVersion: '0.6.0',
+                environment: 'production',
+                debug: false
+            });
+        }
+
         // Initial fetches
         fetchArgoStatus();
         fetchNodesStatus();
@@ -645,6 +657,14 @@
         setInterval(fetchNodesStatus, 30000);
         setInterval(fetchClusterOverview, 60000);
         setInterval(fetchEvents, 30000);
+
+        // Track session stats every 5 minutes
+        setInterval(() => {
+            if (typeof KusanagiRUM !== 'undefined') {
+                const stats = KusanagiRUM.getSessionStats();
+                console.log('📊 Session Stats:', stats);
+            }
+        }, 300000);
     </script>
 </body>
 

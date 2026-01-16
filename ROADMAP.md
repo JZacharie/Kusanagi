@@ -55,13 +55,14 @@ Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubern
 
 ## 🚧 Fonctionnalités Planifiées
 
-### v0.6.0 - RUM & Observabilité
-- [ ] **Real User Monitoring (RUM)** - Intégration OpenObserve
-  - [ ] Tracking des actions utilisateur
-  - [ ] Session replay
-  - [ ] Performance monitoring
-  - [ ] Error tracking
-- [ ] Inspiré de demo-RUM
+### v0.6.0 - RUM & Observabilité (current)
+- [x] **Module RUM** (`rum.js`) - Real User Monitoring vanilla JS
+- [x] Tracking page load (load time, DOM ready, TTFB)
+- [x] Tracking erreurs JavaScript et promesses non gérées
+- [x] Tracking interactions utilisateur (clics sur boutons/liens)
+- [x] Tracking navigation et visibilité
+- [x] Stockage session pour historique des events
+- [ ] Intégration OpenObserve (future)
 
 ### v0.5.0 - Chatbot & MCP Integration
 - [ ] **Chatbot intégré** - Interroger le status du cluster
