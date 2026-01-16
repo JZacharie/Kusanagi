@@ -5,6 +5,7 @@ use tracing::info;
 
 mod argocd;
 mod cluster;
+mod events;
 mod nodes;
 
 #[derive(Deserialize)]
@@ -79,6 +80,19 @@ async fn cluster_overview() -> impl Responder {
     }
 }
 
+#[get("/api/events")]
+async fn k8s_events() -> impl Responder {
+    match events::get_events().await {
+        Ok(events) => HttpResponse::Ok().json(events),
+        Err(e) => {
+            tracing::error!("Failed to get events: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -94,9 +108,11 @@ async fn main() -> std::io::Result<()> {
             .service(argocd_sync)
             .service(nodes_status)
             .service(cluster_overview)
+            .service(k8s_events)
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
+

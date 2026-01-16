@@ -44,7 +44,18 @@ Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubern
 - [x] **Section PVC Monitoring** - Table des PVCs avec capacité et status
 - [x] API `/api/cluster/overview` pour stats cluster
 
-### v0.4.0 - RUM & Observabilité
+### v0.5.0 - Kubernetes Events Monitoring
+- [x] **Section Events** - Events Kubernetes de la dernière heure
+- [x] Stats: total, warnings, normal
+- [x] Table avec type, objet, reason, message, age, count
+- [x] Warnings affichés en premier
+- [x] API `/api/events` pour les events K8s
+
+---
+
+## 🚧 Fonctionnalités Planifiées
+
+### v0.6.0 - RUM & Observabilité
 - [ ] **Real User Monitoring (RUM)** - Intégration OpenObserve
   - [ ] Tracking des actions utilisateur
   - [ ] Session replay

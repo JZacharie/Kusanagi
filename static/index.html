@@ -208,6 +208,37 @@
             </div>
         </section>
 
+        <!-- Kubernetes Events Section -->
+        <section class="argocd-section" style="margin-top: 2rem;">
+            <h2 class="section-title">🔔 Kubernetes Events (Last Hour)</h2>
+
+            <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stat-box">
+                    <div class="stat-value" id="events-total">-</div>
+                    <div class="stat-label">Total Events</div>
+                </div>
+                <div class="stat-box unhealthy">
+                    <div class="stat-value" id="events-warnings">-</div>
+                    <div class="stat-label">Warnings</div>
+                </div>
+                <div class="stat-box healthy">
+                    <div class="stat-value" id="events-normal">-</div>
+                    <div class="stat-label">Normal</div>
+                </div>
+            </div>
+
+            <div class="issues-table-container" id="events-container" style="border-color: var(--neon-magenta);">
+                <div class="issues-table-header"
+                    style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                    <span class="issues-table-title" style="color: var(--neon-magenta);">⚠️ Recent Events</span>
+                    <span class="issues-count" id="events-table-count" style="background: var(--neon-magenta);">0</span>
+                </div>
+                <div id="events-content">
+                    <div class="loading">Loading events...</div>
+                </div>
+            </div>
+        </section>
+
         <!-- Footer -->
         <footer class="footer">
             <p class="footer-quote">"Your effort to remain what you are is what limits you."</p>
@@ -546,16 +577,74 @@
             `;
             container.innerHTML = table;
         }
+        // === KUBERNETES EVENTS ===
+        async function fetchEvents() {
+            try {
+                const response = await fetch('/api/events');
+                const data = await response.json();
+
+                if (!data.error) {
+                    document.getElementById('events-total').textContent = data.total_events || 0;
+                    document.getElementById('events-warnings').textContent = data.warning_count || 0;
+                    document.getElementById('events-normal').textContent = data.normal_count || 0;
+                    document.getElementById('events-table-count').textContent = data.events?.length || 0;
+
+                    renderEventsTable(data.events || []);
+                }
+            } catch (error) {
+                console.error('Failed to fetch events:', error);
+            }
+        }
+
+        function renderEventsTable(events) {
+            const container = document.getElementById('events-content');
+
+            if (!events || events.length === 0) {
+                container.innerHTML = '<div class="no-issues" style="color: var(--neon-magenta);">No events in the last hour ✓</div>';
+                return;
+            }
+
+            const table = `
+                <table class="issues-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Object</th>
+                            <th>Reason</th>
+                            <th>Message</th>
+                            <th>Age</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${events.slice(0, 30).map(evt => `
+                            <tr class="${evt.event_type.toLowerCase()}">
+                                <td><span class="event-type ${evt.event_type.toLowerCase()}">${evt.event_type}</span></td>
+                                <td class="event-object">${evt.involved_object_kind}/${evt.involved_object_name.substring(0, 30)}${evt.involved_object_name.length > 30 ? '...' : ''}</td>
+                                <td class="event-reason">${evt.reason}</td>
+                                <td class="event-message" title="${evt.message}">${evt.message.substring(0, 60)}${evt.message.length > 60 ? '...' : ''}</td>
+                                <td class="event-age">${evt.age || '-'}</td>
+                                <td class="event-count">${evt.count}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                ${events.length > 30 ? `<div class="table-footer">Showing 30 of ${events.length} events</div>` : ''}
+            `;
+            container.innerHTML = table;
+        }
 
         // Initial fetches
         fetchArgoStatus();
         fetchNodesStatus();
         fetchClusterOverview();
+        fetchEvents();
 
         // Refresh intervals
         setInterval(fetchArgoStatus, 30000);
         setInterval(fetchNodesStatus, 30000);
         setInterval(fetchClusterOverview, 60000);
+        setInterval(fetchEvents, 30000);
     </script>
 </body>
 
