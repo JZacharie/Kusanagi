@@ -528,6 +528,13 @@
             container.innerHTML = `<div class="loading" style="color: #ff4444;">Error: ${message}</div>`;
         }
 
+        // === GLOBAL VARIABLES ===
+        let storageData = [];
+        let storagePage = 1;
+        let storagePerPage = 10;
+        let storageSortField = 'usage_percent';
+        let storageSortDir = 'desc';
+
         // Initial fetch
         fetchArgoStatus();
         fetchNodesStatus();
@@ -574,28 +581,16 @@
                 if (a.pods_in_error !== b.pods_in_error) return b.pods_in_error - a.pods_in_error;
                 if (a.architecture !== b.architecture) return a.architecture.localeCompare(b.architecture);
                 return a.name.localeCompare(b.name);
-                // Sort nodes: errors first, then by architecture, then by name
-                nodes.sort((a, b) => {
-                    if (a.pods_in_error !== b.pods_in_error) return b.pods_in_error - a.pods_in_error;
-                    if (a.architecture !== b.architecture) return a.architecture.localeCompare(b.architecture);
-                    return a.name.localeCompare(b.name);
-                });
+            });
 
-                // === STORAGE VARIABLES ===
-                let storageData = [];
-                let storagePage = 1;
-                let storagePerPage = 10;
-                let storageSortField = 'usage_percent';
-                let storageSortDir = 'desc';
+            const html = nodes.map(node => {
+                const archClass = node.architecture === 'arm64' ? 'arch-arm' : 'arch-amd';
+                const statusClass = node.status === 'Ready' ? 'node-ready' : 'node-notready';
+                const nodeType = node.labels?.type || node.labels?.['node.kubernetes.io/instance-type'] || 'node';
+                const podPercent = Math.round((node.pod_count / parseInt(node.pod_capacity)) * 100);
+                const podBarClass = podPercent > 80 ? 'bar-danger' : podPercent > 60 ? 'bar-warning' : 'bar-ok';
 
-                const html = nodes.map(node => {
-                    const archClass = node.architecture === 'arm64' ? 'arch-arm' : 'arch-amd';
-                    const statusClass = node.status === 'Ready' ? 'node-ready' : 'node-notready';
-                    const nodeType = node.labels?.type || node.labels?.['node.kubernetes.io/instance-type'] || 'node';
-                    const podPercent = Math.round((node.pod_count / parseInt(node.pod_capacity)) * 100);
-                    const podBarClass = podPercent > 80 ? 'bar-danger' : podPercent > 60 ? 'bar-warning' : 'bar-ok';
-
-                    return `
+                return `
                     <div class="node-card ${statusClass} ${node.pods_in_error > 0 ? 'has-errors' : ''}">
                         <div class="node-header">
                             <div class="node-title">
@@ -644,95 +639,95 @@
                         </div>
                     </div>
                 `;
-                }).join('');
+            }).join('');
 
-                container.innerHTML = `<div class="nodes-grid">${html}</div>`;
-            }
+            container.innerHTML = `<div class="nodes-grid">${html}</div>`;
+        }
 
         // === CLUSTER OVERVIEW ===
         async function fetchClusterOverview() {
-                    try {
-                        const response = await fetch('/api/cluster/overview');
-                        const data = await response.json();
+            try {
+                const response = await fetch('/api/cluster/overview');
+                const data = await response.json();
 
-                        if (!data.error) {
-                            // Quick nav stats
-                            document.getElementById('ns-count').textContent = data.namespace_count || 0;
-                            document.getElementById('pvc-count').textContent = data.pvc_count || 0;
-                            document.getElementById('pvc-capacity').textContent = data.pvc_total_capacity || '-';
+                if (!data.error) {
+                    // Quick nav stats
+                    document.getElementById('ns-count').textContent = data.namespace_count || 0;
+                    document.getElementById('pvc-count').textContent = data.pvc_count || 0;
+                    document.getElementById('pvc-capacity').textContent = data.pvc_total_capacity || '-';
 
-                            // PVC section stats
-                            const pvcs = data.pvcs || [];
-                            const bound = pvcs.filter(p => p.status === 'Bound').length;
-                            const pending = pvcs.filter(p => p.status !== 'Bound').length;
+                    // PVC section stats
+                    const pvcs = data.pvcs || [];
+                    const bound = pvcs.filter(p => p.status === 'Bound').length;
+                    const pending = pvcs.filter(p => p.status !== 'Bound').length;
 
-                            document.getElementById('pvc-total-count').textContent = data.pvc_count || 0;
-                            document.getElementById('pvc-bound-count').textContent = bound;
-                            document.getElementById('pvc-pending-count').textContent = pending;
-                            document.getElementById('pvc-total-storage').textContent = data.pvc_total_capacity || '-';
-                            document.getElementById('pvc-table-count').textContent = pvcs.length;
+                    document.getElementById('pvc-total-count').textContent = data.pvc_count || 0;
+                    document.getElementById('pvc-bound-count').textContent = bound;
+                    document.getElementById('pvc-pending-count').textContent = pending;
+                    document.getElementById('pvc-total-storage').textContent = data.pvc_total_capacity || '-';
+                    document.getElementById('pvc-table-count').textContent = pvcs.length;
 
-                            /* Document count updated by storage fetch now */
-                        }
-                    } catch (error) {
-                        console.error('Failed to fetch cluster overview:', error);
-                    }
+                    /* Document count updated by storage fetch now */
                 }
+            } catch (error) {
+                console.error('Failed to fetch cluster overview:', error);
+            }
+        }
 
         // === STORAGE MONITORING ===
         async function fetchStorageStatus() {
-                    try {
-                        const response = await fetch('/api/storage');
-                        const data = await response.json();
+            try {
+                const response = await fetch('/api/storage');
+                const data = await response.json();
 
-                        if (!data.error) {
-                            storageData = data.pvcs || [];
-                            document.getElementById('pvc-table-count').textContent = storageData.length;
-                            renderStorageTable();
-                        }
-                    } catch (error) {
-                        console.error('Failed to fetch storage status:', error);
-                        document.getElementById('pvc-content').innerHTML =
-                            '<div class="loading" style="color: #ff4444;">Failed to fetch storage data</div>';
-                    }
+                if (!data.error) {
+                    storageData = data.pvcs || [];
+                    document.getElementById('pvc-table-count').textContent = storageData.length;
+                    renderStorageTable();
                 }
+            } catch (error) {
+                console.error('Failed to fetch storage status:', error);
+                document.getElementById('pvc-content').innerHTML =
+                    '<div class="loading" style="color: #ff4444;">Failed to fetch storage data</div>';
+            }
+        }
 
         function renderStorageTable() {
-                    const container = document.getElementById('pvc-content');
+            const container = document.getElementById('pvc-content');
 
-                    if (!storageData || storageData.length === 0) {
-                        container.innerHTML = '<div class="no-issues" style="color: var(--neon-cyan);">No PVCs found</div>';
-                        return;
-                    }
+            if (!storageData || storageData.length === 0) {
+                container.innerHTML = '<div class="no-issues" style="color: var(--neon-cyan);">No PVCs found</div>';
+                return;
+            }
 
-                    // Sort
-                    const sortedData = [...storageData].sort((a, b) => {
-                        let valA = a[storageSortField];
-                        let valB = b[storageSortField];
+            // Sort
+            const sortedData = [...storageData].sort((a, b) => {
+                let valA = a[storageSortField];
+                let valB = b[storageSortField];
 
-                        // Handle nulls
-                        if (valA === null || valA === undefined) valA = -1;
-                        if (valB === null || valB === undefined) valB = -1;
+                // Handle nulls
+                if (valA === null || valA === undefined) valA = -1;
+                if (valB === null || valB === undefined) valB = -1;
 
-                        if (typeof valA === 'string') {
-                            valA = valA.toLowerCase();
-                            valB = valB.toLowerCase();
-                        }
+                if (typeof valA === 'string') {
+                    valA = valA.toLowerCase();
+                    valB = valB.toLowerCase();
+                }
 
-                        if (valA < valB) return storageSortDir === 'asc' ? -1 : 1;
-                        if (valA > valB) return storageSortDir === 'asc' ? 1 : -1;
-                        return 0;
-                    });
+                if (valA < valB) return storageSortDir === 'asc' ? -1 : 1;
+                if (valA > valB) return storageSortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
 
-                    // Pagination
-                    const totalPages = Math.ceil(sortedData.length / storagePerPage);
-                    if (storagePage > totalPages) storagePage = totalPages || 1;
-                    const start = (storagePage - 1) * storagePerPage;
-                    const end = start + storagePerPage;
-                    const pageData = sortedData.slice(start, end);
+            // Pagination
+            const totalPages = Math.ceil(sortedData.length / storagePerPage);
+            if (storagePage > totalPages) storagePage = totalPages || 1;
+            const start = (storagePage - 1) * storagePerPage;
+            const end = start + storagePerPage;
+            const pageData = sortedData.slice(start, end);
 
-                    // Render Table
-                    const table = `
+            // Render Table
+            const table = `
                 <table class="issues-table">
                     <thead>
                         <tr>
@@ -746,11 +741,11 @@
                     </thead>
                     <tbody>
                         ${pageData.map(pvc => {
-                        const percent = pvc.usage_percent || 0;
-                        const barClass = percent > 90 ? 'bar-danger' : percent > 75 ? 'bar-warning' : 'bar-ok';
-                        const usedStr = formatBytes(pvc.used_bytes) || '?';
+                const percent = pvc.usage_percent || 0;
+                const barClass = percent > 90 ? 'bar-danger' : percent > 75 ? 'bar-warning' : 'bar-ok';
+                const usedStr = formatBytes(pvc.used_bytes) || '?';
 
-                        return `
+                return `
                             <tr>
                                 <td class="app-name">${pvc.name}</td>
                                 <td>${pvc.namespace}</td>
@@ -782,71 +777,71 @@
                     </select>
                 </div>
             `;
-                    container.innerHTML = table;
-                }
+            container.innerHTML = table;
+        }
 
         function sortStorage(field) {
-                    if (storageSortField === field) {
-                        storageSortDir = storageSortDir === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        storageSortField = field;
-                        storageSortDir = 'desc'; // Default to desc for new field (esp numbers)
-                    }
-                    renderStorageTable();
-                }
+            if (storageSortField === field) {
+                storageSortDir = storageSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                storageSortField = field;
+                storageSortDir = 'desc'; // Default to desc for new field (esp numbers)
+            }
+            renderStorageTable();
+        }
 
         function getSortArrow(field) {
-                    if (storageSortField !== field) return '';
-                    return storageSortDir === 'asc' ? '▲' : '▼';
-                }
+            if (storageSortField !== field) return '';
+            return storageSortDir === 'asc' ? '▲' : '▼';
+        }
 
         function changeStoragePage(delta) {
-                    storagePage += delta;
-                    renderStorageTable();
-                }
-        
+            storagePage += delta;
+            renderStorageTable();
+        }
+
         function updateStoragePerPage(val) {
-                    storagePerPage = parseInt(val);
-                    storagePage = 1;
-                    renderStorageTable();
-                }
+            storagePerPage = parseInt(val);
+            storagePage = 1;
+            renderStorageTable();
+        }
 
         function formatBytes(bytes) {
-                    if (!bytes && bytes !== 0) return null;
-                    if (bytes === 0) return '0 B';
-                    const k = 1024;
-                    const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
-                    const i = Math.floor(Math.log(bytes) / Math.log(k));
-                    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-                }
+            if (!bytes && bytes !== 0) return null;
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
         // === KUBERNETES EVENTS ===
         async function fetchEvents() {
-                    try {
-                        const response = await fetch('/api/events');
-                        const data = await response.json();
+            try {
+                const response = await fetch('/api/events');
+                const data = await response.json();
 
-                        if (!data.error) {
-                            document.getElementById('events-total').textContent = data.total_events || 0;
-                            document.getElementById('events-warnings').textContent = data.warning_count || 0;
-                            document.getElementById('events-normal').textContent = data.normal_count || 0;
-                            document.getElementById('events-table-count').textContent = data.events?.length || 0;
+                if (!data.error) {
+                    document.getElementById('events-total').textContent = data.total_events || 0;
+                    document.getElementById('events-warnings').textContent = data.warning_count || 0;
+                    document.getElementById('events-normal').textContent = data.normal_count || 0;
+                    document.getElementById('events-table-count').textContent = data.events?.length || 0;
 
-                            renderEventsTable(data.events || []);
-                        }
-                    } catch (error) {
-                        console.error('Failed to fetch events:', error);
-                    }
+                    renderEventsTable(data.events || []);
                 }
+            } catch (error) {
+                console.error('Failed to fetch events:', error);
+            }
+        }
 
         function renderEventsTable(events) {
-                    const container = document.getElementById('events-content');
+            const container = document.getElementById('events-content');
 
-                    if (!events || events.length === 0) {
-                        container.innerHTML = '<div class="no-issues" style="color: var(--neon-magenta);">No events in the last hour ✓</div>';
-                        return;
-                    }
+            if (!events || events.length === 0) {
+                container.innerHTML = '<div class="no-issues" style="color: var(--neon-magenta);">No events in the last hour ✓</div>';
+                return;
+            }
 
-                    const table = `
+            const table = `
                 <table class="issues-table">
                     <thead>
                         <tr>
@@ -873,40 +868,40 @@
                 </table>
                 ${events.length > 30 ? `<div class="table-footer">Showing 30 of ${events.length} events</div>` : ''}
             `;
-                    container.innerHTML = table;
-                }
+            container.innerHTML = table;
+        }
 
         // === BACKUPS ===
         async function fetchBackupsStatus() {
-                    try {
-                        const response = await fetch('/api/backups');
-                        const data = await response.json();
+            try {
+                const response = await fetch('/api/backups');
+                const data = await response.json();
 
-                        if (!data.error) {
-                            document.getElementById('backup-cronjobs').textContent = data.total_cronjobs || 0;
-                            document.getElementById('backup-active').textContent = data.active_jobs || 0;
-                            document.getElementById('backup-succeeded').textContent = data.succeeded_jobs || 0;
-                            document.getElementById('backup-failed').textContent = data.failed_jobs || 0;
-                            document.getElementById('backups-count').textContent = data.total_cronjobs || 0;
+                if (!data.error) {
+                    document.getElementById('backup-cronjobs').textContent = data.total_cronjobs || 0;
+                    document.getElementById('backup-active').textContent = data.active_jobs || 0;
+                    document.getElementById('backup-succeeded').textContent = data.succeeded_jobs || 0;
+                    document.getElementById('backup-failed').textContent = data.failed_jobs || 0;
+                    document.getElementById('backups-count').textContent = data.total_cronjobs || 0;
 
-                            renderBackupsTable(data.cronjobs || []);
-                        }
-                    } catch (error) {
-                        console.error('Failed to fetch backups:', error);
-                        document.getElementById('backups-content').innerHTML =
-                            '<div class="loading" style="color: #ff4444;">Failed to load backups</div>';
-                    }
+                    renderBackupsTable(data.cronjobs || []);
                 }
+            } catch (error) {
+                console.error('Failed to fetch backups:', error);
+                document.getElementById('backups-content').innerHTML =
+                    '<div class="loading" style="color: #ff4444;">Failed to load backups</div>';
+            }
+        }
 
         function renderBackupsTable(cronjobs) {
-                    const container = document.getElementById('backups-content');
+            const container = document.getElementById('backups-content');
 
-                    if (!cronjobs || cronjobs.length === 0) {
-                        container.innerHTML = '<div class="no-issues" style="color: var(--neon-green);">No CronJobs found</div>';
-                        return;
-                    }
+            if (!cronjobs || cronjobs.length === 0) {
+                container.innerHTML = '<div class="no-issues" style="color: var(--neon-green);">No CronJobs found</div>';
+                return;
+            }
 
-                    const table = `
+            const table = `
                 <table class="issues-table">
                     <thead>
                         <tr>
@@ -920,15 +915,15 @@
                     </thead>
                     <tbody>
                         ${cronjobs.map(cj => {
-                        const statusClass = cj.suspend ? 'suspended' : (cj.active_jobs > 0 ? 'running' : 'healthy');
-                        const statusText = cj.suspend ? 'Suspended' : (cj.active_jobs > 0 ? 'Running' : 'Idle');
+                const statusClass = cj.suspend ? 'suspended' : (cj.active_jobs > 0 ? 'running' : 'healthy');
+                const statusText = cj.suspend ? 'Suspended' : (cj.active_jobs > 0 ? 'Running' : 'Idle');
 
-                        const recentJobs = (cj.recent_jobs || []).slice(0, 3).map(job => {
-                            const jobClass = job.status.toLowerCase();
-                            return `<span class="job-badge ${jobClass}" title="${job.name}\nDuration: ${job.duration || '-'}">${job.status === 'Succeeded' ? '✓' : job.status === 'Failed' ? '✗' : '●'}</span>`;
-                        }).join(' ');
+                const recentJobs = (cj.recent_jobs || []).slice(0, 3).map(job => {
+                    const jobClass = job.status.toLowerCase();
+                    return `<span class="job-badge ${jobClass}" title="${job.name}\nDuration: ${job.duration || '-'}">${job.status === 'Succeeded' ? '✓' : job.status === 'Failed' ? '✗' : '●'}</span>`;
+                }).join(' ');
 
-                        return `
+                return `
                                 <tr>
                                     <td class="app-name">${cj.name}</td>
                                     <td>${cj.namespace}</td>
@@ -938,46 +933,46 @@
                                     <td class="recent-jobs">${recentJobs || '-'}</td>
                                 </tr>
                             `;
-                    }).join('')}
+            }).join('')}
                     </tbody>
                 </table>
             `;
-                    container.innerHTML = table;
-                }
+            container.innerHTML = table;
+        }
 
         // Initialize RUM tracking
         if (typeof KusanagiRUM !== 'undefined') {
-                KusanagiRUM.init({
-                    serviceName: 'kusanagi',
-                    serviceVersion: '0.6.0',
-                    environment: 'production',
-                    debug: false
-                });
+            KusanagiRUM.init({
+                serviceName: 'kusanagi',
+                serviceVersion: '0.6.0',
+                environment: 'production',
+                debug: false
+            });
+        }
+
+        // Initial fetches
+        fetchArgoStatus();
+        fetchNodesStatus();
+        fetchClusterOverview();
+        fetchEvents();
+        fetchBackupsStatus();
+        fetchStorageStatus();
+
+        // Refresh intervals
+        setInterval(fetchArgoStatus, 30000);
+        setInterval(fetchNodesStatus, 30000);
+        setInterval(fetchClusterOverview, 60000);
+        setInterval(fetchEvents, 30000);
+        setInterval(fetchBackupsStatus, 60000);
+        setInterval(fetchStorageStatus, 60000);
+
+        // Track session stats every 5 minutes
+        setInterval(() => {
+            if (typeof KusanagiRUM !== 'undefined') {
+                const stats = KusanagiRUM.getSessionStats();
+                console.log('📊 Session Stats:', stats);
             }
-
-            // Initial fetches
-            fetchArgoStatus();
-            fetchNodesStatus();
-            fetchClusterOverview();
-            fetchEvents();
-            fetchBackupsStatus();
-            fetchStorageStatus();
-
-            // Refresh intervals
-            setInterval(fetchArgoStatus, 30000);
-            setInterval(fetchNodesStatus, 30000);
-            setInterval(fetchClusterOverview, 60000);
-            setInterval(fetchEvents, 30000);
-            setInterval(fetchBackupsStatus, 60000);
-            setInterval(fetchStorageStatus, 60000);
-
-            // Track session stats every 5 minutes
-            setInterval(() => {
-                if (typeof KusanagiRUM !== 'undefined') {
-                    const stats = KusanagiRUM.getSessionStats();
-                    console.log('📊 Session Stats:', stats);
-                }
-            }, 300000);
+        }, 300000);
     </script>
 </body>
 
