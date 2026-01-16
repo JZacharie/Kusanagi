@@ -1,5 +1,5 @@
 # Stage 1: Chef - Compute recipe
-FROM docker.io/library/rust:1.91-slim-bullseye AS chef
+FROM docker.io/library/rust:1-slim-bookworm AS chef
 WORKDIR /app
 RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 RUN cargo install cargo-chef --locked
