@@ -337,43 +337,66 @@
                 return;
             }
 
+            // Sort nodes: errors first, then by architecture, then by name
+            nodes.sort((a, b) => {
+                if (a.pods_in_error !== b.pods_in_error) return b.pods_in_error - a.pods_in_error;
+                if (a.architecture !== b.architecture) return a.architecture.localeCompare(b.architecture);
+                return a.name.localeCompare(b.name);
+            });
+
             const html = nodes.map(node => {
                 const archClass = node.architecture === 'arm64' ? 'arch-arm' : 'arch-amd';
                 const statusClass = node.status === 'Ready' ? 'node-ready' : 'node-notready';
+                const nodeType = node.labels?.type || node.labels?.['node.kubernetes.io/instance-type'] || 'node';
+                const podPercent = Math.round((node.pod_count / parseInt(node.pod_capacity)) * 100);
+                const podBarClass = podPercent > 80 ? 'bar-danger' : podPercent > 60 ? 'bar-warning' : 'bar-ok';
 
                 return `
-                    <div class="node-card ${statusClass}">
+                    <div class="node-card ${statusClass} ${node.pods_in_error > 0 ? 'has-errors' : ''}">
                         <div class="node-header">
-                            <span class="node-name">${node.name}</span>
+                            <div class="node-title">
+                                <span class="node-name">${node.name}</span>
+                                <span class="node-type">${nodeType}</span>
+                            </div>
                             <span class="arch-badge ${archClass}">${node.architecture}</span>
                         </div>
-                        <div class="node-metrics">
-                            <div class="metric">
-                                <span class="metric-label">CPU</span>
-                                <span class="metric-value">${node.cpu_allocatable}/${node.cpu_capacity}</span>
+                        
+                        <div class="node-resources">
+                            <div class="resource-row">
+                                <span class="resource-icon">⚡</span>
+                                <span class="resource-label">CPU</span>
+                                <span class="resource-value">${node.cpu_capacity} cores</span>
                             </div>
-                            <div class="metric">
-                                <span class="metric-label">Memory</span>
-                                <span class="metric-value">${node.memory_allocatable}</span>
+                            <div class="resource-row">
+                                <span class="resource-icon">🧠</span>
+                                <span class="resource-label">RAM</span>
+                                <span class="resource-value">${node.memory_allocatable}</span>
                             </div>
-                            <div class="metric">
-                                <span class="metric-label">Pods</span>
-                                <span class="metric-value">${node.pod_count}/${node.pod_capacity}</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-label">Uptime</span>
-                                <span class="metric-value">${node.uptime || '-'}</span>
+                            <div class="resource-row pods-row">
+                                <span class="resource-icon">📦</span>
+                                <span class="resource-label">Pods</span>
+                                <div class="pod-bar-container">
+                                    <div class="pod-bar ${podBarClass}" style="width: ${podPercent}%"></div>
+                                    <span class="pod-text">${node.pod_count}/${node.pod_capacity}</span>
+                                </div>
                             </div>
                         </div>
+
+                        <div class="node-uptime">
+                            <span class="uptime-icon">⏱</span>
+                            <span class="uptime-value">${node.uptime || 'Unknown'}</span>
+                        </div>
+
                         ${node.pods_in_error > 0 ? `
                             <div class="node-errors">
-                                <span class="error-count">⚠ ${node.pods_in_error} pods in error</span>
-                                <div class="error-pods">${node.error_pod_names.slice(0, 3).join(', ')}${node.error_pod_names.length > 3 ? '...' : ''}</div>
+                                <div class="error-header">⚠️ ${node.pods_in_error} pod${node.pods_in_error > 1 ? 's' : ''} in error</div>
+                                <div class="error-pods">${node.error_pod_names.map(p => `<span class="error-pod">${p}</span>`).join('')}</div>
                             </div>
                         ` : ''}
-                        <div class="node-info">
-                            <span class="info-item">${node.os}</span>
-                            <span class="info-item">${node.kubelet_version}</span>
+
+                        <div class="node-footer">
+                            <span class="footer-item" title="${node.kernel_version}">${node.container_runtime.split('://')[0]}</span>
+                            <span class="footer-item">${node.kubelet_version}</span>
                         </div>
                     </div>
                 `;
