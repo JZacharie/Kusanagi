@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use tracing::{info, warn};
 
-use crate::{argocd, cluster, events, nodes};
+use crate::{argocd, cluster, events, nodes, backups};
 
 /// Chat message request
 #[derive(Clone, Debug, Deserialize)]
@@ -17,6 +17,24 @@ pub struct ChatResponse {
     pub data: Option<serde_json::Value>,
 }
 
+/// Ollama configuration
+const OLLAMA_URL: &str = "http://192.168.0.52:11434/api/generate";
+const OLLAMA_MODEL: &str = "ministral-3:14b";
+
+/// Ollama request structure
+#[derive(Serialize)]
+struct OllamaRequest {
+    model: String,
+    prompt: String,
+    stream: bool,
+}
+
+/// Ollama response structure
+#[derive(Deserialize)]
+struct OllamaResponse {
+    response: String,
+}
+
 /// Available commands
 const HELP_TEXT: &str = r#"**Kusanagi Chat Commands** 🤖
 
@@ -27,24 +45,26 @@ Available commands:
 - `/pods` - Show pods in error
 - `/events` - Show recent warning events
 - `/argocd` - Show ArgoCD issues
+- `/backups` - Show backup jobs status
 - `/namespaces` - Show namespace count
 - `/pvcs` - Show PVC summary
 
-Or just type a question and I'll try to help!"#;
+Or just ask me anything in natural language! I'm powered by Ollama AI."#;
 
 /// Process chat message and return response
 pub async fn process_message(request: ChatRequest) -> ChatResponse {
-    let message = request.message.trim().to_lowercase();
+    let message = request.message.trim();
+    let message_lower = message.to_lowercase();
     
     info!("Chat message received: {}", message);
 
     // Handle commands
-    if message.starts_with('/') {
-        return handle_command(&message).await;
+    if message_lower.starts_with('/') {
+        return handle_command(&message_lower).await;
     }
 
-    // Handle natural language queries
-    handle_query(&message).await
+    // Handle natural language queries with Ollama
+    handle_query_with_ollama(message).await
 }
 
 async fn handle_command(command: &str) -> ChatResponse {
@@ -60,6 +80,7 @@ async fn handle_command(command: &str) -> ChatResponse {
         "/pods" => get_error_pods().await,
         "/events" => get_warning_events().await,
         "/argocd" => get_argocd_summary().await,
+        "/backups" => get_backups_summary().await,
         "/namespaces" => get_namespaces_summary().await,
         "/pvcs" => get_pvcs_summary().await,
         
@@ -71,38 +92,117 @@ async fn handle_command(command: &str) -> ChatResponse {
     }
 }
 
-async fn handle_query(query: &str) -> ChatResponse {
-    // Simple keyword matching for natural language
-    if query.contains("node") || query.contains("server") {
-        return get_nodes_summary().await;
+/// Query Ollama with context about the Kubernetes cluster
+async fn handle_query_with_ollama(query: &str) -> ChatResponse {
+    // Build context from cluster state
+    let context = build_cluster_context().await;
+    
+    let system_prompt = format!(
+        r#"Tu es Kusanagi, un assistant IA pour la gestion d'un cluster Kubernetes K3s. 
+Tu es inspiré par Ghost in the Shell et tu as un style cyberpunk.
+Voici l'état actuel du cluster:
+
+{}
+
+L'utilisateur te pose une question. Réponds de manière concise et utile.
+Si la question concerne l'état du cluster, utilise les données ci-dessus.
+Question: {}"#,
+        context, query
+    );
+
+    match query_ollama(&system_prompt).await {
+        Ok(response) => ChatResponse {
+            response,
+            response_type: "ai".to_string(),
+            data: None,
+        },
+        Err(e) => {
+            warn!("Ollama query failed: {}", e);
+            // Fallback to simple response
+            ChatResponse {
+                response: format!(
+                    "⚠️ AI response unavailable ({})\n\nTry using commands like `/status`, `/nodes`, `/events` or `/help`.",
+                    e
+                ),
+                response_type: "error".to_string(),
+                data: None,
+            }
+        }
     }
-    if query.contains("pod") || query.contains("container") {
-        return get_error_pods().await;
-    }
-    if query.contains("event") || query.contains("warning") {
-        return get_warning_events().await;
-    }
-    if query.contains("argocd") || query.contains("deploy") || query.contains("sync") {
-        return get_argocd_summary().await;
-    }
-    if query.contains("storage") || query.contains("pvc") || query.contains("disk") {
-        return get_pvcs_summary().await;
-    }
-    if query.contains("namespace") {
-        return get_namespaces_summary().await;
-    }
-    if query.contains("status") || query.contains("health") || query.contains("overview") {
-        return get_cluster_status().await;
+}
+
+/// Build context string from cluster state
+async fn build_cluster_context() -> String {
+    let mut context_parts = vec![];
+
+    if let Ok(nodes) = nodes::get_nodes_status().await {
+        context_parts.push(format!(
+            "Nodes: {} total, {} ready, {} not ready",
+            nodes.total_nodes, nodes.ready_nodes, nodes.not_ready_nodes
+        ));
     }
 
-    ChatResponse {
-        response: format!(
-            "I understand you're asking about: **{}**\n\nTry using commands like `/status`, `/nodes`, `/events` for specific information, or `/help` for all commands.",
-            query
-        ),
-        response_type: "info".to_string(),
-        data: None,
+    if let Ok(overview) = cluster::get_cluster_overview().await {
+        context_parts.push(format!(
+            "Namespaces: {}, PVCs: {} ({})",
+            overview.namespace_count, overview.pvc_count, overview.pvc_total_capacity
+        ));
     }
+
+    if let Ok(events) = events::get_events().await {
+        context_parts.push(format!(
+            "Events (1h): {} total, {} warnings",
+            events.total_events, events.warning_count
+        ));
+    }
+
+    if let Ok(argocd) = argocd::get_argocd_status().await {
+        context_parts.push(format!(
+            "ArgoCD: {}/{} healthy, {} issues",
+            argocd.healthy, argocd.total, argocd.apps_with_issues.len()
+        ));
+    }
+
+    if let Ok(backups) = backups::get_backups_status().await {
+        context_parts.push(format!(
+            "Backups: {} CronJobs, {} active, {} succeeded, {} failed",
+            backups.total_cronjobs, backups.active_jobs, backups.succeeded_jobs, backups.failed_jobs
+        ));
+    }
+
+    context_parts.join("\n")
+}
+
+/// Query Ollama API
+async fn query_ollama(prompt: &str) -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    let request = OllamaRequest {
+        model: OLLAMA_MODEL.to_string(),
+        prompt: prompt.to_string(),
+        stream: false,
+    };
+
+    let response = client
+        .post(OLLAMA_URL)
+        .json(&request)
+        .send()
+        .await
+        .map_err(|e| format!("Ollama request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Ollama returned status: {}", response.status()));
+    }
+
+    let ollama_response: OllamaResponse = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Ollama response: {}", e))?;
+
+    Ok(ollama_response.response)
 }
 
 async fn get_cluster_status() -> ChatResponse {
@@ -319,6 +419,56 @@ async fn get_argocd_summary() -> ChatResponse {
         }
         Err(e) => ChatResponse {
             response: format!("Failed to get ArgoCD status: {}", e),
+            response_type: "error".to_string(),
+            data: None,
+        },
+    }
+}
+
+async fn get_backups_summary() -> ChatResponse {
+    match backups::get_backups_status().await {
+        Ok(status) => {
+            let mut lines = vec![format!(
+                "## 📦 Backup Jobs Status\n\n**CronJobs:** {} | **Active:** {} | **Succeeded:** {} | **Failed:** {}\n",
+                status.total_cronjobs, status.active_jobs, status.succeeded_jobs, status.failed_jobs
+            )];
+
+            if status.cronjobs.is_empty() {
+                lines.push("No CronJobs found.".to_string());
+            } else {
+                lines.push("**CronJobs:**\n".to_string());
+                for cj in status.cronjobs.iter().take(10) {
+                    let status_emoji = if cj.suspend {
+                        "⏸️"
+                    } else if cj.active_jobs > 0 {
+                        "🔄"
+                    } else {
+                        "✅"
+                    };
+                    lines.push(format!(
+                        "{} `{}` ({}) | `{}` | Last: {}",
+                        status_emoji,
+                        cj.name,
+                        cj.namespace,
+                        cj.schedule,
+                        cj.last_schedule_age.as_deref().unwrap_or("-")
+                    ));
+                }
+            }
+
+            ChatResponse {
+                response: lines.join("\n"),
+                response_type: "backups".to_string(),
+                data: Some(serde_json::json!({
+                    "cronjobs": status.total_cronjobs,
+                    "active": status.active_jobs,
+                    "succeeded": status.succeeded_jobs,
+                    "failed": status.failed_jobs
+                })),
+            }
+        }
+        Err(e) => ChatResponse {
+            response: format!("Failed to get backup status: {}", e),
             response_type: "error".to_string(),
             data: None,
         },

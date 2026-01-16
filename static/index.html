@@ -75,6 +75,9 @@
             <button class="tab-btn" data-tab="events" onclick="switchTab('events')">
                 <span class="tab-icon">🔔</span> Events
             </button>
+            <button class="tab-btn" data-tab="backups" onclick="switchTab('backups')">
+                <span class="tab-icon">📦</span> Backups
+            </button>
             <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
                 <span class="tab-icon">💬</span> Chat
             </button>
@@ -281,6 +284,41 @@
                         placeholder="Type a command or question... (e.g., /status, /nodes, /events)"
                         onkeypress="handleChatKeypress(event)">
                     <button class="chat-send-btn" onclick="sendChatMessage()">Send ➤</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Backups Section -->
+        <section class="argocd-section tab-content" data-tab="backups" style="display: none;">
+            <h2 class="section-title">📦 Backup Jobs Status</h2>
+
+            <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stat-box">
+                    <div class="stat-value" id="backup-cronjobs">-</div>
+                    <div class="stat-label">CronJobs</div>
+                </div>
+                <div class="stat-box warning">
+                    <div class="stat-value" id="backup-active">-</div>
+                    <div class="stat-label">Running</div>
+                </div>
+                <div class="stat-box healthy">
+                    <div class="stat-value" id="backup-succeeded">-</div>
+                    <div class="stat-label">Succeeded</div>
+                </div>
+                <div class="stat-box unhealthy">
+                    <div class="stat-value" id="backup-failed">-</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+            </div>
+
+            <div class="issues-table-container" id="backups-container" style="border-color: var(--neon-green);">
+                <div class="issues-table-header"
+                    style="background: rgba(0, 255, 136, 0.1); border-color: var(--neon-green);">
+                    <span class="issues-table-title" style="color: var(--neon-green);">⏰ CronJobs & Recent Jobs</span>
+                    <span class="issues-count" id="backups-count" style="background: var(--neon-green);">0</span>
+                </div>
+                <div id="backups-content">
+                    <div class="loading">Loading backup jobs...</div>
                 </div>
             </div>
         </section>
@@ -753,6 +791,75 @@
             container.innerHTML = table;
         }
 
+        // === BACKUPS ===
+        async function fetchBackupsStatus() {
+            try {
+                const response = await fetch('/api/backups');
+                const data = await response.json();
+
+                if (!data.error) {
+                    document.getElementById('backup-cronjobs').textContent = data.total_cronjobs || 0;
+                    document.getElementById('backup-active').textContent = data.active_jobs || 0;
+                    document.getElementById('backup-succeeded').textContent = data.succeeded_jobs || 0;
+                    document.getElementById('backup-failed').textContent = data.failed_jobs || 0;
+                    document.getElementById('backups-count').textContent = data.total_cronjobs || 0;
+
+                    renderBackupsTable(data.cronjobs || []);
+                }
+            } catch (error) {
+                console.error('Failed to fetch backups:', error);
+                document.getElementById('backups-content').innerHTML =
+                    '<div class="loading" style="color: #ff4444;">Failed to load backups</div>';
+            }
+        }
+
+        function renderBackupsTable(cronjobs) {
+            const container = document.getElementById('backups-content');
+
+            if (!cronjobs || cronjobs.length === 0) {
+                container.innerHTML = '<div class="no-issues" style="color: var(--neon-green);">No CronJobs found</div>';
+                return;
+            }
+
+            const table = `
+                <table class="issues-table">
+                    <thead>
+                        <tr>
+                            <th>CronJob</th>
+                            <th>Namespace</th>
+                            <th>Schedule</th>
+                            <th>Last Run</th>
+                            <th>Status</th>
+                            <th>Recent Jobs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${cronjobs.map(cj => {
+                const statusClass = cj.suspend ? 'suspended' : (cj.active_jobs > 0 ? 'running' : 'healthy');
+                const statusText = cj.suspend ? 'Suspended' : (cj.active_jobs > 0 ? 'Running' : 'Idle');
+
+                const recentJobs = (cj.recent_jobs || []).slice(0, 3).map(job => {
+                    const jobClass = job.status.toLowerCase();
+                    return `<span class="job-badge ${jobClass}" title="${job.name}\nDuration: ${job.duration || '-'}">${job.status === 'Succeeded' ? '✓' : job.status === 'Failed' ? '✗' : '●'}</span>`;
+                }).join(' ');
+
+                return `
+                                <tr>
+                                    <td class="app-name">${cj.name}</td>
+                                    <td>${cj.namespace}</td>
+                                    <td><code class="schedule">${cj.schedule}</code></td>
+                                    <td class="last-run">${cj.last_schedule_age || '-'}</td>
+                                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                                    <td class="recent-jobs">${recentJobs || '-'}</td>
+                                </tr>
+                            `;
+            }).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = table;
+        }
+
         // Initialize RUM tracking
         if (typeof KusanagiRUM !== 'undefined') {
             KusanagiRUM.init({
@@ -768,12 +875,14 @@
         fetchNodesStatus();
         fetchClusterOverview();
         fetchEvents();
+        fetchBackupsStatus();
 
         // Refresh intervals
         setInterval(fetchArgoStatus, 30000);
         setInterval(fetchNodesStatus, 30000);
         setInterval(fetchClusterOverview, 60000);
         setInterval(fetchEvents, 30000);
+        setInterval(fetchBackupsStatus, 60000);
 
         // Track session stats every 5 minutes
         setInterval(() => {

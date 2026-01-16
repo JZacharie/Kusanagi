@@ -1209,3 +1209,95 @@ body {
   gap: 0.25rem;
   margin-bottom: 0.5rem;
 }
+
+/* ===================== */
+/* BACKUPS STYLES        */
+/* ===================== */
+
+/* Job status badges */
+.job-badge {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: bold;
+  cursor: help;
+}
+
+.job-badge.succeeded {
+  background: rgba(0, 255, 65, 0.3);
+  color: var(--neon-green);
+  border: 1px solid var(--neon-green);
+}
+
+.job-badge.failed {
+  background: rgba(255, 68, 68, 0.3);
+  color: #ff4444;
+  border: 1px solid #ff4444;
+}
+
+.job-badge.running {
+  background: rgba(0, 255, 255, 0.3);
+  color: var(--neon-cyan);
+  border: 1px solid var(--neon-cyan);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+  }
+
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+  }
+}
+
+/* Schedule display */
+.schedule {
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  background: rgba(0, 255, 65, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  color: var(--neon-green);
+}
+
+/* Last run column */
+.last-run {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: var(--neon-cyan);
+}
+
+/* Recent jobs column */
+.recent-jobs {
+  display: flex;
+  gap: 4px;
+}
+
+/* Status badges for backups */
+.status-badge.running {
+  background: rgba(0, 255, 255, 0.2);
+  color: var(--neon-cyan);
+  border: 1px solid var(--neon-cyan);
+}
+
+.status-badge.suspended {
+  background: rgba(255, 170, 0, 0.2);
+  color: #ffaa00;
+  border: 1px solid #ffaa00;
+}
+
+.status-badge.idle {
+  background: rgba(0, 255, 65, 0.2);
+  color: var(--neon-green);
+  border: 1px solid var(--neon-green);
+}

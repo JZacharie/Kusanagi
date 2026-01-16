@@ -3,7 +3,9 @@ use actix_files::Files;
 use serde::Deserialize;
 use tracing::info;
 
+mod apps;
 mod argocd;
+mod backups;
 mod chat;
 mod cluster;
 mod events;
@@ -94,11 +96,37 @@ async fn k8s_events() -> impl Responder {
     }
 }
 
+#[get("/api/apps")]
+async fn apps_with_resources() -> impl Responder {
+    match apps::get_apps_with_resources().await {
+        Ok(apps) => HttpResponse::Ok().json(apps),
+        Err(e) => {
+            tracing::error!("Failed to get apps with resources: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
 #[post("/api/chat")]
 async fn chat_endpoint(body: web::Json<chat::ChatRequest>) -> impl Responder {
     info!("Chat message: {}", body.message);
     let response = chat::process_message(body.into_inner()).await;
     HttpResponse::Ok().json(response)
+}
+
+#[get("/api/backups")]
+async fn backups_status() -> impl Responder {
+    match backups::get_backups_status().await {
+        Ok(status) => HttpResponse::Ok().json(status),
+        Err(e) => {
+            tracing::error!("Failed to get backups status: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
 }
 
 #[actix_web::main]
@@ -117,12 +145,15 @@ async fn main() -> std::io::Result<()> {
             .service(nodes_status)
             .service(cluster_overview)
             .service(k8s_events)
+            .service(apps_with_resources)
             .service(chat_endpoint)
+            .service(backups_status)
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
+
 
 
