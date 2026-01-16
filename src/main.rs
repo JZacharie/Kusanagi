@@ -10,6 +10,7 @@ mod chat;
 mod cluster;
 mod events;
 mod nodes;
+mod storage;
 
 #[derive(Deserialize)]
 struct SyncRequest {
@@ -129,6 +130,19 @@ async fn backups_status() -> impl Responder {
     }
 }
 
+#[get("/api/storage")]
+async fn storage_status() -> impl Responder {
+    match storage::get_storage_status().await {
+        Ok(status) => HttpResponse::Ok().json(status),
+        Err(e) => {
+            tracing::error!("Failed to get storage status: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -148,12 +162,10 @@ async fn main() -> std::io::Result<()> {
             .service(apps_with_resources)
             .service(chat_endpoint)
             .service(backups_status)
+            .service(storage_status)
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
-
-
-

@@ -1276,6 +1276,7 @@ dependencies = [
  "actix-files",
  "actix-web",
  "chrono",
+ "http",
  "k8s-openapi",
  "kube",
  "reqwest",
