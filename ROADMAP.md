@@ -12,12 +12,19 @@ Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubern
 - [x] Health check endpoint `/health`
 - [x] Serveur Actix-web performant
 
-### v0.2.0 - ArgoCD Monitoring (en cours)
+### v0.2.0 - ArgoCD Monitoring
 - [x] Compteur d'applications ArgoCD (OK/Erreurs)
 - [x] Liste des applications en erreur
 - [x] Durée depuis laquelle une app est en erreur
 - [x] Statuts: Healthy, Progressing, Unknown, OutOfSync
 - [x] ClusterRole RBAC pour accès aux Applications
+
+### v0.2.1 - Smart Issue Detection (current)
+- [x] **Catégorisation intelligente** : Issues réelles vs Upgrades disponibles
+- [x] **Bouton Sync** pour déclencher la synchronisation ArgoCD
+- [x] **Liens directs ArgoCD** vers chaque application
+- [x] Dual tables: Issues et Upgrades séparés
+- [x] RBAC avec permission `patch` pour le sync
 
 ---
 

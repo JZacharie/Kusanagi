@@ -681,6 +681,133 @@ body {
   transform: none;
 }
 
+/* ===================== */
+/* NODE MONITORING STYLES */
+/* ===================== */
+
+.nodes-container {
+  margin-top: 1rem;
+}
+
+.nodes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.node-card {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--neon-green);
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.3s ease;
+}
+
+.node-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 255, 65, 0.2);
+}
+
+.node-card.node-notready {
+  border-color: #ff4444;
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+}
+
+.node-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+}
+
+.node-name {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  color: var(--neon-green);
+  font-size: 0.9rem;
+}
+
+/* Architecture badges with different colors */
+.arch-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.arch-badge.arch-amd {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.arch-badge.arch-arm {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.node-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  color: #888;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  color: var(--neon-cyan);
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+.node-errors {
+  background: rgba(255, 68, 68, 0.2);
+  border: 1px solid rgba(255, 68, 68, 0.5);
+  border-radius: 4px;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-count {
+  color: #ff6666;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.error-pods {
+  color: #ff8888;
+  font-size: 0.7rem;
+  font-family: 'Courier New', monospace;
+  margin-top: 0.25rem;
+}
+
+.node-info {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.info-item {
+  background: rgba(0, 255, 65, 0.1);
+  color: #888;
+  font-size: 0.65rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .logo {

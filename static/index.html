@@ -112,22 +112,29 @@
             </div>
         </section>
 
-        <!-- Status Cards -->
-        <section class="status-grid">
-            <div class="status-card">
-                <h3 class="card-title">System Status</h3>
-                <div class="card-value">ACTIVE</div>
-                <p class="card-label">All systems operational</p>
+        <!-- Nodes Monitoring Section -->
+        <section class="argocd-section" style="margin-top: 2rem;">
+            <h2 class="section-title">🖥️ Cluster Nodes</h2>
+
+            <!-- Node Stats Grid -->
+            <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stat-box">
+                    <div class="stat-value" id="node-total">-</div>
+                    <div class="stat-label">Total Nodes</div>
+                </div>
+                <div class="stat-box healthy">
+                    <div class="stat-value" id="node-ready">-</div>
+                    <div class="stat-label">Ready</div>
+                </div>
+                <div class="stat-box unhealthy">
+                    <div class="stat-value" id="node-notready">-</div>
+                    <div class="stat-label">Not Ready</div>
+                </div>
             </div>
-            <div class="status-card">
-                <h3 class="card-title">Network</h3>
-                <div class="card-value">K3S</div>
-                <p class="card-label">Kubernetes cluster connected</p>
-            </div>
-            <div class="status-card">
-                <h3 class="card-title">Version</h3>
-                <div class="card-value">0.1.0</div>
-                <p class="card-label">Built with Rust & Actix</p>
+
+            <!-- Node Cards Container -->
+            <div class="nodes-container" id="nodes-container">
+                <div class="loading">Loading nodes status...</div>
             </div>
         </section>
 
@@ -291,9 +298,89 @@
 
         // Initial fetch
         fetchArgoStatus();
+        fetchNodesStatus();
 
         // Refresh every 30 seconds
         setInterval(fetchArgoStatus, 30000);
+        setInterval(fetchNodesStatus, 30000);
+
+        // === NODES MONITORING ===
+        async function fetchNodesStatus() {
+            try {
+                const response = await fetch('/api/nodes/status');
+                const data = await response.json();
+
+                if (data.error) {
+                    document.getElementById('nodes-container').innerHTML =
+                        `<div class="loading" style="color: #ff4444;">Error: ${data.error}</div>`;
+                    return;
+                }
+
+                // Update stats
+                document.getElementById('node-total').textContent = data.total_nodes;
+                document.getElementById('node-ready').textContent = data.ready_nodes;
+                document.getElementById('node-notready').textContent = data.not_ready_nodes;
+
+                // Render nodes
+                renderNodes(data.nodes);
+            } catch (error) {
+                document.getElementById('nodes-container').innerHTML =
+                    `<div class="loading" style="color: #ff4444;">Failed to fetch nodes</div>`;
+            }
+        }
+
+        function renderNodes(nodes) {
+            const container = document.getElementById('nodes-container');
+
+            if (!nodes || nodes.length === 0) {
+                container.innerHTML = '<div class="no-issues">No nodes found</div>';
+                return;
+            }
+
+            const html = nodes.map(node => {
+                const archClass = node.architecture === 'arm64' ? 'arch-arm' : 'arch-amd';
+                const statusClass = node.status === 'Ready' ? 'node-ready' : 'node-notready';
+
+                return `
+                    <div class="node-card ${statusClass}">
+                        <div class="node-header">
+                            <span class="node-name">${node.name}</span>
+                            <span class="arch-badge ${archClass}">${node.architecture}</span>
+                        </div>
+                        <div class="node-metrics">
+                            <div class="metric">
+                                <span class="metric-label">CPU</span>
+                                <span class="metric-value">${node.cpu_allocatable}/${node.cpu_capacity}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Memory</span>
+                                <span class="metric-value">${node.memory_allocatable}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Pods</span>
+                                <span class="metric-value">${node.pod_count}/${node.pod_capacity}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Uptime</span>
+                                <span class="metric-value">${node.uptime || '-'}</span>
+                            </div>
+                        </div>
+                        ${node.pods_in_error > 0 ? `
+                            <div class="node-errors">
+                                <span class="error-count">⚠ ${node.pods_in_error} pods in error</span>
+                                <div class="error-pods">${node.error_pod_names.slice(0, 3).join(', ')}${node.error_pod_names.length > 3 ? '...' : ''}</div>
+                            </div>
+                        ` : ''}
+                        <div class="node-info">
+                            <span class="info-item">${node.os}</span>
+                            <span class="info-item">${node.kubelet_version}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `<div class="nodes-grid">${html}</div>`;
+        }
     </script>
 </body>
 

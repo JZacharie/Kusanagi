@@ -4,6 +4,7 @@ use serde::Deserialize;
 use tracing::info;
 
 mod argocd;
+mod nodes;
 
 #[derive(Deserialize)]
 struct SyncRequest {
@@ -51,6 +52,19 @@ async fn argocd_sync(body: web::Json<SyncRequest>) -> impl Responder {
     }
 }
 
+#[get("/api/nodes/status")]
+async fn nodes_status() -> impl Responder {
+    match nodes::get_nodes_status().await {
+        Ok(status) => HttpResponse::Ok().json(status),
+        Err(e) => {
+            tracing::error!("Failed to get nodes status: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -64,10 +78,10 @@ async fn main() -> std::io::Result<()> {
             .service(index)
             .service(argocd_status)
             .service(argocd_sync)
+            .service(nodes_status)
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
-
