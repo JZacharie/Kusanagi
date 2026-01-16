@@ -1192,3 +1192,20 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Chat Avatar */
+.chat-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 0.25rem;
+  border: 1px solid var(--neon-green);
+}
+
+.bot-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}

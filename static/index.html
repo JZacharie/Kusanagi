@@ -269,7 +269,8 @@
                 <div class="chat-messages" id="chat-messages">
                     <div class="chat-message bot">
                         <div class="message-content">
-                            <strong>🤖 Kusanagi</strong><br>
+                            <span class="bot-header"><img src="/static/images/logo.png" class="chat-avatar"
+                                    alt="Kusanagi"> <strong>Kusanagi</strong></span><br>
                             Welcome! Type <code>/help</code> for available commands, or ask me about your cluster
                             status.
                         </div>
@@ -351,7 +352,7 @@
             if (type === 'user') {
                 messageDiv.innerHTML = `<div class="message-content"><strong>👤 You</strong><br>${html}</div>`;
             } else {
-                messageDiv.innerHTML = `<div class="message-content"><strong>🤖 Kusanagi</strong><br>${html}</div>`;
+                messageDiv.innerHTML = `<div class="message-content"><span class="bot-header"><img src="/static/images/logo.png" class="chat-avatar" alt="Kusanagi"> <strong>Kusanagi</strong></span><br>${html}</div>`;
             }
 
             container.appendChild(messageDiv);
