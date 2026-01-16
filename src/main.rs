@@ -145,6 +145,32 @@ async fn storage_status() -> impl Responder {
     }
 }
 
+#[get("/api/services")]
+async fn services_status() -> impl Responder {
+    match services::get_services().await {
+        Ok(info) => HttpResponse::Ok().json(info),
+        Err(e) => {
+            tracing::error!("Failed to get services info: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
+#[get("/api/ingress")]
+async fn ingress_status() -> impl Responder {
+    match ingress::get_ingresses().await {
+        Ok(info) => HttpResponse::Ok().json(info),
+        Err(e) => {
+            tracing::error!("Failed to get ingress info: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -165,6 +191,8 @@ async fn main() -> std::io::Result<()> {
             .service(chat_endpoint)
             .service(backups_status)
             .service(storage_status)
+            .service(services_status)
+            .service(ingress_status)
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?

@@ -101,6 +101,28 @@
                     </svg>
                 </span> Storage
             </button>
+            <button class="tab-btn" data-tab="services" onclick="switchTab('services')">
+                <span class="tab-icon">
+                    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="2" y1="12" x2="22" y2="12" />
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                </span> Services
+            </button>
+            <button class="tab-btn" data-tab="ingress" onclick="switchTab('ingress')">
+                <span class="tab-icon">
+                    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="2" y1="12" x2="22" y2="12" />
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                </span> Ingress
+            </button>
             <button class="tab-btn" data-tab="events" onclick="switchTab('events')">
                 <span class="tab-icon">🔔</span> Events
             </button>
@@ -232,6 +254,34 @@
                 </div>
                 <div id="pvc-content">
                     <div class="loading">Loading PVC data...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Services Section -->
+        <section class="argocd-section tab-content" data-tab="services" style="display: none;">
+            <h2 class="section-title">🌐 Services</h2>
+            <div class="issues-table-container" id="services-container">
+                <div class="issues-table-header">
+                    <span class="issues-table-title">Cluster Services</span>
+                    <span class="issues-count" id="services-count">0</span>
+                </div>
+                <div id="services-content">
+                    <div class="loading">Loading services...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ingress Section -->
+        <section class="argocd-section tab-content" data-tab="ingress" style="display: none;">
+            <h2 class="section-title">🌍 Ingress Rules</h2>
+            <div class="issues-table-container" id="ingress-container">
+                <div class="issues-table-header">
+                    <span class="issues-table-title">Ingress Routes</span>
+                    <span class="issues-count" id="ingress-count">0</span>
+                </div>
+                <div id="ingress-content">
+                    <div class="loading">Loading ingress rules...</div>
                 </div>
             </div>
         </section>
@@ -965,6 +1015,116 @@
             container.innerHTML = table;
         }
 
+        async function fetchServices() {
+            try {
+                const response = await fetch('/api/services');
+                if (!response.ok) throw new Error('Failed to fetch services');
+                const data = await response.json();
+                document.getElementById('services-count').textContent = data.length;
+                renderServicesTable(data);
+            } catch (error) {
+                console.error('Error fetching services:', error);
+                document.getElementById('services-content').innerHTML = `
+                    <div class="error-state">
+                        Failed to load services data: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function renderServicesTable(services) {
+            const container = document.getElementById('services-content');
+            if (services.length === 0) {
+                container.innerHTML = '<div class="no-issues">No services found</div>';
+                return;
+            }
+
+            const table = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Namespace</th>
+                            <th>Type</th>
+                            <th>Cluster IP</th>
+                            <th>External IP</th>
+                            <th>Ports</th>
+                            <th>Age</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${services.map(svc => `
+                            <tr>
+                                <td class="app-name">${svc.name}</td>
+                                <td>${svc.namespace}</td>
+                                <td><span class="status-badge info">${svc.type_}</span></td>
+                                <td><code>${svc.cluster_ip}</code></td>
+                                <td>${svc.external_ip ? `<code>${svc.external_ip}</code>` : '-'}</td>
+                                <td>${svc.ports}</td>
+                                <td>${svc.age}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = table;
+        }
+
+        async function fetchIngress() {
+            try {
+                const response = await fetch('/api/ingress');
+                if (!response.ok) throw new Error('Failed to fetch ingress');
+                const data = await response.json();
+                document.getElementById('ingress-count').textContent = data.length;
+                renderIngressTable(data);
+            } catch (error) {
+                console.error('Error fetching ingress:', error);
+                document.getElementById('ingress-content').innerHTML = `
+                    <div class="error-state">
+                        Failed to load ingress data: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function renderIngressTable(ingresses) {
+            const container = document.getElementById('ingress-content');
+            if (ingresses.length === 0) {
+                container.innerHTML = '<div class="no-issues">No ingress rules found</div>';
+                return;
+            }
+
+            const table = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Namespace</th>
+                            <th>Load Balancer</th>
+                            <th>Rules</th>
+                            <th>Age</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${ingresses.map(ing => `
+                            <tr>
+                                <td class="app-name">${ing.name}</td>
+                                <td>${ing.namespace}</td>
+                                <td>${ing.load_balancer ? `<code>${ing.load_balancer}</code>` : '-'}</td>
+                                <td>
+                                    <div class="ingress-rules">
+                                        ${ing.rules.map(rule => `<div><code>${rule}</code></div>`).join('')}
+                                    </div>
+                                </td>
+                                <td>${ing.age}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = table;
+        }
+
         // Initialize RUM tracking
         if (typeof KusanagiRUM !== 'undefined') {
             KusanagiRUM.init({
@@ -982,6 +1142,8 @@
         fetchEvents();
         fetchBackupsStatus();
         fetchStorageStatus();
+        fetchServices();
+        fetchIngress();
 
         // Refresh intervals
         setInterval(fetchArgoStatus, 30000);
@@ -990,6 +1152,8 @@
         setInterval(fetchEvents, 30000);
         setInterval(fetchBackupsStatus, 60000);
         setInterval(fetchStorageStatus, 60000);
+        setInterval(fetchServices, 60000);
+        setInterval(fetchIngress, 60000);
 
         // Track session stats every 5 minutes
         setInterval(() => {
