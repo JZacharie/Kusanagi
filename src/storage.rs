@@ -4,7 +4,7 @@ use kube::{
     Client,
 };
 use serde::Serialize;
-use tracing::{error, debug};
+use tracing::error;
 use std::collections::HashMap;
 
 /// Storage status response
@@ -54,8 +54,8 @@ pub async fn get_storage_status() -> Result<StorageStatusResponse, String> {
         .map_err(|e| format!("Failed to list Nodes: {}", e))?;
 
     // 3. Collect usage stats from all nodes in parallel
-    // Map: (Namespace, PvcName) -> UsedBytes
-    let mut usage_map: HashMap<(String, String), u64> = HashMap::new();
+    // Map: (Namespace, PvcName) -> (UsedBytes, CapacityBytes)
+    let mut stats_map: HashMap<(String, String), (u64, u64)> = HashMap::new();
 
     // We'll query nodes sequentially for simplicity to avoid complex async iterator handling in this snippet,
     // but in production parallel futures would be better.
@@ -75,7 +75,10 @@ pub async fn get_storage_status() -> Result<StorageStatusResponse, String> {
                 // Parse Prometheus format line by line
                 // Example: kubelet_volume_stats_used_bytes{namespace="default",persistentvolumeclaim="data-pvc"} 1024
                 for line in metrics_text.lines() {
-                    if line.starts_with("kubelet_volume_stats_used_bytes{") {
+                    let is_used = line.starts_with("kubelet_volume_stats_used_bytes{");
+                    let is_capacity = line.starts_with("kubelet_volume_stats_capacity_bytes{");
+
+                    if is_used || is_capacity {
                         // Very simple parser to avoid unnecessary regex dependencies
                         // 1. Extract content inside {}
                         if let Some(start_brace) = line.find('{') {
@@ -104,8 +107,12 @@ pub async fn get_storage_status() -> Result<StorageStatusResponse, String> {
                                 // Parse value
                                 if !ns.is_empty() && !pvc.is_empty() {
                                     if let Ok(value) = value_part.parse::<f64>() {
-                                        // insert or update (though usually unique per node/pvc combo)
-                                        usage_map.insert((ns, pvc), value as u64);
+                                        let entry = stats_map.entry((ns, pvc)).or_insert((0, 0));
+                                        if is_used {
+                                            entry.0 = value as u64;
+                                        } else {
+                                            entry.1 = value as u64;
+                                        }
                                     }
                                 }
                             }
@@ -136,13 +143,13 @@ pub async fn get_storage_status() -> Result<StorageStatusResponse, String> {
 
         let phase = status.phase.unwrap_or_else(|| "Unknown".to_string());
         
-        let capacity_str = status.capacity
+        let mut capacity_str = status.capacity
             .as_ref()
             .and_then(|c| c.get("storage"))
             .map(|q| q.0.clone())
             .unwrap_or_else(|| "0".to_string());
             
-        let capacity_bytes = parse_capacity(&capacity_str);
+        let mut capacity_bytes = parse_capacity(&capacity_str);
         
         // Get storage class
         let storage_class = spec.storage_class_name.unwrap_or_default();
@@ -153,8 +160,19 @@ pub async fn get_storage_status() -> Result<StorageStatusResponse, String> {
         // Get volume name
         let volume_name = spec.volume_name.unwrap_or_default();
 
-        // Get usage from map
-        let used_bytes = usage_map.get(&(namespace.clone(), name.clone())).copied();
+        // Get stats from map
+        let stats = stats_map.get(&(namespace.clone(), name.clone()));
+        
+        // Use capacity from metrics if available and non-zero (more accurate for file system)
+        if let Some((_, cap_metrics)) = stats {
+            if *cap_metrics > 0 {
+                capacity_bytes = *cap_metrics;
+                // Update capacity string to reflect real size? Maybe better keep PVC request strings
+                // But for calculation we use the bytes.
+            }
+        }
+
+        let used_bytes = stats.map(|s| s.0);
         
         let usage_percent = if let Some(used) = used_bytes {
             if capacity_bytes > 0 {
