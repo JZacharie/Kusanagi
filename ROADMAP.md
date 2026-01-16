@@ -26,6 +26,16 @@ Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubern
 - [x] Dual tables: Issues et Upgrades séparés
 - [x] RBAC avec permission `patch` pour le sync
 
+### v0.3.0 - Node Monitoring
+- [x] Section Cluster Nodes avec métriques par node
+- [x] CPU / RAM capacity affichés
+- [x] Nombre de Pods par node
+- [x] Uptime du node
+- [x] Pods en erreur sur chaque node
+- [x] **Badge architecture** avec couleurs différentes :
+  - AMD64 = Violet/Purple
+  - ARM64 = Rose/Pink
+
 ---
 
 ## 🚧 Fonctionnalités Planifiées
