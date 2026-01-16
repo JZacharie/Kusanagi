@@ -24,6 +24,41 @@
             <p class="japanese-text">草薙素子 // MOTOKO</p>
         </header>
 
+        <!-- Quick Stats & External Links -->
+        <nav class="quick-nav">
+            <div class="quick-stats">
+                <div class="quick-stat" title="Namespaces">
+                    <span class="quick-icon">📁</span>
+                    <span class="quick-value" id="ns-count">-</span>
+                    <span class="quick-label">Namespaces</span>
+                </div>
+                <div class="quick-stat" title="Persistent Volume Claims">
+                    <span class="quick-icon">💾</span>
+                    <span class="quick-value" id="pvc-count">-</span>
+                    <span class="quick-label">PVCs</span>
+                </div>
+                <div class="quick-stat" title="Total Storage">
+                    <span class="quick-icon">📊</span>
+                    <span class="quick-value" id="pvc-capacity">-</span>
+                    <span class="quick-label">Storage</span>
+                </div>
+            </div>
+            <div class="external-links">
+                <a href="https://grafana.p.zacharie.org" target="_blank" class="ext-link" title="Grafana">
+                    <span class="link-icon">📈</span> Grafana
+                </a>
+                <a href="https://argocd.p.zacharie.org" target="_blank" class="ext-link" title="ArgoCD">
+                    <span class="link-icon">🚀</span> ArgoCD
+                </a>
+                <a href="https://homepage.p.zacharie.org" target="_blank" class="ext-link" title="Homepage">
+                    <span class="link-icon">🏠</span> Homepage
+                </a>
+                <a href="https://openobserve.p.zacharie.org" target="_blank" class="ext-link" title="OpenObserve">
+                    <span class="link-icon">👁️</span> O2
+                </a>
+            </div>
+        </nav>
+
         <!-- Terminal Section -->
         <section class="terminal">
             <div class="terminal-header">
@@ -404,6 +439,32 @@
 
             container.innerHTML = `<div class="nodes-grid">${html}</div>`;
         }
+
+        // === CLUSTER OVERVIEW ===
+        async function fetchClusterOverview() {
+            try {
+                const response = await fetch('/api/cluster/overview');
+                const data = await response.json();
+
+                if (!data.error) {
+                    document.getElementById('ns-count').textContent = data.namespace_count || 0;
+                    document.getElementById('pvc-count').textContent = data.pvc_count || 0;
+                    document.getElementById('pvc-capacity').textContent = data.pvc_total_capacity || '-';
+                }
+            } catch (error) {
+                console.error('Failed to fetch cluster overview:', error);
+            }
+        }
+
+        // Initial fetches
+        fetchArgoStatus();
+        fetchNodesStatus();
+        fetchClusterOverview();
+
+        // Refresh intervals
+        setInterval(fetchArgoStatus, 30000);
+        setInterval(fetchNodesStatus, 30000);
+        setInterval(fetchClusterOverview, 60000);
     </script>
 </body>
 

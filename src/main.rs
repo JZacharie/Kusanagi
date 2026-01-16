@@ -4,6 +4,7 @@ use serde::Deserialize;
 use tracing::info;
 
 mod argocd;
+mod cluster;
 mod nodes;
 
 #[derive(Deserialize)]
@@ -65,6 +66,19 @@ async fn nodes_status() -> impl Responder {
     }
 }
 
+#[get("/api/cluster/overview")]
+async fn cluster_overview() -> impl Responder {
+    match cluster::get_cluster_overview().await {
+        Ok(overview) => HttpResponse::Ok().json(overview),
+        Err(e) => {
+            tracing::error!("Failed to get cluster overview: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -79,6 +93,7 @@ async fn main() -> std::io::Result<()> {
             .service(argocd_status)
             .service(argocd_sync)
             .service(nodes_status)
+            .service(cluster_overview)
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?
