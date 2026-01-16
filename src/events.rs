@@ -116,16 +116,8 @@ pub async fn get_events() -> Result<EventsResponse, String> {
         })
         .collect();
 
-    // Sort: Warnings first, then by timestamp (newest first)
+    // Sort by last timestamp (newest first)
     event_infos.sort_by(|a, b| {
-        let a_warning = a.event_type == "Warning";
-        let b_warning = b.event_type == "Warning";
-        
-        if a_warning != b_warning {
-            return b_warning.cmp(&a_warning);
-        }
-        
-        // Sort by last timestamp (newest first)
         b.last_timestamp.cmp(&a.last_timestamp)
     });
 
