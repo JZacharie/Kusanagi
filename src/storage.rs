@@ -1,10 +1,10 @@
-use k8s_openapi::api::core::v1::{PersistentVolumeClaim, Pod, Node};
+use k8s_openapi::api::core::v1::{PersistentVolumeClaim, Node};
 use kube::{
     api::{Api, ListParams},
     Client,
 };
-use serde::{Deserialize, Serialize};
-use tracing::{error, info};
+use serde::Serialize;
+use tracing::{error, debug};
 use std::collections::HashMap;
 
 /// Storage status response
@@ -30,38 +30,6 @@ pub struct PvcInfo {
     pub access_modes: Vec<String>,
     pub volume_name: String,
     pub pods_using: Vec<String>,
-}
-
-/// Kubelet Summary API structures (simplified)
-#[derive(Debug, Deserialize)]
-struct KubeletStatsSummary {
-    pods: Vec<KubeletPodStats>,
-}
-
-#[derive(Debug, Deserialize)]
-struct KubeletPodStats {
-    podRef: KubeletPodRef,
-    volume: Option<Vec<KubeletVolumeStats>>,
-}
-
-#[derive(Debug, Deserialize)]
-struct KubeletPodRef {
-    name: String,
-    namespace: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct KubeletVolumeStats {
-    name: String,
-    usedBytes: Option<u64>,
-    capacityBytes: Option<u64>,
-    pvcRef: Option<KubeletPvcRef>,
-}
-
-#[derive(Debug, Deserialize)]
-struct KubeletPvcRef {
-    name: String,
-    namespace: String,
 }
 
 /// Get all PVCs with usage information
@@ -94,24 +62,51 @@ pub async fn get_storage_status() -> Result<StorageStatusResponse, String> {
     for node in nodes.items {
         let node_name = node.metadata.name.clone().unwrap_or_default();
         
-        // Query Kubelet Stats Summary
-        // Path: /api/v1/nodes/{node_name}/proxy/stats/summary
+        // Query Kubelet Metrics
+        // Path: /api/v1/nodes/{node_name}/proxy/metrics
+        // We utilize the /metrics endpoint because /stats/summary often misses NFS usage data
         let request = http::Request::builder()
-            .uri(format!("/api/v1/nodes/{}/proxy/stats/summary", node_name))
+            .uri(format!("/api/v1/nodes/{}/proxy/metrics", node_name))
             .body(vec![])
             .map_err(|e| format!("Failed to build request: {}", e))?;
 
-        match client.request::<KubeletStatsSummary>(request).await {
-            Ok(summary) => {
-                for pod in summary.pods {
-                    if let Some(volumes) = pod.volume {
-                        for vol in volumes {
-                            if let Some(pvc_ref) = vol.pvcRef {
-                                if let Some(used) = vol.usedBytes {
-                                    usage_map.insert(
-                                        (pvc_ref.namespace, pvc_ref.name),
-                                        used
-                                    );
+        match client.request_text(request).await {
+            Ok(metrics_text) => {
+                // Parse Prometheus format line by line
+                // Example: kubelet_volume_stats_used_bytes{namespace="default",persistentvolumeclaim="data-pvc"} 1024
+                for line in metrics_text.lines() {
+                    if line.starts_with("kubelet_volume_stats_used_bytes{") {
+                        // Very simple parser to avoid unnecessary regex dependencies
+                        // 1. Extract content inside {}
+                        if let Some(start_brace) = line.find('{') {
+                            if let Some(end_brace) = line.find('}') {
+                                let labels_part = &line[start_brace+1..end_brace];
+                                let value_part = &line[end_brace+1..].trim();
+                                
+                                // Parse labels
+                                let mut ns = String::new();
+                                let mut pvc = String::new();
+                                
+                                for label in labels_part.split(',') {
+                                    let parts: Vec<&str> = label.split('=').collect();
+                                    if parts.len() == 2 {
+                                        let key = parts[0].trim();
+                                        let val = parts[1].trim().trim_matches('"');
+                                        
+                                        if key == "namespace" {
+                                            ns = val.to_string();
+                                        } else if key == "persistentvolumeclaim" {
+                                            pvc = val.to_string();
+                                        }
+                                    }
+                                }
+                                
+                                // Parse value
+                                if !ns.is_empty() && !pvc.is_empty() {
+                                    if let Ok(value) = value_part.parse::<f64>() {
+                                        // insert or update (though usually unique per node/pvc combo)
+                                        usage_map.insert((ns, pvc), value as u64);
+                                    }
                                 }
                             }
                         }
@@ -120,7 +115,7 @@ pub async fn get_storage_status() -> Result<StorageStatusResponse, String> {
             }
             Err(e) => {
                 // Just log error and continue, don't fail entire request if one node fails
-                error!("Failed to fetch stats from node {}: {}", node_name, e);
+                error!("Failed to fetch metrics from node {}: {}", node_name, e);
             }
         }
     }
