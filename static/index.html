@@ -46,20 +46,40 @@
                 </div>
             </div>
             <div class="external-links">
-                <a href="https://grafana.p.zacharie.org" target="_blank" class="ext-link" title="Grafana">
+                <a href="https://grafana.p.zacharie.org" target="_blank" class="ext-link grafana" title="Grafana">
                     <span class="link-icon">📈</span> Grafana
                 </a>
-                <a href="https://argocd.p.zacharie.org" target="_blank" class="ext-link" title="ArgoCD">
+                <a href="https://argocd.p.zacharie.org" target="_blank" class="ext-link argocd" title="ArgoCD">
                     <span class="link-icon">🚀</span> ArgoCD
                 </a>
-                <a href="https://homepage.p.zacharie.org" target="_blank" class="ext-link" title="Homepage">
+                <a href="https://homepage.p.zacharie.org" target="_blank" class="ext-link homepage" title="Homepage">
                     <span class="link-icon">🏠</span> Homepage
                 </a>
-                <a href="https://openobserve.p.zacharie.org" target="_blank" class="ext-link" title="OpenObserve">
+                <a href="https://openobserve.p.zacharie.org" target="_blank" class="ext-link o2" title="OpenObserve">
                     <span class="link-icon">👁️</span> O2
                 </a>
             </div>
         </nav>
+
+        <!-- Section Tabs Navigation -->
+        <div class="section-tabs">
+            <button class="tab-btn active" data-tab="argocd" onclick="switchTab('argocd')">
+                <span class="tab-icon">🚀</span> ArgoCD
+            </button>
+            <button class="tab-btn" data-tab="nodes" onclick="switchTab('nodes')">
+                <span class="tab-icon">🖥️</span> Nodes
+            </button>
+            <button class="tab-btn" data-tab="storage" onclick="switchTab('storage')">
+                <span class="tab-icon">💾</span> Storage
+            </button>
+            <button class="tab-btn" data-tab="events" onclick="switchTab('events')">
+                <span class="tab-icon">🔔</span> Events
+            </button>
+            <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
+                <span class="tab-icon">💬</span> Chat
+            </button>
+        </div>
+
 
         <!-- Terminal Section -->
         <section class="terminal">
@@ -90,7 +110,7 @@
         </section>
 
         <!-- ArgoCD Status Section -->
-        <section class="argocd-section">
+        <section class="argocd-section tab-content active" data-tab="argocd">
             <h2 class="section-title">ArgoCD Applications Status</h2>
 
             <div class="argocd-stats" id="argocd-stats">
@@ -150,7 +170,7 @@
         </section>
 
         <!-- Nodes Monitoring Section -->
-        <section class="argocd-section" style="margin-top: 2rem;">
+        <section class="argocd-section tab-content" data-tab="nodes" style="display: none;">
             <h2 class="section-title">🖥️ Cluster Nodes</h2>
 
             <!-- Node Stats Grid -->
@@ -176,7 +196,7 @@
         </section>
 
         <!-- PVC Monitoring Section -->
-        <section class="argocd-section" style="margin-top: 2rem;">
+        <section class="argocd-section tab-content" data-tab="storage" style="display: none;">
             <h2 class="section-title">💾 Storage (PVCs)</h2>
 
             <div class="stats-grid" style="margin-bottom: 1.5rem;">
@@ -211,7 +231,7 @@
         </section>
 
         <!-- Kubernetes Events Section -->
-        <section class="argocd-section" style="margin-top: 2rem;">
+        <section class="argocd-section tab-content" data-tab="events" style="display: none;">
             <h2 class="section-title">🔔 Kubernetes Events (Last Hour)</h2>
 
             <div class="stats-grid" style="margin-bottom: 1.5rem;">
@@ -241,6 +261,29 @@
             </div>
         </section>
 
+        <!-- Chat Section -->
+        <section class="argocd-section tab-content" data-tab="chat" style="display: none;">
+            <h2 class="section-title">💬 Kusanagi Chat</h2>
+
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="chat-message bot">
+                        <div class="message-content">
+                            <strong>🤖 Kusanagi</strong><br>
+                            Welcome! Type <code>/help</code> for available commands, or ask me about your cluster
+                            status.
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" id="chat-input" class="chat-input"
+                        placeholder="Type a command or question... (e.g., /status, /nodes, /events)"
+                        onkeypress="handleChatKeypress(event)">
+                    <button class="chat-send-btn" onclick="sendChatMessage()">Send ➤</button>
+                </div>
+            </div>
+        </section>
+
         <!-- Footer -->
         <footer class="footer">
             <p class="footer-quote">"Your effort to remain what you are is what limits you."</p>
@@ -249,6 +292,79 @@
     </div>
 
     <script>
+        // === TAB NAVIGATION ===
+        function switchTab(tabName) {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.tab === tabName) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(section => {
+                if (section.dataset.tab === tabName) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        }
+
+        // === CHAT FUNCTIONS ===
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addChatMessage(message, 'user');
+            input.value = '';
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const data = await response.json();
+                addChatMessage(data.response, 'bot');
+            } catch (error) {
+                addChatMessage('Error: Failed to get response from server', 'bot');
+            }
+        }
+
+        function addChatMessage(content, type) {
+            const container = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${type}`;
+
+            // Simple markdown to HTML conversion
+            let html = content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                .replace(/\n/g, '<br>')
+                .replace(/^## (.*)/gm, '<h4>$1</h4>')
+                .replace(/^- (.*)/gm, '• $1<br>');
+
+            if (type === 'user') {
+                messageDiv.innerHTML = `<div class="message-content"><strong>👤 You</strong><br>${html}</div>`;
+            } else {
+                messageDiv.innerHTML = `<div class="message-content"><strong>🤖 Kusanagi</strong><br>${html}</div>`;
+            }
+
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        // === ARGOCD ===
         async function fetchArgoStatus() {
             try {
                 const response = await fetch('/api/argocd/status');

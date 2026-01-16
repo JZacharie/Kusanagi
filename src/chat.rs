@@ -1,0 +1,393 @@
+use serde::{Deserialize, Serialize};
+use tracing::info;
+
+use crate::{argocd, cluster, events, nodes};
+
+/// Chat message request
+#[derive(Clone, Debug, Deserialize)]
+pub struct ChatRequest {
+    pub message: String,
+}
+
+/// Chat response
+#[derive(Clone, Debug, Serialize)]
+pub struct ChatResponse {
+    pub response: String,
+    pub response_type: String,
+    pub data: Option<serde_json::Value>,
+}
+
+/// Available commands
+const HELP_TEXT: &str = r#"**Kusanagi Chat Commands** 🤖
+
+Available commands:
+- `/help` - Show this help message
+- `/status` - Show cluster overview
+- `/nodes` - Show nodes status
+- `/pods` - Show pods in error
+- `/events` - Show recent warning events
+- `/argocd` - Show ArgoCD issues
+- `/namespaces` - Show namespace count
+- `/pvcs` - Show PVC summary
+
+Or just type a question and I'll try to help!"#;
+
+/// Process chat message and return response
+pub async fn process_message(request: ChatRequest) -> ChatResponse {
+    let message = request.message.trim().to_lowercase();
+    
+    info!("Chat message received: {}", message);
+
+    // Handle commands
+    if message.starts_with('/') {
+        return handle_command(&message).await;
+    }
+
+    // Handle natural language queries
+    handle_query(&message).await
+}
+
+async fn handle_command(command: &str) -> ChatResponse {
+    match command {
+        "/help" => ChatResponse {
+            response: HELP_TEXT.to_string(),
+            response_type: "help".to_string(),
+            data: None,
+        },
+        
+        "/status" => get_cluster_status().await,
+        "/nodes" => get_nodes_summary().await,
+        "/pods" => get_error_pods().await,
+        "/events" => get_warning_events().await,
+        "/argocd" => get_argocd_summary().await,
+        "/namespaces" => get_namespaces_summary().await,
+        "/pvcs" => get_pvcs_summary().await,
+        
+        _ => ChatResponse {
+            response: format!("Unknown command: `{}`. Type `/help` for available commands.", command),
+            response_type: "error".to_string(),
+            data: None,
+        },
+    }
+}
+
+async fn handle_query(query: &str) -> ChatResponse {
+    // Simple keyword matching for natural language
+    if query.contains("node") || query.contains("server") {
+        return get_nodes_summary().await;
+    }
+    if query.contains("pod") || query.contains("container") {
+        return get_error_pods().await;
+    }
+    if query.contains("event") || query.contains("warning") {
+        return get_warning_events().await;
+    }
+    if query.contains("argocd") || query.contains("deploy") || query.contains("sync") {
+        return get_argocd_summary().await;
+    }
+    if query.contains("storage") || query.contains("pvc") || query.contains("disk") {
+        return get_pvcs_summary().await;
+    }
+    if query.contains("namespace") {
+        return get_namespaces_summary().await;
+    }
+    if query.contains("status") || query.contains("health") || query.contains("overview") {
+        return get_cluster_status().await;
+    }
+
+    ChatResponse {
+        response: format!(
+            "I understand you're asking about: **{}**\n\nTry using commands like `/status`, `/nodes`, `/events` for specific information, or `/help` for all commands.",
+            query
+        ),
+        response_type: "info".to_string(),
+        data: None,
+    }
+}
+
+async fn get_cluster_status() -> ChatResponse {
+    let mut status_lines = vec!["## 📊 Cluster Status\n".to_string()];
+
+    // Get nodes
+    if let Ok(nodes) = nodes::get_nodes_status().await {
+        status_lines.push(format!(
+            "**Nodes:** {} total ({} ready, {} not ready)",
+            nodes.total_nodes, nodes.ready_nodes, nodes.not_ready_nodes
+        ));
+    }
+
+    // Get cluster overview
+    if let Ok(overview) = cluster::get_cluster_overview().await {
+        status_lines.push(format!("**Namespaces:** {}", overview.namespace_count));
+        status_lines.push(format!(
+            "**PVCs:** {} ({})",
+            overview.pvc_count, overview.pvc_total_capacity
+        ));
+    }
+
+    // Get events
+    if let Ok(events) = events::get_events().await {
+        status_lines.push(format!(
+            "**Events (1h):** {} ({} warnings)",
+            events.total_events, events.warning_count
+        ));
+    }
+
+    // Get ArgoCD
+    if let Ok(argocd) = argocd::get_argocd_status().await {
+        status_lines.push(format!(
+            "**ArgoCD:** {}/{} healthy ({} issues)",
+            argocd.healthy, argocd.total, argocd.apps_with_issues.len()
+        ));
+    }
+
+    ChatResponse {
+        response: status_lines.join("\n"),
+        response_type: "status".to_string(),
+        data: None,
+    }
+}
+
+async fn get_nodes_summary() -> ChatResponse {
+    match nodes::get_nodes_status().await {
+        Ok(nodes) => {
+            let mut lines = vec![format!(
+                "## 🖥️ Nodes Status\n\n**Total:** {} ({} ready)\n",
+                nodes.total_nodes, nodes.ready_nodes
+            )];
+
+            for node in nodes.nodes.iter().take(10) {
+                let status_emoji = if node.status == "Ready" { "✅" } else { "❌" };
+                let error_info = if node.pods_in_error > 0 {
+                    format!(" ⚠️ {} pods in error", node.pods_in_error)
+                } else {
+                    String::new()
+                };
+                
+                lines.push(format!(
+                    "{} **{}** | {} | {} CPU | {} RAM | {} pods{}",
+                    status_emoji,
+                    node.name,
+                    node.architecture,
+                    node.cpu_capacity,
+                    node.memory_allocatable,
+                    node.pod_count,
+                    error_info
+                ));
+            }
+
+            ChatResponse {
+                response: lines.join("\n"),
+                response_type: "nodes".to_string(),
+                data: Some(serde_json::json!({
+                    "total": nodes.total_nodes,
+                    "ready": nodes.ready_nodes
+                })),
+            }
+        }
+        Err(e) => ChatResponse {
+            response: format!("Failed to get nodes: {}", e),
+            response_type: "error".to_string(),
+            data: None,
+        },
+    }
+}
+
+async fn get_error_pods() -> ChatResponse {
+    match nodes::get_nodes_status().await {
+        Ok(nodes) => {
+            let mut error_pods: Vec<(String, String)> = vec![];
+            
+            for node in &nodes.nodes {
+                for pod in &node.error_pod_names {
+                    error_pods.push((pod.clone(), node.name.clone()));
+                }
+            }
+
+            if error_pods.is_empty() {
+                return ChatResponse {
+                    response: "## ✅ No Pods in Error\n\nAll pods are running healthy!".to_string(),
+                    response_type: "pods".to_string(),
+                    data: None,
+                };
+            }
+
+            let mut lines = vec![format!(
+                "## ⚠️ Pods in Error\n\n**Total:** {} pods\n",
+                error_pods.len()
+            )];
+
+            for (pod, node) in error_pods.iter().take(15) {
+                lines.push(format!("- `{}` on **{}**", pod, node));
+            }
+
+            if error_pods.len() > 15 {
+                lines.push(format!("\n... and {} more", error_pods.len() - 15));
+            }
+
+            ChatResponse {
+                response: lines.join("\n"),
+                response_type: "pods".to_string(),
+                data: Some(serde_json::json!({ "count": error_pods.len() })),
+            }
+        }
+        Err(e) => ChatResponse {
+            response: format!("Failed to get pods: {}", e),
+            response_type: "error".to_string(),
+            data: None,
+        },
+    }
+}
+
+async fn get_warning_events() -> ChatResponse {
+    match events::get_events().await {
+        Ok(events) => {
+            let warnings: Vec<_> = events.events.iter()
+                .filter(|e| e.event_type == "Warning")
+                .take(10)
+                .collect();
+
+            if warnings.is_empty() {
+                return ChatResponse {
+                    response: "## ✅ No Warning Events\n\nNo warnings in the last hour!".to_string(),
+                    response_type: "events".to_string(),
+                    data: None,
+                };
+            }
+
+            let mut lines = vec![format!(
+                "## ⚠️ Warning Events (Last Hour)\n\n**Total:** {} warnings\n",
+                events.warning_count
+            )];
+
+            for evt in warnings {
+                lines.push(format!(
+                    "- **{}** | `{}/{}` | {}",
+                    evt.reason,
+                    evt.involved_object_kind,
+                    evt.involved_object_name.chars().take(25).collect::<String>(),
+                    evt.age.as_deref().unwrap_or("-")
+                ));
+            }
+
+            ChatResponse {
+                response: lines.join("\n"),
+                response_type: "events".to_string(),
+                data: Some(serde_json::json!({ "warnings": events.warning_count })),
+            }
+        }
+        Err(e) => ChatResponse {
+            response: format!("Failed to get events: {}", e),
+            response_type: "error".to_string(),
+            data: None,
+        },
+    }
+}
+
+async fn get_argocd_summary() -> ChatResponse {
+    match argocd::get_argocd_status().await {
+        Ok(status) => {
+            let mut lines = vec![format!(
+                "## 🚀 ArgoCD Status\n\n**Total Apps:** {} | **Healthy:** {} | **Issues:** {}\n",
+                status.total, status.healthy, status.apps_with_issues.len()
+            )];
+
+            if status.apps_with_issues.is_empty() {
+                lines.push("✅ All applications are healthy!".to_string());
+            } else {
+                lines.push("**Applications with issues:**\n".to_string());
+                for issue in status.apps_with_issues.iter().take(10) {
+                    lines.push(format!(
+                        "- `{}` | {} | {} | {}",
+                        issue.name,
+                        issue.health_status,
+                        issue.sync_status,
+                        issue.error_duration.as_deref().unwrap_or("-")
+                    ));
+                }
+            }
+
+            ChatResponse {
+                response: lines.join("\n"),
+                response_type: "argocd".to_string(),
+                data: Some(serde_json::json!({
+                    "total": status.total,
+                    "healthy": status.healthy,
+                    "issues": status.apps_with_issues.len()
+                })),
+            }
+        }
+        Err(e) => ChatResponse {
+            response: format!("Failed to get ArgoCD status: {}", e),
+            response_type: "error".to_string(),
+            data: None,
+        },
+    }
+}
+
+async fn get_namespaces_summary() -> ChatResponse {
+    match cluster::get_cluster_overview().await {
+        Ok(overview) => {
+            let mut lines = vec![format!(
+                "## 📁 Namespaces\n\n**Total:** {}\n",
+                overview.namespace_count
+            )];
+
+            for ns in overview.namespaces.iter().take(20) {
+                lines.push(format!("- `{}`", ns.name));
+            }
+
+            if overview.namespaces.len() > 20 {
+                lines.push(format!("\n... and {} more", overview.namespaces.len() - 20));
+            }
+
+            ChatResponse {
+                response: lines.join("\n"),
+                response_type: "namespaces".to_string(),
+                data: Some(serde_json::json!({ "count": overview.namespace_count })),
+            }
+        }
+        Err(e) => ChatResponse {
+            response: format!("Failed to get namespaces: {}", e),
+            response_type: "error".to_string(),
+            data: None,
+        },
+    }
+}
+
+async fn get_pvcs_summary() -> ChatResponse {
+    match cluster::get_cluster_overview().await {
+        Ok(overview) => {
+            let mut lines = vec![format!(
+                "## 💾 PVC Summary\n\n**Total:** {} | **Capacity:** {}\n",
+                overview.pvc_count, overview.pvc_total_capacity
+            )];
+
+            // Show top 10 by capacity
+            let mut pvcs = overview.pvcs.clone();
+            pvcs.sort_by(|a, b| b.capacity_bytes.cmp(&a.capacity_bytes));
+
+            lines.push("**Largest PVCs:**\n".to_string());
+            for pvc in pvcs.iter().take(10) {
+                lines.push(format!(
+                    "- `{}` ({}) | {} | {}",
+                    pvc.name, pvc.namespace, pvc.capacity, pvc.status
+                ));
+            }
+
+            ChatResponse {
+                response: lines.join("\n"),
+                response_type: "pvcs".to_string(),
+                data: Some(serde_json::json!({
+                    "count": overview.pvc_count,
+                    "capacity": overview.pvc_total_capacity
+                })),
+            }
+        }
+        Err(e) => ChatResponse {
+            response: format!("Failed to get PVCs: {}", e),
+            response_type: "error".to_string(),
+            data: None,
+        },
+    }
+}

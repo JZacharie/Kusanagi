@@ -4,6 +4,7 @@ use serde::Deserialize;
 use tracing::info;
 
 mod argocd;
+mod chat;
 mod cluster;
 mod events;
 mod nodes;
@@ -93,6 +94,13 @@ async fn k8s_events() -> impl Responder {
     }
 }
 
+#[post("/api/chat")]
+async fn chat_endpoint(body: web::Json<chat::ChatRequest>) -> impl Responder {
+    info!("Chat message: {}", body.message);
+    let response = chat::process_message(body.into_inner()).await;
+    HttpResponse::Ok().json(response)
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -109,10 +117,12 @@ async fn main() -> std::io::Result<()> {
             .service(nodes_status)
             .service(cluster_overview)
             .service(k8s_events)
+            .service(chat_endpoint)
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
+
 
