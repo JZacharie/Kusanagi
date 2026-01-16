@@ -11,6 +11,8 @@ mod cluster;
 mod events;
 mod nodes;
 mod storage;
+mod services;
+mod ingress;
 
 #[derive(Deserialize)]
 struct SyncRequest {
