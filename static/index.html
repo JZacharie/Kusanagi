@@ -173,6 +173,41 @@
             </div>
         </section>
 
+        <!-- PVC Monitoring Section -->
+        <section class="argocd-section" style="margin-top: 2rem;">
+            <h2 class="section-title">💾 Storage (PVCs)</h2>
+
+            <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stat-box">
+                    <div class="stat-value" id="pvc-total-count">-</div>
+                    <div class="stat-label">Total PVCs</div>
+                </div>
+                <div class="stat-box healthy">
+                    <div class="stat-value" id="pvc-bound-count">-</div>
+                    <div class="stat-label">Bound</div>
+                </div>
+                <div class="stat-box warning">
+                    <div class="stat-value" id="pvc-pending-count">-</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-box info">
+                    <div class="stat-value" id="pvc-total-storage">-</div>
+                    <div class="stat-label">Total Capacity</div>
+                </div>
+            </div>
+
+            <div class="issues-table-container" id="pvc-container" style="border-color: var(--neon-cyan);">
+                <div class="issues-table-header"
+                    style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                    <span class="issues-table-title" style="color: var(--neon-cyan);">📊 PVC Details</span>
+                    <span class="issues-count" id="pvc-table-count" style="background: var(--neon-cyan);">0</span>
+                </div>
+                <div id="pvc-content">
+                    <div class="loading">Loading PVC data...</div>
+                </div>
+            </div>
+        </section>
+
         <!-- Footer -->
         <footer class="footer">
             <p class="footer-quote">"Your effort to remain what you are is what limits you."</p>
@@ -447,13 +482,69 @@
                 const data = await response.json();
 
                 if (!data.error) {
+                    // Quick nav stats
                     document.getElementById('ns-count').textContent = data.namespace_count || 0;
                     document.getElementById('pvc-count').textContent = data.pvc_count || 0;
                     document.getElementById('pvc-capacity').textContent = data.pvc_total_capacity || '-';
+
+                    // PVC section stats
+                    const pvcs = data.pvcs || [];
+                    const bound = pvcs.filter(p => p.status === 'Bound').length;
+                    const pending = pvcs.filter(p => p.status !== 'Bound').length;
+
+                    document.getElementById('pvc-total-count').textContent = data.pvc_count || 0;
+                    document.getElementById('pvc-bound-count').textContent = bound;
+                    document.getElementById('pvc-pending-count').textContent = pending;
+                    document.getElementById('pvc-total-storage').textContent = data.pvc_total_capacity || '-';
+                    document.getElementById('pvc-table-count').textContent = pvcs.length;
+
+                    // Render PVC table
+                    renderPvcTable(pvcs);
                 }
             } catch (error) {
                 console.error('Failed to fetch cluster overview:', error);
             }
+        }
+
+        function renderPvcTable(pvcs) {
+            const container = document.getElementById('pvc-content');
+
+            if (!pvcs || pvcs.length === 0) {
+                container.innerHTML = '<div class="no-issues" style="color: var(--neon-cyan);">No PVCs found</div>';
+                return;
+            }
+
+            // Sort by capacity (largest first)
+            pvcs.sort((a, b) => b.capacity_bytes - a.capacity_bytes);
+
+            const table = `
+                <table class="issues-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Namespace</th>
+                            <th>Capacity</th>
+                            <th>Storage Class</th>
+                            <th>Status</th>
+                            <th>Access</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${pvcs.slice(0, 20).map(pvc => `
+                            <tr>
+                                <td class="app-name">${pvc.name}</td>
+                                <td>${pvc.namespace}</td>
+                                <td><span class="pvc-capacity">${pvc.capacity}</span></td>
+                                <td><span class="storage-class">${pvc.storage_class || '-'}</span></td>
+                                <td><span class="status-badge ${pvc.status.toLowerCase()}">${pvc.status}</span></td>
+                                <td class="access-modes">${pvc.access_modes.join(', ')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                ${pvcs.length > 20 ? `<div class="table-footer">Showing 20 of ${pvcs.length} PVCs</div>` : ''}
+            `;
+            container.innerHTML = table;
         }
 
         // Initial fetches

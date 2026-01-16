@@ -36,20 +36,13 @@ Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubern
   - AMD64 = Violet/Purple
   - ARM64 = Rose/Pink
 
----
-
-## 🚧 Fonctionnalités Planifiées
-
-### v0.3.0 - Enhanced Dashboard
-- [ ] **Logo personnalisé** - Ajouter logo.png dans l'application
-- [ ] **Menu latéral gauche** - Navigation pour les différentes sections
-- [ ] **Compteur de namespaces** - Nombre total de namespaces
-- [ ] **Liens externes** :
-  - [ ] Lien vers Homepage
-  - [ ] Lien vers Grafana
-- [ ] **PVC Monitoring** :
-  - [ ] Identifier les PVC qui gaspillent de la place (sous-utilisés)
-  - [ ] Identifier les PVC qui saturent (presque pleins)
+### v0.4.0 - Enhanced Dashboard (current)
+- [x] **Quick Navigation Bar** - Stats cluster et liens externes
+- [x] Compteur de namespaces
+- [x] Compteur de PVCs + capacité totale
+- [x] **Liens externes** : Grafana, ArgoCD, Homepage, OpenObserve
+- [x] **Section PVC Monitoring** - Table des PVCs avec capacité et status
+- [x] API `/api/cluster/overview` pour stats cluster
 
 ### v0.4.0 - RUM & Observabilité
 - [ ] **Real User Monitoring (RUM)** - Intégration OpenObserve
