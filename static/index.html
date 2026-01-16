@@ -50,7 +50,14 @@
                     <span class="link-icon">📈</span> Grafana
                 </a>
                 <a href="https://argocd.p.zacharie.org" target="_blank" class="ext-link argocd" title="ArgoCD">
-                    <span class="link-icon">🚀</span> ArgoCD
+                    <span class="link-icon">
+                        <svg viewBox="0 0 128 128" width="1em" height="1em" fill="currentColor">
+                            <path
+                                d="M70.089 26.264c-11.411-6.789-25.108-8.22-37.713-4.746C17.432 25.636 5.38 37.116.079 51.603q-.024.066-.051.002-.009-.025-.021-.048-.011-.024-.005-.05 5.007-19.766 21.5-31.155c18.216-12.576 42.79-12.044 60.643.992a.114.114 0 0 1-.023.2l-11.654 4.748a.428.426-40.7 0 1-.38-.028zM71.325 26.978a.03.03 0 0 1 .004-.053l11.754-4.79a.159.157 53.2 0 1 .157.022q15.7 12.43 19.523 31.957c1.583 8.085.993 16.763-1.342 24.58-6.383 21.37-26.086 36.61-48.391 37.292q-1.702.053-.017-.197 15.939-2.362 27.578-14.218c9.91-10.092 14.767-24.64 13.257-38.754q-1.105-10.342-6.506-19.415-5.976-10.043-16.017-16.424z" />
+                            <path
+                                d="M110.985 10.209h.22Q126.873 27.613 128 51.114v4.793q-1.1 23.145-16.098 40.192c-12.77 14.514-31.675 22.415-51.067 21.64q-1.181-.049-2.343-.21-.007-.002 0-.002 21.11-.9 36.825-14.431c12.675-10.914 20.095-27.247 20.07-44.035-.026-16.352-6.81-31.694-18.68-42.812a.131.131 0 0 1 .207-.087z" />
+                        </svg>
+                    </span> ArgoCD
                 </a>
                 <a href="https://homepage.p.zacharie.org" target="_blank" class="ext-link homepage" title="Homepage">
                     <span class="link-icon">🏠</span> Homepage
@@ -64,13 +71,35 @@
         <!-- Section Tabs Navigation -->
         <div class="section-tabs">
             <button class="tab-btn active" data-tab="argocd" onclick="switchTab('argocd')">
-                <span class="tab-icon">🚀</span> ArgoCD
+                <span class="tab-icon">
+                    <svg viewBox="0 0 128 128" width="1em" height="1em" fill="currentColor">
+                        <path
+                            d="M70.089 26.264c-11.411-6.789-25.108-8.22-37.713-4.746C17.432 25.636 5.38 37.116.079 51.603q-.024.066-.051.002-.009-.025-.021-.048-.011-.024-.005-.05 5.007-19.766 21.5-31.155c18.216-12.576 42.79-12.044 60.643.992a.114.114 0 0 1-.023.2l-11.654 4.748a.428.426-40.7 0 1-.38-.028zM71.325 26.978a.03.03 0 0 1 .004-.053l11.754-4.79a.159.157 53.2 0 1 .157.022q15.7 12.43 19.523 31.957c1.583 8.085.993 16.763-1.342 24.58-6.383 21.37-26.086 36.61-48.391 37.292q-1.702.053-.017-.197 15.939-2.362 27.578-14.218c9.91-10.092 14.767-24.64 13.257-38.754q-1.105-10.342-6.506-19.415-5.976-10.043-16.017-16.424z" />
+                        <path
+                            d="M110.985 10.209h.22Q126.873 27.613 128 51.114v4.793q-1.1 23.145-16.098 40.192c-12.77 14.514-31.675 22.415-51.067 21.64q-1.181-.049-2.343-.21-.007-.002 0-.002 21.11-.9 36.825-14.431c12.675-10.914 20.095-27.247 20.07-44.035-.026-16.352-6.81-31.694-18.68-42.812a.131.131 0 0 1 .207-.087z" />
+                    </svg>
+                </span> ArgoCD
             </button>
             <button class="tab-btn" data-tab="nodes" onclick="switchTab('nodes')">
-                <span class="tab-icon">🖥️</span> Nodes
+                <span class="tab-icon">
+                    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                        <line x1="6" y1="6" x2="6.01" y2="6" />
+                        <line x1="6" y1="18" x2="6.01" y2="18" />
+                    </svg>
+                </span> Nodes
             </button>
             <button class="tab-btn" data-tab="storage" onclick="switchTab('storage')">
-                <span class="tab-icon">💾</span> Storage
+                <span class="tab-icon">
+                    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <ellipse cx="12" cy="5" rx="9" ry="3" />
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                    </svg>
+                </span> Storage
             </button>
             <button class="tab-btn" data-tab="events" onclick="switchTab('events')">
                 <span class="tab-icon">🔔</span> Events
