@@ -12,7 +12,38 @@
   --grid-color: rgba(0, 255, 65, 0.1);
   --text-primary: #e0e0e0;
   --text-secondary: #888;
+  --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
+
+/* Light Theme */
+:root[data-theme="light"] {
+  --neon-green: #00aa28;
+  --neon-cyan: #0088aa;
+  --neon-magenta: #aa00aa;
+  --neon-pink: #cc1155;
+  --dark-bg: #f5f5f7;
+  --darker-bg: #e8e8ec;
+  --grid-color: rgba(0, 100, 40, 0.08);
+  --text-primary: #1a1a2e;
+  --text-secondary: #555;
+}
+
+/* Smooth transitions for theme switching */
+body,
+.container,
+.terminal,
+.stat-box,
+.node-card,
+.issues-table-container,
+.quick-nav,
+.ext-link,
+.tab-btn,
+.chat-container,
+.chat-input,
+.chat-send-btn {
+  transition: var(--theme-transition);
+}
+
 
 * {
   margin: 0;
@@ -84,6 +115,52 @@ body {
   text-align: center;
   padding: 4rem 0;
   position: relative;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid var(--neon-cyan);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.theme-toggle:hover {
+  border-color: var(--neon-green);
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
+  transform: scale(1.1);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+.theme-icon {
+  font-size: 1.5rem;
+  transition: transform 0.3s ease;
+}
+
+.theme-toggle:hover .theme-icon {
+  transform: rotate(20deg);
+}
+
+:root[data-theme="light"] .theme-toggle {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--neon-cyan);
+}
+
+:root[data-theme="light"] .scanlines {
+  opacity: 0.3;
 }
 
 .logo {

@@ -21,6 +21,9 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
+            <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                <span class="theme-icon" id="theme-icon">🌙</span>
+            </button>
             <h1 class="logo">KUSANAGI</h1>
             <p class="subtitle">Agent Controller System</p>
             <p class="japanese-text">草薙素子 // MOTOKO</p>
@@ -424,6 +427,43 @@
     </div>
 
     <script>
+        // === THEME TOGGLE ===
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+            localStorage.setItem('kusanagi-theme', newTheme);
+        }
+
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.getElementById('theme-icon').textContent = '☀️';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                document.getElementById('theme-icon').textContent = '🌙';
+            }
+        }
+
+        // Initialize theme on page load
+        (function initTheme() {
+            const savedTheme = localStorage.getItem('kusanagi-theme');
+            if (savedTheme) {
+                applyTheme(savedTheme);
+            } else {
+                // Respect system preference
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                applyTheme(prefersDark ? 'dark' : 'light');
+            }
+        })();
+
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (!localStorage.getItem('kusanagi-theme')) {
+                applyTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+
         // === TAB NAVIGATION ===
         function switchTab(tabName) {
             // Update buttons
