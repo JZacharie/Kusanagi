@@ -32,7 +32,8 @@ pub struct EventInfo {
 }
 
 /// Get recent Kubernetes events (last 1 hour, warnings prioritized)
-pub async fn get_events() -> Result<EventsResponse, String> {
+/// Optionally filter by event type (e.g., "Warning" or "Normal")
+pub async fn get_events(event_type_filter: Option<String>) -> Result<EventsResponse, String> {
     let client = Client::try_default()
         .await
         .map_err(|e| format!("Failed to create Kubernetes client: {}", e))?;
@@ -120,6 +121,11 @@ pub async fn get_events() -> Result<EventsResponse, String> {
     event_infos.sort_by(|a, b| {
         b.last_timestamp.cmp(&a.last_timestamp)
     });
+
+    // Apply event type filter if specified
+    if let Some(filter) = event_type_filter {
+        event_infos.retain(|e| e.event_type.eq_ignore_ascii_case(&filter));
+    }
 
     let warning_count = event_infos.iter().filter(|e| e.event_type == "Warning").count();
     let normal_count = event_infos.iter().filter(|e| e.event_type == "Normal").count();

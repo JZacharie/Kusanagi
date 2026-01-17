@@ -27,6 +27,11 @@ struct SyncRequest {
     app_name: String,
 }
 
+#[derive(Deserialize)]
+struct EventsQuery {
+    event_type: Option<String>,
+}
+
 #[get("/health")]
 async fn health_check() -> impl Responder {
     HttpResponse::Ok().body("Kusanagi Agent Controller is healthy")
@@ -95,8 +100,8 @@ async fn cluster_overview() -> impl Responder {
 }
 
 #[get("/api/events")]
-async fn k8s_events() -> impl Responder {
-    match events::get_events().await {
+async fn k8s_events(query: web::Query<EventsQuery>) -> impl Responder {
+    match events::get_events(query.event_type.clone()).await {
         Ok(events) => HttpResponse::Ok().json(events),
         Err(e) => {
             tracing::error!("Failed to get events: {}", e);

@@ -44,7 +44,7 @@ pub async fn generate_report() -> Result<ClusterReport, String> {
         nodes::get_nodes_status(),
         argocd::get_argocd_status(),
         alertmanager::get_active_alerts(),
-        events::get_events(),
+        events::get_events(None),
         storage::get_storage_status(),
         prometheus::get_cluster_metrics()
     );
