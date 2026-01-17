@@ -625,6 +625,107 @@
             }
         });
 
+        // === TABLE MANAGER (Sort & Search) ===
+        const TableManager = {
+            // Store table data for filtering/sorting
+            tables: {},
+
+            // Initialize a searchable/sortable table
+            init(tableId, data, renderFn, columns) {
+                this.tables[tableId] = {
+                    data: data,
+                    filtered: [...data],
+                    renderFn: renderFn,
+                    columns: columns,
+                    sortCol: null,
+                    sortDir: 'asc',
+                    searchTerm: ''
+                };
+            },
+
+            // Create search input HTML
+            createSearchInput(tableId, placeholder = 'Search...') {
+                return `
+                    <div class="table-search">
+                        <input type="text" 
+                               class="search-input" 
+                               id="search-${tableId}" 
+                               placeholder="${placeholder}"
+                               oninput="TableManager.search('${tableId}', this.value)">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                `;
+            },
+
+            // Create sortable header
+            createSortableHeader(tableId, columns) {
+                return columns.map((col, idx) => {
+                    const table = this.tables[tableId];
+                    const isSorted = table && table.sortCol === col.key;
+                    const sortIcon = isSorted ? (table.sortDir === 'asc' ? '▲' : '▼') : '⇅';
+                    return `<th class="sortable" onclick="TableManager.sort('${tableId}', '${col.key}')">${col.label} <span class="sort-icon">${sortIcon}</span></th>`;
+                }).join('');
+            },
+
+            // Search/filter function
+            search(tableId, term) {
+                const table = this.tables[tableId];
+                if (!table) return;
+
+                table.searchTerm = term.toLowerCase();
+                table.filtered = table.data.filter(item => {
+                    return Object.values(item).some(val =>
+                        String(val).toLowerCase().includes(table.searchTerm)
+                    );
+                });
+
+                table.renderFn(table.filtered);
+            },
+
+            // Sort function
+            sort(tableId, column) {
+                const table = this.tables[tableId];
+                if (!table) return;
+
+                // Toggle direction if same column
+                if (table.sortCol === column) {
+                    table.sortDir = table.sortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    table.sortCol = column;
+                    table.sortDir = 'asc';
+                }
+
+                table.filtered.sort((a, b) => {
+                    let valA = a[column];
+                    let valB = b[column];
+
+                    // Handle null/undefined
+                    if (valA == null) valA = '';
+                    if (valB == null) valB = '';
+
+                    // Check if numeric
+                    const numA = parseFloat(valA);
+                    const numB = parseFloat(valB);
+
+                    if (!isNaN(numA) && !isNaN(numB)) {
+                        return table.sortDir === 'asc' ? numA - numB : numB - numA;
+                    }
+
+                    // String comparison
+                    const strA = String(valA).toLowerCase();
+                    const strB = String(valB).toLowerCase();
+
+                    if (table.sortDir === 'asc') {
+                        return strA.localeCompare(strB);
+                    } else {
+                        return strB.localeCompare(strA);
+                    }
+                });
+
+                table.renderFn(table.filtered);
+            }
+        };
+
         // === TAB NAVIGATION ===
         function switchTab(tabName) {
             // Update buttons
@@ -884,7 +985,19 @@
                 document.getElementById('pods-error').textContent = data.error_pods;
                 document.getElementById('pods-error-count').textContent = data.pods_in_error.length;
 
-                // Render table
+                // Initialize TableManager for pods
+                const podsColumns = [
+                    { key: 'name', label: 'Pod Name' },
+                    { key: 'namespace', label: 'Namespace' },
+                    { key: 'status', label: 'Status' },
+                    { key: 'reason', label: 'Reason' },
+                    { key: 'restart_count', label: 'Restarts' },
+                    { key: 'age', label: 'Age' },
+                    { key: 'node', label: 'Node' }
+                ];
+                TableManager.init('pods', data.pods_in_error, renderPodsTableContent, podsColumns);
+
+                // Render table with search
                 renderPodsTable(data.pods_in_error);
             } catch (error) {
                 console.error('Failed to fetch pods status:', error);
@@ -901,36 +1014,59 @@
                 return;
             }
 
+            // Add search input
+            const searchHtml = TableManager.createSearchInput('pods', 'Search pods...');
+
+            const podsColumns = [
+                { key: 'name', label: 'Pod Name' },
+                { key: 'namespace', label: 'Namespace' },
+                { key: 'status', label: 'Status' },
+                { key: 'reason', label: 'Reason' },
+                { key: 'restart_count', label: 'Restarts' },
+                { key: 'age', label: 'Age' },
+                { key: 'node', label: 'Node' }
+            ];
+
             const table = `
-                <table class="issues-table">
+                ${searchHtml}
+                <table class="issues-table" id="pods-table">
                     <thead>
                         <tr>
-                            <th>Pod Name</th>
-                            <th>Namespace</th>
-                            <th>Status</th>
-                            <th>Reason</th>
-                            <th>Restarts</th>
-                            <th>Age</th>
-                            <th>Node</th>
+                            ${TableManager.createSortableHeader('pods', podsColumns)}
                         </tr>
                     </thead>
-                    <tbody>
-                        ${pods.map(pod => `
-                            <tr>
-                                <td class="app-name" title="${pod.message || ''}">${pod.name}</td>
-                                <td>${pod.namespace}</td>
-                                <td><span class="status-badge ${getStatusClass(pod.status)}">${pod.status}</span></td>
-                                <td class="error-message" title="${pod.message || ''}">${pod.reason || '-'}</td>
-                                <td style="color: ${pod.restart_count > 5 ? '#ff4444' : 'inherit'}; font-weight: ${pod.restart_count > 5 ? 'bold' : 'normal'};">${pod.restart_count}</td>
-                                <td>${pod.age}</td>
-                                <td>${pod.node || '-'}</td>
-                            </tr>
-                        `).join('')}
+                    <tbody id="pods-table-body">
+                        ${renderPodsRows(pods)}
                     </tbody>
                 </table>
             `;
             container.innerHTML = table;
         }
+
+        function renderPodsTableContent(pods) {
+            const tbody = document.getElementById('pods-table-body');
+            if (tbody) {
+                tbody.innerHTML = renderPodsRows(pods);
+            }
+        }
+
+        function renderPodsRows(pods) {
+            if (!pods || pods.length === 0) {
+                return '<tr><td colspan="7" style="text-align: center; color: var(--neon-green);">✓ No matching pods</td></tr>';
+            }
+            return pods.map(pod => `
+                <tr>
+                    <td class="app-name" title="${pod.message || ''}">${pod.name}</td>
+                    <td>${pod.namespace}</td>
+                    <td><span class="status-badge ${getStatusClass(pod.status)}">${pod.status}</span></td>
+                    <td class="error-message" title="${pod.message || ''}">${pod.reason || '-'}</td>
+                    <td style="color: ${pod.restart_count > 5 ? '#ff4444' : 'inherit'}; font-weight: ${pod.restart_count > 5 ? 'bold' : 'normal'};">${pod.restart_count}</td>
+                    <td>${pod.age}</td>
+                    <td>${pod.node || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
 
         function getStatusClass(status) {
             switch (status.toLowerCase()) {
