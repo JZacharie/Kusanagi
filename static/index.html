@@ -1477,7 +1477,21 @@
                 if (!response.ok) throw new Error('Failed to fetch services');
                 const data = await response.json();
                 document.getElementById('services-count').textContent = data.length;
-                renderServicesTable(data);
+
+                // Initialize TableManager for services
+                const servicesColumns = [
+                    { key: 'name', label: 'Name' },
+                    { key: 'namespace', label: 'Namespace' },
+                    { key: 'type_', label: 'Type' },
+                    { key: 'cluster_ip', label: 'Cluster IP' },
+                    { key: 'external_ip', label: 'External IP' },
+                    { key: 'ports', label: 'Ports' },
+                    { key: 'age', label: 'Age' }
+                ];
+                TableManager.init('services', data, renderServicesRows, servicesColumns);
+
+                // Render structure + initial data
+                renderServicesStructure();
             } catch (error) {
                 console.error('Error fetching services:', error);
                 document.getElementById('services-content').innerHTML = `
@@ -1488,42 +1502,94 @@
             }
         }
 
-        function renderServicesTable(services) {
+        function renderServicesStructure() {
             const container = document.getElementById('services-content');
-            if (services.length === 0) {
-                container.innerHTML = '<div class="no-issues">No services found</div>';
-                return;
-            }
 
-            const table = `
+            // Search & Filter controls
+            const searchHtml = TableManager.createSearchInput('services', 'Search services...');
+
+            const controls = `
+                <div class="table-controls" style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center;">
+                    ${searchHtml}
+                    <button id="btn-lb-filter" class="tab-btn" onclick="toggleLoadBalancerFilter()" style="padding: 0.5rem 1rem; font-size: 0.9em;">
+                        <span class="tab-icon">⚖️</span> LoadBalancers Only
+                    </button>
+                    <button class="tab-btn" onclick="TableManager.search('services', '')" style="padding: 0.5rem 1rem; font-size: 0.9em; min-width: auto;" title="Clear Filters">
+                        <span class="tab-icon">❌</span>
+                    </button>
+                </div>
+            `;
+
+            const columns = [
+                { key: 'name', label: 'Name' },
+                { key: 'namespace', label: 'Namespace' },
+                { key: 'type_', label: 'Type' },
+                { key: 'cluster_ip', label: 'Cluster IP' },
+                { key: 'external_ip', label: 'External IP' },
+                { key: 'ports', label: 'Ports' },
+                { key: 'age', label: 'Age' }
+            ];
+
+            const tableHtml = `
+                ${controls}
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>Namespace</th>
-                            <th>Type</th>
-                            <th>Cluster IP</th>
-                            <th>External IP</th>
-                            <th>Ports</th>
-                            <th>Age</th>
+                             ${TableManager.createSortableHeader('services', columns)}
                         </tr>
                     </thead>
-                    <tbody>
-                        ${services.map(svc => `
-                            <tr>
-                                <td class="app-name">${svc.name}</td>
-                                <td>${svc.namespace}</td>
-                                <td><span class="status-badge info">${svc.type_}</span></td>
-                                <td><code>${svc.cluster_ip}</code></td>
-                                <td>${svc.external_ip ? `<code>${svc.external_ip}</code>` : '-'}</td>
-                                <td>${svc.ports}</td>
-                                <td>${svc.age}</td>
-                            </tr>
-                        `).join('')}
+                    <tbody id="services-table-body">
                     </tbody>
                 </table>
             `;
-            container.innerHTML = table;
+
+            container.innerHTML = tableHtml;
+
+            // Initial Render of rows
+            renderServicesRows(TableManager.tables['services'].filtered);
+        }
+
+        function renderServicesRows(services) {
+            const tbody = document.getElementById('services-table-body');
+            if (!tbody) return;
+
+            if (services.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-issues">No services found matching filters</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = services.map(svc => `
+                <tr>
+                    <td class="app-name">${svc.name}</td>
+                    <td>${svc.namespace}</td>
+                    <td><span class="status-badge ${svc.type_ === 'LoadBalancer' ? 'warning' : 'info'}">${svc.type_}</span></td>
+                    <td><code>${svc.cluster_ip}</code></td>
+                    <td>${svc.external_ip ? `<code>${svc.external_ip}</code>` : '-'}</td>
+                    <td>${svc.ports}</td>
+                    <td>${svc.age}</td>
+                </tr>
+            `).join('');
+        }
+
+        function toggleLoadBalancerFilter() {
+            const btn = document.getElementById('btn-lb-filter');
+            const isActive = btn.classList.contains('active');
+
+            if (isActive) {
+                // Clear filter
+                btn.classList.remove('active');
+                TableManager.search('services', '');
+                // Also clear the search input visually
+                const searchInput = document.getElementById('search-services');
+                if (searchInput) searchInput.value = '';
+            } else {
+                // Apply filter
+                btn.classList.add('active');
+                TableManager.search('services', 'LoadBalancer');
+                // Update search input to reflect
+                const searchInput = document.getElementById('search-services');
+                if (searchInput) searchInput.value = 'LoadBalancer';
+            }
         }
 
         async function fetchIngress() {
