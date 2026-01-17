@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
 use k8s_openapi::api::core::v1::Pod;
 use kube::{
-    api::{Api, ListParams},
+    api::{Api, DeleteParams, ListParams, Patch, PatchParams},
     Client,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tracing::info;
 
 /// Pods status response
@@ -273,5 +274,83 @@ fn format_age(seconds: i64) -> String {
         format!("{}m", minutes)
     } else {
         format!("{}s", seconds)
+    }
+}
+
+/// Request to force delete a pod
+#[derive(Clone, Debug, Deserialize)]
+pub struct ForceDeleteRequest {
+    pub namespace: String,
+    pub pod_name: String,
+}
+
+/// Response from force delete operation
+#[derive(Clone, Debug, Serialize)]
+pub struct ForceDeleteResponse {
+    pub success: bool,
+    pub message: String,
+    pub pod_name: String,
+    pub namespace: String,
+}
+
+/// Force delete a pod by removing finalizers and deleting with 0 grace period
+/// This is useful for pods stuck in Terminating state
+pub async fn force_delete_pod(namespace: &str, pod_name: &str) -> Result<ForceDeleteResponse, String> {
+    let client = Client::try_default()
+        .await
+        .map_err(|e| format!("Failed to create Kubernetes client: {}", e))?;
+
+    let pods_api: Api<Pod> = Api::namespaced(client, namespace);
+
+    info!("Force deleting pod {}/{}", namespace, pod_name);
+
+    // Step 1: Remove all finalizers using JSON Patch
+    let patch = json!({
+        "metadata": {
+            "finalizers": null
+        }
+    });
+
+    match pods_api
+        .patch(
+            pod_name,
+            &PatchParams::default(),
+            &Patch::Merge(&patch),
+        )
+        .await
+    {
+        Ok(_) => info!("Removed finalizers from pod {}/{}", namespace, pod_name),
+        Err(e) => {
+            // Pod might not exist or might not have finalizers, continue anyway
+            info!("Note: Could not patch finalizers for {}/{}: {}", namespace, pod_name, e);
+        }
+    }
+
+    // Step 2: Delete the pod with grace_period_seconds = 0
+    let delete_params = DeleteParams {
+        grace_period_seconds: Some(0),
+        ..Default::default()
+    };
+
+    match pods_api.delete(pod_name, &delete_params).await {
+        Ok(_) => {
+            info!("Successfully force deleted pod {}/{}", namespace, pod_name);
+            Ok(ForceDeleteResponse {
+                success: true,
+                message: format!("Pod {} successfully force deleted", pod_name),
+                pod_name: pod_name.to_string(),
+                namespace: namespace.to_string(),
+            })
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to delete pod {}/{}: {}", namespace, pod_name, e);
+            tracing::error!("{}", error_msg);
+            Ok(ForceDeleteResponse {
+                success: false,
+                message: error_msg,
+                pod_name: pod_name.to_string(),
+                namespace: namespace.to_string(),
+            })
+        }
     }
 }

@@ -192,6 +192,22 @@ async fn pods_status() -> impl Responder {
     }
 }
 
+#[post("/api/pods/force-delete")]
+async fn force_delete_pod(body: web::Json<pods::ForceDeleteRequest>) -> impl Responder {
+    info!("Force delete requested for pod: {}/{}", body.namespace, body.pod_name);
+    
+    match pods::force_delete_pod(&body.namespace, &body.pod_name).await {
+        Ok(response) => HttpResponse::Ok().json(response),
+        Err(e) => {
+            tracing::error!("Failed to force delete pod: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "message": e
+            }))
+        }
+    }
+}
+
 #[derive(Deserialize)]
 struct CiliumQuery {
     namespace: Option<String>,
@@ -404,6 +420,7 @@ async fn main() -> std::io::Result<()> {
             .service(services_status)
             .service(ingress_status)
             .service(pods_status)
+            .service(force_delete_pod)
             .service(cilium_flows)
             .service(cilium_matrix)
             .service(cilium_metrics)
