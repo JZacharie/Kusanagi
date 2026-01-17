@@ -14,6 +14,7 @@ mod storage;
 mod services;
 mod ingress;
 mod pods;
+mod ws;
 
 #[derive(Deserialize)]
 struct SyncRequest {
@@ -208,6 +209,7 @@ async fn main() -> std::io::Result<()> {
             .service(services_status)
             .service(ingress_status)
             .service(pods_status)
+            .route("/ws/notifications", web::get().to(ws::ws_notifications))
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?

@@ -18,6 +18,12 @@
     <div class="grid-bg"></div>
     <div class="scanlines"></div>
 
+    <!-- Notification Container -->
+    <div class="notification-container" id="notification-container"></div>
+    <div class="ws-status" id="ws-status" title="WebSocket connection status">
+        <span class="ws-indicator disconnected" id="ws-indicator"></span>
+    </div>
+
     <div class="container">
         <!-- Header -->
         <header class="header">
@@ -461,6 +467,161 @@
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
             if (!localStorage.getItem('kusanagi-theme')) {
                 applyTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+
+        // === WEBSOCKET NOTIFICATIONS ===
+        let wsConnection = null;
+        let wsReconnectAttempts = 0;
+        const WS_MAX_RECONNECT_ATTEMPTS = 5;
+        const WS_RECONNECT_DELAY = 3000;
+
+        function initWebSocket() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws/notifications`;
+
+            updateWsStatus('connecting');
+
+            try {
+                wsConnection = new WebSocket(wsUrl);
+
+                wsConnection.onopen = function () {
+                    console.log('✅ WebSocket connected');
+                    wsReconnectAttempts = 0;
+                    updateWsStatus('connected');
+                };
+
+                wsConnection.onmessage = function (event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleWsMessage(data);
+                    } catch (e) {
+                        console.error('Failed to parse WebSocket message:', e);
+                    }
+                };
+
+                wsConnection.onclose = function (event) {
+                    console.log('WebSocket closed:', event.code, event.reason);
+                    updateWsStatus('disconnected');
+                    attemptReconnect();
+                };
+
+                wsConnection.onerror = function (error) {
+                    console.error('WebSocket error:', error);
+                    updateWsStatus('disconnected');
+                };
+            } catch (error) {
+                console.error('Failed to create WebSocket:', error);
+                updateWsStatus('disconnected');
+            }
+        }
+
+        function attemptReconnect() {
+            if (wsReconnectAttempts < WS_MAX_RECONNECT_ATTEMPTS) {
+                wsReconnectAttempts++;
+                console.log(`Attempting WebSocket reconnect (${wsReconnectAttempts}/${WS_MAX_RECONNECT_ATTEMPTS})...`);
+                setTimeout(initWebSocket, WS_RECONNECT_DELAY);
+            } else {
+                console.log('Max WebSocket reconnect attempts reached');
+            }
+        }
+
+        function updateWsStatus(status) {
+            const indicator = document.getElementById('ws-indicator');
+            const statusEl = document.getElementById('ws-status');
+
+            indicator.className = 'ws-indicator ' + status;
+
+            const labels = {
+                'connected': 'Live',
+                'disconnected': 'Offline',
+                'connecting': 'Connecting...'
+            };
+
+            statusEl.title = `WebSocket: ${labels[status] || status}`;
+        }
+
+        function handleWsMessage(data) {
+            switch (data.type) {
+                case 'connected':
+                    console.log('WebSocket:', data.message);
+                    break;
+
+                case 'alert':
+                    showNotification({
+                        title: data.title,
+                        message: data.message,
+                        severity: data.severity,
+                        source: data.source
+                    });
+                    break;
+
+                case 'stats_update':
+                    // Update live stats if needed
+                    console.log('Stats update:', data);
+                    break;
+
+                case 'heartbeat':
+                    // Silent heartbeat
+                    break;
+
+                default:
+                    console.log('Unknown WebSocket message:', data);
+            }
+        }
+
+        function showNotification(options) {
+            const container = document.getElementById('notification-container');
+            const id = 'notif-' + Date.now();
+
+            const notification = document.createElement('div');
+            notification.id = id;
+            notification.className = `notification ${options.severity || 'info'}`;
+
+            notification.innerHTML = `
+                <div class="notification-header">
+                    <span class="notification-title">${getSeverityIcon(options.severity)} ${options.title}</span>
+                    <button class="notification-close" onclick="dismissNotification('${id}')">&times;</button>
+                </div>
+                <div class="notification-body">${options.message}</div>
+                ${options.source ? `<div class="notification-source">Source: ${options.source}</div>` : ''}
+            `;
+
+            container.appendChild(notification);
+
+            // Auto-dismiss after 8 seconds
+            setTimeout(() => dismissNotification(id), 8000);
+
+            // Play sound if enabled (optional)
+            // playNotificationSound(options.severity);
+        }
+
+        function dismissNotification(id) {
+            const notification = document.getElementById(id);
+            if (notification) {
+                notification.classList.add('hiding');
+                setTimeout(() => notification.remove(), 300);
+            }
+        }
+
+        function getSeverityIcon(severity) {
+            const icons = {
+                'error': '🔴',
+                'warning': '🟠',
+                'success': '🟢',
+                'info': '🔵'
+            };
+            return icons[severity] || icons.info;
+        }
+
+        // Initialize WebSocket on page load
+        initWebSocket();
+
+        // Reconnect WebSocket when page becomes visible
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && (!wsConnection || wsConnection.readyState !== WebSocket.OPEN)) {
+                wsReconnectAttempts = 0;
+                initWebSocket();
             }
         });
 
