@@ -90,6 +90,7 @@ Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubern
 - [x] Dark/Light mode toggle
 - [x] Notifications temps réel (WebSocket)
 - [ ] **Tri et recherche sur les tableaux** - Colonnes triables + barre de recherche
+- [ ] **Liens Ingress clickables** - Hosts en HTTPS cliquables vers les URLs
 - [ ] Export de rapports
 - [ ] Dashboard personnalisables
 
