@@ -11,6 +11,7 @@
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
     <!-- RUM (Real User Monitoring) -->
     <script src="/static/js/rum.js"></script>
+    <script src="/static/js/network.js"></script>
 </head>
 
 <body>
@@ -140,6 +141,9 @@
             </button>
             <button class="tab-btn" data-tab="backups" onclick="switchTab('backups')">
                 <span class="tab-icon">📦</span> Backups
+            </button>
+            <button class="tab-btn" data-tab="network" onclick="switchTab('network')">
+                <span class="tab-icon">🌐</span> Network
             </button>
             <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
                 <span class="tab-icon">💬</span> Chat
@@ -421,6 +425,55 @@
                 </div>
                 <div id="backups-content">
                     <div class="loading">Loading backup jobs...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Network Visualization Section -->
+        <section class="argocd-section tab-content" data-tab="network" style="display: none;">
+            <h2 class="section-title">🌐 Network Flows (Cilium/Hubble)</h2>
+
+            <!-- Network Controls -->
+            <div class="network-controls" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                <select id="network-namespace-filter" class="cyber-select"
+                    onchange="KusanagiNetwork.filterByNamespace(this.value)">
+                    <option value="">All Namespaces</option>
+                </select>
+                <button class="cyber-btn" onclick="KusanagiNetwork.fetchAndRender()">
+                    🔄 Refresh
+                </button>
+                <button class="cyber-btn" onclick="KusanagiNetwork.exportData('json')">
+                    📥 Export JSON
+                </button>
+                <button class="cyber-btn" onclick="KusanagiNetwork.exportData('csv')">
+                    📥 Export CSV
+                </button>
+            </div>
+
+            <!-- Network Stats -->
+            <div id="network-stats" style="margin-bottom: 1.5rem;">
+                <div class="loading">Loading network stats...</div>
+            </div>
+
+            <!-- Network Graph -->
+            <div class="issues-table-container" style="border-color: var(--neon-cyan); margin-bottom: 1.5rem;">
+                <div class="issues-table-header"
+                    style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                    <span class="issues-table-title" style="color: var(--neon-cyan);">Service Graph</span>
+                </div>
+                <div id="network-visualization" style="min-height: 400px; background: rgba(0,0,0,0.3);">
+                    <div class="loading">Loading network graph...</div>
+                </div>
+            </div>
+
+            <!-- Flow Matrix -->
+            <div class="issues-table-container" style="border-color: var(--neon-magenta);">
+                <div class="issues-table-header"
+                    style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                    <span class="issues-table-title" style="color: var(--neon-magenta);">📊 Flow Matrix</span>
+                </div>
+                <div id="network-matrix">
+                    <div class="loading">Loading flow matrix...</div>
                 </div>
             </div>
         </section>

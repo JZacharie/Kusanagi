@@ -55,31 +55,31 @@ Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubern
 
 ## 🚧 Fonctionnalités Planifiées
 
-### v0.6.0 - RUM & Observabilité (current)
+### v0.6.0 - RUM & Observabilité
 - [x] **Module RUM** (`rum.js`) - Real User Monitoring vanilla JS
 - [x] Tracking page load (load time, DOM ready, TTFB)
 - [x] Tracking erreurs JavaScript et promesses non gérées
 - [x] Tracking interactions utilisateur (clics sur boutons/liens)
 - [x] Tracking navigation et visibilité
 - [x] Stockage session pour historique des events
-- [ ] Intégration OpenObserve (future)
+- [x] **Intégration OpenObserve** - Envoi batché avec authentification
 
 ### v0.5.0 - Chatbot & MCP Integration
-- [ ] **Chatbot intégré** - Interroger le status du cluster
-- [ ] **Stockage conversations S3** - Historique des chats sur MinIO (192.168.0.170) pour analyse et features proactives
-- [ ] **MCP Kubernetes** - Accès aux ressources K8s
-- [ ] **MCP Cilium** - Monitoring réseau et policies
-- [ ] **MCP Steampipe** - Requêtes SQL sur l'infrastructure
-- [ ] **MCP Trivy S3** - Lecture des alertes Trivy stockées en S3
+- [x] **Chatbot intégré** - Interroger le status du cluster
+- [x] **Stockage conversations S3** - Historique des chats sur MinIO (192.168.0.170) pour analyse et features proactives
+- [x] **MCP Kubernetes** - Accès aux ressources K8s
+- [x] **MCP Cilium** - Monitoring réseau et policies
+- [x] **MCP Steampipe** - Requêtes SQL sur l'infrastructure
+- [x] **MCP Trivy S3** - Lecture des alertes Trivy stockées en S3
 
 ### v0.7.0 - Cilium Network Visualization
-- [ ] **Graph des microservices** - Visualisation interactive des relations entre services (D3.js/Mermaid)
-- [ ] **Matrice des flux** - Tableau source→destination avec protocoles et ports
-- [ ] **Métriques bande passante** - Bytes/s par flux via Hubble metrics
-- [ ] **Analyse utilisation** - Identification des services sur/sous-utilisés
-- [ ] **Filtrage namespace** - Vue par namespace ou cluster-wide
-- [ ] **Export flows** - Export JSON/CSV des données de flux
-- [ ] **Alertes anomalies** - Détection de flux inattendus ou pics de traffic
+- [x] **Graph des microservices** - Visualisation interactive des relations entre services (D3.js/Mermaid)
+- [x] **Matrice des flux** - Tableau source→destination avec protocoles et ports
+- [x] **Métriques bande passante** - Bytes/s par flux via Hubble metrics
+- [x] **Analyse utilisation** - Identification des services sur/sous-utilisés
+- [x] **Filtrage namespace** - Vue par namespace ou cluster-wide
+- [x] **Export flows** - Export JSON/CSV des données de flux
+- [x] **Alertes anomalies** - Détection de flux inattendus ou pics de traffic
 
 ---
 

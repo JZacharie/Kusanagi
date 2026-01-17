@@ -12,9 +12,11 @@ mod events;
 mod nodes;
 mod storage;
 mod chat_storage;
+mod mcp;
 mod services;
 mod ingress;
 mod pods;
+mod cilium;
 mod ws;
 
 #[derive(Deserialize)]
@@ -187,6 +189,102 @@ async fn pods_status() -> impl Responder {
     }
 }
 
+#[derive(Deserialize)]
+struct CiliumQuery {
+    namespace: Option<String>,
+    limit: Option<usize>,
+    format: Option<String>,
+}
+
+#[get("/api/cilium/flows")]
+async fn cilium_flows(query: web::Query<CiliumQuery>) -> impl Responder {
+    let namespace = query.namespace.as_deref();
+    let limit = query.limit.unwrap_or(100);
+    
+    match cilium::get_hubble_flows(namespace, limit).await {
+        Ok(flows) => HttpResponse::Ok().json(flows),
+        Err(e) => {
+            tracing::error!("Failed to get Cilium flows: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
+#[get("/api/cilium/matrix")]
+async fn cilium_matrix(query: web::Query<CiliumQuery>) -> impl Responder {
+    let namespace = query.namespace.as_deref();
+    
+    match cilium::get_flow_matrix(namespace).await {
+        Ok(matrix) => HttpResponse::Ok().json(matrix),
+        Err(e) => {
+            tracing::error!("Failed to get flow matrix: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
+#[get("/api/cilium/metrics")]
+async fn cilium_metrics(query: web::Query<CiliumQuery>) -> impl Responder {
+    let namespace = query.namespace.as_deref();
+    
+    match cilium::get_bandwidth_metrics(namespace).await {
+        Ok(metrics) => HttpResponse::Ok().json(metrics),
+        Err(e) => {
+            tracing::error!("Failed to get bandwidth metrics: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
+#[get("/api/cilium/anomalies")]
+async fn cilium_anomalies(query: web::Query<CiliumQuery>) -> impl Responder {
+    let namespace = query.namespace.as_deref();
+    
+    match cilium::detect_anomalies(namespace).await {
+        Ok(anomalies) => HttpResponse::Ok().json(anomalies),
+        Err(e) => {
+            tracing::error!("Failed to detect anomalies: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
+#[get("/api/cilium/export")]
+async fn cilium_export(query: web::Query<CiliumQuery>) -> impl Responder {
+    let namespace = query.namespace.as_deref();
+    let limit = query.limit.unwrap_or(1000);
+    let format = query.format.as_deref().unwrap_or("json");
+    
+    match cilium::get_hubble_flows(namespace, limit).await {
+        Ok(flows) => {
+            match format {
+                "csv" => HttpResponse::Ok()
+                    .content_type("text/csv")
+                    .insert_header(("Content-Disposition", "attachment; filename=flows.csv"))
+                    .body(cilium::export_flows_csv(&flows)),
+                _ => HttpResponse::Ok()
+                    .content_type("application/json")
+                    .insert_header(("Content-Disposition", "attachment; filename=flows.json"))
+                    .body(cilium::export_flows_json(&flows)),
+            }
+        }
+        Err(e) => {
+            tracing::error!("Failed to export flows: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -210,6 +308,11 @@ async fn main() -> std::io::Result<()> {
             .service(services_status)
             .service(ingress_status)
             .service(pods_status)
+            .service(cilium_flows)
+            .service(cilium_matrix)
+            .service(cilium_metrics)
+            .service(cilium_anomalies)
+            .service(cilium_export)
             .route("/ws/notifications", web::get().to(ws::ws_notifications))
             .service(Files::new("/static", "./static").show_files_listing())
     })

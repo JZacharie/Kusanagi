@@ -7,12 +7,15 @@
 const KusanagiRUM = {
     config: {
         serviceName: 'kusanagi',
-        serviceVersion: '0.6.0',
+        serviceVersion: '0.7.0',
         environment: 'production',
-        endpoint: 'https://openobserve.p.zacharie.org/api/default/v1/logs',
+        endpoint: 'https://o2-openobserve.p.zacharie.org/api/default/v1/logs',
         enabled: true,
         sessionId: null,
-        userId: 'anonymous'
+        userId: 'anonymous',
+        batchSize: 10,
+        authToken: null,  // Set via init() options: btoa('user:password')
+        debug: false
     },
 
     /**
@@ -64,15 +67,71 @@ const KusanagiRUM = {
         };
 
         try {
-            // For now, just log to console (OpenObserve integration requires auth)
+            // Store locally first
+            this.storeEvent(event);
+
             if (this.config.debug) {
                 console.log('📊 RUM Event:', eventType, event);
             }
 
-            // Store locally for now
-            this.storeEvent(event);
+            // Add to batch queue
+            this.eventQueue = this.eventQueue || [];
+            this.eventQueue.push(event);
+
+            // Send batch if queue is large enough or hasn't been sent recently
+            if (this.eventQueue.length >= this.config.batchSize || !this.lastFlush) {
+                await this.flushEvents();
+            } else if (!this.flushTimer) {
+                // Schedule flush in 5 seconds
+                this.flushTimer = setTimeout(() => this.flushEvents(), 5000);
+            }
         } catch (error) {
             console.error('Failed to send RUM event:', error);
+        }
+    },
+
+    /**
+     * Flush event queue to OpenObserve
+     */
+    async flushEvents() {
+        if (!this.eventQueue || this.eventQueue.length === 0) return;
+
+        const events = [...this.eventQueue];
+        this.eventQueue = [];
+        this.lastFlush = Date.now();
+
+        if (this.flushTimer) {
+            clearTimeout(this.flushTimer);
+            this.flushTimer = null;
+        }
+
+        // Only send if auth token is configured
+        if (!this.config.authToken) {
+            if (this.config.debug) {
+                console.log('📊 RUM: No auth token, skipping OpenObserve send');
+            }
+            return;
+        }
+
+        try {
+            const response = await fetch(this.config.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${this.config.authToken}`
+                },
+                body: JSON.stringify(events)
+            });
+
+            if (!response.ok) {
+                console.error('OpenObserve RUM upload failed:', response.status);
+            } else if (this.config.debug) {
+                console.log(`📊 RUM: Sent ${events.length} events to OpenObserve`);
+            }
+        } catch (error) {
+            console.error('Failed to send events to OpenObserve:', error);
+            // Re-queue events for retry
+            this.eventQueue = [...events, ...this.eventQueue];
         }
     },
 

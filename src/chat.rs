@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
-use crate::{argocd, cluster, events, nodes, backups, chat_storage};
+use crate::{argocd, cluster, events, nodes, backups, chat_storage, mcp};
 
 /// Chat message request
 #[derive(Clone, Debug, Deserialize)]
@@ -38,7 +38,7 @@ struct OllamaResponse {
 /// Available commands
 const HELP_TEXT: &str = r#"**Kusanagi Chat Commands** 🤖
 
-Available commands:
+**Cluster Commands:**
 - `/help` - Show this help message
 - `/status` - Show cluster overview
 - `/nodes` - Show nodes status
@@ -48,6 +48,12 @@ Available commands:
 - `/backups` - Show backup jobs status
 - `/namespaces` - Show namespace count
 - `/pvcs` - Show PVC summary
+
+**MCP Commands (AI-Powered):**
+- `/k8s` - Show Kubernetes resources via MCP
+- `/cilium` - Show Cilium network policies
+- `/trivy` - Show security vulnerabilities
+- `/query <sql>` - Execute Steampipe SQL query
 
 Or just ask me anything in natural language! I'm powered by Ollama AI."#;
 
@@ -97,6 +103,15 @@ async fn handle_command(command: &str) -> ChatResponse {
         "/backups" => get_backups_summary().await,
         "/namespaces" => get_namespaces_summary().await,
         "/pvcs" => get_pvcs_summary().await,
+        
+        // MCP Commands
+        "/k8s" => get_mcp_k8s_resources().await,
+        "/cilium" => get_mcp_cilium_policies().await,
+        "/trivy" => get_mcp_trivy_vulns().await,
+        cmd if cmd.starts_with("/query ") => {
+            let sql = cmd.strip_prefix("/query ").unwrap_or("");
+            get_steampipe_query(sql).await
+        }
         
         _ => ChatResponse {
             response: format!("Unknown command: `{}`. Type `/help` for available commands.", command),
@@ -550,6 +565,90 @@ async fn get_pvcs_summary() -> ChatResponse {
         }
         Err(e) => ChatResponse {
             response: format!("Failed to get PVCs: {}", e),
+            response_type: "error".to_string(),
+            data: None,
+        },
+    }
+}
+
+// ============================================================================
+// MCP Command Handlers
+// ============================================================================
+
+async fn get_mcp_k8s_resources() -> ChatResponse {
+    match mcp::get_k8s_resources(None).await {
+        Ok(resources) => {
+            let response = mcp::format_k8s_resources(&resources);
+            ChatResponse {
+                response,
+                response_type: "k8s".to_string(),
+                data: Some(serde_json::to_value(&resources).unwrap_or_default()),
+            }
+        }
+        Err(e) => ChatResponse {
+            response: format!("Failed to get K8s resources: {}", e),
+            response_type: "error".to_string(),
+            data: None,
+        },
+    }
+}
+
+async fn get_mcp_cilium_policies() -> ChatResponse {
+    match mcp::get_cilium_policies(None).await {
+        Ok(summary) => {
+            let response = mcp::format_cilium_policies(&summary);
+            ChatResponse {
+                response,
+                response_type: "cilium".to_string(),
+                data: Some(serde_json::to_value(&summary).unwrap_or_default()),
+            }
+        }
+        Err(e) => ChatResponse {
+            response: format!("Failed to get Cilium policies: {}", e),
+            response_type: "error".to_string(),
+            data: None,
+        },
+    }
+}
+
+async fn get_mcp_trivy_vulns() -> ChatResponse {
+    match mcp::get_trivy_vulnerabilities().await {
+        Ok(summary) => {
+            let response = mcp::format_trivy_vulnerabilities(&summary);
+            ChatResponse {
+                response,
+                response_type: "trivy".to_string(),
+                data: Some(serde_json::to_value(&summary).unwrap_or_default()),
+            }
+        }
+        Err(e) => ChatResponse {
+            response: format!("Failed to get Trivy vulnerabilities: {}", e),
+            response_type: "error".to_string(),
+            data: None,
+        },
+    }
+}
+
+async fn get_steampipe_query(sql: &str) -> ChatResponse {
+    if sql.trim().is_empty() {
+        return ChatResponse {
+            response: "Usage: `/query SELECT * FROM ...`\n\nPlease provide a valid SQL query.".to_string(),
+            response_type: "error".to_string(),
+            data: None,
+        };
+    }
+
+    match mcp::query_steampipe(sql).await {
+        Ok(result) => {
+            let response = mcp::format_steampipe_result(&result);
+            ChatResponse {
+                response,
+                response_type: "steampipe".to_string(),
+                data: Some(serde_json::to_value(&result).unwrap_or_default()),
+            }
+        }
+        Err(e) => ChatResponse {
+            response: format!("Query failed: {}", e),
             response_type: "error".to_string(),
             data: None,
         },
