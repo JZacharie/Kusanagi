@@ -114,6 +114,7 @@ const KusanagiNetwork = {
                 this.fetchMatrix(namespace)
             ]);
 
+            this.populateNamespaceFilter();
             this.renderGraph();
             this.renderMatrix();
             this.renderStats();
@@ -375,6 +376,31 @@ const KusanagiNetwork = {
     filterByNamespace(namespace) {
         this.state.selectedNamespace = namespace || null;
         this.fetchAndRender();
+    },
+
+    /**
+     * Populate namespace filter dropdown with available namespaces
+     */
+    populateNamespaceFilter() {
+        const select = document.getElementById('network-namespace-filter');
+        if (!select || !this.state.flows || !this.state.flows.namespaces) return;
+
+        const currentValue = this.state.selectedNamespace || '';
+        const namespaces = this.state.flows.namespaces;
+
+        // Clear existing options except the first "All Namespaces" option
+        select.innerHTML = '<option value="">All Namespaces</option>';
+
+        // Add namespace options
+        namespaces.sort().forEach(ns => {
+            const option = document.createElement('option');
+            option.value = ns;
+            option.textContent = ns;
+            if (ns === currentValue) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
     },
 
     /**
