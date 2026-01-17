@@ -1173,6 +1173,67 @@
             }
         }
 
+        // Force delete a pod with confirmation
+        async function forceDeletePod(namespace, podName) {
+            const confirmed = confirm(`⚠️ Force Delete Pod\n\nAre you sure you want to force delete:\n\n${namespace}/${podName}\n\nThis will:\n1. Remove all finalizers\n2. Delete the pod immediately\n\nThis action cannot be undone!`);
+
+            if (!confirmed) return;
+
+            // Find the button and show loading state
+            const buttons = document.querySelectorAll('.delete-btn');
+            let targetBtn = null;
+            buttons.forEach(btn => {
+                if (btn.onclick.toString().includes(podName)) {
+                    targetBtn = btn;
+                }
+            });
+
+            if (targetBtn) {
+                targetBtn.disabled = true;
+                targetBtn.innerHTML = '⏳ Deleting...';
+            }
+
+            try {
+                const response = await fetch('/api/pods/force-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ namespace, pod_name: podName })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification({
+                        title: 'Pod Deleted',
+                        message: `Successfully force deleted ${podName}`,
+                        severity: 'success'
+                    });
+                    // Refresh the pods list after a short delay
+                    setTimeout(() => fetchPodsStatus(), 1000);
+                } else {
+                    showNotification({
+                        title: 'Delete Failed',
+                        message: data.message || 'Unknown error',
+                        severity: 'error'
+                    });
+                    if (targetBtn) {
+                        targetBtn.disabled = false;
+                        targetBtn.innerHTML = '🗑️ Delete';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to delete pod:', error);
+                showNotification({
+                    title: 'Delete Error',
+                    message: 'Failed to connect to server',
+                    severity: 'error'
+                });
+                if (targetBtn) {
+                    targetBtn.disabled = false;
+                    targetBtn.innerHTML = '🗑️ Delete';
+                }
+            }
+        }
+
         // === NODES MONITORING ===
         async function fetchNodesStatus() {
             try {
