@@ -11,6 +11,7 @@ mod cluster;
 mod events;
 mod nodes;
 mod storage;
+mod chat_storage;
 mod services;
 mod ingress;
 mod pods;

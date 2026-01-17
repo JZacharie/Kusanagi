@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
-use crate::{argocd, cluster, events, nodes, backups};
+use crate::{argocd, cluster, events, nodes, backups, chat_storage};
 
 /// Chat message request
 #[derive(Clone, Debug, Deserialize)]
@@ -64,7 +64,21 @@ pub async fn process_message(request: ChatRequest) -> ChatResponse {
     }
 
     // Handle natural language queries with Ollama
-    handle_query_with_ollama(message).await
+    // Handle natural language queries with Ollama
+    let response = handle_query_with_ollama(message).await;
+
+    // Store chat in background (fire and forget for now, or spawn)
+    let user_msg = message.to_string();
+    let ai_resp = response.response.clone();
+    let resp_type = response.response_type.clone();
+    
+    actix::spawn(async move {
+        if let Err(e) = chat_storage::store_chat_message(&user_msg, &ai_resp, &resp_type).await {
+            tracing::error!("Failed to store chat message: {}", e);
+        }
+    });
+
+    response
 }
 
 async fn handle_command(command: &str) -> ChatResponse {

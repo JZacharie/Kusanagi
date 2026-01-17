@@ -72,6 +72,15 @@ Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubern
 - [ ] **MCP Steampipe** - Requêtes SQL sur l'infrastructure
 - [ ] **MCP Trivy S3** - Lecture des alertes Trivy stockées en S3
 
+### v0.7.0 - Cilium Network Visualization
+- [ ] **Graph des microservices** - Visualisation interactive des relations entre services (D3.js/Mermaid)
+- [ ] **Matrice des flux** - Tableau source→destination avec protocoles et ports
+- [ ] **Métriques bande passante** - Bytes/s par flux via Hubble metrics
+- [ ] **Analyse utilisation** - Identification des services sur/sous-utilisés
+- [ ] **Filtrage namespace** - Vue par namespace ou cluster-wide
+- [ ] **Export flows** - Export JSON/CSV des données de flux
+- [ ] **Alertes anomalies** - Détection de flux inattendus ou pics de traffic
+
 ---
 
 ## 📋 Backlog
@@ -122,16 +131,16 @@ Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubern
 #### Redis Sentinel Timeouts (`redis`, `redis-s`)
 - **Problème**: Liveness/Readiness probes timeout sur port 26379 (Sentinel)
 - **Action**: 
-  - [ ] Augmenter les timeouts des probes (timeoutSeconds: 10)
-  - [ ] Vérifier la charge CPU/RAM des pods Redis
-  - [ ] Valider la configuration Sentinel
+  - [x] Augmenter les timeouts des probes (timeoutSeconds: 30)
+  - [x] Vérifier la charge CPU/RAM des pods Redis
+  - [x] Valider la configuration Sentinel
 
 #### N8N Pods Unhealthy (`n8n`, `n8n-dev`)  
 - **Problème**: Connection refused sur port 5678
 - **Action**:
-  - [ ] Vérifier les logs N8N pour erreurs de démarrage
-  - [ ] Augmenter initialDelaySeconds sur les probes
-  - [ ] Vérifier les ressources allouées (OOM?)
+  - [x] Vérifier les logs N8N pour erreurs de démarrage
+  - [x] Augmenter initialDelaySeconds sur les probes
+  - [x] Vérifier les ressources allouées (OOM?)
 
 #### Guacamole-SBX Sync Failed
 - **Problème**: `envFrom` avec configMapRef/secretRef vides
