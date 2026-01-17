@@ -66,6 +66,7 @@ Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubern
 
 ### v0.5.0 - Chatbot & MCP Integration
 - [ ] **Chatbot intégré** - Interroger le status du cluster
+- [ ] **Stockage conversations S3** - Historique des chats sur MinIO (192.168.0.170) pour analyse et features proactives
 - [ ] **MCP Kubernetes** - Accès aux ressources K8s
 - [ ] **MCP Cilium** - Monitoring réseau et policies
 - [ ] **MCP Steampipe** - Requêtes SQL sur l'infrastructure
