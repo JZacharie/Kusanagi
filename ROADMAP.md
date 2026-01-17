@@ -112,3 +112,68 @@ Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubern
 - Déployé sur namespace `kusanagi`
 - Accessible via `kusanagi.p.zacharie.org`
 - Intégré à Homepage via annotations gethomepage.dev
+
+---
+
+## ⚠️ Actions Correctives (Analyse Events Warning - 2026-01-17)
+
+### 🔴 Critique - À corriger immédiatement
+
+#### Redis Sentinel Timeouts (`redis`, `redis-s`)
+- **Problème**: Liveness/Readiness probes timeout sur port 26379 (Sentinel)
+- **Action**: 
+  - [ ] Augmenter les timeouts des probes (timeoutSeconds: 10)
+  - [ ] Vérifier la charge CPU/RAM des pods Redis
+  - [ ] Valider la configuration Sentinel
+
+#### N8N Pods Unhealthy (`n8n`, `n8n-dev`)  
+- **Problème**: Connection refused sur port 5678
+- **Action**:
+  - [ ] Vérifier les logs N8N pour erreurs de démarrage
+  - [ ] Augmenter initialDelaySeconds sur les probes
+  - [ ] Vérifier les ressources allouées (OOM?)
+
+#### Guacamole-SBX Sync Failed
+- **Problème**: `envFrom` avec configMapRef/secretRef vides
+- **Action**:
+  - [x] ✅ Corrigé - Commenté la section envFrom dans values.yaml
+
+### 🟠 Important - À planifier
+
+#### ArgoCD HPA Missing Resource Requests
+- **Problème**: `FailedGetResourceMetric` - memory request manquant
+- **Action**:
+  - [ ] Ajouter `resources.requests.memory` sur argocd-repo-server
+  - [ ] Ajouter `resources.requests.memory` sur argocd-server
+
+#### Guacamole-SBX HPA Missing CPU Request
+- **Problème**: `FailedGetResourceMetric` - CPU request manquant
+- **Action**:
+  - [ ] Ajouter `resources.requests.cpu` sur guacamole-sbx-client
+
+#### OpenObserve Backup Cluster Not Found
+- **Problème**: `FindingCluster - Unknown cluster o2-openobserve-postgres`
+- **Action**:
+  - [ ] Vérifier la configuration CloudNativePG
+  - [ ] Valider le nom du cluster PostgreSQL dans le Backup CRD
+
+### 🟡 Mineur - À surveiller
+
+#### DNS Nameserver Limits Exceeded (ArgoCD)
+- **Problème**: Trop de nameservers configurés
+- **Action**:
+  - [ ] Réduire le nombre de nameservers dans la config DNS
+  - [ ] Prioritiser les DNS internes
+
+#### Trivy Scan BackoffLimitExceeded
+- **Problème**: Job `scan-vulnerabilityreport` en échec
+- **Action**:
+  - [ ] Vérifier les logs du job Trivy
+  - [ ] Augmenter le backoffLimit si timeout
+  - [ ] Vérifier la connectivité au registry
+
+#### Karakeep/Jellyfin Probe Timeouts
+- **Problème**: Context deadline exceeded sur probes
+- **Action**:
+  - [ ] Augmenter timeoutSeconds des probes
+  - [ ] Vérifier la performance de l'application
