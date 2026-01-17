@@ -81,7 +81,7 @@ Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubern
 - [ ] Audit logging
 
 ### Monitoring Additionnel
-- [ ] Pods en CrashLoopBackOff
+- [x] Pods en CrashLoopBackOff
 - [ ] Events Kubernetes récents
 - [ ] Métriques Prometheus embedded
 - [ ] Alertes AlertManager

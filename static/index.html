@@ -126,6 +126,9 @@
             <button class="tab-btn" data-tab="events" onclick="switchTab('events')">
                 <span class="tab-icon">🔔</span> Events
             </button>
+            <button class="tab-btn" data-tab="pods" onclick="switchTab('pods')">
+                <span class="tab-icon">🐳</span> Pods
+            </button>
             <button class="tab-btn" data-tab="backups" onclick="switchTab('backups')">
                 <span class="tab-icon">📦</span> Backups
             </button>
@@ -313,6 +316,43 @@
                 </div>
                 <div id="events-content">
                     <div class="loading">Loading events...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pods Error Monitoring Section -->
+        <section class="argocd-section tab-content" data-tab="pods" style="display: none;">
+            <h2 class="section-title">🐳 Pods in Error</h2>
+
+            <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stat-box">
+                    <div class="stat-value" id="pods-total">-</div>
+                    <div class="stat-label">Total Pods</div>
+                </div>
+                <div class="stat-box healthy">
+                    <div class="stat-value" id="pods-running">-</div>
+                    <div class="stat-label">Running</div>
+                </div>
+                <div class="stat-box warning">
+                    <div class="stat-value" id="pods-pending">-</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-box unhealthy">
+                    <div class="stat-value" id="pods-error">-</div>
+                    <div class="stat-label">In Error</div>
+                </div>
+            </div>
+
+            <div class="issues-table-container" id="pods-container" style="border-color: var(--neon-orange, #ff8c00);">
+                <div class="issues-table-header"
+                    style="background: rgba(255, 140, 0, 0.1); border-color: var(--neon-orange, #ff8c00);">
+                    <span class="issues-table-title" style="color: var(--neon-orange, #ff8c00);">⚠️ Pods with
+                        Issues</span>
+                    <span class="issues-count" id="pods-error-count"
+                        style="background: var(--neon-orange, #ff8c00);">0</span>
+                </div>
+                <div id="pods-content">
+                    <div class="loading">Loading pods status...</div>
                 </div>
             </div>
         </section>
@@ -617,10 +657,89 @@
         // Initial fetch
         fetchArgoStatus();
         fetchNodesStatus();
+        fetchPodsStatus();
 
         // Refresh every 30 seconds
         setInterval(fetchArgoStatus, 30000);
         setInterval(fetchNodesStatus, 30000);
+        setInterval(fetchPodsStatus, 30000);
+
+        // === PODS ERROR MONITORING ===
+        async function fetchPodsStatus() {
+            try {
+                const response = await fetch('/api/pods/status');
+                const data = await response.json();
+
+                if (data.error) {
+                    document.getElementById('pods-content').innerHTML =
+                        `<div class="loading" style="color: #ff4444;">Error: ${data.error}</div>`;
+                    return;
+                }
+
+                // Update stats
+                document.getElementById('pods-total').textContent = data.total_pods;
+                document.getElementById('pods-running').textContent = data.running_pods;
+                document.getElementById('pods-pending').textContent = data.pending_pods;
+                document.getElementById('pods-error').textContent = data.error_pods;
+                document.getElementById('pods-error-count').textContent = data.pods_in_error.length;
+
+                // Render table
+                renderPodsTable(data.pods_in_error);
+            } catch (error) {
+                console.error('Failed to fetch pods status:', error);
+                document.getElementById('pods-content').innerHTML =
+                    `<div class="loading" style="color: #ff4444;">Failed to fetch pods status</div>`;
+            }
+        }
+
+        function renderPodsTable(pods) {
+            const container = document.getElementById('pods-content');
+
+            if (!pods || pods.length === 0) {
+                container.innerHTML = '<div class="no-issues" style="color: var(--neon-green);">✓ No pods in error state!</div>';
+                return;
+            }
+
+            const table = `
+                <table class="issues-table">
+                    <thead>
+                        <tr>
+                            <th>Pod Name</th>
+                            <th>Namespace</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                            <th>Restarts</th>
+                            <th>Age</th>
+                            <th>Node</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${pods.map(pod => `
+                            <tr>
+                                <td class="app-name" title="${pod.message || ''}">${pod.name}</td>
+                                <td>${pod.namespace}</td>
+                                <td><span class="status-badge ${getStatusClass(pod.status)}">${pod.status}</span></td>
+                                <td class="error-message" title="${pod.message || ''}">${pod.reason || '-'}</td>
+                                <td style="color: ${pod.restart_count > 5 ? '#ff4444' : 'inherit'}; font-weight: ${pod.restart_count > 5 ? 'bold' : 'normal'};">${pod.restart_count}</td>
+                                <td>${pod.age}</td>
+                                <td>${pod.node || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = table;
+        }
+
+        function getStatusClass(status) {
+            switch (status.toLowerCase()) {
+                case 'running': return 'healthy';
+                case 'succeeded': return 'healthy';
+                case 'pending': return 'progressing';
+                case 'failed': return 'unhealthy';
+                default: return 'unknown';
+            }
+        }
 
         // === NODES MONITORING ===
         async function fetchNodesStatus() {

@@ -13,6 +13,7 @@ mod nodes;
 mod storage;
 mod services;
 mod ingress;
+mod pods;
 
 #[derive(Deserialize)]
 struct SyncRequest {
@@ -171,6 +172,19 @@ async fn ingress_status() -> impl Responder {
     }
 }
 
+#[get("/api/pods/status")]
+async fn pods_status() -> impl Responder {
+    match pods::get_pods_status().await {
+        Ok(status) => HttpResponse::Ok().json(status),
+        Err(e) => {
+            tracing::error!("Failed to get pods status: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -193,6 +207,7 @@ async fn main() -> std::io::Result<()> {
             .service(storage_status)
             .service(services_status)
             .service(ingress_status)
+            .service(pods_status)
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?
