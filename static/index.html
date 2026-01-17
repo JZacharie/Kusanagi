@@ -1081,7 +1081,8 @@
                     { key: 'reason', label: 'Reason' },
                     { key: 'restart_count', label: 'Restarts' },
                     { key: 'age', label: 'Age' },
-                    { key: 'node', label: 'Node' }
+                    { key: 'node', label: 'Node' },
+                    { key: 'actions', label: 'Actions' }
                 ];
                 TableManager.init('pods', data.pods_in_error, renderPodsTableContent, podsColumns);
 
@@ -1112,7 +1113,8 @@
                 { key: 'reason', label: 'Reason' },
                 { key: 'restart_count', label: 'Restarts' },
                 { key: 'age', label: 'Age' },
-                { key: 'node', label: 'Node' }
+                { key: 'node', label: 'Node' },
+                { key: 'actions', label: 'Actions' }
             ];
 
             const table = `
@@ -1140,7 +1142,7 @@
 
         function renderPodsRows(pods) {
             if (!pods || pods.length === 0) {
-                return '<tr><td colspan="7" style="text-align: center; color: var(--neon-green);">✓ No matching pods</td></tr>';
+                return '<tr><td colspan="8" style="text-align: center; color: var(--neon-green);">✓ No matching pods</td></tr>';
             }
             return pods.map(pod => `
                 <tr>
@@ -1151,6 +1153,11 @@
                     <td style="color: ${pod.restart_count > 5 ? '#ff4444' : 'inherit'}; font-weight: ${pod.restart_count > 5 ? 'bold' : 'normal'};">${pod.restart_count}</td>
                     <td>${pod.age}</td>
                     <td>${pod.node || '-'}</td>
+                    <td>
+                        <button class="delete-btn" onclick="forceDeletePod('${pod.namespace}', '${pod.name}')" title="Force delete this pod">
+                            🗑️ Delete
+                        </button>
+                    </td>
                 </tr>
             `).join('');
         }
