@@ -1433,7 +1433,15 @@
                                 <td>${ing.load_balancer ? `<code>${ing.load_balancer}</code>` : '-'}</td>
                                 <td>
                                     <div class="ingress-rules">
-                                        ${ing.rules.map(rule => `<div><code>${rule}</code></div>`).join('')}
+                                        ${ing.rules.map(rule => {
+                // Extract hostname from rule (format: "host/path -> service:port")
+                const hostMatch = rule.match(/^([^\/]+)/);
+                const host = hostMatch ? hostMatch[1].trim() : null;
+                if (host && host !== '*') {
+                    return `<div><a href="https://${host}" target="_blank" rel="noopener" class="ingress-link" title="Open ${host}">🔗 ${rule}</a></div>`;
+                }
+                return `<div><code>${rule}</code></div>`;
+            }).join('')}
                                     </div>
                                 </td>
                                 <td>${ing.age}</td>
