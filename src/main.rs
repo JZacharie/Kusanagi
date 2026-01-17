@@ -18,6 +18,9 @@ mod ingress;
 mod pods;
 mod cilium;
 mod ws;
+mod prometheus;
+mod alertmanager;
+mod export;
 
 #[derive(Deserialize)]
 struct SyncRequest {
@@ -285,6 +288,99 @@ async fn cilium_export(query: web::Query<CiliumQuery>) -> impl Responder {
     }
 }
 
+#[derive(Deserialize)]
+struct PrometheusQuery {
+    query: String,
+}
+
+#[get("/api/prometheus/metrics")]
+async fn prometheus_metrics() -> impl Responder {
+    match prometheus::get_cluster_metrics().await {
+        Ok(metrics) => HttpResponse::Ok().json(metrics),
+        Err(e) => {
+            tracing::error!("Failed to get Prometheus metrics: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
+#[get("/api/prometheus/query")]
+async fn prometheus_query(query: web::Query<PrometheusQuery>) -> impl Responder {
+    match prometheus::query_raw(&query.query).await {
+        Ok(result) => HttpResponse::Ok().json(result),
+        Err(e) => {
+            tracing::error!("Failed to execute Prometheus query: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
+#[get("/api/alerts")]
+async fn alerts_status() -> impl Responder {
+    match alertmanager::get_active_alerts().await {
+        Ok(alerts) => HttpResponse::Ok().json(alerts),
+        Err(e) => {
+            tracing::error!("Failed to get alerts: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct ExportQuery {
+    format: Option<String>,
+}
+
+#[get("/api/export/report")]
+async fn export_report(query: web::Query<ExportQuery>) -> impl Responder {
+    match export::generate_report().await {
+        Ok(report) => {
+            let format = query.format.as_deref().unwrap_or("json");
+            match format {
+                "csv" => {
+                    match export::export_csv(&report) {
+                        Ok(csv) => HttpResponse::Ok()
+                            .content_type("text/csv")
+                            .insert_header(("Content-Disposition", "attachment; filename=kusanagi-report.csv"))
+                            .body(csv),
+                        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({"error": e}))
+                    }
+                },
+                "markdown" | "md" => {
+                    match export::export_markdown(&report) {
+                        Ok(md) => HttpResponse::Ok()
+                            .content_type("text/markdown")
+                            .insert_header(("Content-Disposition", "attachment; filename=kusanagi-report.md"))
+                            .body(md),
+                        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({"error": e}))
+                    }
+                },
+                _ => {
+                    match export::export_json(&report) {
+                        Ok(json) => HttpResponse::Ok()
+                            .content_type("application/json")
+                            .insert_header(("Content-Disposition", "attachment; filename=kusanagi-report.json"))
+                            .body(json),
+                        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({"error": e}))
+                    }
+                }
+            }
+        },
+        Err(e) => {
+            tracing::error!("Failed to generate report: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -313,6 +409,10 @@ async fn main() -> std::io::Result<()> {
             .service(cilium_metrics)
             .service(cilium_anomalies)
             .service(cilium_export)
+            .service(prometheus_metrics)
+            .service(prometheus_query)
+            .service(alerts_status)
+            .service(export_report)
             .route("/ws/notifications", web::get().to(ws::ws_notifications))
             .service(Files::new("/static", "./static").show_files_listing())
     })

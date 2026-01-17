@@ -12,6 +12,7 @@
     <!-- RUM (Real User Monitoring) -->
     <script src="/static/js/rum.js"></script>
     <script src="/static/js/network.js"></script>
+    <script src="/static/js/dashboard.js"></script>
 </head>
 
 <body>
@@ -145,9 +146,27 @@
             <button class="tab-btn" data-tab="network" onclick="switchTab('network')">
                 <span class="tab-icon">🌐</span> Network
             </button>
+            <button class="tab-btn" data-tab="metrics" onclick="switchTab('metrics')">
+                <span class="tab-icon">📊</span> Metrics
+            </button>
+            <button class="tab-btn" data-tab="alerts" onclick="switchTab('alerts')">
+                <span class="tab-icon">⚠️</span> Alerts <span class="badge" id="alerts-badge"
+                    style="display:none;">0</span>
+            </button>
             <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
                 <span class="tab-icon">💬</span> Chat
             </button>
+            <!-- Export Dropdown -->
+            <div class="export-dropdown">
+                <button class="tab-btn export-trigger" onclick="toggleExportMenu()">
+                    <span class="tab-icon">📥</span> Export
+                </button>
+                <div class="export-menu" id="export-menu" style="display:none;">
+                    <button class="export-btn" data-format="json">📄 JSON</button>
+                    <button class="export-btn" data-format="csv">📊 CSV</button>
+                    <button class="export-btn" data-format="markdown">📝 Markdown</button>
+                </div>
+            </div>
         </div>
 
 
@@ -475,6 +494,22 @@
                 <div id="network-matrix">
                     <div class="loading">Loading flow matrix...</div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Prometheus Metrics Section -->
+        <section class="argocd-section tab-content" data-tab="metrics" style="display: none;">
+            <h2 class="section-title">📊 Cluster Metrics (Prometheus)</h2>
+            <div id="metrics-content">
+                <div class="loading">Loading metrics from Prometheus...</div>
+            </div>
+        </section>
+
+        <!-- Alerts Section -->
+        <section class="argocd-section tab-content" data-tab="alerts" style="display: none;">
+            <h2 class="section-title">⚠️ Active Alerts (Alertmanager)</h2>
+            <div id="alerts-content">
+                <div class="loading">Loading alerts from Alertmanager...</div>
             </div>
         </section>
 
@@ -1727,6 +1762,31 @@
         fetchStorageStatus();
         fetchServices();
         fetchIngress();
+
+        // Initialize Metrics and Alerts managers
+        if (typeof MetricsManager !== 'undefined') {
+            MetricsManager.init();
+        }
+        if (typeof AlertsManager !== 'undefined') {
+            AlertsManager.init();
+        }
+
+        // Export menu toggle
+        function toggleExportMenu() {
+            const menu = document.getElementById('export-menu');
+            if (menu) {
+                menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // Close export menu when clicking outside
+        document.addEventListener('click', function (e) {
+            const dropdown = document.querySelector('.export-dropdown');
+            const menu = document.getElementById('export-menu');
+            if (dropdown && menu && !dropdown.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
 
         // Refresh intervals
         setInterval(fetchArgoStatus, 30000);
