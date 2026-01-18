@@ -10,10 +10,11 @@
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
 
-    <!-- OpenObserve RUM & Logs SDK -->
-    <script src="https://unpkg.com/@openobserve/browser-rum@latest/dist/openobserve-rum.umd.js"></script>
-    <script src="https://unpkg.com/@openobserve/browser-logs@latest/dist/openobserve-logs.umd.js"></script>
-
+    <!-- OpenObserve RUM & Logs SDK via jsDelivr CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@openobserve/browser-rum@2.0.1/dist/openobserve-rum.umd.min.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@openobserve/browser-logs@2.0.1/dist/openobserve-logs.umd.min.js"
+        crossorigin="anonymous"></script>
     <!-- RUM (Real User Monitoring) - Must load after OpenObserve SDK -->
     <script src="/static/js/rum.js"></script>
     <!-- API Performance Tracking -->
@@ -1830,15 +1831,8 @@
             container.innerHTML = table;
         }
 
-        // Initialize RUM tracking
-        if (typeof KusanagiRUM !== 'undefined') {
-            KusanagiRUM.init({
-                serviceName: 'kusanagi',
-                serviceVersion: '0.6.0',
-                environment: 'production',
-                debug: false
-            });
-        }
+
+        // RUM initialization is now handled automatically in rum.js
 
         // Initial fetches
         fetchArgoStatus();
