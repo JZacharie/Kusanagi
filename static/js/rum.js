@@ -14,7 +14,7 @@
         applicationId: 'kusanagi-dashboard',
         site: 'o2-openobserve.p.zacharie.org',
         service: 'kusanagi',
-        env: window.location.hostname === 'localhost' ? 'development' : 'production',
+        env: 'production',
         version: '0.7.0',
         organizationIdentifier: 'default',
         insecureHTTP: false,
@@ -90,6 +90,7 @@
             OO_RUM.setGlobalContextProperty('user_agent', navigator.userAgent);
             OO_RUM.setGlobalContextProperty('screen_resolution', `${screen.width}x${screen.height}`);
             OO_RUM.setGlobalContextProperty('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
+            OO_RUM.setGlobalContextProperty('sdk_version', '0.3.1');
 
             // Start session replay recording
             OO_RUM.startSessionReplayRecording();
