@@ -380,27 +380,30 @@ const KusanagiNetwork = {
 
     /**
      * Populate namespace filter dropdown with available namespaces
+     * Only populates on first load (when no namespace is selected) to preserve the full list
      */
     populateNamespaceFilter() {
         const select = document.getElementById('network-namespace-filter');
         if (!select || !this.state.flows || !this.state.flows.namespaces) return;
 
-        const currentValue = this.state.selectedNamespace || '';
-        const namespaces = this.state.flows.namespaces;
+        // Only populate the dropdown on first load (when no namespace selected yet)
+        // This preserves the full namespace list when filtering
+        if (select.options.length <= 1) {
+            const namespaces = this.state.flows.namespaces;
 
-        // Clear existing options except the first "All Namespaces" option
-        select.innerHTML = '<option value="">All Namespaces</option>';
+            // Add namespace options
+            namespaces.sort().forEach(ns => {
+                const option = document.createElement('option');
+                option.value = ns;
+                option.textContent = ns;
+                select.appendChild(option);
+            });
+        }
 
-        // Add namespace options
-        namespaces.sort().forEach(ns => {
-            const option = document.createElement('option');
-            option.value = ns;
-            option.textContent = ns;
-            if (ns === currentValue) {
-                option.selected = true;
-            }
-            select.appendChild(option);
-        });
+        // Always update the selected value to match state
+        if (this.state.selectedNamespace) {
+            select.value = this.state.selectedNamespace;
+        }
     },
 
     /**
