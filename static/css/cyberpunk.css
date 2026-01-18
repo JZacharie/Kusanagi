@@ -1924,3 +1924,136 @@ body {
   background: rgba(0, 255, 255, 0.1);
   box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
 }
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+@media (max-width: 768px) {
+
+  /* Global Layout */
+  .container {
+    padding: 1rem 0.5rem;
+    width: 100%;
+    margin: 0;
+  }
+
+  /* Header */
+  .header {
+    padding: 2rem 0;
+  }
+
+  .logo {
+    font-size: 3rem;
+  }
+
+  .theme-toggle {
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Quick Nav */
+  .quick-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.5rem;
+    padding: 1rem;
+  }
+
+  .quick-stats {
+    gap: 1rem;
+    justify-content: space-between;
+  }
+
+  .external-links {
+    justify-content: center;
+  }
+
+  .ext-link {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Section Tabs - Scrollable */
+  .section-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0.5rem;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    /* smooth scrolling on iOS */
+    gap: 0.5rem;
+  }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    /* Don't shrink */
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  /* Grids - Stack vertically */
+  .stats-grid,
+  .argocd-stats,
+  .status-grid,
+  .nodes-grid,
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    /* Single column */
+    gap: 1rem;
+  }
+
+  /* Tables */
+  .issues-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .issues-table th,
+  .issues-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    /* Prevent wrapping in cells, force scroll */
+  }
+
+  /* Chat */
+  .chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 80vh;
+    /* Better usage of screen height */
+  }
+
+  .chat-messages {
+    height: auto;
+    flex: 1;
+  }
+
+  .chat-input-container {
+    padding: 0.5rem;
+  }
+
+  .chat-input {
+    font-size: 16px;
+    /* prevent zoom on iOS */
+  }
+
+  /* Footer */
+  .footer {
+    padding: 2rem 1rem;
+    font-size: 0.7rem;
+  }
+
+  /* Notifications */
+  .notification-container {
+    top: auto;
+    bottom: 80px;
+    /* Above bottom nav/ws status */
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+}
