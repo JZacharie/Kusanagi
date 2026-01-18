@@ -220,6 +220,19 @@ struct CiliumQuery {
     format: Option<String>,
 }
 
+#[get("/api/cilium/namespaces")]
+async fn cilium_namespaces() -> impl Responder {
+    match cilium::get_namespaces().await {
+        Ok(namespaces) => HttpResponse::Ok().json(namespaces),
+        Err(e) => {
+            tracing::error!("Failed to get namespaces: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
 #[get("/api/cilium/flows")]
 async fn cilium_flows(query: web::Query<CiliumQuery>) -> impl Responder {
     let namespace = query.namespace.as_deref();
@@ -426,6 +439,7 @@ async fn main() -> std::io::Result<()> {
             .service(ingress_status)
             .service(pods_status)
             .service(force_delete_pod)
+            .service(cilium_namespaces)
             .service(cilium_flows)
             .service(cilium_matrix)
             .service(cilium_metrics)

@@ -3,11 +3,54 @@
 
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn, error};
-use kube::{Api, Client};
-use k8s_openapi::api::core::v1::Service;
+use kube::{Api, Client, api::ListParams};
+use k8s_openapi::api::core::v1::{Service, Namespace};
 
 /// Hubble Relay configuration
 const HUBBLE_RELAY_URL: &str = "http://hubble-relay.kube-system.svc.cluster.local:4245";
+
+// ============================================================================
+// Namespace Fetching (Pre-filter for performance)
+// ============================================================================
+
+/// Fetch all namespaces from Kubernetes
+pub async fn get_namespaces() -> Result<Vec<String>, String> {
+    info!("Fetching namespaces from Kubernetes");
+    
+    let client = match Client::try_default().await {
+        Ok(c) => c,
+        Err(e) => {
+            warn!("Failed to create K8s client for namespaces: {}", e);
+            return Ok(get_fallback_namespaces());
+        }
+    };
+
+    let ns_api: Api<Namespace> = Api::all(client);
+    match ns_api.list(&ListParams::default()).await {
+        Ok(namespaces) => {
+            let mut ns_list: Vec<String> = namespaces
+                .items
+                .iter()
+                .filter_map(|ns| ns.metadata.name.clone())
+                .collect();
+            ns_list.sort();
+            info!("Fetched {} namespaces from K8s", ns_list.len());
+            Ok(ns_list)
+        }
+        Err(e) => {
+            warn!("Failed to list namespaces: {}, using fallback", e);
+            Ok(get_fallback_namespaces())
+        }
+    }
+}
+
+/// Fallback namespaces when K8s is unavailable
+fn get_fallback_namespaces() -> Vec<String> {
+    vec![
+        "argocd", "default", "kube-system", "kusanagi", 
+        "minio", "monitoring", "n8n", "paperless"
+    ].into_iter().map(String::from).collect()
+}
 
 /// Network flow between services
 #[derive(Serialize, Deserialize, Debug, Clone)]

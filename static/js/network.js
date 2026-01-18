@@ -5,6 +5,7 @@
 
 const KusanagiNetwork = {
     config: {
+        namespacesEndpoint: '/api/cilium/namespaces',
         flowsEndpoint: '/api/cilium/flows',
         matrixEndpoint: '/api/cilium/matrix',
         metricsEndpoint: '/api/cilium/metrics',
@@ -12,21 +13,23 @@ const KusanagiNetwork = {
         exportEndpoint: '/api/cilium/export',
         refreshInterval: 30000,
         width: 800,
-        height: 600
+        height: 600,
+        defaultNamespace: 'default'
     },
 
     state: {
         flows: null,
         matrix: null,
         metrics: null,
-        selectedNamespace: null,
+        namespaces: [],
+        selectedNamespace: 'default',
         intervalId: null
     },
 
     /**
      * Initialize network visualization
      */
-    init(containerId = 'network-visualization') {
+    async init(containerId = 'network-visualization') {
         this.container = document.getElementById(containerId);
         if (!this.container) {
             console.warn('Network visualization container not found');
@@ -34,7 +37,15 @@ const KusanagiNetwork = {
         }
 
         this.setupSVG();
-        this.fetchAndRender();
+
+        // Pre-fetch namespaces first for better performance
+        await this.fetchNamespaces();
+        this.populateNamespaceFilter();
+
+        // Start with default namespace selected
+        this.state.selectedNamespace = this.config.defaultNamespace;
+
+        await this.fetchAndRender();
         this.startAutoRefresh();
     },
 
@@ -48,6 +59,26 @@ const KusanagiNetwork = {
         this.svg.setAttribute('class', 'network-graph');
         this.container.innerHTML = '';
         this.container.appendChild(this.svg);
+    },
+
+    /**
+     * Fetch namespaces from API (pre-filter for performance)
+     */
+    async fetchNamespaces() {
+        try {
+            const response = await fetch(this.config.namespacesEndpoint);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const namespaces = await response.json();
+            this.state.namespaces = namespaces;
+            console.log(`Loaded ${namespaces.length} namespaces from K8s`);
+            return namespaces;
+        } catch (error) {
+            console.error('Failed to fetch namespaces:', error);
+            // Fallback to default list
+            this.state.namespaces = ['default', 'kube-system'];
+            return this.state.namespaces;
+        }
     },
 
     /**
@@ -379,20 +410,17 @@ const KusanagiNetwork = {
     },
 
     /**
-     * Populate namespace filter dropdown with available namespaces
-     * Only populates on first load (when no namespace is selected) to preserve the full list
+     * Populate namespace filter dropdown with pre-fetched namespaces
+     * Uses namespaces from K8s API for better performance
      */
     populateNamespaceFilter() {
         const select = document.getElementById('network-namespace-filter');
-        if (!select || !this.state.flows || !this.state.flows.namespaces) return;
+        if (!select) return;
 
-        // Only populate the dropdown on first load (when no namespace selected yet)
-        // This preserves the full namespace list when filtering
-        if (select.options.length <= 1) {
-            const namespaces = this.state.flows.namespaces;
-
-            // Add namespace options
-            namespaces.sort().forEach(ns => {
+        // Only populate the dropdown once (when empty)
+        if (select.options.length <= 1 && this.state.namespaces.length > 0) {
+            // Add namespace options from pre-fetched list
+            this.state.namespaces.forEach(ns => {
                 const option = document.createElement('option');
                 option.value = ns;
                 option.textContent = ns;
