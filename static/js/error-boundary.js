@@ -94,17 +94,17 @@
         };
 
         // Log to OpenObserve
-        if (typeof openobserveLogs !== 'undefined') {
+        if (typeof OO_LOGS !== 'undefined') {
             const logLevel = severity === ErrorSeverity.CRITICAL ? 'error' :
                 severity === ErrorSeverity.ERROR ? 'error' :
                     severity === ErrorSeverity.WARNING ? 'warn' : 'info';
 
-            openobserveLogs.logger[logLevel]('JavaScript Error', errorContext);
+            OO_LOGS.logger[logLevel]('JavaScript Error', errorContext);
         }
 
         // Track as RUM action
-        if (typeof openobserveRum !== 'undefined') {
-            openobserveRum.addAction('error_occurred', errorContext);
+        if (typeof OO_RUM !== 'undefined') {
+            OO_RUM.addAction('error_occurred', errorContext);
         }
 
         console.error('🔴 Kusanagi Error:', errorContext);
@@ -129,13 +129,13 @@
         };
 
         // Log to OpenObserve
-        if (typeof openobserveLogs !== 'undefined') {
-            openobserveLogs.logger.error('Unhandled Promise Rejection', errorContext);
+        if (typeof OO_LOGS !== 'undefined') {
+            OO_LOGS.logger.error('Unhandled Promise Rejection', errorContext);
         }
 
         // Track as RUM action
-        if (typeof openobserveRum !== 'undefined') {
-            openobserveRum.addAction('promise_rejection', errorContext);
+        if (typeof OO_RUM !== 'undefined') {
+            OO_RUM.addAction('promise_rejection', errorContext);
         }
 
         console.error('🔴 Kusanagi Promise Rejection:', errorContext);
@@ -157,12 +157,12 @@
                 timestamp: new Date().toISOString(),
             };
 
-            if (typeof openobserveLogs !== 'undefined') {
-                openobserveLogs.logger.warn('Resource Loading Failed', errorContext);
+            if (typeof OO_LOGS !== 'undefined') {
+                OO_LOGS.logger.warn('Resource Loading Failed', errorContext);
             }
 
-            if (typeof openobserveRum !== 'undefined') {
-                openobserveRum.addAction('resource_error', errorContext);
+            if (typeof OO_RUM !== 'undefined') {
+                OO_RUM.addAction('resource_error', errorContext);
             }
         }
     }, true);
@@ -187,16 +187,16 @@
                 timestamp: new Date().toISOString(),
             };
 
-            if (typeof openobserveLogs !== 'undefined') {
+            if (typeof OO_LOGS !== 'undefined') {
                 const logLevel = severity === ErrorSeverity.CRITICAL ? 'error' :
                     severity === ErrorSeverity.ERROR ? 'error' :
                         severity === ErrorSeverity.WARNING ? 'warn' : 'info';
 
-                openobserveLogs.logger[logLevel]('Custom Error Report', errorContext);
+                OO_LOGS.logger[logLevel]('Custom Error Report', errorContext);
             }
 
-            if (typeof openobserveRum !== 'undefined') {
-                openobserveRum.addAction('custom_error', errorContext);
+            if (typeof OO_RUM !== 'undefined') {
+                OO_RUM.addAction('custom_error', errorContext);
             }
         },
 

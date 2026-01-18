@@ -23,7 +23,7 @@
 
     // Wait for OpenObserve SDK to be loaded
     function initializeRUM() {
-        if (typeof openobserveRum === 'undefined' || typeof openobserveLogs === 'undefined') {
+        if (typeof OO_RUM === 'undefined' || typeof OO_LOGS === 'undefined') {
             const attempt = (initializeRUM.attempts || 0) + 1;
             initializeRUM.attempts = attempt;
 
@@ -44,7 +44,7 @@
 
         try {
             // Initialize RUM SDK
-            openobserveRum.init({
+            OO_RUM.init({
                 applicationId: options.applicationId,
                 clientToken: options.clientToken,
                 site: options.site,
@@ -63,7 +63,7 @@
             });
 
             // Initialize Logs SDK
-            openobserveLogs.init({
+            OO_LOGS.init({
                 clientToken: options.clientToken,
                 site: options.site,
                 organizationIdentifier: options.organizationIdentifier,
@@ -78,21 +78,21 @@
             // Set user context (if authenticated user info is available)
             // For now, we'll track anonymous users with basic browser fingerprinting
             const userFingerprint = generateUserFingerprint();
-            openobserveRum.setUser({
+            OO_RUM.setUser({
                 id: userFingerprint,
                 name: 'Kusanagi User',
                 email: null, // Set if user auth is implemented
             });
 
             // Add global context attributes
-            openobserveRum.setGlobalContextProperty('dashboard_type', 'kubernetes');
-            openobserveRum.setGlobalContextProperty('platform', 'web');
-            openobserveRum.setGlobalContextProperty('user_agent', navigator.userAgent);
-            openobserveRum.setGlobalContextProperty('screen_resolution', `${screen.width}x${screen.height}`);
-            openobserveRum.setGlobalContextProperty('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
+            OO_RUM.setGlobalContextProperty('dashboard_type', 'kubernetes');
+            OO_RUM.setGlobalContextProperty('platform', 'web');
+            OO_RUM.setGlobalContextProperty('user_agent', navigator.userAgent);
+            OO_RUM.setGlobalContextProperty('screen_resolution', `${screen.width}x${screen.height}`);
+            OO_RUM.setGlobalContextProperty('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
 
             // Start session replay recording
-            openobserveRum.startSessionReplayRecording();
+            OO_RUM.startSessionReplayRecording();
 
             console.log('✅ OpenObserve RUM initialized for Kusanagi', {
                 service: options.service,
@@ -102,7 +102,7 @@
             });
 
             // Log successful initialization
-            openobserveLogs.logger.info('Kusanagi dashboard loaded', {
+            OO_LOGS.logger.info('Kusanagi dashboard loaded', {
                 url: window.location.href,
                 timestamp: new Date().toISOString(),
             });
@@ -141,8 +141,8 @@
          * Track tab navigation
          */
         trackTabSwitch(tabName) {
-            if (typeof openobserveRum !== 'undefined') {
-                openobserveRum.addAction('tab_switch', {
+            if (typeof OO_RUM !== 'undefined') {
+                OO_RUM.addAction('tab_switch', {
                     tab_name: tabName,
                     timestamp: new Date().toISOString(),
                 });
@@ -153,8 +153,8 @@
          * Track ArgoCD sync actions
          */
         trackArgoSync(appName, success) {
-            if (typeof openobserveRum !== 'undefined') {
-                openobserveRum.addAction('argocd_sync', {
+            if (typeof OO_RUM !== 'undefined') {
+                OO_RUM.addAction('argocd_sync', {
                     application: appName,
                     success: success,
                     timestamp: new Date().toISOString(),
@@ -166,8 +166,8 @@
          * Track API call performance
          */
         trackApiCall(endpoint, duration, success, statusCode) {
-            if (typeof openobserveRum !== 'undefined') {
-                openobserveRum.addAction('api_call', {
+            if (typeof OO_RUM !== 'undefined') {
+                OO_RUM.addAction('api_call', {
                     endpoint: endpoint,
                     duration_ms: duration,
                     success: success,
@@ -181,8 +181,8 @@
          * Track data export actions
          */
         trackExport(format, dataType) {
-            if (typeof openobserveRum !== 'undefined') {
-                openobserveRum.addAction('data_export', {
+            if (typeof OO_RUM !== 'undefined') {
+                OO_RUM.addAction('data_export', {
                     format: format,
                     data_type: dataType,
                     timestamp: new Date().toISOString(),
@@ -194,8 +194,8 @@
          * Track chat interactions
          */
         trackChatMessage(messageType, success) {
-            if (typeof openobserveRum !== 'undefined') {
-                openobserveRum.addAction('chat_message', {
+            if (typeof OO_RUM !== 'undefined') {
+                OO_RUM.addAction('chat_message', {
                     message_type: messageType,
                     success: success,
                     timestamp: new Date().toISOString(),
@@ -208,18 +208,18 @@
          */
         log: {
             info(message, context = {}) {
-                if (typeof openobserveLogs !== 'undefined') {
-                    openobserveLogs.logger.info(message, context);
+                if (typeof OO_LOGS !== 'undefined') {
+                    OO_LOGS.logger.info(message, context);
                 }
             },
             warn(message, context = {}) {
-                if (typeof openobserveLogs !== 'undefined') {
-                    openobserveLogs.logger.warn(message, context);
+                if (typeof OO_LOGS !== 'undefined') {
+                    OO_LOGS.logger.warn(message, context);
                 }
             },
             error(message, context = {}) {
-                if (typeof openobserveLogs !== 'undefined') {
-                    openobserveLogs.logger.error(message, context);
+                if (typeof OO_LOGS !== 'undefined') {
+                    OO_LOGS.logger.error(message, context);
                 }
             },
         },
@@ -229,7 +229,7 @@
          * Call this when user logs in/out or user info changes
          */
         setUserContext(userData) {
-            if (typeof openobserveRum === 'undefined') {
+            if (typeof OO_RUM === 'undefined') {
                 console.warn('OpenObserve RUM not initialized');
                 return;
             }
@@ -241,22 +241,22 @@
             };
 
             // Set user in RUM
-            openobserveRum.setUser(userContext);
+            OO_RUM.setUser(userContext);
 
             // Add additional user properties if available
             if (userData.role) {
-                openobserveRum.setUserProperty('role', userData.role);
+                OO_RUM.setUserProperty('role', userData.role);
             }
             if (userData.organization) {
-                openobserveRum.setUserProperty('organization', userData.organization);
+                OO_RUM.setUserProperty('organization', userData.organization);
             }
             if (userData.permissions) {
-                openobserveRum.setUserProperty('permissions', JSON.stringify(userData.permissions));
+                OO_RUM.setUserProperty('permissions', JSON.stringify(userData.permissions));
             }
 
             // Log user session start
-            if (typeof openobserveLogs !== 'undefined') {
-                openobserveLogs.logger.info('User authenticated', {
+            if (typeof OO_LOGS !== 'undefined') {
+                OO_LOGS.logger.info('User authenticated', {
                     user_id: userContext.id,
                     user_name: userContext.name,
                     timestamp: new Date().toISOString(),
@@ -282,7 +282,7 @@
          */
         getSessionStats: function () {
             return {
-                sessionId: typeof openobserveRum !== 'undefined' ? openobserveRum.getSessionId() : null,
+                sessionId: typeof OO_RUM !== 'undefined' ? OO_RUM.getSessionId() : null,
                 userAgent: navigator.userAgent,
                 screenResolution: `${screen.width}x${screen.height}`,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,

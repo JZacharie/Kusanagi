@@ -92,8 +92,8 @@
         }
 
         // Also use native RUM action tracking
-        if (typeof openobserveRum !== 'undefined') {
-            openobserveRum.addAction('api_call', {
+        if (typeof OO_RUM !== 'undefined') {
+            OO_RUM.addAction('api_call', {
                 endpoint: url,
                 method: method,
                 duration_ms: Math.round(duration),
@@ -104,8 +104,8 @@
             });
 
             // Log errors to OpenObserve Logs
-            if (!success && typeof openobserveLogs !== 'undefined') {
-                openobserveLogs.logger.error('API call failed', {
+            if (!success && typeof OO_LOGS !== 'undefined') {
+                OO_LOGS.logger.error('API call failed', {
                     endpoint: url,
                     method: method,
                     status_code: statusCode,
