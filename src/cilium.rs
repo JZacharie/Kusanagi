@@ -1,10 +1,15 @@
 //! Cilium Network Visualization Module
 //! Provides access to Hubble flows and network policies for visualization
+//! 
+//! ## APM Integration
+//! This module sends telemetry to OpenObserve for performance monitoring.
+//! Each function is instrumented with timing spans.
 
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error};
+use tracing::{info, warn, error, debug};
 use kube::{Api, Client, api::ListParams};
 use k8s_openapi::api::core::v1::{Service, Namespace};
+use crate::telemetry;
 
 /// Hubble Relay configuration
 const HUBBLE_RELAY_URL: &str = "http://hubble-relay.kube-system.svc.cluster.local:4245";
@@ -15,13 +20,18 @@ const HUBBLE_RELAY_URL: &str = "http://hubble-relay.kube-system.svc.cluster.loca
 
 /// Fetch all namespaces from Kubernetes
 pub async fn get_namespaces() -> Result<Vec<String>, String> {
-    info!("Fetching namespaces from Kubernetes");
+    let span = telemetry::start_span("cilium.get_namespaces")
+        .with_endpoint("/api/cilium/namespaces");
+    
+    debug!("🔍 Fetching namespaces from Kubernetes");
     
     let client = match Client::try_default().await {
         Ok(c) => c,
         Err(e) => {
             warn!("Failed to create K8s client for namespaces: {}", e);
-            return Ok(get_fallback_namespaces());
+            let fallback = get_fallback_namespaces();
+            span.record("fallback", Some(fallback.len() as u64));
+            return Ok(fallback);
         }
     };
 
@@ -34,12 +44,15 @@ pub async fn get_namespaces() -> Result<Vec<String>, String> {
                 .filter_map(|ns| ns.metadata.name.clone())
                 .collect();
             ns_list.sort();
-            info!("Fetched {} namespaces from K8s", ns_list.len());
+            info!(count = ns_list.len(), "✅ Fetched namespaces from K8s");
+            span.record("success", Some(ns_list.len() as u64));
             Ok(ns_list)
         }
         Err(e) => {
             warn!("Failed to list namespaces: {}, using fallback", e);
-            Ok(get_fallback_namespaces())
+            let fallback = get_fallback_namespaces();
+            span.record("fallback", Some(fallback.len() as u64));
+            Ok(fallback)
         }
     }
 }
@@ -136,32 +149,57 @@ pub struct ExportOptions {
 
 /// Fetch network flows from Hubble Relay
 pub async fn get_hubble_flows(namespace: Option<&str>, limit: usize) -> Result<HubbleFlowsResponse, String> {
-    info!("Fetching Hubble flows, namespace: {:?}, limit: {}", namespace, limit);
+    let span = telemetry::start_span("cilium.get_hubble_flows")
+        .with_namespace(namespace)
+        .with_endpoint("/api/cilium/flows");
     
-    // Try to connect to Hubble Relay gRPC
-    // For now, we'll simulate with Kubernetes service discovery
-    // In production, this would use the Hubble gRPC API
+    debug!(namespace = ?namespace, limit = limit, "🔍 Fetching Hubble flows");
     
+    // Track K8s client creation time
+    let client_start = std::time::Instant::now();
     let client = match Client::try_default().await {
-        Ok(c) => c,
+        Ok(c) => {
+            debug!(duration_ms = client_start.elapsed().as_millis(), "K8s client created");
+            c
+        },
         Err(e) => {
-            warn!("Failed to create K8s client for Hubble: {}", e);
-            return get_mock_flows(namespace, limit);
+            warn!(error = %e, "Failed to create K8s client for Hubble");
+            let result = get_mock_flows(namespace, limit);
+            if let Ok(ref flows) = result {
+                span.record("mock_fallback", Some(flows.flows.len() as u64));
+            }
+            return result;
         }
     };
 
-    // Check if Hubble Relay is available
+    // Track Hubble Relay discovery time
+    let discovery_start = std::time::Instant::now();
     let services: Api<Service> = Api::namespaced(client.clone(), "kube-system");
     match services.get("hubble-relay").await {
         Ok(_) => {
-            info!("Hubble Relay service found, fetching flows...");
+            info!(
+                discovery_ms = discovery_start.elapsed().as_millis(),
+                "✅ Hubble Relay service found"
+            );
             // TODO: Implement actual Hubble gRPC client
             // For now, return mock data structure
-            get_mock_flows(namespace, limit)
+            let result = get_mock_flows(namespace, limit);
+            if let Ok(ref flows) = result {
+                span.record("success", Some(flows.flows.len() as u64));
+            }
+            result
         }
         Err(e) => {
-            warn!("Hubble Relay not found: {}", e);
-            get_mock_flows(namespace, limit)
+            warn!(
+                error = %e,
+                discovery_ms = discovery_start.elapsed().as_millis(),
+                "⚠️ Hubble Relay not found, using mock data"
+            );
+            let result = get_mock_flows(namespace, limit);
+            if let Ok(ref flows) = result {
+                span.record("mock_fallback", Some(flows.flows.len() as u64));
+            }
+            result
         }
     }
 }
@@ -231,7 +269,18 @@ fn get_mock_flows(namespace: Option<&str>, limit: usize) -> Result<HubbleFlowsRe
 
 /// Generate flow matrix for visualization
 pub async fn get_flow_matrix(namespace: Option<&str>) -> Result<Vec<FlowMatrixEntry>, String> {
+    let span = telemetry::start_span("cilium.get_flow_matrix")
+        .with_namespace(namespace)
+        .with_endpoint("/api/cilium/matrix");
+    
+    debug!(namespace = ?namespace, "🔍 Generating flow matrix");
+    
     let response = get_hubble_flows(namespace, 1000).await?;
+    let matrix_len = response.matrix.len();
+    
+    info!(matrix_entries = matrix_len, "✅ Flow matrix generated");
+    span.record("success", Some(matrix_len as u64));
+    
     Ok(response.matrix)
 }
 
@@ -241,7 +290,11 @@ pub async fn get_flow_matrix(namespace: Option<&str>) -> Result<Vec<FlowMatrixEn
 
 /// Get bandwidth metrics per service
 pub async fn get_bandwidth_metrics(namespace: Option<&str>) -> Result<Vec<BandwidthMetrics>, String> {
-    info!("Fetching bandwidth metrics");
+    let span = telemetry::start_span("cilium.get_bandwidth_metrics")
+        .with_namespace(namespace)
+        .with_endpoint("/api/cilium/metrics");
+    
+    debug!(namespace = ?namespace, "🔍 Fetching bandwidth metrics");
     
     // TODO: Query Prometheus for actual metrics
     // metrics: hubble_flows_processed_total, hubble_tcp_flags_total
@@ -270,11 +323,16 @@ pub async fn get_bandwidth_metrics(namespace: Option<&str>) -> Result<Vec<Bandwi
         },
     ];
 
-    if let Some(ns) = namespace {
-        Ok(mock_metrics.into_iter().filter(|m| m.namespace == ns).collect())
+    let result = if let Some(ns) = namespace {
+        mock_metrics.into_iter().filter(|m| m.namespace == ns).collect::<Vec<_>>()
     } else {
-        Ok(mock_metrics)
-    }
+        mock_metrics
+    };
+    
+    info!(metrics_count = result.len(), "✅ Bandwidth metrics fetched");
+    span.record("success", Some(result.len() as u64));
+    
+    Ok(result)
 }
 
 // ============================================================================
@@ -283,7 +341,11 @@ pub async fn get_bandwidth_metrics(namespace: Option<&str>) -> Result<Vec<Bandwi
 
 /// Detect network anomalies
 pub async fn detect_anomalies(namespace: Option<&str>) -> Result<Vec<NetworkAnomaly>, String> {
-    info!("Running anomaly detection");
+    let span = telemetry::start_span("cilium.detect_anomalies")
+        .with_namespace(namespace)
+        .with_endpoint("/api/cilium/anomalies");
+    
+    debug!(namespace = ?namespace, "🔍 Running anomaly detection");
     
     // TODO: Implement actual anomaly detection based on:
     // - Unexpected source→destination combinations
@@ -301,13 +363,18 @@ pub async fn detect_anomalies(namespace: Option<&str>) -> Result<Vec<NetworkAnom
         },
     ];
 
-    if let Some(ns) = namespace {
-        Ok(mock_anomalies.into_iter()
+    let result = if let Some(ns) = namespace {
+        mock_anomalies.into_iter()
             .filter(|a| a.source.contains(ns) || a.destination.contains(ns))
-            .collect())
+            .collect::<Vec<_>>()
     } else {
-        Ok(mock_anomalies)
-    }
+        mock_anomalies
+    };
+    
+    info!(anomalies_count = result.len(), "✅ Anomaly detection completed");
+    span.record("success", Some(result.len() as u64));
+    
+    Ok(result)
 }
 
 // ============================================================================

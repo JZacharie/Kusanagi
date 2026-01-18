@@ -21,6 +21,7 @@ mod ws;
 mod prometheus;
 mod alertmanager;
 mod export;
+mod telemetry;
 
 #[derive(Deserialize)]
 struct SyncRequest {

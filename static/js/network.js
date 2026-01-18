@@ -23,7 +23,17 @@ const KusanagiNetwork = {
         metrics: null,
         namespaces: [],
         selectedNamespace: 'default',
-        intervalId: null
+        intervalId: null,
+        performanceHistory: []  // Track performance over time
+    },
+
+    // Performance tracking for APM
+    perf: {
+        lastFetchDuration: 0,
+        lastParseDuration: 0,
+        lastRenderDuration: 0,
+        avgFetchDuration: 0,
+        requestCount: 0
     },
 
     /**
@@ -82,32 +92,85 @@ const KusanagiNetwork = {
     },
 
     /**
-     * Fetch flows data from API
+     * Fetch flows data from API with detailed APM tracking
      */
     async fetchFlows(namespace = null) {
         const startTime = performance.now();
+        const markName = `network_flows_fetch_${Date.now()}`;
+        performance.mark(`${markName}_start`);
+
         try {
             const url = namespace
                 ? `${this.config.flowsEndpoint}?namespace=${encodeURIComponent(namespace)}`
                 : this.config.flowsEndpoint;
 
+            // Fetch phase
+            const fetchStart = performance.now();
             const response = await fetch(url);
+            const fetchDuration = performance.now() - fetchStart;
+            performance.mark(`${markName}_fetch_end`);
+
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
+            // Parse phase
+            const parseStart = performance.now();
             const data = await response.json();
+            const parseDuration = performance.now() - parseStart;
+            performance.mark(`${markName}_parse_end`);
+
             this.state.flows = data;
 
-            // Track API call for RUM
-            if (window.KusanagiRUM) {
-                const duration = performance.now() - startTime;
-                window.KusanagiRUM.trackApiCall(this.config.flowsEndpoint, duration, true);
+            // Update performance metrics
+            const totalDuration = performance.now() - startTime;
+            this.perf.lastFetchDuration = fetchDuration;
+            this.perf.lastParseDuration = parseDuration;
+            this.perf.requestCount++;
+            this.perf.avgFetchDuration = (
+                (this.perf.avgFetchDuration * (this.perf.requestCount - 1)) + totalDuration
+            ) / this.perf.requestCount;
+
+            // Store in history (keep last 20)
+            this.state.performanceHistory.push({
+                timestamp: new Date().toISOString(),
+                fetchMs: fetchDuration,
+                parseMs: parseDuration,
+                totalMs: totalDuration,
+                flowsCount: data.flows?.length || 0
+            });
+            if (this.state.performanceHistory.length > 20) {
+                this.state.performanceHistory.shift();
             }
+
+            // Track detailed metrics for RUM/APM
+            if (window.KusanagiRUM) {
+                window.KusanagiRUM.track('network_flows_performance', {
+                    fetch_duration_ms: Math.round(fetchDuration),
+                    parse_duration_ms: Math.round(parseDuration),
+                    total_duration_ms: Math.round(totalDuration),
+                    flows_count: data.flows?.length || 0,
+                    matrix_count: data.matrix?.length || 0,
+                    namespace: namespace || 'all',
+                    avg_duration_ms: Math.round(this.perf.avgFetchDuration)
+                });
+
+                // Also track as standard API call
+                window.KusanagiRUM.trackApiCall(this.config.flowsEndpoint, totalDuration, true, response.status);
+            }
+
+            console.log(`⏱️ Network flows: fetch=${fetchDuration.toFixed(0)}ms, parse=${parseDuration.toFixed(0)}ms, total=${totalDuration.toFixed(0)}ms, flows=${data.flows?.length || 0}`);
 
             return data;
         } catch (error) {
+            const errorDuration = performance.now() - startTime;
             console.error('Failed to fetch network flows:', error);
+
             if (window.KusanagiRUM) {
-                window.KusanagiRUM.trackApiCall(this.config.flowsEndpoint, 0, false);
+                window.KusanagiRUM.track('network_flows_error', {
+                    error: error.message,
+                    duration_ms: Math.round(errorDuration),
+                    namespace: namespace || 'all'
+                });
+                window.KusanagiRUM.trackApiCall(this.config.flowsEndpoint, errorDuration, false);
             }
             throw error;
         }
@@ -135,23 +198,124 @@ const KusanagiNetwork = {
     },
 
     /**
-     * Fetch and render all data
+     * Fetch and render all data with performance tracking
      */
     async fetchAndRender() {
+        const totalStart = performance.now();
+
         try {
             const namespace = this.state.selectedNamespace;
+
+            // Parallel fetch phase
+            const fetchStart = performance.now();
             await Promise.all([
                 this.fetchFlows(namespace),
                 this.fetchMatrix(namespace)
             ]);
+            const fetchDuration = performance.now() - fetchStart;
 
+            // Render phase
+            const renderStart = performance.now();
             this.populateNamespaceFilter();
             this.renderGraph();
             this.renderMatrix();
             this.renderStats();
+            this.renderPerformanceStats();  // New: Show performance metrics
+            const renderDuration = performance.now() - renderStart;
+
+            this.perf.lastRenderDuration = renderDuration;
+
+            const totalDuration = performance.now() - totalStart;
+            console.log(`🌐 Network render complete: fetch=${fetchDuration.toFixed(0)}ms, render=${renderDuration.toFixed(0)}ms, total=${totalDuration.toFixed(0)}ms`);
+
+            // Track full cycle performance
+            if (window.KusanagiRUM) {
+                window.KusanagiRUM.track('network_render_cycle', {
+                    fetch_duration_ms: Math.round(fetchDuration),
+                    render_duration_ms: Math.round(renderDuration),
+                    total_duration_ms: Math.round(totalDuration),
+                    namespace: namespace || 'all'
+                });
+            }
         } catch (error) {
             this.renderError(error.message);
         }
+    },
+
+    /**
+     * Render performance statistics panel
+     */
+    renderPerformanceStats() {
+        const container = document.getElementById('network-perf-stats');
+        if (!container) return;
+
+        const history = this.state.performanceHistory;
+        const avgFetch = history.length > 0
+            ? history.reduce((sum, h) => sum + h.fetchMs, 0) / history.length
+            : 0;
+        const avgParse = history.length > 0
+            ? history.reduce((sum, h) => sum + h.parseMs, 0) / history.length
+            : 0;
+        const avgTotal = history.length > 0
+            ? history.reduce((sum, h) => sum + h.totalMs, 0) / history.length
+            : 0;
+
+        // Determine health status
+        const healthClass = avgTotal < 500 ? 'healthy' : avgTotal < 2000 ? 'warning' : 'error';
+        const healthIcon = avgTotal < 500 ? '✅' : avgTotal < 2000 ? '⚠️' : '🔴';
+
+        container.innerHTML = `
+            <div class="perf-stats-panel">
+                <div class="perf-header">
+                    <span class="perf-icon">⏱️</span>
+                    <span class="perf-title">APM - Network Flows</span>
+                    <span class="perf-health ${healthClass}">${healthIcon} ${avgTotal.toFixed(0)}ms avg</span>
+                </div>
+                <div class="perf-metrics">
+                    <div class="perf-metric">
+                        <span class="metric-label">Fetch</span>
+                        <span class="metric-value">${avgFetch.toFixed(0)}ms</span>
+                    </div>
+                    <div class="perf-metric">
+                        <span class="metric-label">Parse</span>
+                        <span class="metric-value">${avgParse.toFixed(0)}ms</span>
+                    </div>
+                    <div class="perf-metric">
+                        <span class="metric-label">Render</span>
+                        <span class="metric-value">${this.perf.lastRenderDuration.toFixed(0)}ms</span>
+                    </div>
+                    <div class="perf-metric">
+                        <span class="metric-label">Requests</span>
+                        <span class="metric-value">${this.perf.requestCount}</span>
+                    </div>
+                </div>
+                ${this.renderSparkline(history)}
+            </div>
+        `;
+    },
+
+    /**
+     * Render mini sparkline chart for performance history
+     */
+    renderSparkline(history) {
+        if (history.length < 2) return '';
+
+        const width = 200;
+        const height = 30;
+        const max = Math.max(...history.map(h => h.totalMs), 100);
+        const points = history.map((h, i) => {
+            const x = (i / (history.length - 1)) * width;
+            const y = height - (h.totalMs / max) * height;
+            return `${x},${y}`;
+        }).join(' ');
+
+        return `
+            <div class="perf-sparkline">
+                <svg width="${width}" height="${height}" class="sparkline-svg">
+                    <polyline points="${points}" fill="none" stroke="#ff00ff" stroke-width="2"/>
+                </svg>
+            </div>
+        `;
     },
 
     /**
