@@ -9,8 +9,17 @@
     <link rel="stylesheet" href="/static/css/cyberpunk.css">
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
-    <!-- RUM (Real User Monitoring) -->
+
+    <!-- OpenObserve RUM & Logs SDK -->
+    <script src="https://unpkg.com/@openobserve/browser-rum@latest/dist/openobserve-rum.umd.js"></script>
+    <script src="https://unpkg.com/@openobserve/browser-logs@latest/dist/openobserve-logs.umd.js"></script>
+
+    <!-- RUM (Real User Monitoring) - Must load after OpenObserve SDK -->
     <script src="/static/js/rum.js"></script>
+    <!-- API Performance Tracking -->
+    <script src="/static/js/api-tracker.js"></script>
+    <!-- Error Boundary Integration -->
+    <script src="/static/js/error-boundary.js"></script>
     <script src="/static/js/network.js"></script>
     <script src="/static/js/dashboard.js"></script>
 </head>
@@ -821,6 +830,11 @@
 
         // === TAB NAVIGATION ===
         function switchTab(tabName) {
+            // Track tab switch with RUM
+            if (window.KusanagiRUM) {
+                window.KusanagiRUM.trackTabSwitch(tabName);
+            }
+
             // Update buttons
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');

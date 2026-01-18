@@ -1,0 +1,226 @@
+{
+    "title": "Kusanagi Dashboard - RUM Metrics",
+    "description": "Real User Monitoring metrics for Kusanagi Kubernetes Dashboard",
+    "version": "1.0",
+    "tabs": [
+        {
+            "tabId": "performance",
+            "name": "Performance Metrics",
+            "panels": [
+                {
+                    "title": "Page Load Performance",
+                    "type": "line",
+                    "queries": [
+                        {
+                            "query": "SELECT histogram_quantile(0.50, sum(rate(view.time_spent[1m])) by (le)) as p50, histogram_quantile(0.95, sum(rate(view.time_spent[1m])) by (le)) as p95, histogram_quantile(0.99, sum(rate(view.time_spent[1m])) by (le)) as p99 FROM rum WHERE service='kusanagi' AND view.url_path != '' GROUP BY application_id",
+                            "fields": [
+                                "p50",
+                                "p95",
+                                "p99"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "API Call Duration",
+                    "type": "line",
+                    "queries": [
+                        {
+                            "query": "SELECT avg(duration_ms) as avg_duration, max(duration_ms) as max_duration FROM rum WHERE action.type='api_call' AND service='kusanagi' GROUP BY endpoint",
+                            "fields": [
+                                "avg_duration",
+                                "max_duration"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "API Success Rate",
+                    "type": "bar",
+                    "queries": [
+                        {
+                            "query": "SELECT count(*) FILTER (WHERE success=true) * 100.0 / count(*) as success_rate FROM rum WHERE action.type='api_call' AND service='kusanagi' GROUP BY endpoint",
+                            "fields": [
+                                "endpoint",
+                                "success_rate"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "Long Tasks Distribution",
+                    "type": "histogram",
+                    "queries": [
+                        {
+                            "query": "SELECT count(*) as tasks, long_task.duration FROM rum WHERE service='kusanagi' AND long_task.duration > 50 GROUP BY long_task.duration",
+                            "fields": [
+                                "tasks",
+                                "long_task.duration"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "tabId": "errors",
+            "name": "Error Tracking",
+            "panels": [
+                {
+                    "title": "Error Rate Over Time",
+                    "type": "line",
+                    "queries": [
+                        {
+                            "query": "SELECT count(*) as error_count FROM logs WHERE service='kusanagi' AND (severity='error' OR severity='critical') GROUP BY time(5m)",
+                            "fields": [
+                                "error_count"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "Errors by Category",
+                    "type": "pie",
+                    "queries": [
+                        {
+                            "query": "SELECT count(*) as count FROM logs WHERE service='kusanagi' AND category != '' GROUP BY category",
+                            "fields": [
+                                "category",
+                                "count"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "Error Severity Distribution",
+                    "type": "donut",
+                    "queries": [
+                        {
+                            "query": "SELECT count(*) as count FROM logs WHERE service='kusanagi' GROUP BY severity",
+                            "fields": [
+                                "severity",
+                                "count"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "Top Errors",
+                    "type": "table",
+                    "queries": [
+                        {
+                            "query": "SELECT message, count(*) as occurrences, category, severity FROM logs WHERE service='kusanagi' AND (severity='error' OR severity='critical') GROUP BY message, category, severity ORDER BY occurrences DESC LIMIT 10",
+                            "fields": [
+                                "message",
+                                "occurrences",
+                                "category",
+                                "severity"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "tabId": "usage",
+            "name": "Usage Analytics",
+            "panels": [
+                {
+                    "title": "Active Users Over Time",
+                    "type": "area",
+                    "queries": [
+                        {
+                            "query": "SELECT count(DISTINCT user.id) as active_users FROM rum WHERE service='kusanagi' GROUP BY time(1h)",
+                            "fields": [
+                                "active_users"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "Tab Navigation Patterns",
+                    "type": "bar",
+                    "queries": [
+                        {
+                            "query": "SELECT count(*) as visits FROM rum WHERE service='kusanagi' AND action.type='tab_switch' GROUP BY tab_name ORDER BY visits DESC",
+                            "fields": [
+                                "tab_name",
+                                "visits"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "Session Duration",
+                    "type": "histogram",
+                    "queries": [
+                        {
+                            "query": "SELECT avg(session.duration) as avg_duration FROM rum WHERE service='kusanagi' GROUP BY session.id",
+                            "fields": [
+                                "avg_duration"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "User Interactions",
+                    "type": "line",
+                    "queries": [
+                        {
+                            "query": "SELECT count(*) as interactions FROM rum WHERE service='kusanagi' AND action.type IN ('click', 'tab_switch', 'data_export') GROUP BY time(15m), action.type",
+                            "fields": [
+                                "interactions",
+                                "action.type"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "tabId": "resources",
+            "name": "Resource Performance",
+            "panels": [
+                {
+                    "title": "Resource Load Times",
+                    "type": "bar",
+                    "queries": [
+                        {
+                            "query": "SELECT avg(resource.duration) as avg_load_time FROM rum WHERE service='kusanagi' AND resource.type != '' GROUP BY resource.type",
+                            "fields": [
+                                "resource.type",
+                                "avg_load_time"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "Failed Resources",
+                    "type": "table",
+                    "queries": [
+                        {
+                            "query": "SELECT resource_url, resource_type, count(*) as failures FROM logs WHERE service='kusanagi' AND category='resource_error' GROUP BY resource_url, resource_type ORDER BY failures DESC LIMIT 20",
+                            "fields": [
+                                "resource_url",
+                                "resource_type",
+                                "failures"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "Total Resource Size",
+                    "type": "stat",
+                    "queries": [
+                        {
+                            "query": "SELECT sum(resource.size) / 1024 / 1024 as total_mb FROM rum WHERE service='kusanagi'",
+                            "fields": [
+                                "total_mb"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
