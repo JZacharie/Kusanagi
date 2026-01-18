@@ -46,8 +46,8 @@ struct AmAlertStatus {
 }
 
 fn get_alertmanager_url() -> String {
-    env::var("ALERTMANAGER_URL")
-        .unwrap_or_else(|_| "http://alertmanager.observability.svc:9093".to_string())
+    std::env::var("ALERTMANAGER_URL")
+        .unwrap_or_else(|_| "http://kube-prometheus-stack-alertmanager.kube-prometheus-stack.svc:9093".to_string())
 }
 
 /// Get all active alerts from Alertmanager

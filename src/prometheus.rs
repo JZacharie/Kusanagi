@@ -42,8 +42,8 @@ struct PromResult {
 }
 
 fn get_prometheus_url() -> String {
-    env::var("PROMETHEUS_URL")
-        .unwrap_or_else(|_| "http://prometheus-server.observability.svc:9090".to_string())
+    std::env::var("PROMETHEUS_URL")
+        .unwrap_or_else(|_| "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string())
 }
 
 /// Execute a PromQL instant query
