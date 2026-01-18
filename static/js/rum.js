@@ -24,7 +24,20 @@
     // Wait for OpenObserve SDK to be loaded
     function initializeRUM() {
         if (typeof openobserveRum === 'undefined' || typeof openobserveLogs === 'undefined') {
-            console.warn('⏳ OpenObserve RUM SDK not loaded yet, retrying...');
+            const attempt = (initializeRUM.attempts || 0) + 1;
+            initializeRUM.attempts = attempt;
+
+            // Log warning only every 5 attempts to reduce spam
+            if (attempt % 5 === 0) {
+                console.warn(`⏳ OpenObserve RUM SDK not loaded yet (Attempt ${attempt}), retrying...`);
+            }
+
+            // Give up after 30 seconds (approx 60 attempts)
+            if (attempt > 60) {
+                console.error('❌ Failed to load OpenObserve RUM SDK after 30 seconds');
+                return;
+            }
+
             setTimeout(initializeRUM, 500);
             return;
         }
@@ -251,6 +264,30 @@
             }
 
             console.log('✅ User context updated:', userContext);
+        },
+
+        /**
+         * Manual initialization (for backward compatibility or manual control)
+         */
+        init: function () {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeRUM);
+            } else {
+                initializeRUM();
+            }
+        },
+
+        /**
+         * Get current session statistics
+         */
+        getSessionStats: function () {
+            return {
+                sessionId: typeof openobserveRum !== 'undefined' ? openobserveRum.getSessionId() : null,
+                userAgent: navigator.userAgent,
+                screenResolution: `${screen.width}x${screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                timestamp: new Date().toISOString()
+            };
         },
 
         /**
