@@ -68,10 +68,13 @@ pub async fn get_nodes_status() -> Result<NodesStatusResponse, String> {
         .map_err(|e| format!("Failed to list nodes: {}", e))?;
 
 
-    let pods = pods_api
-        .list(&ListParams::default())
-        .await
-        .map_err(|e| format!("Failed to list pods: {}", e))?;
+    let pods = match pods_api.list(&ListParams::default()).await {
+        Ok(p) => Some(p),
+        Err(e) => {
+            error!("Failed to list pods (continuing without pod info): {}", e);
+            None
+        }
+    };
 
     // Fetch metrics from Prometheus (Parallel & with timeout)
     info!("Fetching Prometheus metrics...");
@@ -155,17 +158,20 @@ pub async fn get_nodes_status() -> Result<NodesStatusResponse, String> {
             .unwrap_or_else(|| "0".to_string());
 
         // Count pods on this node
-        let node_pods: Vec<&Pod> = pods
-            .items
-            .iter()
-            .filter(|p| {
-                p.spec
-                    .as_ref()
-                    .and_then(|s| s.node_name.as_ref())
-                    .map(|n| n == &name)
-                    .unwrap_or(false)
+        let node_pods: Vec<&Pod> = pods.as_ref()
+            .map(|p_list| {
+                p_list.items
+                    .iter()
+                    .filter(|p| {
+                        p.spec
+                            .as_ref()
+                            .and_then(|s| s.node_name.as_ref())
+                            .map(|n| n == &name)
+                            .unwrap_or(false)
+                    })
+                    .collect()
             })
-            .collect();
+            .unwrap_or_default();
 
         let pod_count = node_pods.len();
 
@@ -347,7 +353,7 @@ fn format_uptime(seconds: i64) -> String {
 /// Fetch a metric from Prometheus
 async fn fetch_prometheus_metric(query: &str) -> HashMap<String, f64> {
     let prometheus_url = std::env::var("PROMETHEUS_URL")
-        .unwrap_or_else(|_| "http://kube-prometheus-stack-prometheus.kube-prometheus-stack:9090".to_string());
+        .unwrap_or_else(|_| "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string());
     
     let url = format!("{}/api/v1/query", prometheus_url);
     info!("Querying Prometheus at {}: {}", url, query);

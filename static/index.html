@@ -1040,6 +1040,9 @@
                     <td>${app.namespace || '-'}</td>
                     <td><span class="status-badge ${app.health_status.toLowerCase()}">${app.health_status}</span></td>
                     <td><span class="status-badge ${app.sync_status.toLowerCase().replace(' ', '')}">${app.sync_status}</span></td>
+                    <td class="revision-hash" title="${app.current_revision || 'Unknown'}">
+                        <code>${app.current_revision ? app.current_revision.substring(0, 7) : '-'}</code>
+                    </td>
                     <td class="error-duration">${app.error_duration || '-'}</td>
                     ${showSync && app.can_sync ? `
                         <td>
@@ -1068,6 +1071,7 @@
                             <th>Namespace</th>
                             <th>Health</th>
                             <th>Sync</th>
+                            <th>Revision</th>
                             <th>Duration</th>
                             <th>Message</th>
                         </tr>
@@ -1096,6 +1100,7 @@
                             <th>Namespace</th>
                             <th>Health</th>
                             <th>Sync</th>
+                            <th>Revision</th>
                             <th>Duration</th>
                             <th>Action</th>
                         </tr>
