@@ -2137,6 +2137,8 @@ dependencies = [
  "http 0.2.12",
  "k8s-openapi",
  "kube",
+ "lazy_static",
+ "rand 0.8.5",
  "reqwest",
  "schemars",
  "serde",

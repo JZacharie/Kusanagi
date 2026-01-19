@@ -22,6 +22,7 @@ mod prometheus;
 mod alertmanager;
 mod export;
 mod telemetry;
+mod quota;
 
 #[derive(Deserialize)]
 struct SyncRequest {
@@ -449,7 +450,9 @@ async fn main() -> std::io::Result<()> {
             .service(prometheus_metrics)
             .service(prometheus_query)
             .service(alerts_status)
+            .service(alerts_status)
             .service(export_report)
+            .route("/api/quotas", web::get().to(quota::get_quotas))
             .route("/ws/notifications", web::get().to(ws::ws_notifications))
             .service(Files::new("/static", "./static").show_files_listing())
     })

@@ -1926,6 +1926,186 @@ body {
 }
 
 /* ============================================
+   QUOTAS SECTION
+   ============================================ */
+
+.quotas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.quota-card {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.quota-card:hover {
+  border-color: var(--neon-green);
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+  transform: translateY(-5px);
+}
+
+.quota-card.full-width {
+  grid-column: 1 / -1;
+  align-items: stretch;
+}
+
+.quota-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.quota-card.full-width .quota-header {
+  justify-content: flex-start;
+}
+
+.quota-icon {
+  font-size: 1.5rem;
+}
+
+.quota-title {
+  color: var(--neon-cyan);
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+}
+
+/* Semi-Circle Gauge */
+.quota-gauge-container {
+  position: relative;
+  width: 200px;
+  height: 120px;
+  /* Half of width + padding */
+  overflow: hidden;
+}
+
+.gauge-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(0deg);
+}
+
+.gauge-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.gauge-fill {
+  fill: none;
+  stroke: var(--neon-green);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dasharray 1s ease-out;
+}
+
+.quota-gauge[data-value="high"] .gauge-fill {
+  stroke: #ff4444;
+}
+
+.quota-gauge[data-value="medium"] .gauge-fill {
+  stroke: #ffaa00;
+}
+
+.gauge-value {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--text-primary);
+  font-family: 'Courier New', monospace;
+}
+
+/* Storage Bar */
+.storage-bar-container {
+  width: 100%;
+}
+
+.storage-info {
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.storage-info span {
+  color: var(--neon-green);
+  font-weight: bold;
+}
+
+.storage-progress-bar {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.storage-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+  width: 0%;
+  border-radius: 6px;
+  transition: width 1s ease-out;
+  position: relative;
+}
+
+.storage-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg,
+      rgba(255, 255, 255, 0.2) 25%,
+      transparent 25%,
+      transparent 50%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.2) 75%,
+      transparent 75%,
+      transparent);
+  background-size: 20px 20px;
+  animation: stripe-move 1s linear infinite;
+  opacity: 0.3;
+}
+
+@keyframes stripe-move {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 20px 20px;
+  }
+}
+
+.quota-footer {
+  text-align: center;
+  margin-top: 2rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+/* ============================================
    MOBILE RESPONSIVE STYLES
    ============================================ */
 

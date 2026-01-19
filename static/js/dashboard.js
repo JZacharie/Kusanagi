@@ -403,13 +403,137 @@ const AlertsManager = {
     }
 };
 
+/**
+ * Quotas display manager
+ */
+const QuotasManager = {
+    /**
+     * Initialize quotas display
+     */
+    init() {
+        this.fetchQuotas();
+        // Refresh every 60 seconds
+        setInterval(() => this.fetchQuotas(), 60000);
+    },
+
+    /**
+     * Fetch quotas from backend
+     */
+    async fetchQuotas() {
+        try {
+            const btn = document.querySelector('.quota-footer button');
+            if (btn) {
+                const originalText = btn.textContent;
+                btn.textContent = '⏳ Refreshing...';
+                btn.disabled = true;
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }, 1000);
+            }
+
+            const response = await fetch('/api/quotas');
+            if (!response.ok) {
+                throw new Error('Failed to fetch quotas');
+            }
+
+            const data = await response.json();
+            this.renderQuotas(data);
+        } catch (error) {
+            console.error('Quotas error:', error);
+            showNotification({
+                title: 'Quotas Error',
+                message: error.message,
+                severity: 'error'
+            });
+        }
+    },
+
+    /**
+     * Render quotas to UI
+     */
+    renderQuotas(data) {
+        // Update Antigravity Gauge
+        this.updateGauge('antigravity', data.antigravity_percentage);
+
+        // Update NotebookLM Gauge
+        this.updateGauge('notebooklm', data.notebooklm_percentage);
+
+        // Update Storage Bar
+        this.updateStorage(data);
+
+        // Update Timestamp
+        document.getElementById('quota-updated-at').textContent = data.last_updated;
+    },
+
+    /**
+     * Update a circular gauge
+     */
+    updateGauge(id, percentage) {
+        const gauge = document.getElementById(`${id}-gauge`);
+        const fill = document.getElementById(`${id}-fill`);
+        const value = document.getElementById(`${id}-value`);
+
+        if (!gauge || !fill || !value) return;
+
+        // Cap percentage between 0 and 100
+        const p = Math.max(0, Math.min(100, percentage));
+
+        // Update value text
+        value.textContent = `${p}%`;
+
+        // Update gauge color based on value
+        gauge.setAttribute('data-value', p > 80 ? 'high' : p > 50 ? 'medium' : 'low');
+
+        // Calculate stroke-dasharray
+        // Radius is 40, so circumference is 2 * PI * 40 ≈ 251.3
+        // We want to show only half circle (180 degrees), so max dash is ~126
+        // Wait, the SVG path is `A40,40 0 1,1 80,90` which is a large arc?
+        // Let's assume the path length is roughly 251 for a full circle, but we want to fill up to `p` percent.
+        // Actually, looking at the SVG path `M20,90 A40,40 0 1,1 80,90`, it starts at 20,90 and ends at 80,90 with radius 40.
+        // This is a semi-circle (arc length = PI * r = 3.14 * 40 = 125.6).
+        // If stroke-dasharray is used, we need to set (filled_length, gap_length).
+        // Max length is ~126.
+        const maxLen = 126;
+        const fillLen = (p / 100) * maxLen;
+
+        // The stroke-dasharray should be `${fillLen} ${maxLen}`
+        fill.style.strokeDasharray = `${fillLen} 251`;
+    },
+
+    /**
+     * Update storage progress bar
+     */
+    updateStorage(data) {
+        const usedEl = document.getElementById('storage-used');
+        const totalEl = document.getElementById('storage-total');
+        const fillEl = document.getElementById('storage-fill');
+
+        if (!usedEl || !totalEl || !fillEl) return;
+
+        usedEl.textContent = `${data.storage_used_gb.toFixed(1)} GB`;
+        totalEl.textContent = `${data.storage_total_gb.toFixed(1)} GB`;
+
+        const percent = (data.storage_used_gb / data.storage_total_gb) * 100;
+        fillEl.style.width = `${Math.min(100, percent)}%`;
+    }
+};
+
+// Global function for button click
+window.fetchQuotas = () => QuotasManager.fetchQuotas();
+
 // Auto-initialize on load
 if (typeof window !== 'undefined') {
     window.DashboardManager = DashboardManager;
     window.MetricsManager = MetricsManager;
     window.AlertsManager = AlertsManager;
+    window.QuotasManager = QuotasManager;
 
     document.addEventListener('DOMContentLoaded', () => {
         DashboardManager.init();
+        // Initialize other managers as needed
+        MetricsManager.init();
+        AlertsManager.init();
+        QuotasManager.init();
     });
 }

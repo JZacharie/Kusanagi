@@ -166,6 +166,9 @@
             <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
                 <span class="tab-icon">💬</span> Chat
             </button>
+            <button class="tab-btn" data-tab="quotas" onclick="switchTab('quotas')">
+                <span class="tab-icon">📈</span> Quotas
+            </button>
             <!-- Export Dropdown -->
             <div class="export-dropdown">
                 <button class="tab-btn export-trigger" onclick="toggleExportMenu()">
@@ -455,6 +458,70 @@
                 <div id="backups-content">
                     <div class="loading">Loading backup jobs...</div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Quotas Section -->
+        <section class="argocd-section tab-content" data-tab="quotas" style="display: none;">
+            <h2 class="section-title">📊 Google Services Quotas</h2>
+
+            <div class="quotas-grid" id="quotas-grid">
+                <!-- Antigravity Quota -->
+                <div class="quota-card">
+                    <div class="quota-header">
+                        <span class="quota-icon">⚡</span>
+                        <span class="quota-title">Antigravity (Gemini)</span>
+                    </div>
+                    <div class="quota-gauge-container">
+                        <div class="quota-gauge" id="antigravity-gauge" data-value="0">
+                            <svg viewBox="0 0 100 100" class="gauge-svg">
+                                <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-bg" />
+                                <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-fill" id="antigravity-fill"
+                                    stroke-dasharray="0 251" />
+                            </svg>
+                            <div class="gauge-value" id="antigravity-value">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NotebookLM Quota -->
+                <div class="quota-card">
+                    <div class="quota-header">
+                        <span class="quota-icon">📓</span>
+                        <span class="quota-title">NotebookLM</span>
+                    </div>
+                    <div class="quota-gauge-container">
+                        <div class="quota-gauge" id="notebooklm-gauge" data-value="0">
+                            <svg viewBox="0 0 100 100" class="gauge-svg">
+                                <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-bg" />
+                                <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-fill" id="notebooklm-fill"
+                                    stroke-dasharray="0 251" />
+                            </svg>
+                            <div class="gauge-value" id="notebooklm-value">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Storage Quota -->
+                <div class="quota-card full-width">
+                    <div class="quota-header">
+                        <span class="quota-icon">💾</span>
+                        <span class="quota-title">Google One Storage</span>
+                    </div>
+                    <div class="storage-bar-container">
+                        <div class="storage-info">
+                            <span id="storage-used">0 GB</span> used of <span id="storage-total">2 TB</span>
+                        </div>
+                        <div class="storage-progress-bar">
+                            <div class="storage-fill" id="storage-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quota-footer">
+                <p>Data last updated: <span id="quota-updated-at">-</span></p>
+                <button class="cyber-btn" onclick="fetchQuotas()">🔄 Refresh Data</button>
             </div>
         </section>
 
