@@ -60,6 +60,8 @@ pub async fn get_nodes_status() -> Result<NodesStatusResponse, String> {
     let nodes_api: Api<Node> = Api::all(client.clone());
     let pods_api: Api<Pod> = Api::all(client);
 
+    info!("Starting get_nodes_status...");
+
     let nodes = nodes_api
         .list(&ListParams::default())
         .await
@@ -72,10 +74,12 @@ pub async fn get_nodes_status() -> Result<NodesStatusResponse, String> {
         .map_err(|e| format!("Failed to list pods: {}", e))?;
 
     // Fetch metrics from Prometheus (Parallel & with timeout)
+    info!("Fetching Prometheus metrics...");
     let (cpu_metrics, mem_metrics) = tokio::join!(
         fetch_prometheus_metric("avg(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (instance) * 100"),
         fetch_prometheus_metric("(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100")
     );
+    info!("Prometheus metrics fetched. CPU count: {}, Mem count: {}", cpu_metrics.len(), mem_metrics.len());
 
     let now = Utc::now();
     let mut response = NodesStatusResponse {
@@ -346,10 +350,20 @@ async fn fetch_prometheus_metric(query: &str) -> HashMap<String, f64> {
         .unwrap_or_else(|_| "http://kube-prometheus-stack-prometheus.kube-prometheus-stack:9090".to_string());
     
     let url = format!("{}/api/v1/query", prometheus_url);
+    info!("Querying Prometheus at {}: {}", url, query);
     
-    let client = match reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(3))
-        .build() {
+    let mut client_builder = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3));
+
+    // Optional Basic Auth
+    if let (Ok(u), Ok(p)) = (std::env::var("PROMETHEUS_USERNAME"), std::env::var("PROMETHEUS_PASSWORD")) {
+        client_builder = client_builder.danger_accept_invalid_certs(true); // Self-signed often used with auth
+        // We handle auth in the request builder usually, but reqwest client builder doesn't store auth globally easily implies cookie store etc.
+        // Actually it's easier to set it on the client or request.
+        // Let's rely on standard builder logic.
+    }
+
+    let client = match client_builder.build() {
             Ok(c) => c,
             Err(e) => {
                 error!("Failed to build Prometheus client: {}", e);
@@ -357,7 +371,13 @@ async fn fetch_prometheus_metric(query: &str) -> HashMap<String, f64> {
             }
         };
 
-    let response = match client.get(&url).query(&[("query", query)]).send().await {
+    let mut request = client.get(&url).query(&[("query", query)]);
+
+    if let (Ok(u), Ok(p)) = (std::env::var("PROMETHEUS_USERNAME"), std::env::var("PROMETHEUS_PASSWORD")) {
+        request = request.basic_auth(u, Some(p));
+    }
+
+    let response = match request.send().await {
         Ok(res) => res,
         Err(e) => {
             error!("Failed to query Prometheus: {}", e);
