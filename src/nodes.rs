@@ -65,14 +65,17 @@ pub async fn get_nodes_status() -> Result<NodesStatusResponse, String> {
         .await
         .map_err(|e| format!("Failed to list nodes: {}", e))?;
 
+
     let pods = pods_api
         .list(&ListParams::default())
         .await
         .map_err(|e| format!("Failed to list pods: {}", e))?;
 
-    // Fetch metrics from Prometheus
-    let cpu_metrics = fetch_prometheus_metric("avg(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (instance) * 100").await;
-    let mem_metrics = fetch_prometheus_metric("(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100").await;
+    // Fetch metrics from Prometheus (Parallel & with timeout)
+    let (cpu_metrics, mem_metrics) = tokio::join!(
+        fetch_prometheus_metric("avg(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (instance) * 100"),
+        fetch_prometheus_metric("(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100")
+    );
 
     let now = Utc::now();
     let mut response = NodesStatusResponse {
@@ -344,7 +347,16 @@ async fn fetch_prometheus_metric(query: &str) -> HashMap<String, f64> {
     
     let url = format!("{}/api/v1/query", prometheus_url);
     
-    let client = reqwest::Client::new();
+    let client = match reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build() {
+            Ok(c) => c,
+            Err(e) => {
+                error!("Failed to build Prometheus client: {}", e);
+                return HashMap::new();
+            }
+        };
+
     let response = match client.get(&url).query(&[("query", query)]).send().await {
         Ok(res) => res,
         Err(e) => {
