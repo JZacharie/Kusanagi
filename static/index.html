@@ -1389,6 +1389,16 @@
                 const podPercent = Math.round((node.pod_count / parseInt(node.pod_capacity)) * 100);
                 const podBarClass = podPercent > 80 ? 'bar-danger' : podPercent > 60 ? 'bar-warning' : 'bar-ok';
 
+                // CPU Stats
+                const cpuPercent = node.cpu_usage_percent || 0;
+                const cpuBarClass = cpuPercent > 80 ? 'bar-danger' : cpuPercent > 60 ? 'bar-warning' : 'bar-ok';
+                const cpuDisplay = node.cpu_usage_percent !== undefined ? `${node.cpu_usage_percent.toFixed(1)}%` : 'N/A';
+
+                // Memory Stats
+                const memPercent = node.memory_usage_percent || 0;
+                const memBarClass = memPercent > 80 ? 'bar-danger' : memPercent > 60 ? 'bar-warning' : 'bar-ok';
+                const memDisplay = node.memory_usage_percent !== undefined ? `${node.memory_usage_percent.toFixed(1)}%` : 'N/A';
+
                 return `
                     <div class="node-card ${statusClass} ${node.pods_in_error > 0 ? 'has-errors' : ''}">
                         <div class="node-header">
@@ -1403,18 +1413,24 @@
                             <div class="resource-row">
                                 <span class="resource-icon">⚡</span>
                                 <span class="resource-label">CPU</span>
-                                <span class="resource-value">${node.cpu_capacity} cores</span>
+                                <div class="pod-bar-container" title="Capacity: ${node.cpu_capacity} cores">
+                                    <div class="pod-bar ${cpuBarClass}" style="width: ${Math.min(cpuPercent, 100)}%"></div>
+                                    <span class="pod-text">${cpuDisplay}</span>
+                                </div>
                             </div>
                             <div class="resource-row">
                                 <span class="resource-icon">🧠</span>
                                 <span class="resource-label">RAM</span>
-                                <span class="resource-value">${node.memory_allocatable}</span>
+                                <div class="pod-bar-container" title="Allocatable: ${node.memory_allocatable}">
+                                    <div class="pod-bar ${memBarClass}" style="width: ${Math.min(memPercent, 100)}%"></div>
+                                    <span class="pod-text">${memDisplay}</span>
+                                </div>
                             </div>
                             <div class="resource-row pods-row">
                                 <span class="resource-icon">📦</span>
                                 <span class="resource-label">Pods</span>
                                 <div class="pod-bar-container">
-                                    <div class="pod-bar ${podBarClass}" style="width: ${podPercent}%"></div>
+                                    <div class="pod-bar ${podBarClass}" style="width: ${Math.min(podPercent, 100)}%"></div>
                                     <span class="pod-text">${node.pod_count}/${node.pod_capacity}</span>
                                 </div>
                             </div>
