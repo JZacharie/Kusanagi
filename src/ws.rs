@@ -47,6 +47,8 @@ pub struct SendNotification(pub NotificationMessage);
 pub struct NotificationSession {
     /// Client must send ping at least once per CLIENT_TIMEOUT
     hb: Instant,
+    /// Shared K8s client
+    client: kube::Client,
     /// Last known state for change detection
     last_argocd_issues: usize,
     last_error_pods: usize,
@@ -54,9 +56,10 @@ pub struct NotificationSession {
 }
 
 impl NotificationSession {
-    pub fn new() -> Self {
+    pub fn new(client: kube::Client) -> Self {
         Self {
             hb: Instant::now(),
+            client,
             last_argocd_issues: 0,
             last_error_pods: 0,
             last_warning_events: 0,
@@ -77,10 +80,12 @@ impl NotificationSession {
 
     /// Check for alerts periodically
     fn check_alerts(&self, ctx: &mut <Self as Actor>::Context) {
-        ctx.run_interval(ALERT_CHECK_INTERVAL, |act, ctx| {
+        let client = self.client.clone();
+        ctx.run_interval(ALERT_CHECK_INTERVAL, move |act, ctx| {
             let addr = ctx.address();
+            let client = client.clone();
             actix::spawn(async move {
-                if let Some(notification) = check_for_new_alerts().await {
+                if let Some(notification) = check_for_new_alerts(&client).await {
                     addr.do_send(SendNotification(notification));
                 }
             });
@@ -110,8 +115,9 @@ impl Actor for NotificationSession {
 
         // Send initial stats
         let addr = ctx.address();
+        let client = self.client.clone();
         actix::spawn(async move {
-            if let Some(stats) = get_current_stats().await {
+            if let Some(stats) = get_current_stats(&client).await {
                 addr.do_send(SendNotification(stats));
             }
         });
@@ -145,8 +151,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for NotificationSessi
                 } else if text.trim() == "stats" {
                     // Request immediate stats update
                     let addr = ctx.address();
+                    let client = self.client.clone();
                     actix::spawn(async move {
-                        if let Some(stats) = get_current_stats().await {
+                        if let Some(stats) = get_current_stats(&client).await {
                             addr.do_send(SendNotification(stats));
                         }
                     });
@@ -174,17 +181,17 @@ impl Handler<SendNotification> for NotificationSession {
 }
 
 /// WebSocket handshake endpoint
-pub async fn ws_notifications(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
-    ws::start(NotificationSession::new(), &req, stream)
+pub async fn ws_notifications(req: HttpRequest, stream: web::Payload, client: kube::Client) -> Result<HttpResponse, Error> {
+    ws::start(NotificationSession::new(client), &req, stream)
 }
 
 /// Check for new alerts that should be sent to clients
-async fn check_for_new_alerts() -> Option<NotificationMessage> {
+async fn check_for_new_alerts(client: &kube::Client) -> Option<NotificationMessage> {
     // Get current stats and check for critical issues
     let mut alerts = Vec::new();
 
     // Check ArgoCD status
-    if let Ok(argocd_status) = argocd::get_argocd_status().await {
+    if let Ok(argocd_status) = argocd::get_argocd_status(client).await {
         if argocd_status.unhealthy > 0 {
             alerts.push(NotificationMessage::Alert {
                 severity: "warning".to_string(),
@@ -197,7 +204,7 @@ async fn check_for_new_alerts() -> Option<NotificationMessage> {
     }
 
     // Check pods in error
-    if let Ok(pods_status) = pods::get_pods_status().await {
+    if let Ok(pods_status) = pods::get_pods_status(client).await {
         if pods_status.error_pods > 0 {
             alerts.push(NotificationMessage::Alert {
                 severity: "error".to_string(),
@@ -214,18 +221,18 @@ async fn check_for_new_alerts() -> Option<NotificationMessage> {
 }
 
 /// Get current cluster stats for WebSocket update
-async fn get_current_stats() -> Option<NotificationMessage> {
-    let argocd_issues = argocd::get_argocd_status()
+async fn get_current_stats(client: &kube::Client) -> Option<NotificationMessage> {
+    let argocd_issues = argocd::get_argocd_status(client)
         .await
         .map(|s| s.unhealthy)
         .unwrap_or(0);
 
-    let error_pods = pods::get_pods_status()
+    let error_pods = pods::get_pods_status(client)
         .await
         .map(|s| s.error_pods)
         .unwrap_or(0);
 
-    let warning_events = events::get_events(None)
+    let warning_events = events::get_events(client, None)
         .await
         .map(|s| s.warning_count)
         .unwrap_or(0);

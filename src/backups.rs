@@ -39,10 +39,7 @@ pub struct JobInfo {
 }
 
 /// Get backup CronJobs and their recent Jobs
-pub async fn get_backups_status() -> Result<BackupsResponse, String> {
-    let client = Client::try_default()
-        .await
-        .map_err(|e| format!("Failed to create Kubernetes client: {}", e))?;
+pub async fn get_backups_status(client: &Client) -> Result<BackupsResponse, String> {
 
     // Get all CronJobs
     let cronjobs_api: Api<CronJob> = Api::all(client.clone());
@@ -52,7 +49,7 @@ pub async fn get_backups_status() -> Result<BackupsResponse, String> {
         .map_err(|e| format!("Failed to list CronJobs: {}", e))?;
 
     // Get all Jobs
-    let jobs_api: Api<Job> = Api::all(client);
+    let jobs_api: Api<Job> = Api::all(client.clone());
     let jobs = jobs_api
         .list(&ListParams::default())
         .await

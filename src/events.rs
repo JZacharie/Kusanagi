@@ -33,12 +33,8 @@ pub struct EventInfo {
 
 /// Get recent Kubernetes events (last 1 hour, warnings prioritized)
 /// Optionally filter by event type (e.g., "Warning" or "Normal")
-pub async fn get_events(event_type_filter: Option<String>) -> Result<EventsResponse, String> {
-    let client = Client::try_default()
-        .await
-        .map_err(|e| format!("Failed to create Kubernetes client: {}", e))?;
-
-    let events_api: Api<Event> = Api::all(client);
+pub async fn get_events(client: &Client, event_type_filter: Option<String>) -> Result<EventsResponse, String> {
+    let events_api: Api<Event> = Api::all(client.clone());
 
     let events = events_api
         .list(&ListParams::default())

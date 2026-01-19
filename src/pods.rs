@@ -63,12 +63,10 @@ const ERROR_REASONS: &[&str] = &[
 ];
 
 /// Get pods status with focus on error pods
-pub async fn get_pods_status() -> Result<PodsStatusResponse, String> {
-    let client = Client::try_default()
-        .await
-        .map_err(|e| format!("Failed to create Kubernetes client: {}", e))?;
+pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, String> {
 
-    let pods_api: Api<Pod> = Api::all(client);
+    let services: Api<Service> = Api::all(client.clone());
+    let pods_api: Api<Pod> = Api::all(client.clone());
 
     let pods = pods_api
         .list(&ListParams::default())
@@ -295,12 +293,9 @@ pub struct ForceDeleteResponse {
 
 /// Force delete a pod by removing finalizers and deleting with 0 grace period
 /// This is useful for pods stuck in Terminating state
-pub async fn force_delete_pod(namespace: &str, pod_name: &str) -> Result<ForceDeleteResponse, String> {
-    let client = Client::try_default()
-        .await
-        .map_err(|e| format!("Failed to create Kubernetes client: {}", e))?;
+pub async fn force_delete_pod(client: &Client, namespace: &str, pod_name: &str) -> Result<ForceDeleteResponse, String> {
 
-    let pods_api: Api<Pod> = Api::namespaced(client, namespace);
+    let pods_api: Api<Pod> = Api::namespaced(client.clone(), namespace);
 
     info!("Force deleting pod {}/{}", namespace, pod_name);
 

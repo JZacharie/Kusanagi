@@ -52,13 +52,9 @@ pub struct NodeCondition {
 }
 
 /// Get all nodes status with resource information
-pub async fn get_nodes_status() -> Result<NodesStatusResponse, String> {
-    let client = Client::try_default()
-        .await
-        .map_err(|e| format!("Failed to create Kubernetes client: {}", e))?;
-
+pub async fn get_nodes_status(client: &Client) -> Result<NodesStatusResponse, String> {
     let nodes_api: Api<Node> = Api::all(client.clone());
-    let pods_api: Api<Pod> = Api::all(client);
+    let pods_api: Api<Pod> = Api::all(client.clone());
 
     info!("Starting get_nodes_status...");
 

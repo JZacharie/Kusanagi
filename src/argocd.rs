@@ -173,14 +173,10 @@ pub struct SyncResponse {
 }
 
 /// Get ArgoCD applications status
-pub async fn get_argocd_status() -> Result<ArgoStatusResponse, String> {
-    let client = Client::try_default()
-        .await
-        .map_err(|e| format!("Failed to create Kubernetes client: {}", e))?;
-
+pub async fn get_argocd_status(client: &Client) -> Result<ArgoStatusResponse, String> {
     // Use dynamic API to get ArgoCD Applications
     let apps_api: Api<kube::core::DynamicObject> = Api::namespaced_with(
-        client,
+        client.clone(),
         "argocd",
         &kube::discovery::ApiResource {
             group: "argoproj.io".to_string(),
@@ -394,13 +390,9 @@ fn categorize_issue(
 }
 
 /// Trigger sync for an ArgoCD application
-pub async fn sync_application(app_name: &str) -> Result<SyncResponse, String> {
-    let client = Client::try_default()
-        .await
-        .map_err(|e| format!("Failed to create Kubernetes client: {}", e))?;
-
+pub async fn sync_application(client: &Client, app_name: &str) -> Result<SyncResponse, String> {
     let apps_api: Api<kube::core::DynamicObject> = Api::namespaced_with(
-        client,
+        client.clone(),
         "argocd",
         &kube::discovery::ApiResource {
             group: "argoproj.io".to_string(),

@@ -1,6 +1,7 @@
 use chrono::Utc;
 use serde::Serialize;
 
+use kube::Client;
 use crate::alertmanager::{self, AlertsResponse};
 use crate::argocd::{self, ArgoStatusResponse};
 use crate::events::{self, EventsResponse};
@@ -38,14 +39,14 @@ pub struct ReportSummary {
 }
 
 /// Generate a complete cluster report
-pub async fn generate_report() -> Result<ClusterReport, String> {
+pub async fn generate_report(client: &Client) -> Result<ClusterReport, String> {
     // Gather all data concurrently
     let (nodes_result, argocd_result, alerts_result, events_result, storage_result, metrics_result) = tokio::join!(
-        nodes::get_nodes_status(),
-        argocd::get_argocd_status(),
+        nodes::get_nodes_status(client),
+        argocd::get_argocd_status(client),
         alertmanager::get_active_alerts(),
-        events::get_events(None),
-        storage::get_storage_status(),
+        events::get_events(client, None),
+        storage::get_storage_status(client),
         prometheus::get_cluster_metrics()
     );
     

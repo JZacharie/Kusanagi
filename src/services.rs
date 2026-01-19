@@ -14,9 +14,8 @@ pub struct ServiceInfo {
     pub age: String,
 }
 
-pub async fn get_services() -> Result<Vec<ServiceInfo>, String> {
-    let client = Client::try_default().await.map_err(|e| e.to_string())?;
-    let services: Api<Service> = Api::all(client);
+pub async fn get_services(client: &Client) -> Result<Vec<ServiceInfo>, String> {
+    let services: Api<Service> = Api::all(client.clone());
     let list = services.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
 
     let mut service_infos = Vec::new();
@@ -77,3 +76,5 @@ pub async fn get_services() -> Result<Vec<ServiceInfo>, String> {
 
     Ok(service_infos)
 }
+
+

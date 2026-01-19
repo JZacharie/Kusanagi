@@ -12,9 +12,8 @@ pub struct IngressInfo {
     pub age: String,
 }
 
-pub async fn get_ingresses() -> Result<Vec<IngressInfo>, String> {
-    let client = Client::try_default().await.map_err(|e| e.to_string())?;
-    let ingresses: Api<Ingress> = Api::all(client);
+pub async fn get_ingresses(client: &Client) -> Result<Vec<IngressInfo>, String> {
+    let ingresses: Api<Ingress> = Api::all(client.clone());
     let list = ingresses.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
 
     let mut ingress_infos = Vec::new();

@@ -1,8 +1,5 @@
 use k8s_openapi::api::core::v1::{Namespace, PersistentVolumeClaim};
-use kube::{
-    api::{Api, ListParams},
-    Client,
-};
+use kube::{Client, Api, api::ListParams};
 use serde::Serialize;
 use tracing::info;
 
@@ -36,13 +33,10 @@ pub struct PvcInfo {
 }
 
 /// Get cluster overview with namespaces and PVCs
-pub async fn get_cluster_overview() -> Result<ClusterOverview, String> {
-    let client = Client::try_default()
-        .await
-        .map_err(|e| format!("Failed to create Kubernetes client: {}", e))?;
+pub async fn get_cluster_overview(client: &Client) -> Result<ClusterOverview, String> {
 
     let ns_api: Api<Namespace> = Api::all(client.clone());
-    let pvc_api: Api<PersistentVolumeClaim> = Api::all(client);
+    let pvc_api: Api<PersistentVolumeClaim> = Api::all(client.clone());
 
     // Get namespaces
     let namespaces = ns_api

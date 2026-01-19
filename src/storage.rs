@@ -33,13 +33,9 @@ pub struct PvcInfo {
 }
 
 /// Get all PVCs with usage information
-pub async fn get_storage_status() -> Result<StorageStatusResponse, String> {
-    let client = Client::try_default()
-        .await
-        .map_err(|e| format!("Failed to create Kubernetes client: {}", e))?;
-
+pub async fn get_storage_status(client: &Client) -> Result<StorageStatusResponse, String> {
     let pvc_api: Api<PersistentVolumeClaim> = Api::all(client.clone());
-    let node_api: Api<Node> = Api::all(client.clone());
+    let nodes_api: Api<Node> = Api::all(client.clone());
 
     // 1. List all PVCs
     let pvcs = pvc_api
@@ -54,39 +50,46 @@ pub async fn get_storage_status() -> Result<StorageStatusResponse, String> {
         .map_err(|e| format!("Failed to list Nodes: {}", e))?;
 
     // 3. Collect usage stats from all nodes in parallel
-    // Map: (Namespace, PvcName) -> (UsedBytes, CapacityBytes)
+    use futures::{StreamExt, stream::FuturesUnordered};
+    use std::time::Duration;
+    use tokio::time::timeout;
+
     let mut stats_map: HashMap<(String, String), (u64, u64)> = HashMap::new();
+    let mut futures = FuturesUnordered::new();
 
-    // We'll query nodes sequentially for simplicity to avoid complex async iterator handling in this snippet,
-    // but in production parallel futures would be better.
-    for node in nodes.items {
+    for node in &nodes.items {
         let node_name = node.metadata.name.clone().unwrap_or_default();
+        let client = client.clone();
         
-        // Query Kubelet Metrics
-        // Path: /api/v1/nodes/{node_name}/proxy/metrics
-        // We utilize the /metrics endpoint because /stats/summary often misses NFS usage data
-        let request = http::Request::builder()
-            .uri(format!("/api/v1/nodes/{}/proxy/metrics", node_name))
-            .body(vec![])
-            .map_err(|e| format!("Failed to build request: {}", e))?;
+        futures.push(async move {
+            let request = http::Request::builder()
+                .uri(format!("/api/v1/nodes/{}/proxy/metrics", node_name))
+                .body(vec![])
+                .map_err(|e| format!("Failed to build request: {}", e))?;
 
-        match client.request_text(request).await {
-            Ok(metrics_text) => {
+            // 5 second timeout for node proxy requests
+            match timeout(Duration::from_secs(5), client.request_text(request)).await {
+                Ok(Ok(metrics_text)) => Ok((node_name, metrics_text)),
+                Ok(Err(e)) => Err(format!("Failed to fetch metrics from node {}: {}", node_name, e)),
+                Err(_) => Err(format!("Timeout fetching metrics from node {}", node_name)),
+            }
+        });
+    }
+
+    while let Some(result) = futures.next().await {
+        match result {
+            Ok((node_name, metrics_text)) => {
                 // Parse Prometheus format line by line
-                // Example: kubelet_volume_stats_used_bytes{namespace="default",persistentvolumeclaim="data-pvc"} 1024
                 for line in metrics_text.lines() {
                     let is_used = line.starts_with("kubelet_volume_stats_used_bytes{");
                     let is_capacity = line.starts_with("kubelet_volume_stats_capacity_bytes{");
 
                     if is_used || is_capacity {
-                        // Very simple parser to avoid unnecessary regex dependencies
-                        // 1. Extract content inside {}
                         if let Some(start_brace) = line.find('{') {
                             if let Some(end_brace) = line.find('}') {
                                 let labels_part = &line[start_brace+1..end_brace];
                                 let value_part = &line[end_brace+1..].trim();
                                 
-                                // Parse labels
                                 let mut ns = String::new();
                                 let mut pvc = String::new();
                                 
@@ -104,7 +107,6 @@ pub async fn get_storage_status() -> Result<StorageStatusResponse, String> {
                                     }
                                 }
                                 
-                                // Parse value
                                 if !ns.is_empty() && !pvc.is_empty() {
                                     if let Ok(value) = value_part.parse::<f64>() {
                                         let entry = stats_map.entry((ns, pvc)).or_insert((0, 0));
@@ -121,8 +123,7 @@ pub async fn get_storage_status() -> Result<StorageStatusResponse, String> {
                 }
             }
             Err(e) => {
-                // Just log error and continue, don't fail entire request if one node fails
-                error!("Failed to fetch metrics from node {}: {}", node_name, e);
+                error!("{}", e);
             }
         }
     }

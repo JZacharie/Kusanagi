@@ -24,6 +24,11 @@ mod export;
 mod telemetry;
 mod quota;
 
+/// Shared application state
+struct AppState {
+    client: kube::Client,
+}
+
 #[derive(Deserialize)]
 struct SyncRequest {
     app_name: String,
@@ -47,8 +52,8 @@ async fn index() -> impl Responder {
 }
 
 #[get("/api/argocd/status")]
-async fn argocd_status() -> impl Responder {
-    match argocd::get_argocd_status().await {
+async fn argocd_status(data: web::Data<AppState>) -> impl Responder {
+    match argocd::get_argocd_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
             tracing::error!("Failed to get ArgoCD status: {}", e);
@@ -60,10 +65,10 @@ async fn argocd_status() -> impl Responder {
 }
 
 #[post("/api/argocd/sync")]
-async fn argocd_sync(body: web::Json<SyncRequest>) -> impl Responder {
+async fn argocd_sync(data: web::Data<AppState>, body: web::Json<SyncRequest>) -> impl Responder {
     info!("Sync requested for application: {}", body.app_name);
     
-    match argocd::sync_application(&body.app_name).await {
+    match argocd::sync_application(&data.client, &body.app_name).await {
         Ok(response) => HttpResponse::Ok().json(response),
         Err(e) => {
             tracing::error!("Failed to sync application {}: {}", body.app_name, e);
@@ -76,8 +81,8 @@ async fn argocd_sync(body: web::Json<SyncRequest>) -> impl Responder {
 }
 
 #[get("/api/nodes/status")]
-async fn nodes_status() -> impl Responder {
-    match nodes::get_nodes_status().await {
+async fn nodes_status(data: web::Data<AppState>) -> impl Responder {
+    match nodes::get_nodes_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
             tracing::error!("Failed to get nodes status: {}", e);
@@ -89,8 +94,8 @@ async fn nodes_status() -> impl Responder {
 }
 
 #[get("/api/cluster/overview")]
-async fn cluster_overview() -> impl Responder {
-    match cluster::get_cluster_overview().await {
+async fn cluster_overview(data: web::Data<AppState>) -> impl Responder {
+    match cluster::get_cluster_overview(&data.client).await {
         Ok(overview) => HttpResponse::Ok().json(overview),
         Err(e) => {
             tracing::error!("Failed to get cluster overview: {}", e);
@@ -102,8 +107,8 @@ async fn cluster_overview() -> impl Responder {
 }
 
 #[get("/api/events")]
-async fn k8s_events(query: web::Query<EventsQuery>) -> impl Responder {
-    match events::get_events(query.event_type.clone()).await {
+async fn k8s_events(data: web::Data<AppState>, query: web::Query<EventsQuery>) -> impl Responder {
+    match events::get_events(&data.client, query.event_type.clone()).await {
         Ok(events) => HttpResponse::Ok().json(events),
         Err(e) => {
             tracing::error!("Failed to get events: {}", e);
@@ -115,8 +120,8 @@ async fn k8s_events(query: web::Query<EventsQuery>) -> impl Responder {
 }
 
 #[get("/api/apps")]
-async fn apps_with_resources() -> impl Responder {
-    match apps::get_apps_with_resources().await {
+async fn apps_with_resources(data: web::Data<AppState>) -> impl Responder {
+    match apps::get_apps_with_resources(&data.client).await {
         Ok(apps) => HttpResponse::Ok().json(apps),
         Err(e) => {
             tracing::error!("Failed to get apps with resources: {}", e);
@@ -135,8 +140,8 @@ async fn chat_endpoint(body: web::Json<chat::ChatRequest>) -> impl Responder {
 }
 
 #[get("/api/backups")]
-async fn backups_status() -> impl Responder {
-    match backups::get_backups_status().await {
+async fn backups_status(data: web::Data<AppState>) -> impl Responder {
+    match backups::get_backups_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
             tracing::error!("Failed to get backups status: {}", e);
@@ -148,8 +153,8 @@ async fn backups_status() -> impl Responder {
 }
 
 #[get("/api/storage")]
-async fn storage_status() -> impl Responder {
-    match storage::get_storage_status().await {
+async fn storage_status(data: web::Data<AppState>) -> impl Responder {
+    match storage::get_storage_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
             tracing::error!("Failed to get storage status: {}", e);
@@ -161,8 +166,8 @@ async fn storage_status() -> impl Responder {
 }
 
 #[get("/api/services")]
-async fn services_status() -> impl Responder {
-    match services::get_services().await {
+async fn services_status(data: web::Data<AppState>) -> impl Responder {
+    match services::get_services(&data.client).await {
         Ok(info) => HttpResponse::Ok().json(info),
         Err(e) => {
             tracing::error!("Failed to get services info: {}", e);
@@ -174,8 +179,8 @@ async fn services_status() -> impl Responder {
 }
 
 #[get("/api/ingress")]
-async fn ingress_status() -> impl Responder {
-    match ingress::get_ingresses().await {
+async fn ingress_status(data: web::Data<AppState>) -> impl Responder {
+    match ingress::get_ingresses(&data.client).await {
         Ok(info) => HttpResponse::Ok().json(info),
         Err(e) => {
             tracing::error!("Failed to get ingress info: {}", e);
@@ -187,8 +192,8 @@ async fn ingress_status() -> impl Responder {
 }
 
 #[get("/api/pods/status")]
-async fn pods_status() -> impl Responder {
-    match pods::get_pods_status().await {
+async fn pods_status(data: web::Data<AppState>) -> impl Responder {
+    match pods::get_pods_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
             tracing::error!("Failed to get pods status: {}", e);
@@ -200,10 +205,10 @@ async fn pods_status() -> impl Responder {
 }
 
 #[post("/api/pods/force-delete")]
-async fn force_delete_pod(body: web::Json<pods::ForceDeleteRequest>) -> impl Responder {
+async fn force_delete_pod(data: web::Data<AppState>, body: web::Json<pods::ForceDeleteRequest>) -> impl Responder {
     info!("Force delete requested for pod: {}/{}", body.namespace, body.pod_name);
     
-    match pods::force_delete_pod(&body.namespace, &body.pod_name).await {
+    match pods::force_delete_pod(&data.client, &body.namespace, &body.pod_name).await {
         Ok(response) => HttpResponse::Ok().json(response),
         Err(e) => {
             tracing::error!("Failed to force delete pod: {}", e);
@@ -213,6 +218,11 @@ async fn force_delete_pod(body: web::Json<pods::ForceDeleteRequest>) -> impl Res
             }))
         }
     }
+}
+
+#[get("/api/ws/notifications")]
+async fn ws_route(req: HttpRequest, stream: web::Payload, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
+    ws::ws_notifications(req, stream, data.get_ref().client.clone()).await
 }
 
 #[derive(Deserialize)]
@@ -374,8 +384,8 @@ struct ExportQuery {
 }
 
 #[get("/api/export/report")]
-async fn export_report(query: web::Query<ExportQuery>) -> impl Responder {
-    match export::generate_report().await {
+async fn export_report(data: web::Data<AppState>, query: web::Query<ExportQuery>) -> impl Responder {
+    match export::generate_report(&data.client).await {
         Ok(report) => {
             let format = query.format.as_deref().unwrap_or("json");
             match format {
@@ -424,8 +434,15 @@ async fn main() -> std::io::Result<()> {
     info!("Starting Kusanagi server on port 8080");
     info!("Access the cyberpunk interface at http://localhost:8080");
 
-    HttpServer::new(|| {
+    let client = kube::Client::try_default()
+        .await
+        .expect("Failed to create Kubernetes client");
+    
+    let app_state = web::Data::new(AppState { client });
+
+    HttpServer::new(move || {
         App::new()
+            .app_data(app_state.clone())
             .service(health_check)
             .service(index)
             .service(argocd_status)
@@ -441,6 +458,7 @@ async fn main() -> std::io::Result<()> {
             .service(ingress_status)
             .service(pods_status)
             .service(force_delete_pod)
+            .service(ws_route)
             .service(cilium_namespaces)
             .service(cilium_flows)
             .service(cilium_matrix)
@@ -450,10 +468,8 @@ async fn main() -> std::io::Result<()> {
             .service(prometheus_metrics)
             .service(prometheus_query)
             .service(alerts_status)
-            .service(alerts_status)
             .service(export_report)
             .route("/api/quotas", web::get().to(quota::get_quotas))
-            .route("/ws/notifications", web::get().to(ws::ws_notifications))
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?

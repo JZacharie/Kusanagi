@@ -1,7 +1,4 @@
-use kube::{
-    api::{Api, ListParams},
-    Client,
-};
+use kube::{Client, Api, api::ListParams};
 use k8s_openapi::api::core::v1::{Namespace, PersistentVolumeClaim, Pod, ResourceRequirements};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -79,10 +76,7 @@ fn parse_capacity(cap: &str) -> i64 {
 }
 
 /// Get all ArgoCD applications with resource usage
-pub async fn get_apps_with_resources() -> Result<AppsResponse, String> {
-    let client = Client::try_default()
-        .await
-        .map_err(|e| format!("Failed to create K8s client: {}", e))?;
+pub async fn get_apps_with_resources(client: &Client) -> Result<AppsResponse, String> {
 
     info!("Fetching ArgoCD applications with resource usage");
 
