@@ -112,6 +112,19 @@ async fn cluster_overview(data: web::Data<AppState>) -> impl Responder {
     }
 }
 
+#[get("/api/cluster/empty-namespaces")]
+async fn empty_namespaces_list(data: web::Data<AppState>) -> impl Responder {
+    match cluster::get_empty_namespaces(&data.client).await {
+        Ok(namespaces) => HttpResponse::Ok().json(namespaces),
+        Err(e) => {
+            tracing::error!("Failed to get empty namespaces: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
 #[get("/api/events")]
 async fn k8s_events(data: web::Data<AppState>, query: web::Query<EventsQuery>) -> impl Responder {
     match events::get_events(&data.client, query.event_type.clone()).await {
@@ -456,6 +469,7 @@ async fn main() -> std::io::Result<()> {
             .service(nodes_status)
             .service(nodes_debug)
             .service(cluster_overview)
+            .service(empty_namespaces_list)
             .service(k8s_events)
             .service(apps_with_resources)
             .service(chat_endpoint)

@@ -1,4 +1,7 @@
-use k8s_openapi::api::core::v1::{Namespace, PersistentVolumeClaim};
+use k8s_openapi::api::core::v1::{Namespace, PersistentVolumeClaim, Pod};
+use k8s_openapi::api::apps::v1::{Deployment, StatefulSet, DaemonSet};
+use k8s_openapi::api::batch::v1::{Job, CronJob};
+use k8s_openapi::api::networking::v1::Ingress;
 use kube::{Client, Api, api::ListParams};
 use serde::Serialize;
 use tracing::info;
@@ -11,6 +14,7 @@ pub struct ClusterOverview {
     pub pvc_count: usize,
     pub pvc_total_capacity: String,
     pub pvcs: Vec<PvcInfo>,
+    pub empty_namespaces: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -121,11 +125,15 @@ pub async fn get_cluster_overview(client: &Client) -> Result<ClusterOverview, St
 
     let pvc_total_capacity = format_bytes(total_bytes);
 
+    // Get empty namespaces
+    let empty_namespaces = get_empty_namespaces(client).await.unwrap_or_default();
+
     info!(
-        "Cluster overview: {} namespaces, {} PVCs ({})",
+        "Cluster overview: {} namespaces, {} PVCs ({}), {} empty namespaces",
         namespace_infos.len(),
         pvc_infos.len(),
-        pvc_total_capacity
+        pvc_total_capacity,
+        empty_namespaces.len()
     );
 
     Ok(ClusterOverview {
@@ -134,7 +142,74 @@ pub async fn get_cluster_overview(client: &Client) -> Result<ClusterOverview, St
         pvc_count: pvc_infos.len(),
         pvc_total_capacity,
         pvcs: pvc_infos,
+        empty_namespaces,
     })
+}
+
+/// Identifie les namespaces sans workload (Pod, Deployment, StatefulSet, DaemonSet, Job, CronJob) ni Ingress
+pub async fn get_empty_namespaces(client: &Client) -> Result<Vec<String>, String> {
+    let ns_api: Api<Namespace> = Api::all(client.clone());
+    let namespaces = ns_api
+        .list(&ListParams::default())
+        .await
+        .map_err(|e| format!("Failed to list namespaces: {}", e))?;
+
+    let mut empty_ns = Vec::new();
+
+    for ns in namespaces.items {
+        let ns_name = ns.metadata.name.clone().unwrap_or_default();
+        if ns_name == "kube-system" || ns_name == "kube-public" || ns_name == "kube-node-lease" {
+            continue;
+        }
+
+        let lp = ListParams::default();
+        
+        // Check for Pods
+        let pod_api: Api<Pod> = Api::namespaced(client.clone(), &ns_name);
+        if !pod_api.list(&lp).await.map(|l| l.items.is_empty()).unwrap_or(true) {
+            continue;
+        }
+
+        // Check for Deployments
+        let deploy_api: Api<Deployment> = Api::namespaced(client.clone(), &ns_name);
+        if !deploy_api.list(&lp).await.map(|l| l.items.is_empty()).unwrap_or(true) {
+            continue;
+        }
+
+        // Check for StatefulSets
+        let sts_api: Api<StatefulSet> = Api::namespaced(client.clone(), &ns_name);
+        if !sts_api.list(&lp).await.map(|l| l.items.is_empty()).unwrap_or(true) {
+            continue;
+        }
+
+        // Check for DaemonSets
+        let ds_api: Api<DaemonSet> = Api::namespaced(client.clone(), &ns_name);
+        if !ds_api.list(&lp).await.map(|l| l.items.is_empty()).unwrap_or(true) {
+            continue;
+        }
+
+        // Check for Jobs
+        let job_api: Api<Job> = Api::namespaced(client.clone(), &ns_name);
+        if !job_api.list(&lp).await.map(|l| l.items.is_empty()).unwrap_or(true) {
+            continue;
+        }
+
+        // Check for CronJobs
+        let cj_api: Api<CronJob> = Api::namespaced(client.clone(), &ns_name);
+        if !cj_api.list(&lp).await.map(|l| l.items.is_empty()).unwrap_or(true) {
+            continue;
+        }
+
+        // Check for Ingresses
+        let ingress_api: Api<Ingress> = Api::namespaced(client.clone(), &ns_name);
+        if !ingress_api.list(&lp).await.map(|l| l.items.is_empty()).unwrap_or(true) {
+            continue;
+        }
+
+        empty_ns.push(ns_name);
+    }
+
+    Ok(empty_ns)
 }
 
 /// Parse capacity string (e.g., "10Gi", "500Mi") to bytes
