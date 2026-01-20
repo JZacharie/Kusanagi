@@ -1463,12 +1463,12 @@
                 // CPU Stats
                 const cpuPercent = node.cpu_usage_percent || 0;
                 const cpuBarClass = cpuPercent > 80 ? 'bar-danger' : cpuPercent > 60 ? 'bar-warning' : 'bar-ok';
-                const cpuDisplay = node.cpu_usage_percent !== undefined ? `${node.cpu_usage_percent.toFixed(1)}%` : 'N/A';
+                const cpuDisplay = node.cpu_usage_percent != null ? `${node.cpu_usage_percent.toFixed(1)}%` : 'N/A';
 
                 // Memory Stats
                 const memPercent = node.memory_usage_percent || 0;
                 const memBarClass = memPercent > 80 ? 'bar-danger' : memPercent > 60 ? 'bar-warning' : 'bar-ok';
-                const memDisplay = node.memory_usage_percent !== undefined ? `${node.memory_usage_percent.toFixed(1)}%` : 'N/A';
+                const memDisplay = node.memory_usage_percent != null ? `${node.memory_usage_percent.toFixed(1)}%` : 'N/A';
 
                 return `
                     <div class="node-card ${statusClass} ${node.pods_in_error > 0 ? 'has-errors' : ''}">
