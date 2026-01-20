@@ -2134,6 +2134,7 @@ dependencies = [
  "aws-sdk-s3",
  "chrono",
  "csv",
+ "futures",
  "http 0.2.12",
  "k8s-openapi",
  "kube",

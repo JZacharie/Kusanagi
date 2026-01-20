@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
 use crate::{argocd, cluster, events, nodes, backups, chat_storage, mcp};
+use kube::Client;
 
 /// Chat message request
 #[derive(Clone, Debug, Deserialize)]
@@ -58,7 +59,7 @@ const HELP_TEXT: &str = r#"**Kusanagi Chat Commands** 🤖
 Or just ask me anything in natural language! I'm powered by Ollama AI."#;
 
 /// Process chat message and return response
-pub async fn process_message(request: ChatRequest) -> ChatResponse {
+pub async fn process_message(client: &Client, request: ChatRequest) -> ChatResponse {
     let message = request.message.trim();
     let message_lower = message.to_lowercase();
     
@@ -66,12 +67,12 @@ pub async fn process_message(request: ChatRequest) -> ChatResponse {
 
     // Handle commands
     if message_lower.starts_with('/') {
-        return handle_command(&message_lower).await;
+        return handle_command(client, &message_lower).await;
     }
 
     // Handle natural language queries with Ollama
     // Handle natural language queries with Ollama
-    let response = handle_query_with_ollama(message).await;
+    let response = handle_query_with_ollama(client, message).await;
 
     // Store chat in background (fire and forget for now, or spawn)
     let user_msg = message.to_string();
@@ -87,7 +88,7 @@ pub async fn process_message(request: ChatRequest) -> ChatResponse {
     response
 }
 
-async fn handle_command(command: &str) -> ChatResponse {
+async fn handle_command(client: &Client, command: &str) -> ChatResponse {
     match command {
         "/help" => ChatResponse {
             response: HELP_TEXT.to_string(),
@@ -95,14 +96,14 @@ async fn handle_command(command: &str) -> ChatResponse {
             data: None,
         },
         
-        "/status" => get_cluster_status().await,
-        "/nodes" => get_nodes_summary().await,
-        "/pods" => get_error_pods().await,
-        "/events" => get_warning_events().await,
-        "/argocd" => get_argocd_summary().await,
-        "/backups" => get_backups_summary().await,
-        "/namespaces" => get_namespaces_summary().await,
-        "/pvcs" => get_pvcs_summary().await,
+        "/status" => get_cluster_status(client).await,
+        "/nodes" => get_nodes_summary(client).await,
+        "/pods" => get_error_pods(client).await,
+        "/events" => get_warning_events(client).await,
+        "/argocd" => get_argocd_summary(client).await,
+        "/backups" => get_backups_summary(client).await,
+        "/namespaces" => get_namespaces_summary(client).await,
+        "/pvcs" => get_pvcs_summary(client).await,
         
         // MCP Commands
         "/k8s" => get_mcp_k8s_resources().await,
@@ -122,9 +123,9 @@ async fn handle_command(command: &str) -> ChatResponse {
 }
 
 /// Query Ollama with context about the Kubernetes cluster
-async fn handle_query_with_ollama(query: &str) -> ChatResponse {
+async fn handle_query_with_ollama(client: &Client, query: &str) -> ChatResponse {
     // Build context from cluster state
-    let context = build_cluster_context().await;
+    let context = build_cluster_context(client).await;
     
     let system_prompt = format!(
         r#"Tu es Kusanagi, un assistant IA pour la gestion d'un cluster Kubernetes K3s. 
@@ -161,38 +162,38 @@ Question: {}"#,
 }
 
 /// Build context string from cluster state
-async fn build_cluster_context() -> String {
+async fn build_cluster_context(client: &Client) -> String {
     let mut context_parts = vec![];
 
-    if let Ok(nodes) = nodes::get_nodes_status().await {
+    if let Ok(nodes) = nodes::get_nodes_status(client).await {
         context_parts.push(format!(
             "Nodes: {} total, {} ready, {} not ready",
             nodes.total_nodes, nodes.ready_nodes, nodes.not_ready_nodes
         ));
     }
 
-    if let Ok(overview) = cluster::get_cluster_overview().await {
+    if let Ok(overview) = cluster::get_cluster_overview(client).await {
         context_parts.push(format!(
             "Namespaces: {}, PVCs: {} ({})",
             overview.namespace_count, overview.pvc_count, overview.pvc_total_capacity
         ));
     }
 
-    if let Ok(events) = events::get_events(None).await {
+    if let Ok(events) = events::get_events(client, None).await {
         context_parts.push(format!(
             "Events (1h): {} total, {} warnings",
             events.total_events, events.warning_count
         ));
     }
 
-    if let Ok(argocd) = argocd::get_argocd_status().await {
+    if let Ok(argocd) = argocd::get_argocd_status(client).await {
         context_parts.push(format!(
             "ArgoCD: {}/{} healthy, {} issues",
             argocd.healthy, argocd.total, argocd.apps_with_issues.len()
         ));
     }
 
-    if let Ok(backups) = backups::get_backups_status().await {
+    if let Ok(backups) = backups::get_backups_status(client).await {
         context_parts.push(format!(
             "Backups: {} CronJobs, {} active, {} succeeded, {} failed",
             backups.total_cronjobs, backups.active_jobs, backups.succeeded_jobs, backups.failed_jobs
@@ -234,11 +235,11 @@ async fn query_ollama(prompt: &str) -> Result<String, String> {
     Ok(ollama_response.response)
 }
 
-async fn get_cluster_status() -> ChatResponse {
+async fn get_cluster_status(client: &Client) -> ChatResponse {
     let mut status_lines = vec!["## 📊 Cluster Status\n".to_string()];
 
     // Get nodes
-    if let Ok(nodes) = nodes::get_nodes_status().await {
+    if let Ok(nodes) = nodes::get_nodes_status(client).await {
         status_lines.push(format!(
             "**Nodes:** {} total ({} ready, {} not ready)",
             nodes.total_nodes, nodes.ready_nodes, nodes.not_ready_nodes
@@ -246,7 +247,7 @@ async fn get_cluster_status() -> ChatResponse {
     }
 
     // Get cluster overview
-    if let Ok(overview) = cluster::get_cluster_overview().await {
+    if let Ok(overview) = cluster::get_cluster_overview(client).await {
         status_lines.push(format!("**Namespaces:** {}", overview.namespace_count));
         status_lines.push(format!(
             "**PVCs:** {} ({})",
@@ -255,7 +256,7 @@ async fn get_cluster_status() -> ChatResponse {
     }
 
     // Get events
-    if let Ok(events) = events::get_events(None).await {
+    if let Ok(events) = events::get_events(client, None).await {
         status_lines.push(format!(
             "**Events (1h):** {} ({} warnings)",
             events.total_events, events.warning_count
@@ -263,7 +264,7 @@ async fn get_cluster_status() -> ChatResponse {
     }
 
     // Get ArgoCD
-    if let Ok(argocd) = argocd::get_argocd_status().await {
+    if let Ok(argocd) = argocd::get_argocd_status(client).await {
         status_lines.push(format!(
             "**ArgoCD:** {}/{} healthy ({} issues)",
             argocd.healthy, argocd.total, argocd.apps_with_issues.len()
@@ -277,8 +278,8 @@ async fn get_cluster_status() -> ChatResponse {
     }
 }
 
-async fn get_nodes_summary() -> ChatResponse {
-    match nodes::get_nodes_status().await {
+async fn get_nodes_summary(client: &Client) -> ChatResponse {
+    match nodes::get_nodes_status(client).await {
         Ok(nodes) => {
             let mut lines = vec![format!(
                 "## 🖥️ Nodes Status\n\n**Total:** {} ({} ready)\n",
@@ -322,8 +323,8 @@ async fn get_nodes_summary() -> ChatResponse {
     }
 }
 
-async fn get_error_pods() -> ChatResponse {
-    match nodes::get_nodes_status().await {
+async fn get_error_pods(client: &Client) -> ChatResponse {
+    match nodes::get_nodes_status(client).await {
         Ok(nodes) => {
             let mut error_pods: Vec<(String, String)> = vec![];
             
@@ -368,8 +369,8 @@ async fn get_error_pods() -> ChatResponse {
     }
 }
 
-async fn get_warning_events() -> ChatResponse {
-    match events::get_events(None).await {
+async fn get_warning_events(client: &Client) -> ChatResponse {
+    match events::get_events(client, None).await {
         Ok(events) => {
             let warnings: Vec<_> = events.events.iter()
                 .filter(|e| e.event_type == "Warning")
@@ -413,8 +414,8 @@ async fn get_warning_events() -> ChatResponse {
     }
 }
 
-async fn get_argocd_summary() -> ChatResponse {
-    match argocd::get_argocd_status().await {
+async fn get_argocd_summary(client: &Client) -> ChatResponse {
+    match argocd::get_argocd_status(client).await {
         Ok(status) => {
             let mut lines = vec![format!(
                 "## 🚀 ArgoCD Status\n\n**Total Apps:** {} | **Healthy:** {} | **Issues:** {}\n",
@@ -454,8 +455,8 @@ async fn get_argocd_summary() -> ChatResponse {
     }
 }
 
-async fn get_backups_summary() -> ChatResponse {
-    match backups::get_backups_status().await {
+async fn get_backups_summary(client: &Client) -> ChatResponse {
+    match backups::get_backups_status(client).await {
         Ok(status) => {
             let mut lines = vec![format!(
                 "## 📦 Backup Jobs Status\n\n**CronJobs:** {} | **Active:** {} | **Succeeded:** {} | **Failed:** {}\n",
@@ -504,8 +505,8 @@ async fn get_backups_summary() -> ChatResponse {
     }
 }
 
-async fn get_namespaces_summary() -> ChatResponse {
-    match cluster::get_cluster_overview().await {
+async fn get_namespaces_summary(client: &Client) -> ChatResponse {
+    match cluster::get_cluster_overview(client).await {
         Ok(overview) => {
             let mut lines = vec![format!(
                 "## 📁 Namespaces\n\n**Total:** {}\n",
@@ -534,8 +535,8 @@ async fn get_namespaces_summary() -> ChatResponse {
     }
 }
 
-async fn get_pvcs_summary() -> ChatResponse {
-    match cluster::get_cluster_overview().await {
+async fn get_pvcs_summary(client: &Client) -> ChatResponse {
+    match cluster::get_cluster_overview(client).await {
         Ok(overview) => {
             let mut lines = vec![format!(
                 "## 💾 PVC Summary\n\n**Total:** {} | **Capacity:** {}\n",

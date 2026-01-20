@@ -1,4 +1,4 @@
-use actix_web::{get, post, web, App, HttpServer, Responder, HttpResponse};
+use actix_web::{get, post, web, App, HttpServer, Responder, HttpResponse, HttpRequest, Error};
 use actix_files::Files;
 use serde::Deserialize;
 use tracing::info;
@@ -93,6 +93,12 @@ async fn nodes_status(data: web::Data<AppState>) -> impl Responder {
     }
 }
 
+#[get("/api/debug/nodes")]
+async fn nodes_debug(data: web::Data<AppState>) -> impl Responder {
+    let diag = nodes::get_nodes_diagnostics(&data.client).await;
+    HttpResponse::Ok().json(diag)
+}
+
 #[get("/api/cluster/overview")]
 async fn cluster_overview(data: web::Data<AppState>) -> impl Responder {
     match cluster::get_cluster_overview(&data.client).await {
@@ -133,9 +139,9 @@ async fn apps_with_resources(data: web::Data<AppState>) -> impl Responder {
 }
 
 #[post("/api/chat")]
-async fn chat_endpoint(body: web::Json<chat::ChatRequest>) -> impl Responder {
+async fn chat_endpoint(data: web::Data<AppState>, body: web::Json<chat::ChatRequest>) -> impl Responder {
     info!("Chat message: {}", body.message);
-    let response = chat::process_message(body.into_inner()).await;
+    let response = chat::process_message(&data.client, body.into_inner()).await;
     HttpResponse::Ok().json(response)
 }
 
@@ -448,6 +454,7 @@ async fn main() -> std::io::Result<()> {
             .service(argocd_status)
             .service(argocd_sync)
             .service(nodes_status)
+            .service(nodes_debug)
             .service(cluster_overview)
             .service(k8s_events)
             .service(apps_with_resources)

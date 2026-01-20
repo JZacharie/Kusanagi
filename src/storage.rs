@@ -44,7 +44,7 @@ pub async fn get_storage_status(client: &Client) -> Result<StorageStatusResponse
         .map_err(|e| format!("Failed to list PVCs: {}", e))?;
 
     // 2. List all Nodes to query stats
-    let nodes = node_api
+    let nodes = nodes_api
         .list(&ListParams::default())
         .await
         .map_err(|e| format!("Failed to list Nodes: {}", e))?;

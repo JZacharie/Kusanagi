@@ -271,6 +271,20 @@
                 </div>
             </div>
 
+            <!-- Diagnostic Button (Hidden by default, shown on error) -->
+            <div id="nodes-diagnostic-tool"
+                style="display: none; margin-bottom: 1.5rem; padding: 1rem; background: rgba(255, 68, 68, 0.1); border: 1px solid #ff4444; border-radius: 4px;">
+                <h3 style="color: #ff4444; margin-top: 0;">🛠️ Nodes Diagnostic</h3>
+                <p>An error occurred while fetching nodes. Use this tool to identify the cause.</p>
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <button class="cyber-btn" onclick="runNodesDiagnostic()" id="btn-run-diagnostic">Run Deep
+                        Diagnostic</button>
+                </div>
+                <div id="nodes-diagnostic-result"
+                    style="font-family: monospace; font-size: 0.8rem; background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 4px; display: none; white-space: pre-wrap;">
+                </div>
+            </div>
+
             <!-- Node Cards Container -->
             <div class="nodes-container" id="nodes-container">
                 <div class="loading">Loading nodes status...</div>
@@ -1371,8 +1385,60 @@
                 // Render nodes
                 renderNodes(data.nodes);
             } catch (error) {
+                console.error('Nodes error:', error);
                 document.getElementById('nodes-container').innerHTML =
-                    `<div class="loading" style="color: #ff4444;">Failed to fetch nodes</div>`;
+                    `<div class="error-state">
+                        <span class="error-icon">⚠️</span>
+                        <p>Failed to fetch nodes: ${error.message}</p>
+                        <button onclick="fetchNodesStatus()" class="retry-btn">Retry</button>
+                    </div>`;
+                document.getElementById('nodes-diagnostic-tool').style.display = 'block';
+            }
+        }
+
+        async function runNodesDiagnostic() {
+            const btn = document.getElementById('btn-run-diagnostic');
+            const resultDiv = document.getElementById('nodes-diagnostic-result');
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Analyzing...';
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing components...\n';
+
+            try {
+                const response = await fetch('/api/debug/nodes');
+                const data = await response.json();
+
+                let report = '🔍 DIAGNOSTIC REPORT\n';
+                report += '====================\n\n';
+
+                report += `[K8s Nodes] ${data.k8s_nodes_ok ? '✅ OK' : '❌ FAIL'}\n`;
+                if (data.k8s_nodes_error) report += `  Error: ${data.k8s_nodes_error}\n`;
+                report += `  Count: ${data.k8s_nodes_count}\n\n`;
+
+                report += `[K8s Pods]  ${data.k8s_pods_ok ? '✅ OK' : '❌ FAIL'}\n`;
+                if (data.k8s_pods_error) report += `  Error: ${data.k8s_pods_error}\n`;
+                report += `  Count: ${data.k8s_pods_count}\n\n`;
+
+                report += `[Prometheus] ${data.prometheus_ok ? '✅ OK' : '❌ FAIL'}\n`;
+                report += `  URL: ${data.prometheus_url}\n`;
+                if (data.prometheus_error) report += `  Note: ${data.prometheus_error}\n`;
+                report += `  Metrics found: ${data.prometheus_metrics_count}\n\n`;
+
+                if (data.k8s_nodes_ok && data.k8s_pods_ok && data.prometheus_ok) {
+                    report += '💡 Backend components seem fine. Check frontend console for potential rendering issues.';
+                } else if (!data.k8s_nodes_ok || !data.k8s_pods_ok) {
+                    report += '💡 Possible RBAC issue. Check if Kusanagi ServiceAccount has "list" permission on "nodes" and "pods".';
+                } else if (!data.prometheus_ok) {
+                    report += '💡 Prometheus connectivity issue. Check PROMETHEUS_URL environment variable.';
+                }
+
+                resultDiv.innerHTML = report;
+            } catch (e) {
+                resultDiv.innerHTML += `\n❌ Critical error during diagnostic: ${e.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Run Deep Diagnostic';
             }
         }
 

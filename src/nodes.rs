@@ -18,6 +18,21 @@ pub struct NodesStatusResponse {
     pub nodes: Vec<NodeInfo>,
 }
 
+/// Diagnostic information for troubleshooting
+#[derive(Clone, Debug, Serialize)]
+pub struct NodeDiagnostics {
+    pub k8s_nodes_ok: bool,
+    pub k8s_nodes_error: Option<String>,
+    pub k8s_nodes_count: usize,
+    pub k8s_pods_ok: bool,
+    pub k8s_pods_error: Option<String>,
+    pub k8s_pods_count: usize,
+    pub prometheus_ok: bool,
+    pub prometheus_url: String,
+    pub prometheus_error: Option<String>,
+    pub prometheus_metrics_count: usize,
+}
+
 /// Individual node information
 #[derive(Clone, Debug, Serialize)]
 pub struct NodeInfo {
@@ -256,6 +271,76 @@ pub async fn get_nodes_status(client: &Client) -> Result<NodesStatusResponse, St
     );
 
     Ok(response)
+}
+
+/// Run deep diagnostics for nodes functionality
+pub async fn get_nodes_diagnostics(client: &Client) -> NodeDiagnostics {
+    let nodes_api: Api<Node> = Api::all(client.clone());
+    let pods_api: Api<Pod> = Api::all(client.clone());
+    
+    let prometheus_url = std::env::var("PROMETHEUS_URL")
+        .unwrap_or_else(|_| "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string());
+
+    let mut diag = NodeDiagnostics {
+        k8s_nodes_ok: false,
+        k8s_nodes_error: None,
+        k8s_nodes_count: 0,
+        k8s_pods_ok: false,
+        k8s_pods_error: None,
+        k8s_pods_count: 0,
+        prometheus_ok: false,
+        prometheus_url: prometheus_url.clone(),
+        prometheus_error: None,
+        prometheus_metrics_count: 0,
+    };
+
+    // 1. Test Nodes API
+    match nodes_api.list(&ListParams::default()).await {
+        Ok(list) => {
+            diag.k8s_nodes_ok = true;
+            diag.k8s_nodes_count = list.items.len();
+        }
+        Err(e) => {
+            diag.k8s_nodes_error = Some(e.to_string());
+        }
+    }
+
+    // 2. Test Pods API
+    match pods_api.list(&ListParams::default()).await {
+        Ok(list) => {
+            diag.k8s_pods_ok = true;
+            diag.k8s_pods_count = list.items.len();
+        }
+        Err(e) => {
+            diag.k8s_pods_error = Some(e.to_string());
+        }
+    }
+
+    // 3. Test Prometheus
+    let cpu_metrics = fetch_prometheus_metric("avg(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (instance) * 100").await;
+    if cpu_metrics.is_empty() {
+        // Try a simpler query to verify connectivity
+        let test_query = "up";
+        let url = format!("{}/api/v1/query", prometheus_url);
+        match reqwest::get(format!("{}?query={}", url, test_query)).await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    diag.prometheus_ok = true;
+                    diag.prometheus_error = Some("Metriques CPU vides, mais Prometheus repond 'up'".to_string());
+                } else {
+                    diag.prometheus_error = Some(format!("Prometheus return status {}", resp.status()));
+                }
+            }
+            Err(e) => {
+                diag.prometheus_error = Some(format!("Failed to reach Prometheus: {}", e));
+            }
+        }
+    } else {
+        diag.prometheus_ok = true;
+        diag.prometheus_metrics_count = cpu_metrics.len();
+    }
+
+    diag
 }
 
 /// Check if a pod is in error state

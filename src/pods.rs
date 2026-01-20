@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use k8s_openapi::api::core::v1::Pod;
+use k8s_openapi::api::core::v1::{Pod, Service};
 use kube::{
     api::{Api, DeleteParams, ListParams, Patch, PatchParams},
     Client,
