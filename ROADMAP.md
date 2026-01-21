@@ -1,188 +1,329 @@
-# Kusanagi - Roadmap & Features
+# Kusanagi - Product Roadmap 2026
 
-## 🎯 Vision
-Kusanagi est un dashboard de monitoring et de gestion pour infrastructure Kubernetes, inspiré par Ghost in the Shell.
-
----
-
-## ✅ Fonctionnalités Implémentées
-
-### v0.1.0 - Base
-- [x] Interface web cyberpunk (Ghost in the Shell theme)
-- [x] Health check endpoint `/health`
-- [x] Serveur Actix-web performant
-
-### v0.2.0 - ArgoCD Monitoring
-- [x] Compteur d'applications ArgoCD (OK/Erreurs)
-- [x] Liste des applications en erreur
-- [x] Durée depuis laquelle une app est en erreur
-- [x] Statuts: Healthy, Progressing, Unknown, OutOfSync
-- [x] ClusterRole RBAC pour accès aux Applications
-
-### v0.2.1 - Smart Issue Detection (current)
-- [x] **Catégorisation intelligente** : Issues réelles vs Upgrades disponibles
-- [x] **Bouton Sync** pour déclencher la synchronisation ArgoCD
-- [x] **Liens directs ArgoCD** vers chaque application
-- [x] Dual tables: Issues et Upgrades séparés
-- [x] RBAC avec permission `patch` pour le sync
-
-### v0.3.0 - Node Monitoring
-- [x] Section Cluster Nodes avec métriques par node
-- [x] CPU / RAM capacity affichés
-- [x] Nombre de Pods par node
-- [x] Uptime du node
-- [x] Pods en erreur sur chaque node
-- [x] **Badge architecture** avec couleurs différentes :
-  - AMD64 = Violet/Purple
-  - ARM64 = Rose/Pink
-
-### v0.4.0 - Enhanced Dashboard (current)
-- [x] **Quick Navigation Bar** - Stats cluster et liens externes
-- [x] Compteur de namespaces
-- [x] Compteur de PVCs + capacité totale
-- [x] **Liens externes** : Grafana, ArgoCD, Homepage, OpenObserve
-- [x] **Section PVC Monitoring** - Table des PVCs avec capacité et status
-- [x] API `/api/cluster/overview` pour stats cluster
-
-### v0.5.0 - Kubernetes Events Monitoring
-- [x] **Section Events** - Events Kubernetes de la dernière heure
-- [x] Stats: total, warnings, normal
-- [x] Table avec type, objet, reason, message, age, count
-- [x] Warnings affichés en premier
-- [x] API `/api/events` pour les events K8s
+> **Product Vision**: Kusanagi est la plateforme d'observabilité ultime pour Kubernetes - combinant monitoring en temps réel, auto-remédiation intelligente, et intégration personnelle dans une interface cyberpunk.
 
 ---
 
-## 🚧 Fonctionnalités Planifiées
+## 🎯 Product Strategy
 
-### v0.6.0 - RUM & Observabilité
-- [x] **Module RUM** (`rum.js`) - Real User Monitoring vanilla JS
-- [x] Tracking page load (load time, DOM ready, TTFB)
-- [x] Tracking erreurs JavaScript et promesses non gérées
-- [x] Tracking interactions utilisateur (clics sur boutons/liens)
-- [x] Tracking navigation et visibilité
-- [x] Stockage session pour historique des events
-- [x] **Intégration OpenObserve** - Envoi batché avec authentification
+### Core Pillars
+1. **Observability First**: Vue complète de l'infrastructure K8s
+2. **Action-Oriented**: Capacités de remédiation et contrôle
+3. **Intelligence**: Insights automatisés via MCP et AI
+4. **Personal Integration**: Hub centralisé pour infrastructure ET vie personnelle
 
-### v0.5.0 - Chatbot & MCP Integration
-- [x] **Chatbot intégré** - Interroger le status du cluster
-- [x] **Stockage conversations S3** - Historique des chats sur MinIO (192.168.0.170) pour analyse et features proactives
-- [x] **MCP Kubernetes** - Accès aux ressources K8s
-- [x] **MCP Cilium** - Monitoring réseau et policies
-- [x] **MCP Steampipe** - Requêtes SQL sur l'infrastructure
-- [x] **MCP Trivy S3** - Lecture des alertes Trivy stockées en S3
-
-### v0.7.0 - Cilium Network Visualization
-- [x] **Graph des microservices** - Visualisation interactive des relations entre services (D3.js/Mermaid)
-- [x] **Matrice des flux** - Tableau source→destination avec protocoles et ports
-- [x] **Métriques bande passante** - Bytes/s par flux via Hubble metrics
-- [x] **Analyse utilisation** - Identification des services sur/sous-utilisés
-- [x] **Filtrage namespace** - Vue par namespace ou cluster-wide
-- [x] **Export flows** - Export JSON/CSV des données de flux
-- [x] **Alertes anomalies** - Détection de flux inattendus ou pics de traffic
+### Success Metrics
+- **Adoption**: Utilisation quotidienne par l'équipe
+- **MTTR**: Réduction du temps de résolution des incidents
+- **Coverage**: 100% des composants critiques monitorés
+- **UX**: Score Lighthouse > 95
 
 ---
 
-## 📋 Backlog
+## 📅 Release Timeline
 
-### Sécurité
-- [ ] Authentification (Keycloak/OIDC)
-- [ ] RBAC granulaire
-- [ ] Audit logging
+```
+Q1 2026          Q2 2026          Q3 2026          Q4 2026
+───────────────────────────────────────────────────────────
+v0.8 ✅          v0.9             v1.0             v2.0
+News Feed       Infra Monitor    Personal Hub     Enterprise
+```
 
-### Monitoring Additionnel
-- [x] Pods en CrashLoopBackOff
-- [x] Events Kubernetes récents
-- [x] Métriques Prometheus embedded
-- [x] Alertes AlertManager
+---
+
+## 🚀 Current Release: v0.8.0 - News Feed (SHIPPED ✅)
+
+**Release Date**: January 2026  
+**Status**: ✅ Completed  
+**Theme**: Tech News Aggregation
+
+### Delivered Features
+- ✅ Hacker News integration (Docker/K8s filtering)
+- ✅ Korben RSS feed parser
+- ✅ GitHub trending repositories
+- ✅ Multi-source aggregation with caching
+- ✅ Cyberpunk UI with source filters
+- ✅ Search and auto-refresh
+
+### Impact
+- Keeps team informed on latest tech trends
+- Centralized news consumption
+- Reduced context switching
+
+---
+
+## 🔨 Next Release: v0.9.0 - Infrastructure Monitoring
+
+**Target Date**: February 2026  
+**Status**: 🔄 Planning  
+**Theme**: Extended Infrastructure Visibility
+
+### Priority Features
+
+#### P0 - Must Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| **Proxmox Integration** | L | Proxmox API access | Backend |
+| VM/CT Status Dashboard | M | Proxmox Integration | Frontend |
+| Resource Usage Tracking | M | Proxmox Integration | Backend |
+
+#### P1 - Should Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| **Home Assistant Integration** | M | HA API access | Backend |
+| Sensor Dashboard | S | HA Integration | Frontend |
+| Automation Status | S | HA Integration | Backend |
+
+#### P2 - Nice to Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| Device Tracking | S | HA Integration | Frontend |
+| Proxmox Cluster View | M | Proxmox Integration | Frontend |
+
+### Technical Requirements
+- Proxmox API client (Rust)
+- Home Assistant REST API integration
+- New dashboard tabs
+- Real-time sensor updates
+
+### Success Criteria
+- [ ] All Proxmox VMs/CTs visible
+- [ ] Home Assistant sensors updating in real-time
+- [ ] <500ms response time for dashboards
+- [ ] Mobile-responsive design
+
+---
+
+## 🎨 Future Release: v1.0.0 - Personal Dashboard Hub
+
+**Target Date**: Q2 2026  
+**Status**: 📋 Backlog  
+**Theme**: Personal Productivity Integration
+
+### Priority Features
+
+#### P0 - Must Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| **Google Calendar Integration** | L | OAuth2 setup | Backend |
+| Calendar Widget | M | Calendar API | Frontend |
+| **Weather Multi-City** | M | Weather API key | Backend |
+| Weather Widget (Lyon/Mexico/NYC) | S | Weather API | Frontend |
+
+#### P1 - Should Have  
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| **Slack Integration** | L | Slack Bot setup | Backend |
+| Chat-Slack Sync | M | Slack API | Backend |
+| Slack Notifications | S | Slack API | Backend |
+| Event Notifications | M | Calendar API | Frontend |
+
+#### P2 - Nice to Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| Multi-timezone Display | S | - | Frontend |
+| Calendar Event Creation | M | Calendar API | Backend |
+| Weather Alerts | S | Weather API | Backend |
+
+### Technical Requirements
+- Google OAuth2 flow
+- Slack Bot Token & Events API
+- OpenWeatherMap/WeatherAPI integration
+- WebSocket for real-time updates
+
+### Success Criteria
+- [ ] Calendar events visible in dashboard
+- [ ] Weather updates every 30min
+- [ ] Slack messages sync bidirectionally
+- [ ] <2s calendar load time
+
+---
+
+## 🏢 Long-term Vision: v2.0.0 - Enterprise Features
+
+**Target Date**: Q4 2026  
+**Status**: 💭 Ideation  
+**Theme**: Security, Scale, Intelligence
+
+### Strategic Initiatives
+
+#### Security & Compliance
+- [ ] Keycloak/OIDC Authentication
+- [ ] RBAC with granular permissions
+- [ ] Audit logging (all actions)
+- [ ] Secret management (Vault)
+- [ ] SOC2 compliance readiness
+
+#### Scalability
+- [ ] Multi-cluster support
+- [ ] Horizontal scaling (replicas)
+- [ ] Redis distributed cache
+- [ ] PostgreSQL persistence
+- [ ] Load balancer support
+
+#### Intelligence & Automation
+- [ ] AI-powered anomaly detection
+- [ ] Predictive alerts
+- [ ] Auto-remediation engine
+- [ ] Runbook automation
+- [ ] Cost optimization recommendations
+
+#### Agent Architecture
+- [ ] Node agents (DaemonSet)
+- [ ] Local diagnostics
+- [ ] Self-healing capabilities
+- [ ] Distributed tracing
+
+---
+
+## 📊 Feature Prioritization Framework
+
+### Priority Levels
+- **P0 (Must Have)**: Core functionality, blocks release
+- **P1 (Should Have)**: Important but can be deferred
+- **P2 (Nice to Have)**: Enhancement, low impact if missing
+
+### Effort Estimation
+- **S (Small)**: 1-2 days
+- **M (Medium)**: 3-5 days
+- **L (Large)**: 1-2 weeks
+- **XL (Extra Large)**: 2+ weeks
+
+### Decision Criteria
+1. **User Impact**: How many users benefit?
+2. **Strategic Alignment**: Fits product vision?
+3. **Technical Feasibility**: Can we build it?
+4. **Dependencies**: What's blocking it?
+5. **ROI**: Effort vs. value ratio
+
+---
+
+## 🔄 Continuous Improvements (Ongoing)
+
+### Performance
+- [ ] Optimize bundle size (<150KB)
+- [ ] Reduce API response times (<100ms)
+- [ ] Improve cache hit rates (>80%)
+- [ ] Monitor memory usage (<100MB)
+
+### Code Quality
+- [ ] Add unit tests (>70% coverage)
+- [ ] Integration tests for APIs
+- [ ] E2E tests for critical flows
+- [ ] Reduce technical debt
 
 ### UX/UI
-- [x] Dark/Light mode toggle
-- [x] Notifications temps réel (WebSocket)
-- [x] **Tri et recherche sur les tableaux** - Colonnes triables + barre de recherche
-- [x] **Liens Ingress clickables** - Hosts en HTTPS cliquables vers les URLs
-- [x] Export de rapports (JSON, CSV, Markdown)
-- [x] Dashboard personnalisables (widgets avec persistence localStorage)
+- [ ] Accessibility improvements (WCAG AA)
+- [ ] Mobile optimization
+- [ ] Dark/Light theme refinement
+- [ ] Loading state improvements
+
+### DevOps
+- [ ] CI/CD pipeline optimization
+- [ ] Automated dependency updates (Renovate)
+- [ ] Security scanning (Trivy)
+- [ ] Performance monitoring (OpenObserve)
 
 ---
 
-## 🔧 Stack Technique
+## 📋 Backlog (Unprioritized)
 
-- **Backend**: Rust + Actix-web
-- **Frontend**: Vanilla JS + CSS (Cyberpunk theme)
-- **Kubernetes Client**: kube-rs
-- **Observabilité**: OpenObserve RUM
-- **Deployment**: Helm Chart + ArgoCD
+### Monitoring Enhancements
+- [ ] Cost tracking per namespace
+- [ ] Certificate expiration monitoring
+- [ ] Database backup status
+- [ ] Custom dashboards (drag-drop)
+
+### Integrations
+- [ ] Jira integration
+- [ ] PagerDuty alerts
+- [ ] Datadog metrics
+- [ ] GitHub Actions status
+
+### Advanced Features
+- [ ] Multi-language support (i18n)
+- [ ] Custom alert rules
+- [ ] Report scheduling
+- [ ] API rate limiting
 
 ---
 
-## 📝 Notes
+## 🎯 OKRs (Objectives & Key Results)
 
-- Déployé sur namespace `kusanagi`
-- Accessible via `kusanagi.p.zacharie.org`
-- Intégré à Homepage via annotations gethomepage.dev
+### Q1 2026
+**Objective**: Establish Kusanagi as the go-to K8s monitoring tool
+
+**Key Results**:
+- ✅ KR1: Ship News Feed feature (v0.8.0)
+- 🔄 KR2: Document architecture and roadmap
+- 📋 KR3: Achieve 90% uptime in production
+- 📋 KR4: Reduce average page load to <1s
+
+### Q2 2026 (Planned)
+**Objective**: Expand monitoring coverage beyond K8s
+
+**Key Results**:
+- KR1: Ship Proxmox + HA integration (v0.9.0)
+- KR2: Monitor 100% of infrastructure components
+- KR3: Achieve <5min MTTR for common issues
+- KR4: Onboard 3+ team members
 
 ---
 
-## ⚠️ Actions Correctives (Analyse Events Warning - 2026-01-17)
+## 📞 Stakeholder Communication
 
-### 🔴 Critique - À corriger immédiatement
+### Weekly Updates
+- **What**: Progress on current sprint
+- **When**: Every Monday
+- **Where**: Slack #kusanagi channel
 
-#### Redis Sentinel Timeouts (`redis`, `redis-s`)
-- **Problème**: Liveness/Readiness probes timeout sur port 26379 (Sentinel)
-- **Action**: 
-  - [x] Augmenter les timeouts des probes (timeoutSeconds: 30)
-  - [x] Vérifier la charge CPU/RAM des pods Redis
-  - [x] Valider la configuration Sentinel
+### Monthly Reviews
+- **What**: Demo + roadmap review
+- **When**: Last Friday of month
+- **Where**: Team meeting
 
-#### N8N Pods Unhealthy (`n8n`, `n8n-dev`)  
-- **Problème**: Connection refused sur port 5678
-- **Action**:
-  - [x] Vérifier les logs N8N pour erreurs de démarrage
-  - [x] Augmenter initialDelaySeconds sur les probes
-  - [x] Vérifier les ressources allouées (OOM?)
+### Quarterly Planning
+- **What**: OKR review + next quarter planning
+- **When**: End of quarter
+- **Where**: Strategic planning session
 
-#### Guacamole-SBX Sync Failed
-- **Problème**: `envFrom` avec configMapRef/secretRef vides
-- **Action**:
-  - [x] ✅ Corrigé - Commenté la section envFrom dans values.yaml
+---
 
-### 🟠 Important - À planifier
+## 🔧 Development Process
 
-#### ArgoCD HPA Missing Resource Requests
-- **Problème**: `FailedGetResourceMetric` - memory request manquant
-- **Action**:
-  - [ ] Ajouter `resources.requests.memory` sur argocd-repo-server
-  - [ ] Ajouter `resources.requests.memory` sur argocd-server
+### Sprint Cycle
+- **Duration**: 2 weeks
+- **Planning**: Monday Week 1
+- **Review**: Friday Week 2
+- **Retrospective**: Friday Week 2
 
-#### Guacamole-SBX HPA Missing CPU Request
-- **Problème**: `FailedGetResourceMetric` - CPU request manquant
-- **Action**:
-  - [ ] Ajouter `resources.requests.cpu` sur guacamole-sbx-client
+### Definition of Done
+- [ ] Code reviewed and approved
+- [ ] Tests passing (when applicable)
+- [ ] Documentation updated
+- [ ] Deployed to production
+- [ ] Stakeholders notified
 
-#### OpenObserve Backup Cluster Not Found
-- **Problème**: `FindingCluster - Unknown cluster o2-openobserve-postgres`
-- **Action**:
-  - [ ] Vérifier la configuration CloudNativePG
-  - [ ] Valider le nom du cluster PostgreSQL dans le Backup CRD
+### Release Process
+1. Feature freeze (3 days before release)
+2. QA testing
+3. Release notes drafted
+4. Deploy to production
+5. Monitor for 24h
+6. Announce release
 
-### 🟡 Mineur - À surveiller
+---
 
-#### DNS Nameserver Limits Exceeded (ArgoCD)
-- **Problème**: Trop de nameservers configurés
-- **Action**:
-  - [ ] Réduire le nombre de nameservers dans la config DNS
-  - [ ] Prioritiser les DNS internes
+## 📚 Resources
 
-#### Trivy Scan BackoffLimitExceeded
-- **Problème**: Job `scan-vulnerabilityreport` en échec
-- **Action**:
-  - [ ] Vérifier les logs du job Trivy
-  - [ ] Augmenter le backoffLimit si timeout
-  - [ ] Vérifier la connectivité au registry
+- **Repository**: `JZacharie/Kusanagi`
+- **Documentation**: `/ARCHITECTURE.md`, `/README.md`
+- **Deployment**: ArgoCD (`kusanagi` namespace)
+- **Monitoring**: OpenObserve
+- **Chat**: Slack #kusanagi
 
-#### Karakeep/Jellyfin Probe Timeouts
-- **Problème**: Context deadline exceeded sur probes
-- **Action**:
-  - [ ] Augmenter timeoutSeconds des probes
-  - [ ] Vérifier la performance de l'application
+---
+
+**Last Updated**: 2026-01-21  
+**Product Manager**: AI Assistant  
+**Engineering Lead**: Joseph Zacharie

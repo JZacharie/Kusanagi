@@ -23,6 +23,7 @@ mod alertmanager;
 mod export;
 mod telemetry;
 mod quota;
+mod newsfeed;
 
 /// Shared application state
 struct AppState {
@@ -458,10 +459,15 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to create Kubernetes client");
     
     let app_state = web::Data::new(AppState { client });
+    
+    // Initialize news feed cache
+    let news_cache = web::Data::new(newsfeed::NewsCache::new());
+    newsfeed::start_news_refresh_task(news_cache.get_ref().clone()).await;
 
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
+            .app_data(news_cache.clone())
             .service(health_check)
             .service(index)
             .service(argocd_status)
@@ -491,6 +497,7 @@ async fn main() -> std::io::Result<()> {
             .service(alerts_status)
             .service(export_report)
             .route("/api/quotas", web::get().to(quota::get_quotas))
+            .route("/api/news", web::get().to(newsfeed::get_news))
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?

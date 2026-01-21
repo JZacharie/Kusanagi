@@ -172,6 +172,9 @@
             <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
                 <span class="tab-icon">💬</span> Chat
             </button>
+            <button class="tab-btn" data-tab="news" onclick="switchTab('news')">
+                <span class="tab-icon">📰</span> News
+            </button>
             <button class="tab-btn" data-tab="quotas" onclick="switchTab('quotas')">
                 <span class="tab-icon">📈</span> Quotas
             </button>
@@ -462,6 +465,67 @@
                     onkeypress="handleChatKeypress(event)">
                 <button class="chat-send-btn" onclick="sendChatMessage()">Send ➤</button>
             </div>
+        </div>
+    </section>
+
+    <!-- News Feed Section -->
+    <section class="argocd-section tab-content" data-tab="news" style="display: none;">
+        <h2 class="section-title">📰 Tech News Feed</h2>
+
+        <!-- News Stats -->
+        <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box">
+                <div class="stat-value" id="news-total">-</div>
+                <div class="stat-label">Total News</div>
+            </div>
+            <div class="stat-box" style="border-color: #ff6600;">
+                <div class="stat-value" id="news-hn">-</div>
+                <div class="stat-label">Hacker News</div>
+            </div>
+            <div class="stat-box" style="border-color: #4a9eff;">
+                <div class="stat-value" id="news-korben">-</div>
+                <div class="stat-label">Korben</div>
+            </div>
+            <div class="stat-box" style="border-color: #a371f7;">
+                <div class="stat-value" id="news-github">-</div>
+                <div class="stat-label">GitHub Trending</div>
+            </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="filter-controls" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+            <button class="cyber-btn active" id="btn-news-all" onclick="filterNews('all')">All Sources</button>
+            <button class="cyber-btn" id="btn-news-hn" onclick="filterNews('hackernews')"
+                style="border-color: #ff6600;">
+                🟠 Hacker News
+            </button>
+            <button class="cyber-btn" id="btn-news-korben" onclick="filterNews('korben')"
+                style="border-color: #4a9eff;">
+                🔵 Korben
+            </button>
+            <button class="cyber-btn" id="btn-news-github" onclick="filterNews('github')"
+                style="border-color: #a371f7;">
+                🟣 GitHub
+            </button>
+            <button class="cyber-btn" onclick="fetchNews()" style="margin-left: auto;">
+                🔄 Refresh
+            </button>
+        </div>
+
+        <!-- Search Bar -->
+        <div style="margin-bottom: 1.5rem;">
+            <input type="text" id="news-search" class="chat-input" placeholder="Search news..."
+                oninput="searchNews(this.value)" style="width: 100%;">
+        </div>
+
+        <!-- News Cards Container -->
+        <div class="news-grid" id="news-container">
+            <div class="loading">Loading news feed...</div>
+        </div>
+
+        <!-- Last Updated -->
+        <div style="text-align: center; margin-top: 1.5rem; opacity: 0.6; font-size: 0.9rem;">
+            Last updated: <span id="news-updated-at">-</span>
         </div>
     </section>
 

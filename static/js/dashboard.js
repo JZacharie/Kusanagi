@@ -519,6 +519,239 @@ const QuotasManager = {
     }
 };
 
+/**
+ * News Feed Manager
+ */
+const NewsManager = {
+    allNews: [],
+    filteredNews: [],
+    currentFilter: 'all',
+    searchQuery: '',
+
+    /**
+     * Initialize news feed
+     */
+    init() {
+        this.fetchNews();
+        // Auto-refresh every 5 minutes
+        setInterval(() => this.fetchNews(), 300000);
+    },
+
+    /**
+     * Fetch news from API
+     */
+    async fetchNews() {
+        try {
+            const response = await fetch('/api/news');
+            if (!response.ok) {
+                throw new Error('Failed to fetch news');
+            }
+
+            const data = await response.json();
+            this.allNews = data.items || [];
+            this.updateStats(data);
+            this.updateTimestamp(data.cached_at);
+            this.applyFilters();
+        } catch (error) {
+            console.error('News fetch error:', error);
+            this.renderError(error.message);
+        }
+    },
+
+    /**
+     * Update news statistics
+     */
+    updateStats(data) {
+        const hnCount = data.items.filter(n => n.source === 'hackernews').length;
+        const korbenCount = data.items.filter(n => n.source === 'korben').length;
+        const ghCount = data.items.filter(n => n.source === 'github').length;
+
+        document.getElementById('news-total').textContent = data.total || 0;
+        document.getElementById('news-hn').textContent = hnCount;
+        document.getElementById('news-korben').textContent = korbenCount;
+        document.getElementById('news-github').textContent = ghCount;
+    },
+
+    /**
+     * Update last updated timestamp
+     */
+    updateTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        const formatted = date.toLocaleString();
+        document.getElementById('news-updated-at').textContent = formatted;
+    },
+
+    /**
+     * Filter news by source
+     */
+    filterBySource(source) {
+        this.currentFilter = source;
+
+        // Update button states
+        document.querySelectorAll('.filter-controls .cyber-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        const btnId = source === 'all' ? 'btn-news-all' : `btn-news-${source}`;
+        document.getElementById(btnId)?.classList.add('active');
+
+        this.applyFilters();
+    },
+
+    /**
+     * Search news by query
+     */
+    search(query) {
+        this.searchQuery = query.toLowerCase();
+        this.applyFilters();
+    },
+
+    /**
+     * Apply current filters and search
+     */
+    applyFilters() {
+        let filtered = this.allNews;
+
+        // Apply source filter
+        if (this.currentFilter !== 'all') {
+            filtered = filtered.filter(item => item.source === this.currentFilter);
+        }
+
+        // Apply search filter
+        if (this.searchQuery) {
+            filtered = filtered.filter(item =>
+                item.title.toLowerCase().includes(this.searchQuery) ||
+                (item.description && item.description.toLowerCase().includes(this.searchQuery))
+            );
+        }
+
+        this.filteredNews = filtered;
+        this.renderNews();
+    },
+
+    /**
+     * Render news cards
+     */
+    renderNews() {
+        const container = document.getElementById('news-container');
+        if (!container) return;
+
+        if (this.filteredNews.length === 0) {
+            container.innerHTML = `
+                <div class="no-news" style="text-align: center; padding: 3rem; opacity: 0.6;">
+                    <span style="font-size: 3rem;">📭</span>
+                    <p>No news items found</p>
+                </div>
+            `;
+            return;
+        }
+
+        const html = this.filteredNews.map(item => this.renderNewsCard(item)).join('');
+        container.innerHTML = html;
+    },
+
+    /**
+     * Render single news card
+     */
+    renderNewsCard(item) {
+        const sourceColors = {
+            hackernews: '#ff6600',
+            korben: '#4a9eff',
+            github: '#a371f7'
+        };
+
+        const sourceIcons = {
+            hackernews: '🟠',
+            korben: '🔵',
+            github: '🟣'
+        };
+
+        const sourceLabels = {
+            hackernews: 'Hacker News',
+            korben: 'Korben',
+            github: 'GitHub'
+        };
+
+        const color = sourceColors[item.source] || '#00ff88';
+        const icon = sourceIcons[item.source] || '📰';
+        const label = sourceLabels[item.source] || item.source;
+
+        const date = new Date(item.published_at);
+        const timeAgo = this.formatTimeAgo(date);
+
+        return `
+            <div class="news-card" style="border-color: ${color};">
+                <div class="news-header">
+                    <span class="news-source-badge" style="background: ${color};">
+                        ${icon} ${label}
+                    </span>
+                    <span class="news-time">${timeAgo}</span>
+                </div>
+                <h3 class="news-title">
+                    <a href="${item.url}" target="_blank" rel="noopener noreferrer">
+                        ${item.title}
+                    </a>
+                </h3>
+                ${item.description ? `<p class="news-description">${this.truncate(item.description, 150)}</p>` : ''}
+                <div class="news-footer">
+                    ${item.score ? `<span class="news-score">⭐ ${item.score}</span>` : ''}
+                    ${item.tags && item.tags.length > 0 ? `
+                        <div class="news-tags">
+                            ${item.tags.map(tag => `<span class="news-tag">#${tag}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Format time ago
+     */
+    formatTimeAgo(date) {
+        const now = new Date();
+        const diff = now - date;
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (days > 7) return date.toLocaleDateString();
+        if (days > 0) return `${days}d ago`;
+        if (hours > 0) return `${hours}h ago`;
+        if (minutes > 0) return `${minutes}m ago`;
+        return 'just now';
+    },
+
+    /**
+     * Truncate text
+     */
+    truncate(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    },
+
+    /**
+     * Render error state
+     */
+    renderError(message) {
+        const container = document.getElementById('news-container');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="error-state" style="text-align: center; padding: 3rem;">
+                <span class="error-icon" style="font-size: 3rem;">⚠️</span>
+                <p>Failed to load news: ${message}</p>
+                <button onclick="NewsManager.fetchNews()" class="cyber-btn">Retry</button>
+            </div>
+        `;
+    }
+};
+
+// Global functions for HTML onclick handlers
+window.fetchNews = () => NewsManager.fetchNews();
+window.filterNews = (source) => NewsManager.filterBySource(source);
+window.searchNews = (query) => NewsManager.search(query);
+
 // Global function for button click
 window.fetchQuotas = () => QuotasManager.fetchQuotas();
 
@@ -528,6 +761,7 @@ if (typeof window !== 'undefined') {
     window.MetricsManager = MetricsManager;
     window.AlertsManager = AlertsManager;
     window.QuotasManager = QuotasManager;
+    window.NewsManager = NewsManager;
 
     document.addEventListener('DOMContentLoaded', () => {
         DashboardManager.init();
@@ -535,5 +769,6 @@ if (typeof window !== 'undefined') {
         MetricsManager.init();
         AlertsManager.init();
         QuotasManager.init();
+        NewsManager.init();
     });
 }
