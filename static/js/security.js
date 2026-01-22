@@ -12,15 +12,17 @@ const SecurityDashboard = {
     async fetchAndRender() {
         try {
             // Fetch all data in parallel
-            const [vulns, policies, fence] = await Promise.all([
+            const [vulns, policies, fence, violations] = await Promise.all([
                 fetch('/api/security/vulnerabilities').then(r => r.json()),
                 fetch('/api/security/policies').then(r => r.json()),
-                fetch('/api/security/fence').then(r => r.json())
+                fetch('/api/security/fence').then(r => r.json()),
+                fetch('/api/security/policies/violations').then(r => r.json())
             ]);
 
-            this.renderStats(vulns, policies, fence);
+            this.renderStats(vulns, policies, fence, violations);
             this.renderVulnerabilities(vulns);
             this.renderPolicies(policies);
+            this.renderViolations(violations);
         } catch (error) {
             console.error('Failed to fetch Security data:', error);
             const container = document.getElementById('security-vulns-content');
@@ -30,10 +32,11 @@ const SecurityDashboard = {
         }
     },
 
-    renderStats(vulns, policies, fence) {
+    renderStats(vulns, policies, fence, violations) {
         document.getElementById('security-critical-vulns').textContent = vulns.critical || '0';
         document.getElementById('security-high-vulns').textContent = vulns.high || '0';
         document.getElementById('security-total-policies').textContent = policies.total_policies || '0';
+        document.getElementById('security-violations-count').textContent = (violations && violations.total_violations) || '0';
 
         const fenceStatusText = document.getElementById('fence-status-text');
         const fenceStatusBox = document.getElementById('fence-status-box');
@@ -110,6 +113,42 @@ const SecurityDashboard = {
                             <td>${policy.endpoints_matched}</td>
                             <td>${policy.ingress_rules}</td>
                             <td>${policy.egress_rules}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        container.innerHTML = table;
+    },
+
+    renderViolations(violations) {
+        const container = document.getElementById('security-violations-content');
+
+        if (!violations.violations || violations.violations.length === 0) {
+            container.innerHTML = '<div class="no-issues">No policy violations found ✓</div>';
+            return;
+        }
+
+        const table = `
+            <table class="issues-table">
+                <thead>
+                    <tr>
+                        <th>Policy</th>
+                        <th>Resource</th>
+                        <th>Namespace</th>
+                        <th>Severity</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${violations.violations.map(v => `
+                        <tr>
+                            <td><strong title="${v.rule}">${v.policy}</strong></td>
+                            <td><code>${v.resource}</code></td>
+                            <td>${v.namespace}</td>
+                            <td><span class="status-badge ${v.severity === 'high' ? 'unhealthy' : 'warning'}">${v.severity}</span></td>
+                            <td class="error-message" title="${v.message}">${this.truncate(v.message, 60)}</td>
                         </tr>
                     `).join('')}
                 </tbody>

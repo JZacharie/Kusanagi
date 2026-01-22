@@ -82,6 +82,35 @@ pub struct TrivyImageReport {
     pub last_scan: String,
 }
 
+/// Kyverno Policy Report structs
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PolicyViolation {
+    pub policy: String,
+    pub rule: String,
+    pub resource: String,
+    pub namespace: String,
+    pub message: String,
+    pub severity: String,
+    pub result: String,
+    pub timestamp: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PolicySummary {
+    pub pass: i32,
+    pub fail: i32,
+    pub warn: i32,
+    pub error: i32,
+    pub skip: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PolicyReportOverview {
+    pub total_violations: i32,
+    pub violations: Vec<PolicyViolation>,
+    pub summary: PolicySummary,
+}
+
 /// HTTP client helper for MCP requests
 async fn mcp_request(url: &str, method: &str, params: serde_json::Value) -> Result<McpResponse, String> {
     let client = reqwest::Client::builder()
@@ -270,6 +299,93 @@ pub async fn get_critical_vulnerabilities() -> Result<Vec<TrivyImageReport>, Str
 }
 
 // ============================================================================
+// Kyverno Policy Integration
+// ============================================================================
+
+pub async fn get_policy_violations(client: &kube::Client) -> Result<PolicyReportOverview, String> {
+    info!("Fetching Kyverno Policy Reports");
+
+    let mut violations = Vec::new();
+    let mut total_summary = PolicySummary { pass: 0, fail: 0, warn: 0, error: 0, skip: 0 };
+
+    // Fetch ClusterPolicyReports
+    let dynamic_cpr = kube::api::ApiResource {
+        group: "wgpolicyk8s.io".to_string(),
+        version: "v1alpha2".to_string(),
+        api_version: "wgpolicyk8s.io/v1alpha2".to_string(),
+        kind: "ClusterPolicyReport".to_string(),
+        plural: "clusterpolicyreports".to_string(),
+    };
+
+    let cpr_api: kube::Api<kube::api::DynamicObject> = kube::Api::all_with(client.clone(), &dynamic_cpr);
+
+    match cpr_api.list(&kube::api::ListParams::default()).await {
+        Ok(list) => {
+            for item in list.items {
+                process_report_results(&item, &mut violations, &mut total_summary, "cluster-wide");
+            }
+        }
+        Err(e) => warn!("Failed to list ClusterPolicyReports: {}", e),
+    }
+
+    // Fetch namespaced PolicyReports
+    let dynamic_pr = kube::api::ApiResource {
+        group: "wgpolicyk8s.io".to_string(),
+        version: "v1alpha2".to_string(),
+        api_version: "wgpolicyk8s.io/v1alpha2".to_string(),
+        kind: "PolicyReport".to_string(),
+        plural: "policyreports".to_string(),
+    };
+
+    let pr_api: kube::Api<kube::api::DynamicObject> = kube::Api::all_with(client.clone(), &dynamic_pr);
+
+    match pr_api.list(&kube::api::ListParams::default()).await {
+        Ok(list) => {
+            for item in list.items {
+                let ns = item.metadata.namespace.clone().unwrap_or_else(|| "unknown".to_string());
+                process_report_results(&item, &mut violations, &mut total_summary, &ns);
+            }
+        }
+        Err(e) => warn!("Failed to list PolicyReports: {}", e),
+    }
+
+    Ok(PolicyReportOverview {
+        total_violations: violations.len() as i32,
+        violations,
+        summary: total_summary,
+    })
+}
+
+fn process_report_results(item: &kube::api::DynamicObject, violations: &mut Vec<PolicyViolation>, total_summary: &mut PolicySummary, namespace: &str) {
+    if let Some(obj) = item.data.as_object() {
+        if let Some(summary) = obj.get("summary").and_then(|s| serde_json::from_value::<PolicySummary>(s.clone()).ok()) {
+            total_summary.pass += summary.pass;
+            total_summary.fail += summary.fail;
+            total_summary.warn += summary.warn;
+            total_summary.error += summary.error;
+            total_summary.skip += summary.skip;
+        }
+
+        if let Some(results) = obj.get("results").and_then(|r| r.as_array()) {
+            for res in results {
+                if res["result"] == "fail" || res["result"] == "warn" {
+                    violations.push(PolicyViolation {
+                        policy: res["policy"].as_str().unwrap_or("unknown").to_string(),
+                        rule: res["rule"].as_str().unwrap_or("-").to_string(),
+                        resource: item.metadata.name.clone().unwrap_or_default(),
+                        namespace: namespace.to_string(),
+                        message: res["message"].as_str().unwrap_or("-").to_string(),
+                        severity: res["severity"].as_str().unwrap_or("medium").to_string(),
+                        result: res["result"].as_str().unwrap_or("unknown").to_string(),
+                        timestamp: res["timestamp"]["seconds"].as_i64().map(|s| s.to_string()).unwrap_or_default(),
+                    });
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
 // Chat command handlers for MCP
 // ============================================================================
 
@@ -419,6 +535,16 @@ pub async fn get_policies_handler() -> Result<HttpResponse> {
     }
 }
 
+pub async fn get_policy_violations_handler(client: web::Data<crate::AppState>) -> Result<HttpResponse> {
+    match get_policy_violations(&client.client).await {
+        Ok(overview) => Ok(HttpResponse::Ok().json(overview)),
+        Err(e) => {
+            error!("Failed to get policy violations: {}", e);
+            Ok(HttpResponse::InternalServerError().json(serde_json::json!({ "error": e })))
+        }
+    }
+}
+
 pub async fn get_fence_status_handler(client: web::Data<crate::AppState>) -> Result<HttpResponse> {
     // Check if fence pods are running in the security namespace
     match crate::pods::get_pods_status(&client.client).await {
@@ -450,6 +576,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         web::scope("/api/security")
             .route("/vulnerabilities", web::get().to(get_vulnerabilities_handler))
             .route("/policies", web::get().to(get_policies_handler))
+            .route("/policies/violations", web::get().to(get_policy_violations_handler))
             .route("/fence", web::get().to(get_fence_status_handler)),
     );
 }

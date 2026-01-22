@@ -14,7 +14,13 @@ const CalendarDashboard = {
         if (!container) return;
 
         try {
-            const response = await fetch('/api/calendar/events');
+            const token = window.CalendarOAuth ? window.CalendarOAuth.getToken() : null;
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch('/api/calendar/events', { headers });
             const data = await response.json();
 
             if (data.error) throw new Error(data.error);

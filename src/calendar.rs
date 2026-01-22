@@ -41,14 +41,33 @@ impl CalendarClient {
         })
     }
 
-    pub async fn get_upcoming_events(&self) -> Result<CalendarResponse, Box<dyn std::error::Error>> {
+    pub async fn get_upcoming_events(&self, token: Option<String>) -> Result<CalendarResponse, Box<dyn std::error::Error>> {
+        if let Some(t) = token {
+            // Future: Use reqwest to fetch from https://www.googleapis.com/calendar/v3/calendars/primary/events
+            // For now, return mock data but marked as "Authenticated"
+            return Ok(self.get_authenticated_mock_events(&t));
+        }
+
         if self.api_key.is_empty() {
             return Ok(self.get_mock_events());
         }
 
-        // Implementation for real Google API would go here
-        // For now, fallback to mock
         Ok(self.get_mock_events())
+    }
+
+    fn get_authenticated_mock_events(&self, token: &str) -> CalendarResponse {
+        let mut resp = self.get_mock_events();
+        resp.calendar_name = format!("Personal (Auth: {}...)", &token[..std::cmp::min(token.len(), 5)]);
+        resp.events.insert(0, CalendarEvent {
+            id: "auth-evt".to_string(),
+            summary: "🌟 Authenticated View Active".to_string(),
+            description: Some("Real Google Calendar data will appear here once full integration is complete.".to_string()),
+            start_time: Local::now().format("%Y-%m-%dT%H:%M:00Z").to_string(),
+            end_time: (Local::now() + chrono::Duration::hours(1)).format("%Y-%m-%dT%H:%M:00Z").to_string(),
+            location: Some("Kusanagi HUD".to_string()),
+            status: "confirmed".to_string(),
+        });
+        resp
     }
 
     fn get_mock_events(&self) -> CalendarResponse {
@@ -91,9 +110,15 @@ impl CalendarClient {
 }
 
 // API Handlers
-pub async fn get_events_handler() -> Result<HttpResponse> {
+pub async fn get_events_handler(req: actix_web::HttpRequest) -> Result<HttpResponse> {
+    let token = req.headers()
+        .get("Authorization")
+        .and_then(|h| h.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer "))
+        .map(|s| s.to_string());
+
     match CalendarClient::new() {
-        Ok(client) => match client.get_upcoming_events().await {
+        Ok(client) => match client.get_upcoming_events(token).await {
             Ok(data) => Ok(HttpResponse::Ok().json(data)),
             Err(e) => {
                 error!("Calendar error: {}", e);
