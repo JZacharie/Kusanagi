@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
-use crate::{argocd, cluster, events, nodes, backups, chat_storage, mcp};
+use crate::{argocd, cluster, events, nodes, backups, chat_storage, mcp, slack};
 use kube::Client;
 
 /// Chat message request
@@ -65,6 +65,14 @@ pub async fn process_message(client: &Client, request: ChatRequest) -> ChatRespo
     
     info!("Chat message received: {}", message);
 
+    // Send to Slack
+    let slack_msg = message.to_string();
+    actix::spawn(async move {
+        if let Ok(slack_client) = slack::SlackClient::new() {
+            let _ = slack_client.send_message(&format!("*User:* {}", slack_msg)).await;
+        }
+    });
+
     // Handle commands
     if message_lower.starts_with('/') {
         return handle_command(client, &message_lower).await;
@@ -74,14 +82,20 @@ pub async fn process_message(client: &Client, request: ChatRequest) -> ChatRespo
     // Handle natural language queries with Ollama
     let response = handle_query_with_ollama(client, message).await;
 
-    // Store chat in background (fire and forget for now, or spawn)
+    // Store chat and Notify Slack
     let user_msg = message.to_string();
     let ai_resp = response.response.clone();
     let resp_type = response.response_type.clone();
     
     actix::spawn(async move {
+        // Store locally
         if let Err(e) = chat_storage::store_chat_message(&user_msg, &ai_resp, &resp_type).await {
             tracing::error!("Failed to store chat message: {}", e);
+        }
+
+        // Notify Slack
+        if let Ok(slack_client) = slack::SlackClient::new() {
+            let _ = slack_client.send_message(&format!("*Kusanagi Response:* \n{}", ai_resp)).await;
         }
     });
 

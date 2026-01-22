@@ -28,6 +28,7 @@ mod proxmox;
 mod homeassistant;
 mod weather;
 mod calendar;
+mod slack;
 
 /// Shared application state
 struct AppState {
@@ -467,6 +468,9 @@ async fn main() -> std::io::Result<()> {
     // Initialize news feed cache
     let news_cache = web::Data::new(newsfeed::NewsCache::new());
     newsfeed::start_news_refresh_task(news_cache.get_ref().clone()).await;
+
+    // Start Slack alert monitoring
+    slack::start_alert_monitoring_task(client.clone()).await;
 
     HttpServer::new(move || {
         App::new()
