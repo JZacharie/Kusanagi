@@ -326,5 +326,5 @@ warning: field `state` is never read
     |     ^^^^^
 
 warning: `kusanagi` (bin "kusanagi") generated 45 warnings (run `cargo fix --bin "kusanagi"` to apply 8 suggestions)
-    Finished `release` profile [optimized] target(s) in 0.25s
+    Finished `release` profile [optimized] target(s) in 0.43s
      Running `target/release/kusanagi`
