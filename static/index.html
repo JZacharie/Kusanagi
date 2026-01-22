@@ -26,6 +26,7 @@
     <script src="/static/js/homeassistant.js"></script>
     <script src="/static/js/weather.js"></script>
     <script src="/static/js/calendar.js"></script>
+    <script src="/static/js/security.js"></script>
 </head>
 
 <body>
@@ -181,6 +182,9 @@
             <button class="tab-btn" data-tab="alerts" onclick="switchTab('alerts')">
                 <span class="tab-icon">⚠️</span> Alerts <span class="badge" id="alerts-badge"
                     style="display:none;">0</span>
+            </button>
+            <button class="tab-btn" data-tab="security" onclick="switchTab('security')">
+                <span class="tab-icon">🛡️</span> Security
             </button>
             <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
                 <span class="tab-icon">💬</span> Chat
@@ -721,113 +725,161 @@
         <div id="alerts-content">
             <div class="loading">Loading alerts from Alertmanager...</div>
         </div>
-        <!-- Proxmox Section -->
-        <section class="argocd-section tab-content" data-tab="proxmox" style="display: none;">
-            <h2 class="section-title">🖥️ Proxmox Infrastructure</h2>
+    </section>
 
-            <!-- Proxmox Stats -->
-            <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                <div class="stat-box">
-                    <div class="stat-value" id="proxmox-nodes">-</div>
-                    <div class="stat-label">Nodes</div>
-                </div>
-                <div class="stat-box healthy">
-                    <div class="stat-value" id="proxmox-vms">-</div>
-                    <div class="stat-label">Virtual Machines</div>
-                </div>
-                <div class="stat-box info">
-                    <div class="stat-value" id="proxmox-containers">-</div>
-                    <div class="stat-label">Containers</div>
-                </div>
-            </div>
+    <!-- Security Dashboard Section -->
+    <section class="argocd-section tab-content" data-tab="security" style="display: none;">
+        <h2 class="section-title">🛡️ Security & Policies</h2>
 
-            <!-- VMs Table -->
-            <div class="issues-table-container" style="border-color: var(--neon-cyan); margin-bottom: 1.5rem;">
-                <div class="issues-table-header"
-                    style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-                    <span class="issues-table-title" style="color: var(--neon-cyan);">💻 Virtual Machines</span>
-                    <span class="issues-count" id="proxmox-vms-count" style="background: var(--neon-cyan);">0</span>
-                </div>
-                <div id="proxmox-vms-content">
-                    <div class="loading">Loading VMs...</div>
-                </div>
+        <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box unhealthy">
+                <div class="stat-value" id="security-critical-vulns">-</div>
+                <div class="stat-label">Critical Vulns</div>
             </div>
+            <div class="stat-box warning">
+                <div class="stat-value" id="security-high-vulns">-</div>
+                <div class="stat-label">High Vulns</div>
+            </div>
+            <div class="stat-box info">
+                <div class="stat-value" id="security-total-policies">-</div>
+                <div class="stat-label">Network Policies</div>
+            </div>
+            <div class="stat-box healthy" id="fence-status-box">
+                <div class="stat-value" id="fence-status-text">-</div>
+                <div class="stat-label">Fence Status</div>
+            </div>
+        </div>
 
-            <!-- Containers Table -->
-            <div class="issues-table-container" style="border-color: var(--neon-magenta);">
-                <div class="issues-table-header"
-                    style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-                    <span class="issues-table-title" style="color: var(--neon-magenta);">📦 LXC Containers</span>
-                    <span class="issues-count" id="proxmox-containers-count"
-                        style="background: var(--neon-magenta);">0</span>
-                </div>
-                <div id="proxmox-containers-content">
-                    <div class="loading">Loading containers...</div>
-                </div>
+        <div class="issues-table-container" style="border-color: var(--neon-magenta); margin-bottom: 1.5rem;">
+            <div class="issues-table-header"
+                style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                <span class="issues-table-title" style="color: var(--neon-magenta);">🔍 Container Vulnerabilities
+                    (Trivy)</span>
+                <span class="issues-count" id="security-vuln-count" style="background: var(--neon-magenta);">0</span>
             </div>
-        </section>
+            <div id="security-vulns-content">
+                <div class="loading">Loading vulnerability reports...</div>
+            </div>
+        </div>
 
-        <!-- Home Assistant Section -->
-        <section class="argocd-section tab-content" data-tab="homeassistant" style="display: none;">
-            <h2 class="section-title">🏠 Home Assistant</h2>
+        <div class="issues-table-container" style="border-color: var(--neon-cyan);">
+            <div class="issues-table-header"
+                style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                <span class="issues-table-title" style="color: var(--neon-cyan);">🛡️ Network Policies (Cilium)</span>
+                <span class="issues-count" id="security-policies-count" style="background: var(--neon-cyan);">0</span>
+            </div>
+            <div id="security-policies-content">
+                <div class="loading">Loading network policies...</div>
+            </div>
+        </div>
+    </section>
+    <!-- Proxmox Section -->
+    <section class="argocd-section tab-content" data-tab="proxmox" style="display: none;">
+        <h2 class="section-title">🖥️ Proxmox Infrastructure</h2>
 
-            <!-- HA Stats -->
-            <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                <div class="stat-box">
-                    <div class="stat-value" id="ha-sensors">-</div>
-                    <div class="stat-label">Sensors</div>
-                </div>
-                <div class="stat-box healthy">
-                    <div class="stat-value" id="ha-automations">-</div>
-                    <div class="stat-label">Automations</div>
-                </div>
-                <div class="stat-box info">
-                    <div class="stat-value" id="ha-devices">-</div>
-                    <div class="stat-label">Devices</div>
-                </div>
+        <!-- Proxmox Stats -->
+        <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box">
+                <div class="stat-value" id="proxmox-nodes">-</div>
+                <div class="stat-label">Nodes</div>
             </div>
+            <div class="stat-box healthy">
+                <div class="stat-value" id="proxmox-vms">-</div>
+                <div class="stat-label">Virtual Machines</div>
+            </div>
+            <div class="stat-box info">
+                <div class="stat-value" id="proxmox-containers">-</div>
+                <div class="stat-label">Containers</div>
+            </div>
+        </div>
 
-            <!-- Sensors Grid -->
-            <div class="issues-table-container" style="border-color: var(--neon-green); margin-bottom: 1.5rem;">
-                <div class="issues-table-header"
-                    style="background: rgba(0, 255, 136, 0.1); border-color: var(--neon-green);">
-                    <span class="issues-table-title" style="color: var(--neon-green);">📊 Sensors</span>
-                    <span class="issues-count" id="ha-sensors-count" style="background: var(--neon-green);">0</span>
-                </div>
-                <div id="ha-sensors-content">
-                    <div class="loading">Loading sensors...</div>
-                </div>
+        <!-- VMs Table -->
+        <div class="issues-table-container" style="border-color: var(--neon-cyan); margin-bottom: 1.5rem;">
+            <div class="issues-table-header"
+                style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                <span class="issues-table-title" style="color: var(--neon-cyan);">💻 Virtual Machines</span>
+                <span class="issues-count" id="proxmox-vms-count" style="background: var(--neon-cyan);">0</span>
             </div>
+            <div id="proxmox-vms-content">
+                <div class="loading">Loading VMs...</div>
+            </div>
+        </div>
 
-            <!-- Automations Table -->
-            <div class="issues-table-container" style="border-color: var(--neon-cyan);">
-                <div class="issues-table-header"
-                    style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-                    <span class="issues-table-title" style="color: var(--neon-cyan);">⚙️ Automations</span>
-                    <span class="issues-count" id="ha-automations-count" style="background: var(--neon-cyan);">0</span>
-                </div>
-                <div id="ha-automations-content">
-                    <div class="loading">Loading automations...</div>
-                </div>
+        <!-- Containers Table -->
+        <div class="issues-table-container" style="border-color: var(--neon-magenta);">
+            <div class="issues-table-header"
+                style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                <span class="issues-table-title" style="color: var(--neon-magenta);">📦 LXC Containers</span>
+                <span class="issues-count" id="proxmox-containers-count"
+                    style="background: var(--neon-magenta);">0</span>
             </div>
+            <div id="proxmox-containers-content">
+                <div class="loading">Loading containers...</div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Weather Section -->
-        <section class="argocd-section tab-content" data-tab="weather" style="display: none;">
-            <h2 class="section-title">🌤️ Multi-City Weather</h2>
-            <div id="weather-content">
-                <div class="loading">Loading weather data...</div>
-            </div>
-        </section>
+    <!-- Home Assistant Section -->
+    <section class="argocd-section tab-content" data-tab="homeassistant" style="display: none;">
+        <h2 class="section-title">🏠 Home Assistant</h2>
 
-        <!-- Calendar Section -->
-        <section class="argocd-section tab-content" data-tab="calendar" style="display: none;">
-            <h2 class="section-title">📅 Upcoming Events</h2>
-            <div id="calendar-content">
-                <div class="loading">Loading calendar events...</div>
+        <!-- HA Stats -->
+        <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box">
+                <div class="stat-value" id="ha-sensors">-</div>
+                <div class="stat-label">Sensors</div>
             </div>
-        </section>
+            <div class="stat-box healthy">
+                <div class="stat-value" id="ha-automations">-</div>
+                <div class="stat-label">Automations</div>
+            </div>
+            <div class="stat-box info">
+                <div class="stat-value" id="ha-devices">-</div>
+                <div class="stat-label">Devices</div>
+            </div>
+        </div>
+
+        <!-- Sensors Grid -->
+        <div class="issues-table-container" style="border-color: var(--neon-green); margin-bottom: 1.5rem;">
+            <div class="issues-table-header"
+                style="background: rgba(0, 255, 136, 0.1); border-color: var(--neon-green);">
+                <span class="issues-table-title" style="color: var(--neon-green);">📊 Sensors</span>
+                <span class="issues-count" id="ha-sensors-count" style="background: var(--neon-green);">0</span>
+            </div>
+            <div id="ha-sensors-content">
+                <div class="loading">Loading sensors...</div>
+            </div>
+        </div>
+
+        <!-- Automations Table -->
+        <div class="issues-table-container" style="border-color: var(--neon-cyan);">
+            <div class="issues-table-header"
+                style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                <span class="issues-table-title" style="color: var(--neon-cyan);">⚙️ Automations</span>
+                <span class="issues-count" id="ha-automations-count" style="background: var(--neon-cyan);">0</span>
+            </div>
+            <div id="ha-automations-content">
+                <div class="loading">Loading automations...</div>
+            </div>
+        </div>
+        </div>
+    </section>
+
+    <!-- Weather Section -->
+    <section class="argocd-section tab-content" data-tab="weather" style="display: none;">
+        <h2 class="section-title">🌤️ Multi-City Weather</h2>
+        <div id="weather-content">
+            <div class="loading">Loading weather data...</div>
+        </div>
+    </section>
+
+    <!-- Calendar Section -->
+    <section class="argocd-section tab-content" data-tab="calendar" style="display: none;">
+        <h2 class="section-title">📅 Upcoming Events</h2>
+        <div id="calendar-content">
+            <div class="loading">Loading calendar events...</div>
+        </div>
+    </section>
     </section>
 
     <!-- Footer -->
@@ -1164,6 +1216,8 @@
                 WeatherDashboard.init();
             } else if (tabName === 'calendar' && window.CalendarDashboard) {
                 CalendarDashboard.init();
+            } else if (tabName === 'security' && window.SecurityDashboard) {
+                SecurityDashboard.init();
             }
         }
 

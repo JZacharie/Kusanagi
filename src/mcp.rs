@@ -1,6 +1,7 @@
 //! MCP (Model Context Protocol) integrations for Kusanagi
 //! Provides access to various infrastructure tools via MCP servers
 
+use actix_web::{get, web, HttpResponse, Result};
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn, error};
 
@@ -392,4 +393,63 @@ pub fn format_steampipe_result(result: &SteampipeResult) -> String {
     }
 
     lines.join("\n")
+}
+
+// ============================================================================
+// API Handlers
+// ============================================================================
+
+pub async fn get_vulnerabilities_handler() -> Result<HttpResponse> {
+    match get_trivy_vulnerabilities().await {
+        Ok(summary) => Ok(HttpResponse::Ok().json(summary)),
+        Err(e) => {
+            error!("Failed to get vulnerabilities: {}", e);
+            Ok(HttpResponse::InternalServerError().json(serde_json::json!({ "error": e })))
+        }
+    }
+}
+
+pub async fn get_policies_handler() -> Result<HttpResponse> {
+    match get_cilium_policies(None).await {
+        Ok(summary) => Ok(HttpResponse::Ok().json(summary)),
+        Err(e) => {
+            error!("Failed to get policies: {}", e);
+            Ok(HttpResponse::InternalServerError().json(serde_json::json!({ "error": e })))
+        }
+    }
+}
+
+pub async fn get_fence_status_handler(client: web::Data<crate::AppState>) -> Result<HttpResponse> {
+    // Check if fence pods are running in the security namespace
+    match crate::pods::get_pods_status(&client.client).await {
+        Ok(_) => {
+            // Simplified: we'll just check if any pods are in the security namespace
+            // A better way would be to specifically look for "fence" pods
+            let pods = kube::Api::<k8s_openapi::api::core::v1::Pod>::namespaced(client.client.clone(), "security");
+            match pods.list(&kube::api::ListParams::default().labels("app.kubernetes.io/name=fence")).await {
+                Ok(list) => {
+                    let running = list.items.iter().any(|p| {
+                        p.status.as_ref().map(|s| s.phase.as_deref() == Some("Running")).unwrap_or(false)
+                    });
+                    Ok(HttpResponse::Ok().json(serde_json::json!({
+                        "name": "Fence",
+                        "status": if running { "healthy" } else { "unhealthy" },
+                        "namespace": "security",
+                        "pods": list.items.len()
+                    })))
+                }
+                Err(e) => Ok(HttpResponse::InternalServerError().json(serde_json::json!({ "error": e.to_string() })))
+            }
+        }
+        Err(e) => Ok(HttpResponse::InternalServerError().json(serde_json::json!({ "error": e.to_string() })))
+    }
+}
+
+pub fn configure_routes(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::scope("/api/security")
+            .route("/vulnerabilities", web::get().to(get_vulnerabilities_handler))
+            .route("/policies", web::get().to(get_policies_handler))
+            .route("/fence", web::get().to(get_fence_status_handler)),
+    );
 }

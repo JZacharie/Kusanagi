@@ -480,6 +480,7 @@ async fn main() -> std::io::Result<()> {
             .configure(homeassistant::configure_routes)
             .configure(weather::configure_routes)
             .configure(calendar::configure_routes)
+            .configure(mcp::configure_routes)
             .service(health_check)
             .service(index)
             .service(argocd_status)
