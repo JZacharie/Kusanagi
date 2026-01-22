@@ -298,12 +298,26 @@ async fn aggregate_news() -> Result<Vec<NewsItem>, String> {
 
 // Background task to refresh cache
 pub async fn start_news_refresh_task(cache: NewsCache) {
+    // Load initial data immediately
     tokio::spawn(async move {
+        // Initial load
+        tracing::info!("Loading initial news cache...");
+        match aggregate_news().await {
+            Ok(items) => {
+                cache.update_items(items.clone()).await;
+                tracing::info!("Initial news cache loaded: {} items", items.len());
+            }
+            Err(e) => {
+                tracing::error!("Failed to load initial news cache: {}", e);
+            }
+        }
+
+        // Then refresh every 30 minutes
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1800)); // 30 minutes
+        interval.tick().await; // Skip first tick (immediate)
         
         loop {
             interval.tick().await;
-            
             if cache.should_refresh().await {
                 tracing::info!("Refreshing news cache...");
                 match aggregate_news().await {

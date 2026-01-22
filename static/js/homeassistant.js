@@ -1,5 +1,14 @@
 // Home Assistant Dashboard Module
 const HomeAssistantDashboard = {
+    refreshInterval: null,
+
+    init() {
+        this.fetchAndRender();
+        if (this.refreshInterval) clearInterval(this.refreshInterval);
+        this.refreshInterval = setInterval(() => this.fetchAndRender(), 30000);
+        console.log('✅ Home Assistant Dashboard initialized');
+    },
+
     async fetchAndRender() {
         try {
             // Fetch all data in parallel

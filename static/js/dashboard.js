@@ -14,7 +14,10 @@ const DashboardManager = {
         network: { name: 'Network', icon: '🌐', enabled: true, order: 5 },
         metrics: { name: 'Metrics', icon: '📊', enabled: true, order: 6 },
         alerts: { name: 'Alerts', icon: '⚠️', enabled: true, order: 7 },
-        chat: { name: 'Chat', icon: '💬', enabled: true, order: 8 }
+        chat: { name: 'Chat', icon: '💬', enabled: true, order: 8 },
+        proxmox: { name: 'Proxmox', icon: '🖥️', enabled: true, order: 9 },
+        homeassistant: { name: 'Home Assistant', icon: '🏠', enabled: true, order: 10 },
+        weather: { name: 'Weather', icon: '🌤️', enabled: true, order: 11 }
     },
 
     storageKey: 'kusanagi_dashboard_layout',

@@ -25,7 +25,7 @@
 ```
 Q1 2026          Q2 2026          Q3 2026          Q4 2026
 ───────────────────────────────────────────────────────────
-v0.8 ✅          v0.9             v1.0             v2.0
+v0.8 ✅          v0.9 ✅          v1.0 🔄          v2.0
 News Feed       Infra Monitor    Personal Hub     Enterprise
 ```
 
@@ -52,10 +52,10 @@ News Feed       Infra Monitor    Personal Hub     Enterprise
 
 ---
 
-## 🔨 Next Release: v0.9.0 - Infrastructure Monitoring
+## 🚀 Release: v0.9.0 - Infrastructure Monitoring (SHIPPED ✅)
 
-**Target Date**: February 2026  
-**Status**: 🔄 Planning  
+**Release Date**: January 2026  
+**Status**: ✅ Completed  
 **Theme**: Extended Infrastructure Visibility
 
 ### Priority Features
@@ -87,17 +87,17 @@ News Feed       Infra Monitor    Personal Hub     Enterprise
 - Real-time sensor updates
 
 ### Success Criteria
-- [ ] All Proxmox VMs/CTs visible
-- [ ] Home Assistant sensors updating in real-time
+- [x] All Proxmox VMs/CTs visible
+- [x] Home Assistant sensors updating in real-time
 - [ ] <500ms response time for dashboards
 - [ ] Mobile-responsive design
 
 ---
 
-## 🎨 Future Release: v1.0.0 - Personal Dashboard Hub
+## 🔨 Next Release: v1.0.0 - Personal Dashboard Hub
 
-**Target Date**: Q2 2026  
-**Status**: 📋 Backlog  
+**Target Date**: February 2026  
+**Status**: 🔄 In Progress  
 **Theme**: Personal Productivity Integration
 
 ### Priority Features
@@ -108,7 +108,7 @@ News Feed       Infra Monitor    Personal Hub     Enterprise
 | **Google Calendar Integration** | L | OAuth2 setup | Backend |
 | Calendar Widget | M | Calendar API | Frontend |
 | **Weather Multi-City** | M | Weather API key | Backend |
-| Weather Widget (Lyon/Mexico/NYC) | S | Weather API | Frontend |
+| ✅ Weather Widget (Lyon/Mexico/NYC) | S | Weather API | Frontend |
 
 #### P1 - Should Have  
 | Feature | Effort | Dependencies | Owner |
