@@ -456,8 +456,8 @@ async fn export_report(data: web::Data<AppState>, query: web::Query<ExportQuery>
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
 
-    info!("Starting Kusanagi server on port 8085");
-    info!("Access the cyberpunk interface at http://localhost:8085");
+    info!("Starting Kusanagi server on port 8080");
+    info!("Access the cyberpunk interface at http://localhost:8080");
 
     let client = kube::Client::try_default()
         .await
@@ -513,7 +513,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/news", web::get().to(newsfeed::get_news))
             .service(Files::new("/static", "./static").show_files_listing())
     })
-    .bind(("0.0.0.0", 8085))?
+    .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }

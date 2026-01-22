@@ -326,6 +326,5 @@ warning: field `state` is never read
     |     ^^^^^
 
 warning: `kusanagi` (bin "kusanagi") generated 45 warnings (run `cargo fix --bin "kusanagi"` to apply 8 suggestions)
-    Finished `release` profile [optimized] target(s) in 0.43s
+    Finished `release` profile [optimized] target(s) in 0.29s
      Running `target/release/kusanagi`
-[2m2026-01-22T19:31:02.590643Z[0m [31mERROR[0m [2mkusanagi::calendar[0m[2m:[0m OAuth client setup failed: environment variable not found
