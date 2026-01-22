@@ -55,6 +55,7 @@ const ProxmoxDashboard = {
                         <th>Memory</th>
                         <th>Disk</th>
                         <th>Uptime</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -68,6 +69,13 @@ const ProxmoxDashboard = {
                             <td>${this.formatBytes(vm.mem)} / ${this.formatBytes(vm.maxmem)}</td>
                             <td>${this.formatBytes(vm.disk)} / ${this.formatBytes(vm.maxdisk)}</td>
                             <td>${this.formatUptime(vm.uptime)}</td>
+                            <td>
+                                <div class="vm-actions" style="display: flex; gap: 0.5rem;">
+                                    <button class="cyber-btn sm" onclick="ProxmoxDashboard.vmAction(${vm.vmid}, '${vm.node}', 'start')" ${vm.status === 'running' ? 'disabled' : ''} title="Start VM" style="padding: 2px 8px; font-size: 0.8rem; border-color: var(--neon-green); color: var(--neon-green);">▶</button>
+                                    <button class="cyber-btn sm" onclick="ProxmoxDashboard.vmAction(${vm.vmid}, '${vm.node}', 'shutdown')" ${vm.status !== 'running' ? 'disabled' : ''} title="Shutdown VM" style="padding: 2px 8px; font-size: 0.8rem; border-color: var(--neon-yellow); color: var(--neon-yellow);">⏹</button>
+                                    <button class="cyber-btn sm" onclick="ProxmoxDashboard.vmAction(${vm.vmid}, '${vm.node}', 'stop')" ${vm.status !== 'running' ? 'disabled' : ''} title="Force Stop VM" style="padding: 2px 8px; font-size: 0.8rem; border-color: var(--neon-magenta); color: var(--neon-magenta);">⚡</button>
+                                </div>
+                            </td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -75,6 +83,30 @@ const ProxmoxDashboard = {
         `;
 
         container.innerHTML = table;
+    },
+
+    async vmAction(vmid, node, action) {
+        try {
+            const notify = typeof window.showNotification === 'function' ? window.showNotification : (m) => console.log(m);
+            notify(`Sending ${action} order to VM ${vmid}...`, 'info');
+
+            const response = await fetch(`/api/proxmox/vm/${vmid}/node/${node}/status/${action}`, {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Failed to ${action} VM`);
+            }
+
+            const result = await response.json();
+            notify(result.message, 'success');
+            setTimeout(() => this.fetchAndRender(), 2000);
+        } catch (error) {
+            console.error(`VM action error:`, error);
+            const notify = typeof window.showNotification === 'function' ? window.showNotification : (m) => alert(m);
+            notify(`Action failed: ${error.message}`, 'error');
+        }
     },
 
     renderContainers(containers) {
@@ -98,6 +130,7 @@ const ProxmoxDashboard = {
                         <th>Memory</th>
                         <th>Disk</th>
                         <th>Uptime</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -111,6 +144,13 @@ const ProxmoxDashboard = {
                             <td>${this.formatBytes(ct.mem)} / ${this.formatBytes(ct.maxmem)}</td>
                             <td>${this.formatBytes(ct.disk)} / ${this.formatBytes(ct.maxdisk)}</td>
                             <td>${this.formatUptime(ct.uptime)}</td>
+                            <td>
+                                <div class="ct-actions" style="display: flex; gap: 0.5rem;">
+                                    <button class="cyber-btn sm" onclick="ProxmoxDashboard.ctAction(${ct.vmid}, '${ct.node}', 'start')" ${ct.status === 'running' ? 'disabled' : ''} title="Start Container" style="padding: 2px 8px; font-size: 0.8rem; border-color: var(--neon-green); color: var(--neon-green);">▶</button>
+                                    <button class="cyber-btn sm" onclick="ProxmoxDashboard.ctAction(${ct.vmid}, '${ct.node}', 'shutdown')" ${ct.status !== 'running' ? 'disabled' : ''} title="Shutdown Container" style="padding: 2px 8px; font-size: 0.8rem; border-color: var(--neon-yellow); color: var(--neon-yellow);">⏹</button>
+                                    <button class="cyber-btn sm" onclick="ProxmoxDashboard.ctAction(${ct.vmid}, '${ct.node}', 'stop')" ${ct.status !== 'running' ? 'disabled' : ''} title="Force Stop Container" style="padding: 2px 8px; font-size: 0.8rem; border-color: var(--neon-magenta); color: var(--neon-magenta);">⚡</button>
+                                </div>
+                            </td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -118,6 +158,30 @@ const ProxmoxDashboard = {
         `;
 
         container.innerHTML = table;
+    },
+
+    async ctAction(vmid, node, action) {
+        try {
+            const notify = typeof window.showNotification === 'function' ? window.showNotification : (m) => console.log(m);
+            notify(`Sending ${action} order to Container ${vmid}...`, 'info');
+
+            const response = await fetch(`/api/proxmox/ct/${vmid}/node/${node}/status/${action}`, {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Failed to ${action} Container`);
+            }
+
+            const result = await response.json();
+            notify(result.message, 'success');
+            setTimeout(() => this.fetchAndRender(), 2000);
+        } catch (error) {
+            console.error(`Container action error:`, error);
+            const notify = typeof window.showNotification === 'function' ? window.showNotification : (m) => alert(m);
+            notify(`Action failed: ${error.message}`, 'error');
+        }
     },
 
     formatBytes(bytes) {

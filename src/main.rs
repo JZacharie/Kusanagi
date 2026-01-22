@@ -463,7 +463,7 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to create Kubernetes client");
     
-    let app_state = web::Data::new(AppState { client });
+    let app_state = web::Data::new(AppState { client: client.clone() });
     
     // Initialize news feed cache
     let news_cache = web::Data::new(newsfeed::NewsCache::new());

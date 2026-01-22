@@ -116,6 +116,54 @@ impl ProxmoxClient {
         Ok(api_response.data)
     }
 
+    async fn post<T: for<'de> Deserialize<'de>>(
+        &self,
+        path: &str,
+    ) -> Result<T, Box<dyn std::error::Error>> {
+        let url = format!("{}/api2/json{}", self.base_url, path);
+        
+        info!("Proxmox API POST request: {}", url);
+
+        let response = self
+            .client
+            .post(&url)
+            .header("Authorization", &self.token)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await?;
+            error!("Proxmox API error: {} - {}", status, body);
+            return Err(format!("Proxmox API error: {}", status).into());
+        }
+
+        let api_response: ProxmoxApiResponse<T> = response.json().await?;
+        Ok(api_response.data)
+    }
+
+    pub async fn vm_control(
+        &self,
+        node: &str,
+        vmid: u64,
+        action: &str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let path = format!("/nodes/{}/qemu/{}/status/{}", node, vmid, action);
+        let upid: String = self.post(&path).await?;
+        Ok(upid)
+    }
+
+    pub async fn ct_control(
+        &self,
+        node: &str,
+        vmid: u64,
+        action: &str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let path = format!("/nodes/{}/lxc/{}/status/{}", node, vmid, action);
+        let upid: String = self.post(&path).await?;
+        Ok(upid)
+    }
+
     pub async fn get_nodes(&self) -> Result<Vec<ProxmoxNode>, Box<dyn std::error::Error>> {
         self.get("/nodes").await
     }
@@ -277,12 +325,76 @@ pub async fn get_cluster_handler() -> Result<HttpResponse> {
     }
 }
 
+pub async fn vm_control_handler(
+    params: web::Path<(u64, String, String)>,
+) -> Result<HttpResponse> {
+    let (vmid, node, action) = params.into_inner();
+    
+    match ProxmoxClient::new() {
+        Ok(client) => match client.vm_control(&node, vmid, &action).await {
+            Ok(upid) => {
+                info!("VM {} {} on node {} initiated: {}", vmid, action, node, upid);
+                Ok(HttpResponse::Ok().json(serde_json::json!({
+                    "status": "success",
+                    "upid": upid,
+                    "message": format!("VM {} {} order sent", vmid, action)
+                })))
+            }
+            Err(e) => {
+                error!("Failed to control VM {}: {}", vmid, e);
+                Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                    "error": format!("Failed to {} VM: {}", action, e)
+                })))
+            }
+        },
+        Err(e) => {
+            error!("Failed to create Proxmox client: {}", e);
+            Ok(HttpResponse::ServiceUnavailable().json(serde_json::json!({
+                "error": format!("Proxmox not configured: {}", e)
+            })))
+        }
+    }
+}
+
+pub async fn ct_control_handler(
+    params: web::Path<(u64, String, String)>,
+) -> Result<HttpResponse> {
+    let (vmid, node, action) = params.into_inner();
+    
+    match ProxmoxClient::new() {
+        Ok(client) => match client.ct_control(&node, vmid, &action).await {
+            Ok(upid) => {
+                info!("Container {} {} on node {} initiated: {}", vmid, action, node, upid);
+                Ok(HttpResponse::Ok().json(serde_json::json!({
+                    "status": "success",
+                    "upid": upid,
+                    "message": format!("Container {} {} order sent", vmid, action)
+                })))
+            }
+            Err(e) => {
+                error!("Failed to control Container {}: {}", vmid, e);
+                Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                    "error": format!("Failed to {} Container: {}", action, e)
+                })))
+            }
+        },
+        Err(e) => {
+            error!("Failed to create Proxmox client: {}", e);
+            Ok(HttpResponse::ServiceUnavailable().json(serde_json::json!({
+                "error": format!("Proxmox not configured: {}", e)
+            })))
+        }
+    }
+}
+
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/proxmox")
             .route("/vms", web::get().to(get_vms_handler))
             .route("/containers", web::get().to(get_containers_handler))
             .route("/nodes", web::get().to(get_nodes_handler))
-            .route("/cluster", web::get().to(get_cluster_handler)),
+            .route("/cluster", web::get().to(get_cluster_handler))
+            .route("/vm/{vmid}/node/{node}/status/{action}", web::post().to(vm_control_handler))
+            .route("/ct/{vmid}/node/{node}/status/{action}", web::post().to(ct_control_handler)),
     );
 }

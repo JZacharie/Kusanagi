@@ -55,9 +55,10 @@ impl SlackClient {
             .await?;
 
         if !response.status().is_success() {
+            let status = response.status();
             let error_text = response.text().await?;
             error!("Slack API error: {}", error_text);
-            return Err(format!("Slack API returned status {}: {}", response.status(), error_text).into());
+            return Err(format!("Slack API returned status {}: {}", status, error_text).into());
         }
 
         let result: serde_json::Value = response.json().await?;
