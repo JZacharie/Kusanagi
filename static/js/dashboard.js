@@ -17,7 +17,8 @@ const DashboardManager = {
         chat: { name: 'Chat', icon: '💬', enabled: true, order: 8 },
         proxmox: { name: 'Proxmox', icon: '🖥️', enabled: true, order: 9 },
         homeassistant: { name: 'Home Assistant', icon: '🏠', enabled: true, order: 10 },
-        weather: { name: 'Weather', icon: '🌤️', enabled: true, order: 11 }
+        weather: { name: 'Weather', icon: '🌤️', enabled: true, order: 11 },
+        calendar: { name: 'Calendar', icon: '📅', enabled: true, order: 12 }
     },
 
     storageKey: 'kusanagi_dashboard_layout',
@@ -28,7 +29,32 @@ const DashboardManager = {
     init() {
         this.loadLayout();
         this.setupEventListeners();
+        this.updateClocks();
+        setInterval(() => this.updateClocks(), 1000);
         console.log('✅ Dashboard Manager initialized');
+    },
+
+    updateClocks() {
+        try {
+            const now = new Date();
+            const clockLyon = document.getElementById('clock-lyon');
+            const clockMexico = document.getElementById('clock-mexico');
+            const clockNYC = document.getElementById('clock-nyc');
+
+            if (clockLyon) clockLyon.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            if (clockMexico) clockMexico.textContent = now.toLocaleTimeString('en-GB', {
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                timeZone: 'America/Mexico_City'
+            });
+
+            if (clockNYC) clockNYC.textContent = now.toLocaleTimeString('en-GB', {
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                timeZone: 'America/New_York'
+            });
+        } catch (e) {
+            console.error('Failed to update clocks:', e);
+        }
     },
 
     /**

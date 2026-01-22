@@ -1,7 +1,7 @@
-use actix_web::{web, HttpResponse, Responder, Result};
+use actix_web::{web, HttpResponse, Result};
 use serde::{Deserialize, Serialize};
 use std::env;
-use tracing::{error, info, warn};
+use tracing::{error, warn};
 use chrono;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

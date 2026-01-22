@@ -25,6 +25,7 @@
     <script src="/static/js/proxmox.js"></script>
     <script src="/static/js/homeassistant.js"></script>
     <script src="/static/js/weather.js"></script>
+    <script src="/static/js/calendar.js"></script>
 </head>
 
 <body>
@@ -44,6 +45,15 @@
             <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
                 <span class="theme-icon" id="theme-icon">🌙</span>
             </button>
+            <div class="world-clocks" id="world-clocks"
+                style="display: flex; gap: 1rem; margin-right: auto; padding-left: 1rem; font-family: monospace; font-size: 0.8rem; opacity: 0.8;">
+                <div class="clock" title="Lyon (Local)"><span style="color: var(--neon-cyan);">LYO</span> <span
+                        id="clock-lyon">00:00</span></div>
+                <div class="clock" title="Mexico City"><span style="color: var(--neon-magenta);">MEX</span> <span
+                        id="clock-mexico">00:00</span></div>
+                <div class="clock" title="New York"><span style="color: var(--neon-yellow);">NYC</span> <span
+                        id="clock-nyc">00:00</span></div>
+            </div>
             <div class="header-content">
                 <img src="/static/images/logo.png" alt="Kusanagi Logo" class="header-logo">
                 <div class="header-text">
@@ -189,6 +199,9 @@
             </button>
             <button class="tab-btn" data-tab="weather" onclick="switchTab('weather')">
                 <span class="tab-icon">🌤️</span> Weather
+            </button>
+            <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar')">
+                <span class="tab-icon">📅</span> Calendar
             </button>
             <!-- Export Dropdown -->
             <div class="export-dropdown">
@@ -807,6 +820,14 @@
                 <div class="loading">Loading weather data...</div>
             </div>
         </section>
+
+        <!-- Calendar Section -->
+        <section class="argocd-section tab-content" data-tab="calendar" style="display: none;">
+            <h2 class="section-title">📅 Upcoming Events</h2>
+            <div id="calendar-content">
+                <div class="loading">Loading calendar events...</div>
+            </div>
+        </section>
     </section>
 
     <!-- Footer -->
@@ -1141,6 +1162,8 @@
                 HomeAssistantDashboard.init();
             } else if (tabName === 'weather' && window.WeatherDashboard) {
                 WeatherDashboard.init();
+            } else if (tabName === 'calendar' && window.CalendarDashboard) {
+                CalendarDashboard.init();
             }
         }
 
