@@ -234,6 +234,31 @@ const MetricsManager = {
                     <div class="metric-value">${metrics.container_count || 0}</div>
                     <div class="metric-label">Containers</div>
                 </div>
+                <!-- Custom Dashboards -->
+                <div class="metric-card">
+                    <div class="metric-icon">🎮</div>
+                    <div class="metric-value">${metrics.sim_app_status?.toFixed(0) || 0}%</div>
+                    <div class="metric-label">SIM App Health</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${metrics.sim_app_status || 0}%; background: var(--neon-cyan);"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">⚡</div>
+                    <div class="metric-value">${metrics.sim_realtime_status?.toFixed(0) || 0}%</div>
+                    <div class="metric-label">SIM Realtime</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${metrics.sim_realtime_status || 0}%; background: var(--neon-magenta);"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🏎️</div>
+                    <div class="metric-value">${metrics.gpu_utilization?.toFixed(1) || 0}%</div>
+                    <div class="metric-label">GPU Utilization</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${metrics.gpu_utilization || 0}%; background: var(--neon-green);"></div>
+                    </div>
+                </div>
             </div>
         `;
     },

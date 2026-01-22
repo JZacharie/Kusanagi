@@ -12,6 +12,9 @@ pub struct PrometheusMetrics {
     pub container_count: i32,
     pub alerts_firing: i32,
     pub alerts_pending: i32,
+    pub sim_app_status: f64,
+    pub sim_realtime_status: f64,
+    pub gpu_utilization: f64,
 }
 
 /// Prometheus query result
@@ -143,6 +146,18 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     let alerts_pending_query = r#"count(ALERTS{alertstate="pending"}) or vector(0)"#;
     let alerts_pending = query_instant(alerts_pending_query).await.unwrap_or(0.0) as i32;
     
+    // Custom Job Status: SIM App
+    let sim_app_query = r#"avg(up{job="sim-app"}) * 100 or vector(0)"#;
+    let sim_app_status = query_instant(sim_app_query).await.unwrap_or(0.0);
+
+    // Custom Job Status: SIM Realtime
+    let sim_realtime_query = r#"avg(up{job="sim-realtime"}) * 100 or vector(0)"#;
+    let sim_realtime_status = query_instant(sim_realtime_query).await.unwrap_or(0.0);
+
+    // Custom Job Status: NVIDIA GPU
+    let gpu_query = r#"avg(nvidia_gpu_utilization) or avg(dcgm_gpu_utilization) or vector(0)"#;
+    let gpu_utilization = query_instant(gpu_query).await.unwrap_or(0.0);
+    
     Ok(PrometheusMetrics {
         cpu_usage_percent: cpu_usage,
         memory_usage_percent,
@@ -152,6 +167,9 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
         container_count,
         alerts_firing,
         alerts_pending,
+        sim_app_status,
+        sim_realtime_status,
+        gpu_utilization,
     })
 }
 
