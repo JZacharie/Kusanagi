@@ -513,7 +513,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/news", web::get().to(newsfeed::get_news))
             .service(Files::new("/static", "./static").show_files_listing())
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind(("0.0.0.0", 8081))?
     .run()
     .await
 }
