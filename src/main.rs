@@ -24,6 +24,8 @@ mod export;
 mod telemetry;
 mod quota;
 mod newsfeed;
+mod proxmox;
+mod homeassistant;
 
 /// Shared application state
 struct AppState {
@@ -468,6 +470,8 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(app_state.clone())
             .app_data(news_cache.clone())
+            .configure(proxmox::configure_routes)
+            .configure(homeassistant::configure_routes)
             .service(health_check)
             .service(index)
             .service(argocd_status)
