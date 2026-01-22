@@ -2,8 +2,8 @@ nohup: ignoring input
 warning: unused imports: `Namespace` and `ResourceRequirements`
  --> src/apps.rs:2:34
   |
-2 | ...v1::{Namespace, PersistentVolumeClaim, Pod, ResourceRequirements};
-  |         ^^^^^^^^^                              ^^^^^^^^^^^^^^^^^^^^
+2 | use k8s_openapi::api::core::v1::{Namespace, PersistentVolumeClaim, Pod, ResourceRequirements};
+  |                                  ^^^^^^^^^                              ^^^^^^^^^^^^^^^^^^^^
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
@@ -37,10 +37,16 @@ warning: unused import: `std::env`
 3 | use std::env;
   |     ^^^^^^^^
 
+warning: unused import: `DateTime`
+ --> src/calendar.rs:7:21
+  |
+7 | use chrono::{Local, DateTime, Utc};
+  |                     ^^^^^^^^
+
 warning: unused variable: `u`
    --> src/nodes.rs:446:16
     |
-446 |     if let (Ok(u), Ok(p)) = (std::env::var("PROMETHEUS_USERNAME"), std...
+446 |     if let (Ok(u), Ok(p)) = (std::env::var("PROMETHEUS_USERNAME"), std::env::var("PROMETHEUS_PASSWORD")) {
     |                ^ help: if this is intentional, prefix it with an underscore: `_u`
     |
     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
@@ -48,7 +54,7 @@ warning: unused variable: `u`
 warning: unused variable: `p`
    --> src/nodes.rs:446:23
     |
-446 |     if let (Ok(u), Ok(p)) = (std::env::var("PROMETHEUS_USERNAME"), std...
+446 |     if let (Ok(u), Ok(p)) = (std::env::var("PROMETHEUS_USERNAME"), std::env::var("PROMETHEUS_PASSWORD")) {
     |                       ^ help: if this is intentional, prefix it with an underscore: `_p`
 
 warning: unused variable: `node_name`
@@ -108,13 +114,13 @@ warning: struct `SyncRequest` is never constructed
 warning: function `get_critical_vulnerabilities` is never used
    --> src/mcp.rs:294:14
     |
-294 | pub async fn get_critical_vulnerabilities() -> Result<Vec<TrivyImageRe...
+294 | pub async fn get_critical_vulnerabilities() -> Result<Vec<TrivyImageReport>, String> {
     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: constant `HUBBLE_RELAY_URL` is never used
   --> src/cilium.rs:15:7
    |
-15 | const HUBBLE_RELAY_URL: &str = "http://hubble-relay.kube-system.svc.clu...
+15 | const HUBBLE_RELAY_URL: &str = "http://hubble-relay.kube-system.svc.cluster.local:4245";
    |       ^^^^^^^^^^^^^^^^
 
 warning: struct `CiliumNetworkPolicy` is never constructed
@@ -172,13 +178,13 @@ warning: field `metric` is never read
 warning: function `get_top_pods` is never used
    --> src/prometheus.rs:177:14
     |
-177 | pub async fn get_top_pods(limit: usize) -> Result<Vec<serde_json::Valu...
+177 | pub async fn get_top_pods(limit: usize) -> Result<Vec<serde_json::Value>, String> {
     |              ^^^^^^^^^^^^
 
 warning: function `get_node_resources` is never used
    --> src/prometheus.rs:193:14
     |
-193 | pub async fn get_node_resources() -> Result<Vec<serde_json::Value>, St...
+193 | pub async fn get_node_resources() -> Result<Vec<serde_json::Value>, String> {
     |              ^^^^^^^^^^^^^^^^^^
 
 warning: field `ends_at` is never read
@@ -242,7 +248,7 @@ warning: methods `with_error` and `with_extra` are never used
 105 |     pub fn with_error(mut self, error: &str) -> Self {
     |            ^^^^^^^^^^
 ...
-115 |     pub fn with_extra<V: Serialize>(mut self, key: &str, value: V) -> ...
+115 |     pub fn with_extra<V: Serialize>(mut self, key: &str, value: V) -> Self {
     |            ^^^^^^^^^^
 
 warning: method `record_error` is never used
@@ -292,7 +298,33 @@ warning: method `as_str` is never used
 16 |     fn as_str(&self) -> &str {
    |        ^^^^^^
 
-warning: `kusanagi` (bin "kusanagi") generated 41 warnings (run `cargo fix --bin "kusanagi"` to apply 7 suggestions)
-    Finished `release` profile [optimized] target(s) in 0.34s
+warning: method `get_token` is never used
+  --> src/calendar.rs:48:12
+   |
+36 | impl TokenStore {
+   | --------------- method in this implementation
+...
+48 |     pub fn get_token(&self, user_id: &str) -> Option<String> {
+   |            ^^^^^^^^^
+
+warning: field `oauth_client` is never read
+  --> src/calendar.rs:60:5
+   |
+58 | pub struct CalendarClient {
+   |            -------------- field in this struct
+59 |     api_key: String,
+60 |     oauth_client: Option<BasicClient>,
+   |     ^^^^^^^^^^^^
+
+warning: field `state` is never read
+   --> src/calendar.rs:254:5
+    |
+252 | pub struct OAuthCallbackQuery {
+    |            ------------------ field in this struct
+253 |     code: String,
+254 |     state: Option<String>,
+    |     ^^^^^
+
+warning: `kusanagi` (bin "kusanagi") generated 45 warnings (run `cargo fix --bin "kusanagi"` to apply 8 suggestions)
+    Finished `release` profile [optimized] target(s) in 0.25s
      Running `target/release/kusanagi`
-Error: Os { code: 98, kind: AddrInUse, message: "Address already in use" }
