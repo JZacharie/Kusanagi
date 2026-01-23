@@ -2034,9 +2034,13 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         }
         // === KUBERNETES EVENTS ===
-        async function fetchEvents() {
+        let currentEventFilter = 'all';
+
+        async function fetchEvents(typeFilter = 'all') {
             try {
-                const response = await fetch('/api/events');
+                currentEventFilter = typeFilter;
+                const url = typeFilter === 'all' ? '/api/events' : `/api/events?event_type=${typeFilter}`;
+                const response = await fetch(url);
                 const data = await response.json();
 
                 if (!data.error) {
@@ -2050,6 +2054,15 @@
             } catch (error) {
                 console.error('Failed to fetch events:', error);
             }
+        }
+
+        function filterEvents(type) {
+            // Update UI buttons
+            document.getElementById('btn-show-all').classList.toggle('active', type === 'all');
+            document.getElementById('btn-show-warnings').classList.toggle('active', type === 'Warning');
+
+            // Fetch with filter
+            fetchEvents(type);
         }
 
         function renderEventsTable(events) {
@@ -2350,7 +2363,7 @@
         fetchArgoStatus();
         fetchNodesStatus();
         fetchClusterOverview();
-        fetchEvents();
+        fetchEvents(currentEventFilter);
         fetchBackupsStatus();
         fetchStorageStatus();
         fetchServices();
@@ -2389,7 +2402,7 @@
         setInterval(fetchArgoStatus, 30000);
         setInterval(fetchNodesStatus, 30000);
         setInterval(fetchClusterOverview, 60000);
-        setInterval(fetchEvents, 30000);
+        setInterval(() => fetchEvents(currentEventFilter), 30000);
         setInterval(fetchBackupsStatus, 60000);
         setInterval(fetchStorageStatus, 60000);
         setInterval(fetchServices, 60000);

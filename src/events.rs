@@ -113,28 +113,43 @@ pub async fn get_events(client: &Client, event_type_filter: Option<String>) -> R
         })
         .collect();
 
-    // Sort by last timestamp (newest first)
-    event_infos.sort_by(|a, b| {
-        b.last_timestamp.cmp(&a.last_timestamp)
-    });
+    let warning_count = event_infos.iter().filter(|e| e.event_type == "Warning").count();
+    let normal_count = event_infos.iter().filter(|e| e.event_type == "Normal").count();
+    let total_count = event_infos.len();
 
     // Apply event type filter if specified
     if let Some(filter) = event_type_filter {
         event_infos.retain(|e| e.event_type.eq_ignore_ascii_case(&filter));
     }
 
-    let warning_count = event_infos.iter().filter(|e| e.event_type == "Warning").count();
-    let normal_count = event_infos.iter().filter(|e| e.event_type == "Normal").count();
+    // Sort by type (Warning first) then last timestamp (newest first)
+    event_infos.sort_by(|a, b| {
+        // First compare by event type (Warning < Normal lexicographically but we want Warning first)
+        let type_cmp = if a.event_type == "Warning" && b.event_type != "Warning" {
+            std::cmp::Ordering::Less
+        } else if a.event_type != "Warning" && b.event_type == "Warning" {
+            std::cmp::Ordering::Greater
+        } else {
+            std::cmp::Ordering::Equal
+        };
+
+        if type_cmp != std::cmp::Ordering::Equal {
+            type_cmp
+        } else {
+            b.last_timestamp.cmp(&a.last_timestamp)
+        }
+    });
 
     info!(
-        "Events: {} total ({} warnings, {} normal)",
+        "Events: {} filtered from {} total ({} warnings, {} normal)",
         event_infos.len(),
+        total_count,
         warning_count,
         normal_count
     );
 
     Ok(EventsResponse {
-        total_events: event_infos.len(),
+        total_events: total_count,
         warning_count,
         normal_count,
         events: event_infos,
