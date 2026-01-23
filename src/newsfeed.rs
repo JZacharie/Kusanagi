@@ -171,19 +171,31 @@ async fn fetch_hackernews() -> Result<Vec<NewsItem>, String> {
 
 // Fetch Korben RSS feed
 async fn fetch_korben_rss() -> Result<Vec<NewsItem>, String> {
+    tracing::info!("Starting Korben RSS fetch from https://korben.info/feed");
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .timeout(std::time::Duration::from_secs(10))
         .build()
         .map_err(|e| e.to_string())?;
 
-    let content = client
+    let response = client
         .get("https://korben.info/feed")
         .send()
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            tracing::error!("Failed to send request to Korben: {}", e);
+            e.to_string()
+        })?;
+
+    tracing::info!("Korben response status: {}", response.status());
+
+    let content = response
         .bytes()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            tracing::error!("Failed to get bytes from Korben response: {}", e);
+            e.to_string()
+        })?;
 
     let channel = rss::Channel::read_from(&content[..]).map_err(|e| e.to_string())?;
     let mut items = Vec::new();
@@ -218,6 +230,7 @@ async fn fetch_korben_rss() -> Result<Vec<NewsItem>, String> {
         });
     }
 
+    tracing::info!("Successfully fetched {} items from Korben", items.len());
     Ok(items)
 }
 
