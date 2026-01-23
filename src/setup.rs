@@ -68,6 +68,20 @@ pub fn get_env_definitions() -> Vec<EnvVarDefinition> {
             is_secret: false,
         },
         EnvVarDefinition {
+            key: "HOME_ASSISTANT_USER".to_string(),
+            description: "Home Assistant Username".to_string(),
+            example: "admin".to_string(),
+            regex: r"^[a-zA-Z0-9_@\.-]+$".to_string(),
+            is_secret: false,
+        },
+        EnvVarDefinition {
+            key: "HOME_ASSISTANT_PASSWORD".to_string(),
+            description: "Home Assistant Password".to_string(),
+            example: "password123".to_string(),
+            regex: r"^.+$".to_string(),
+            is_secret: true,
+        },
+        EnvVarDefinition {
             key: "POSTGRES_URL".to_string(),
             description: "PostgreSQL Connection String".to_string(),
             example: "postgres://user:password@localhost:5432/dbname".to_string(),
@@ -94,7 +108,11 @@ pub async fn get_setup_status() -> impl Responder {
     features.push(check_feature("Proxmox Monitoring", proxmox_vars));
 
     // Home Assistant Feature
-    let ha_vars = vec!["HOME_ASSISTANT_URL", "HOME_ASSISTANT_TOKEN"];
+    let ha_vars = if env::var("HOME_ASSISTANT_TOKEN").is_ok() {
+        vec!["HOME_ASSISTANT_URL", "HOME_ASSISTANT_TOKEN"]
+    } else {
+        vec!["HOME_ASSISTANT_URL", "HOME_ASSISTANT_USER", "HOME_ASSISTANT_PASSWORD"]
+    };
     features.push(check_feature("Home Assistant Integration", ha_vars));
 
     // PostgreSQL Feature

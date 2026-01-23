@@ -84,7 +84,13 @@ impl HomeAssistantClient {
             .unwrap_or_else(|_| "".to_string());
 
         if token.is_empty() {
-            warn!("HOME_ASSISTANT_TOKEN not set, API calls will fail");
+            let user = env::var("HOME_ASSISTANT_USER").is_ok();
+            let pass = env::var("HOME_ASSISTANT_PASSWORD").is_ok();
+            if user && pass {
+                info!("HOME_ASSISTANT_USER and PASSWORD found, but TOKEN is missing. HA API typically requires a Long-Lived Access Token.");
+            } else {
+                warn!("HOME_ASSISTANT_TOKEN not set, API calls will fail");
+            }
         }
 
         let client = reqwest::Client::builder()
