@@ -2275,6 +2275,7 @@ body {
     max-width: none;
   }
 }
+
 /* ============================================
    NEWS FEED STYLES
    ============================================ */
@@ -2405,4 +2406,133 @@ body {
   .news-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Setup Dashboard Styles */
+.setup-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+@media (max-width: 900px) {
+  .setup-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.features-status-card,
+.wizard-card {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 4px;
+  padding: 1.5rem;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+}
+
+.card-subtitle {
+  color: var(--neon-magenta);
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 0, 255, 0.3);
+  padding-bottom: 0.5rem;
+}
+
+.feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.feature-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+  border-left: 3px solid #555;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.feature-item.active {
+  border-color: var(--neon-green);
+  background: rgba(0, 255, 65, 0.05);
+}
+
+.feature-item.inactive {
+  border-color: #ff4444;
+}
+
+.feature-name {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.feature-badge {
+  font-size: 0.7rem;
+  margin-top: 0.2rem;
+}
+
+.feature-item.active .feature-badge {
+  color: var(--neon-green);
+}
+
+.feature-item.inactive .feature-badge {
+  color: #ff4444;
+}
+
+.missing-vars {
+  font-size: 0.7rem;
+  color: #888;
+  font-family: monospace;
+  margin-top: 0.4rem;
+}
+
+.wizard-step {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.step-count {
+  font-size: 0.7rem;
+  color: var(--neon-cyan);
+  text-transform: uppercase;
+}
+
+.step-desc {
+  font-size: 0.85rem;
+  color: #bbb;
+}
+
+.validation-msg {
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  font-family: monospace;
+}
+
+.validation-msg.valid {
+  color: var(--neon-green);
+}
+
+.validation-msg.invalid {
+  color: #ff4444;
+}
+
+.wizard-footer {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.wizard-completed {
+  text-align: center;
+  padding: 2rem;
+}
+
+.wizard-completed p {
+  color: var(--neon-green);
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
 }

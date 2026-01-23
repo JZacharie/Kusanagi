@@ -28,6 +28,7 @@
     <script src="/static/js/calendar.js"></script>
     <script src="/static/js/calendar_oauth.js"></script>
     <script src="/static/js/security.js"></script>
+    <script src="/static/js/setup.js"></script>
 </head>
 
 <body>
@@ -207,6 +208,9 @@
             </button>
             <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar')">
                 <span class="tab-icon">📅</span> Calendar
+            </button>
+            <button class="tab-btn" data-tab="setup" onclick="switchTab('setup'); KusanagiSetup.init();">
+                <span class="tab-icon">🛠️</span> Setup
             </button>
             <!-- Export Dropdown -->
             <div class="export-dropdown">
@@ -904,6 +908,14 @@
         </div>
         <div id="calendar-content">
             <div class="loading">Loading calendar events...</div>
+        </div>
+    </section>
+
+    <!-- Setup Interview Section -->
+    <section class="argocd-section tab-content" data-tab="setup" style="display: none;">
+        <h2 class="section-title">🛠️ Guided Configuration Interview</h2>
+        <div id="setup-dashboard">
+            <div class="loading">Loading setup status...</div>
         </div>
     </section>
 

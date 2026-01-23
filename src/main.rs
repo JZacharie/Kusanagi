@@ -29,6 +29,7 @@ mod homeassistant;
 mod weather;
 mod calendar;
 mod slack;
+mod setup;
 
 /// Shared application state
 struct AppState {
@@ -481,6 +482,7 @@ async fn main() -> std::io::Result<()> {
             .configure(weather::configure_routes)
             .configure(calendar::configure_routes)
             .configure(mcp::configure_routes)
+            .configure(setup::configure_routes)
             .service(health_check)
             .service(index)
             .service(argocd_status)
