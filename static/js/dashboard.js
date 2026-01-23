@@ -24,12 +24,14 @@ const SystemStatusManager = {
             const data = await response.json();
 
             // Check if backend restarted
+            /* 
             if (this.startTime && this.startTime !== data.start_time) {
-                console.log('🔄 Backend restart detected! Refreshing UI...');
-                showNotification('Kusanagi updated. Refreshing dashboard...', 'info');
-                setTimeout(() => window.location.reload(), 2000);
-                return;
+                console.log('🔄 Backend restart detected! Refreshing UI disabled by user request.');
+                // showNotification('Kusanagi updated. Refreshing dashboard...', 'info');
+                // setTimeout(() => window.location.reload(), 2000);
+                // return;
             }
+            */
             this.startTime = data.start_time;
 
             this.updateUI(data);
