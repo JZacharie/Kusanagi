@@ -40,10 +40,10 @@ pub struct ValidateResponse {
 pub fn get_env_definitions() -> Vec<EnvVarDefinition> {
     vec![
         EnvVarDefinition {
-            key: "PROXMOX_URL".to_string(),
-            description: "URL of your Proxmox API (e.g., https://192.168.1.1:8006)".to_string(),
-            example: "https://proxmox.local:8006".to_string(),
-            regex: r"^https?://[a-zA-Z0-9\.-]+(:\d+)?/?$".to_string(),
+            key: "PROXMOX_URLS".to_string(),
+            description: "Comma-separated URLs of your Proxmox APIs (e.g., https://pve1:8006,https://pve2:8006)".to_string(),
+            example: "https://proxmox-1.zacharie.org,https://proxmox-2.zacharie.org".to_string(),
+            regex: r"^https?://[a-zA-Z0-9\.-]+(:\d+)?/?(,\s*https?://[a-zA-Z0-9\.-]+(:\d+)?/?)*$".to_string(),
             is_secret: false,
         },
         EnvVarDefinition {
@@ -52,6 +52,13 @@ pub fn get_env_definitions() -> Vec<EnvVarDefinition> {
             example: "root@pam".to_string(),
             regex: r"^[a-zA-Z0-9_@\.-]+$".to_string(),
             is_secret: false,
+        },
+        EnvVarDefinition {
+            key: "PROXMOX_PASSWORD".to_string(),
+            description: "Proxmox Password (if not using API Tokens)".to_string(),
+            example: "password123".to_string(),
+            regex: r"^.+$".to_string(),
+            is_secret: true,
         },
         EnvVarDefinition {
             key: "HOME_ASSISTANT_URL".to_string(),
@@ -83,7 +90,7 @@ pub async fn get_setup_status() -> impl Responder {
     let mut features = Vec::new();
 
     // Proxmox Feature
-    let proxmox_vars = vec!["PROXMOX_URL", "PROXMOX_USER", "PROXMOX_TOKEN_ID", "PROXMOX_TOKEN_SECRET"];
+    let proxmox_vars = vec!["PROXMOX_USER"]; // Check at least user. URLs and Credentials can be mixed.
     features.push(check_feature("Proxmox Monitoring", proxmox_vars));
 
     // Home Assistant Feature
