@@ -16,6 +16,7 @@
 - **Adoption**: Utilisation quotidienne par l'équipe
 - **MTTR**: Réduction du temps de résolution des incidents
 - **Coverage**: 100% des composants critiques monitorés
+- **Code Quality**: Clippy zero-warnings & >80% test coverage
 - **UX**: Score Lighthouse > 95
 
 ---
@@ -25,8 +26,8 @@
 ```
 Q1 2026          Q2 2026          Q3 2026          Q4 2026
 ───────────────────────────────────────────────────────────
-v0.8 ✅          v0.9 ✅          v1.0 🔄          v2.0
-News Feed       Infra Monitor    Personal Hub     Enterprise
+v0.8 ✅          v0.9 ✅          v1.0 🔄          v1.1 📋          v1.2 📋          v2.0
+News Feed       Infra Monitor    Personal Hub     Data & Messaging Setup Wizard     Enterprise
 ```
 
 ---
@@ -139,6 +140,95 @@ News Feed       Infra Monitor    Personal Hub     Enterprise
 
 ---
 
+## 🚀 Future Release: v1.1.0 - Data & Messaging Monitoring
+
+**Target Date**: March 2026  
+**Status**: 📋 Planned  
+**Theme**: Persistence, Messaging & Health Verification
+
+### Priority Features
+
+#### P0 - Must Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| **PostgreSQL Health Check** | M | PG Connection | Backend |
+| Instance Status Monitor | S | Health Check | Frontend |
+| **Database Verification** | M | PG Connection | Backend |
+| **MQTT Broker Health** | M | MQTT Connection | Backend |
+| Topic Explorer Dashboard | L | MQTT Broker Health | Frontend |
+
+#### P1 - Should Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| Schema Integrity Scan | L | DB Verification | Backend |
+| Size Tracking & Bloat | M | DB Verification | Backend |
+| Connection Pool Stats | S | Health Check | Backend |
+| MQTT Message Preview | M | Topic Explorer | Backend |
+| Client Connection Alerts | S | MQTT Broker Health | Backend |
+
+#### P2 - Nice to Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| Dynamic Query Profiling | L | - | Backend |
+| Backup Status (WAL-G/PG Backrest) | M | - | Backend |
+
+### Technical Requirements
+- Rust PostgreSQL client (tokio-postgres/sqlx)
+- Monitoring queries for `pg_stat_database` & `pg_stat_activity`
+- MQTT v5.0 client integration (rumqttc)
+- Disk usage tracking for PVs
+- Cyberpunk-styled database & messaging health cards
+
+### Success Criteria
+- [ ] Real-time PostgreSQL & MQTT instance status
+- [ ] Schema drift detection
+- [ ] MQTT topic tree visualization
+- [ ] <1s query time for health metrics
+
+---
+
+## 🚀 Future Release: v1.2.0 - Configuration & Onboarding
+
+**Target Date**: June 2026  
+**Status**: 📋 Planned  
+**Theme**: Seamless Setup & Feature Discovery
+
+### Priority Features
+
+#### P0 - Must Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| **Interactive Setup Wizard** | L | - | Frontend |
+| Environment Interview | M | Setup Wizard | Backend |
+| **Format Validation Engine** | M | - | Backend |
+
+#### P1 - Should Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| Feature Activation Dashboard | S | Format Validation | Frontend |
+| Integrated Doc Tooltips | S | Setup Wizard | Frontend |
+| Secret Masking & Protection | M | Setup Wizard | Backend |
+
+#### P2 - Nice to Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| Auto-discovery of Local Services | L | - | Backend |
+| Exportable Config Templates | S | Setup Wizard | Backend |
+
+### Technical Requirements
+- Step-by-step UI framework (Cyberpunk theme)
+- RegEx & API-call based format validation
+- Conditional rendering based on config presence
+- Secure buffer for sensitive data entry
+
+### Success Criteria
+- [ ] Average setup time < 5 minutes
+- [ ] Zero "Missing Env" errors after wizard completion
+- [ ] 100% of required variables documented in-app
+- [ ] Visual feedback for every successfully configured provider
+
+---
+
 ## 🏢 Long-term Vision: v2.0.0 - Enterprise Features
 
 **Target Date**: Q4 2026  
@@ -207,7 +297,9 @@ News Feed       Infra Monitor    Personal Hub     Enterprise
 - [ ] Monitor memory usage (<100MB)
 
 ### Code Quality
-- [ ] Add unit tests (>70% coverage)
+- [ ] Rust Architecture Audit (Module boundaries & Clean Code)
+- [ ] Implement Performance Profiling (Serialization & K8s API)
+- [ ] Add unit tests (>80% coverage)
 - [ ] Integration tests for APIs
 - [ ] E2E tests for critical flows
 - [ ] Reduce technical debt
@@ -255,18 +347,28 @@ News Feed       Infra Monitor    Personal Hub     Enterprise
 
 **Key Results**:
 - ✅ KR1: Ship News Feed feature (v0.8.0)
-- 🔄 KR2: Document architecture and roadmap
-- 📋 KR3: Achieve 90% uptime in production
-- 📋 KR4: Reduce average page load to <1s
+- 🔄 KR2: Rust Architecture Audit & Cleanup
+- 🔄 KR3: Document architecture and roadmap
+- 📋 KR4: Achieve 90% uptime in production
+- 📋 KR5: Reduce average page load to <1s
 
 ### Q2 2026 (Planned)
 **Objective**: Expand monitoring coverage beyond K8s
 
 **Key Results**:
 - KR1: Ship Proxmox + HA integration (v0.9.0)
-- KR2: Monitor 100% of infrastructure components
-- KR3: Achieve <5min MTTR for common issues
-- KR4: Onboard 3+ team members
+- KR2: Ship Database & Storage Monitoring (v1.1.0)
+- KR3: Monitor 100% of infrastructure components
+- KR4: Achieve <5min MTTR for common issues
+- KR5: Onboard 3+ team members
+
+### Q3 2026 (Planned)
+**Objective**: Optimize User Onboarding & Experience
+
+**Key Results**:
+- KR1: Ship Guided Configuration Interview (v1.2.0)
+- KR2: Reduce configuration-related support issues by 50%
+- KR3: Implement real-time feature activation dashboard
 
 ---
 
