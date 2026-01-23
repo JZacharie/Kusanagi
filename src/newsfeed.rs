@@ -59,8 +59,30 @@ impl NewsCache {
         self.items.read().await.clone()
     }
 
-    pub async fn update_items(&self, items: Vec<NewsItem>) {
-        *self.items.write().await = items;
+    pub async fn update_items(&self, new_items: Vec<NewsItem>) {
+        let mut current_items = self.items.write().await;
+        
+        // Use a HashMap for de-duplication based on ID
+        let mut items_map: HashMap<String, NewsItem> = current_items
+            .drain(..)
+            .map(|item| (item.id.clone(), item))
+            .collect();
+
+        // Add new items, overwriting (updating) if same ID exists
+        for item in new_items {
+            items_map.insert(item.id.clone(), item);
+        }
+
+        // Convert back to Vec and sort
+        let mut all_items: Vec<NewsItem> = items_map.into_values().collect();
+        all_items.sort_by(|a, b| b.published_at.cmp(&a.published_at));
+        
+        // Cap total items to prevent infinite memory growth (e.g., 500 items)
+        if all_items.len() > 500 {
+            all_items.truncate(500);
+        }
+
+        *current_items = all_items;
         *self.last_update.write().await = Utc::now();
     }
 
@@ -149,7 +171,11 @@ async fn fetch_hackernews() -> Result<Vec<NewsItem>, String> {
 
 // Fetch Korben RSS feed
 async fn fetch_korben_rss() -> Result<Vec<NewsItem>, String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .build()
+        .map_err(|e| e.to_string())?;
+
     let content = client
         .get("https://korben.info/feed")
         .send()
@@ -162,40 +188,34 @@ async fn fetch_korben_rss() -> Result<Vec<NewsItem>, String> {
     let channel = rss::Channel::read_from(&content[..]).map_err(|e| e.to_string())?;
     let mut items = Vec::new();
 
-    for item in channel.items().iter().take(20) {
+    for item in channel.items() {
         let title = item.title().unwrap_or("").to_string();
-        let title_lower = title.to_lowercase();
         let description = item.description().unwrap_or("").to_string();
-        let desc_lower = description.to_lowercase();
-
-        // Filter for tech/Docker/DevOps content
-        let is_relevant = title_lower.contains("docker") 
-            || title_lower.contains("kubernetes")
-            || title_lower.contains("linux")
-            || title_lower.contains("serveur")
-            || title_lower.contains("cloud")
-            || desc_lower.contains("docker")
-            || desc_lower.contains("kubernetes")
-            || desc_lower.contains("devops");
-
-        if is_relevant {
-            let url = item.link().unwrap_or("").to_string();
-            let pub_date = item.pub_date()
-                .and_then(|d| DateTime::parse_from_rfc2822(d).ok())
-                .map(|d| d.with_timezone(&Utc))
-                .unwrap_or_else(Utc::now);
-
-            items.push(NewsItem {
-                id: format!("korben_{}", items.len()),
-                source: "korben".to_string(),
-                title,
-                url,
-                description: Some(description),
-                published_at: pub_date,
-                score: None,
-                tags: vec!["tech".to_string(), "french".to_string()],
-            });
+        let url = item.link().unwrap_or("").to_string();
+        
+        if url.is_empty() {
+            continue;
         }
+
+        let pub_date = item.pub_date()
+            .and_then(|d| DateTime::parse_from_rfc2822(d).ok())
+            .map(|d| d.with_timezone(&Utc))
+            .unwrap_or_else(Utc::now);
+
+        // Use URL hash or clean URL as stable ID
+        use base64::{engine::general_purpose, Engine as _};
+        let id = format!("korben_{}", general_purpose::URL_SAFE_NO_PAD.encode(url.as_bytes()));
+
+        items.push(NewsItem {
+            id,
+            source: "korben".to_string(),
+            title,
+            url,
+            description: Some(description),
+            published_at: pub_date,
+            score: None,
+            tags: vec!["tech".to_string(), "french".to_string()],
+        });
     }
 
     Ok(items)
