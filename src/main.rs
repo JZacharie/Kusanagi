@@ -46,6 +46,8 @@ struct SyncRequest {
 #[derive(Deserialize)]
 struct EventsQuery {
     event_type: Option<String>,
+    page: Option<usize>,
+    per_page: Option<usize>,
 }
 
 #[get("/health")]
@@ -136,7 +138,7 @@ async fn empty_namespaces_list(data: web::Data<AppState>) -> impl Responder {
 
 #[get("/api/events")]
 async fn k8s_events(data: web::Data<AppState>, query: web::Query<EventsQuery>) -> impl Responder {
-    match events::get_events(&data.client, query.event_type.clone()).await {
+    match events::get_events(&data.client, query.event_type.clone(), query.page, query.per_page).await {
         Ok(events) => HttpResponse::Ok().json(events),
         Err(e) => {
             tracing::error!("Failed to get events: {}", e);

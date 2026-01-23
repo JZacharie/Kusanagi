@@ -232,7 +232,7 @@ async fn get_current_stats(client: &kube::Client) -> Option<NotificationMessage>
         .map(|s| s.error_pods)
         .unwrap_or(0);
 
-    let warning_events = events::get_events(client, None)
+    let warning_events = events::get_events(client, None, None, None)
         .await
         .map(|s| s.warning_count)
         .unwrap_or(0);

@@ -13,6 +13,9 @@ pub struct EventsResponse {
     pub total_events: usize,
     pub warning_count: usize,
     pub normal_count: usize,
+    pub page: usize,
+    pub per_page: usize,
+    pub total_pages: usize,
     pub events: Vec<EventInfo>,
 }
 
@@ -33,7 +36,12 @@ pub struct EventInfo {
 
 /// Get recent Kubernetes events (last 1 hour, warnings prioritized)
 /// Optionally filter by event type (e.g., "Warning" or "Normal")
-pub async fn get_events(client: &Client, event_type_filter: Option<String>) -> Result<EventsResponse, String> {
+pub async fn get_events(
+    client: &Client, 
+    event_type_filter: Option<String>,
+    page: Option<usize>,
+    per_page: Option<usize>,
+) -> Result<EventsResponse, String> {
     let events_api: Api<Event> = Api::all(client.clone());
 
     let events = events_api
@@ -140,19 +148,35 @@ pub async fn get_events(client: &Client, event_type_filter: Option<String>) -> R
         }
     });
 
+    let filtered_total = event_infos.len();
+    let page = page.unwrap_or(1);
+    let per_page = per_page.unwrap_or(20);
+    let total_pages = (filtered_total + per_page - 1) / per_page;
+    
+    // Slice for pagination
+    let start = (page.max(1) - 1) * per_page;
+    let paginated_events = if start < event_infos.len() {
+        let end = (start + per_page).min(event_infos.len());
+        event_infos[start..end].to_vec()
+    } else {
+        Vec::new()
+    };
+
     info!(
-        "Events: {} filtered from {} total ({} warnings, {} normal)",
-        event_infos.len(),
-        total_count,
-        warning_count,
-        normal_count
+        "Events: {} paginated from {} filtered ({} total)",
+        paginated_events.len(),
+        filtered_total,
+        total_count
     );
 
     Ok(EventsResponse {
         total_events: total_count,
         warning_count,
         normal_count,
-        events: event_infos,
+        page,
+        per_page,
+        total_pages,
+        events: paginated_events,
     })
 }
 

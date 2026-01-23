@@ -2035,21 +2035,29 @@
         }
         // === KUBERNETES EVENTS ===
         let currentEventFilter = 'all';
+        let currentEventPage = 1;
+        let eventPerPage = 20;
 
-        async function fetchEvents(typeFilter = 'all') {
+        async function fetchEvents(typeFilter = 'all', page = 1) {
             try {
                 currentEventFilter = typeFilter;
-                const url = typeFilter === 'all' ? '/api/events' : `/api/events?event_type=${typeFilter}`;
-                const response = await fetch(url);
+                currentEventPage = page;
+
+                const url = new URL('/api/events', window.location.origin);
+                if (typeFilter !== 'all') url.searchParams.append('event_type', typeFilter);
+                url.searchParams.append('page', page);
+                url.searchParams.append('per_page', eventPerPage);
+
+                const response = await fetch(url.toString());
                 const data = await response.json();
 
                 if (!data.error) {
                     document.getElementById('events-total').textContent = data.total_events || 0;
                     document.getElementById('events-warnings').textContent = data.warning_count || 0;
                     document.getElementById('events-normal').textContent = data.normal_count || 0;
-                    document.getElementById('events-table-count').textContent = data.events?.length || 0;
+                    document.getElementById('events-table-count').textContent = data.total_events || 0;
 
-                    renderEventsTable(data.events || []);
+                    renderEventsTable(data);
                 }
             } catch (error) {
                 console.error('Failed to fetch events:', error);
@@ -2061,15 +2069,23 @@
             document.getElementById('btn-show-all').classList.toggle('active', type === 'all');
             document.getElementById('btn-show-warnings').classList.toggle('active', type === 'Warning');
 
-            // Fetch with filter
-            fetchEvents(type);
+            // Fetch with filter, reset to page 1
+            fetchEvents(type, 1);
         }
 
-        function renderEventsTable(events) {
+        function changeEventsPage(delta) {
+            const newPage = currentEventPage + delta;
+            if (newPage >= 1) {
+                fetchEvents(currentEventFilter, newPage);
+            }
+        }
+
+        function renderEventsTable(data) {
             const container = document.getElementById('events-content');
+            const events = data.events;
 
             if (!events || events.length === 0) {
-                container.innerHTML = '<div class="no-issues" style="color: var(--neon-magenta);">No events in the last hour ✓</div>';
+                container.innerHTML = '<div class="no-issues" style="color: var(--neon-magenta);">No events found ✓</div>';
                 return;
             }
 
@@ -2086,7 +2102,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        ${events.slice(0, 30).map(evt => `
+                        ${events.map(evt => `
                             <tr class="${evt.event_type.toLowerCase()}">
                                 <td><span class="event-type ${evt.event_type.toLowerCase()}">${evt.event_type}</span></td>
                                 <td class="event-object">${evt.involved_object_kind}/${evt.involved_object_name.substring(0, 30)}${evt.involved_object_name.length > 30 ? '...' : ''}</td>
@@ -2098,7 +2114,15 @@
                         `).join('')}
                     </tbody>
                 </table>
-                ${events.length > 30 ? `<div class="table-footer">Showing 30 of ${events.length} events</div>` : ''}
+                <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding: 0.5rem; background: rgba(0,0,0,0.2);">
+                    <div class="page-info" style="font-size: 0.85rem; opacity: 0.8;">
+                        Page ${data.page} of ${data.total_pages} (${data.total_events} events total)
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="cyber-btn" onclick="changeEventsPage(-1)" ${data.page <= 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''}>PREV</button>
+                        <button class="cyber-btn" onclick="changeEventsPage(1)" ${data.page >= data.total_pages ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''}>NEXT</button>
+                    </div>
+                </div>
             `;
             container.innerHTML = table;
         }
@@ -2363,7 +2387,7 @@
         fetchArgoStatus();
         fetchNodesStatus();
         fetchClusterOverview();
-        fetchEvents(currentEventFilter);
+        fetchEvents(currentEventFilter, currentEventPage);
         fetchBackupsStatus();
         fetchStorageStatus();
         fetchServices();
@@ -2402,7 +2426,7 @@
         setInterval(fetchArgoStatus, 30000);
         setInterval(fetchNodesStatus, 30000);
         setInterval(fetchClusterOverview, 60000);
-        setInterval(() => fetchEvents(currentEventFilter), 30000);
+        setInterval(() => fetchEvents(currentEventFilter, currentEventPage), 30000);
         setInterval(fetchBackupsStatus, 60000);
         setInterval(fetchStorageStatus, 60000);
         setInterval(fetchServices, 60000);

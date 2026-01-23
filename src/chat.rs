@@ -193,7 +193,7 @@ async fn build_cluster_context(client: &Client) -> String {
         ));
     }
 
-    if let Ok(events) = events::get_events(client, None).await {
+    if let Ok(events) = events::get_events(client, None, None, None).await {
         context_parts.push(format!(
             "Events (1h): {} total, {} warnings",
             events.total_events, events.warning_count
@@ -270,7 +270,7 @@ async fn get_cluster_status(client: &Client) -> ChatResponse {
     }
 
     // Get events
-    if let Ok(events) = events::get_events(client, None).await {
+    if let Ok(events) = events::get_events(client, None, None, None).await {
         status_lines.push(format!(
             "**Events (1h):** {} ({} warnings)",
             events.total_events, events.warning_count
@@ -384,7 +384,7 @@ async fn get_error_pods(client: &Client) -> ChatResponse {
 }
 
 async fn get_warning_events(client: &Client) -> ChatResponse {
-    match events::get_events(client, None).await {
+    match events::get_events(client, None, None, None).await {
         Ok(events) => {
             let warnings: Vec<_> = events.events.iter()
                 .filter(|e| e.event_type == "Warning")
