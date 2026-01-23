@@ -3,6 +3,10 @@
    ============================================ */
 
 :root {
+  --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.theme-cyberpunk {
   --neon-green: #00ff41;
   --neon-cyan: #00ffff;
   --neon-magenta: #ff00ff;
@@ -12,7 +16,6 @@
   --grid-color: rgba(0, 255, 65, 0.1);
   --text-primary: #e0e0e0;
   --text-secondary: #888;
-  --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* Light Theme */
@@ -2535,4 +2538,46 @@ body {
   color: var(--neon-green);
   font-size: 1.2rem;
   margin-bottom: 2rem;
-}
+
+  /* Theme Switcher Styles */
+  .theme-dropdown {
+    position: relative;
+    display: inline-block;
+  }
+
+  .theme-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--darker-bg);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 4px;
+    min-width: 160px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    margin-top: 5px;
+  }
+
+  .theme-option {
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.2s;
+  }
+
+  .theme-option:hover {
+    background: rgba(0, 255, 255, 0.1);
+  }
+
+  .theme-option.active {
+    color: var(--neon-cyan);
+    background: rgba(0, 255, 255, 0.05);
+  }
+
+  .chevron {
+    font-size: 0.8em;
+    margin-left: 5px;
+    opacity: 0.7;
+  }
