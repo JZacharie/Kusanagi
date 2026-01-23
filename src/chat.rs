@@ -217,10 +217,10 @@ async fn build_cluster_context(client: &Client) -> String {
     context_parts.join("\n")
 }
 
-/// Query Ollama API
+/// Query Ollama API (with increased timeout)
 async fn query_ollama(prompt: &str) -> Result<String, String> {
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(60))
+        .timeout(std::time::Duration::from_secs(120)) // Increased from 60 to 120 seconds
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 

@@ -1256,23 +1256,55 @@
             addChatMessage(message, 'user');
             input.value = '';
 
+            // Add loading indicator
+            const loadingId = 'loading-' + Date.now();
+            addChatMessage('⏳ Thinking...', 'bot', loadingId);
+
             try {
+                // No timeout on fetch - let the server handle it
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes client-side timeout
+
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message })
+                    body: JSON.stringify({ message }),
+                    signal: controller.signal
                 });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+
                 const data = await response.json();
+
+                // Remove loading indicator
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
                 addChatMessage(data.response, 'bot');
             } catch (error) {
-                addChatMessage('Error: Failed to get response from server', 'bot');
+                // Remove loading indicator
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
+                if (error.name === 'AbortError') {
+                    addChatMessage('⚠️ Request timeout - The query took too long. Try a simpler question.', 'bot');
+                } else {
+                    addChatMessage('❌ Error: Failed to get response from server. ' + error.message, 'bot');
+                }
             }
         }
 
-        function addChatMessage(content, type) {
+        function addChatMessage(content, type, id) {
             const container = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${type}`;
+            if (id) {
+                messageDiv.id = id;
+            }
 
             // Simple markdown to HTML conversion
             let html = content

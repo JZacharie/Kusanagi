@@ -326,11 +326,6 @@ warning: field `state` is never read
     |     ^^^^^
 
 warning: `kusanagi` (bin "kusanagi") generated 45 warnings (run `cargo fix --bin "kusanagi"` to apply 8 suggestions)
-    Finished `release` profile [optimized] target(s) in 0.29s
+    Finished `release` profile [optimized] target(s) in 0.27s
      Running `target/release/kusanagi`
-[2m2026-01-22T19:57:51.867132Z[0m [31mERROR[0m [2mkusanagi::nodes[0m[2m:[0m Failed to query Prometheus: error sending request for url (http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090/api/v1/query?query=avg%28rate%28node_cpu_seconds_total%7Bmode%21%3D%22idle%22%7D%5B5m%5D%29%29+by+%28instance%29+*+100): error trying to connect: dns error: failed to lookup address information: Name or service not known
-[2m2026-01-22T19:57:51.872630Z[0m [31mERROR[0m [2mkusanagi::nodes[0m[2m:[0m Failed to query Prometheus: error sending request for url (http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090/api/v1/query?query=%281+-+node_memory_MemAvailable_bytes+%2F+node_memory_MemTotal_bytes%29+*+100): error trying to connect: dns error: failed to lookup address information: Name or service not known
-[2m2026-01-22T19:58:09.560456Z[0m [31mERROR[0m [2mkusanagi::chat[0m[2m:[0m Failed to store chat message: Failed to upload to S3: dispatch failure
-[2m2026-01-22T20:00:15.885611Z[0m [31mERROR[0m [2mkusanagi::nodes[0m[2m:[0m Failed to query Prometheus: error sending request for url (http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090/api/v1/query?query=avg%28rate%28node_cpu_seconds_total%7Bmode%21%3D%22idle%22%7D%5B5m%5D%29%29+by+%28instance%29+*+100): error trying to connect: dns error: failed to lookup address information: Name or service not known
-[2m2026-01-22T20:00:15.890891Z[0m [31mERROR[0m [2mkusanagi::nodes[0m[2m:[0m Failed to query Prometheus: error sending request for url (http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090/api/v1/query?query=%281+-+node_memory_MemAvailable_bytes+%2F+node_memory_MemTotal_bytes%29+*+100): error trying to connect: dns error: failed to lookup address information: Name or service not known
-[2m2026-01-22T20:00:55.595908Z[0m [31mERROR[0m [2mkusanagi::chat[0m[2m:[0m Failed to store chat message: Failed to upload to S3: dispatch failure
+Error: Os { code: 98, kind: AddrInUse, message: "Address already in use" }
