@@ -1,1 +1,2 @@
 nohup: ignoring input
+[2m2026-01-23T19:06:55.180963Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure

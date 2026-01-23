@@ -2411,6 +2411,46 @@ body {
   }
 }
 
+/* List Mode Styles */
+.news-grid.list-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.news-card.list-mode {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--neon-cyan);
+}
+
+.news-card.list-mode :is(.news-description, .news-footer) {
+  display: none;
+}
+
+.news-card.list-mode .news-header {
+  margin-bottom: 0;
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.news-card.list-mode .news-title {
+  margin-bottom: 0;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+}
+
+.news-card.list-mode .news-time {
+  width: 80px;
+  text-align: right;
+  font-size: 0.7rem;
+}
+
 /* Setup Dashboard Styles */
 .setup-grid {
   display: grid;
@@ -2538,46 +2578,47 @@ body {
   color: var(--neon-green);
   font-size: 1.2rem;
   margin-bottom: 2rem;
+}
 
-  /* Theme Switcher Styles */
-  .theme-dropdown {
-    position: relative;
-    display: inline-block;
-  }
+/* Theme Switcher Styles */
+.theme-dropdown {
+  position: relative;
+  display: inline-block;
+}
 
-  .theme-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: var(--darker-bg);
-    border: 1px solid var(--neon-cyan);
-    border-radius: 4px;
-    min-width: 160px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    margin-top: 5px;
-  }
+.theme-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--darker-bg);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 4px;
+  min-width: 160px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  margin-top: 5px;
+}
 
-  .theme-option {
-    padding: 10px 15px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: background 0.2s;
-  }
+.theme-option {
+  padding: 10px 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.2s;
+}
 
-  .theme-option:hover {
-    background: rgba(0, 255, 255, 0.1);
-  }
+.theme-option:hover {
+  background: rgba(0, 255, 255, 0.1);
+}
 
-  .theme-option.active {
-    color: var(--neon-cyan);
-    background: rgba(0, 255, 255, 0.05);
-  }
+.theme-option.active {
+  color: var(--neon-cyan);
+  background: rgba(0, 255, 255, 0.05);
+}
 
-  .chevron {
-    font-size: 0.8em;
-    margin-left: 5px;
-    opacity: 0.7;
-  }
+.chevron {
+  font-size: 0.8em;
+  margin-left: 5px;
+  opacity: 0.7;
+}

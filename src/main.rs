@@ -31,6 +31,7 @@ mod calendar;
 mod slack;
 mod setup;
 mod system;
+mod translation;
 
 /// Shared application state
 pub struct AppState {

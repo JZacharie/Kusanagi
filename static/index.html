@@ -565,6 +565,12 @@
             <button class="cyber-btn" onclick="fetchNews()" style="margin-left: auto;">
                 🔄 Refresh
             </button>
+            <div class="view-toggle" style="display: flex; gap: 0.5rem; margin-left: 1rem;">
+                <button class="cyber-btn active" id="btn-view-card" onclick="NewsManager.toggleViewMode('grid')"
+                    title="Card View">🎴</button>
+                <button class="cyber-btn" id="btn-view-list" onclick="NewsManager.toggleViewMode('list')"
+                    title="List View">🗒️</button>
+            </div>
         </div>
 
         <!-- Search Bar -->

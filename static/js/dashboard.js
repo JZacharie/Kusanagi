@@ -646,6 +646,7 @@ const NewsManager = {
     filteredNews: [],
     currentFilter: 'all',
     searchQuery: '',
+    viewMode: 'grid', // 'grid' or 'list'
 
     /**
      * Initialize news feed
@@ -749,6 +750,25 @@ const NewsManager = {
     },
 
     /**
+     * Toggle between grid and list view
+     */
+    toggleViewMode(mode) {
+        this.viewMode = mode;
+
+        // Update button states
+        document.getElementById('btn-view-card')?.classList.toggle('active', mode === 'grid');
+        document.getElementById('btn-view-list')?.classList.toggle('active', mode === 'list');
+
+        // Update container class
+        const container = document.getElementById('news-container');
+        if (container) {
+            container.classList.toggle('list-mode', mode === 'list');
+        }
+
+        this.renderNews();
+    },
+
+    /**
      * Render news cards
      */
     renderNews() {
@@ -767,6 +787,7 @@ const NewsManager = {
 
         const html = this.filteredNews.map(item => this.renderNewsCard(item)).join('');
         container.innerHTML = html;
+        container.classList.toggle('list-mode', this.viewMode === 'list');
     },
 
     /**
@@ -798,8 +819,12 @@ const NewsManager = {
         const date = new Date(item.published_at);
         const timeAgo = this.formatTimeAgo(date);
 
+        // Use translated title/description if available
+        const title = item.translated_title || item.title;
+        const description = item.translated_description || item.description;
+
         return `
-            <div class="news-card" style="border-color: ${color};">
+            <div class="news-card ${this.viewMode === 'list' ? 'list-mode' : ''}" style="border-color: ${color};">
                 <div class="news-header">
                     <span class="news-source-badge" style="background: ${color};">
                         ${icon} ${label}
@@ -808,10 +833,10 @@ const NewsManager = {
                 </div>
                 <h3 class="news-title">
                     <a href="${item.url}" target="_blank" rel="noopener noreferrer">
-                        ${item.title}
+                        ${title}
                     </a>
                 </h3>
-                ${item.description ? `<p class="news-description">${this.truncate(item.description, 150)}</p>` : ''}
+                ${description ? `<p class="news-description">${this.truncate(description, 150)}</p>` : ''}
                 <div class="news-footer">
                     ${item.score ? `<span class="news-score">⭐ ${item.score}</span>` : ''}
                     ${item.tags && item.tags.length > 0 ? `

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::collections::HashMap;
+use crate::translation;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NewsSource {
@@ -32,6 +33,8 @@ pub struct NewsItem {
     pub published_at: DateTime<Utc>,
     pub score: Option<i32>,
     pub tags: Vec<String>,
+    pub translated_title: Option<String>,
+    pub translated_description: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -84,6 +87,14 @@ impl NewsCache {
 
         *current_items = all_items;
         *self.last_update.write().await = Utc::now();
+    }
+
+    pub async fn update_item_translation(&self, id: &str, title: String, description: Option<String>) {
+        let mut items = self.items.write().await;
+        if let Some(item) = items.iter_mut().find(|i| i.id == id) {
+            item.translated_title = Some(title);
+            item.translated_description = description;
+        }
     }
 
     pub async fn last_update(&self) -> DateTime<Utc> {
@@ -162,6 +173,8 @@ async fn fetch_hackernews() -> Result<Vec<NewsItem>, String> {
                 published_at: DateTime::from_timestamp(timestamp, 0).unwrap_or_else(Utc::now),
                 score,
                 tags,
+                translated_title: None,
+                translated_description: None,
             });
         }
     }
@@ -227,6 +240,8 @@ async fn fetch_korben_rss() -> Result<Vec<NewsItem>, String> {
             published_at: pub_date,
             score: None,
             tags: vec!["tech".to_string(), "french".to_string()],
+            translated_title: None,
+            translated_description: None,
         });
     }
 
@@ -294,6 +309,8 @@ async fn fetch_github_trending() -> Result<Vec<NewsItem>, String> {
                     published_at: updated_at,
                     score: stars,
                     tags: vec![topic.to_string()],
+                    translated_title: None,
+                    translated_description: None,
                 });
             }
         }
@@ -340,6 +357,12 @@ pub async fn start_news_refresh_task(cache: NewsCache) {
             Ok(items) => {
                 cache.update_items(items.clone()).await;
                 tracing::info!("Initial news cache loaded: {} items", items.len());
+                
+                // Start background translation
+                let cache_clone = cache.clone();
+                tokio::spawn(async move {
+                    process_translations(cache_clone).await;
+                });
             }
             Err(e) => {
                 tracing::error!("Failed to load initial news cache: {}", e);
@@ -358,6 +381,12 @@ pub async fn start_news_refresh_task(cache: NewsCache) {
                     Ok(items) => {
                         cache.update_items(items).await;
                         tracing::info!("News cache refreshed successfully");
+                        
+                        // Start background translation
+                        let cache_clone = cache.clone();
+                        tokio::spawn(async move {
+                            process_translations(cache_clone).await;
+                        });
                     }
                     Err(e) => {
                         tracing::error!("Failed to refresh news cache: {}", e);
@@ -366,6 +395,71 @@ pub async fn start_news_refresh_task(cache: NewsCache) {
             }
         }
     });
+}
+
+async fn process_translations(cache: NewsCache) {
+    let s3_client = translation::get_s3_client().await;
+    if let Err(e) = translation::ensure_bucket_exists(&s3_client).await {
+        tracing::error!("Failed to ensure translation bucket exists: {}", e);
+        return;
+    }
+
+    let items = cache.get_items().await;
+    for item in items {
+        // Skip French sources or already translated items in this run
+        if item.source == "korben" || item.translated_title.is_some() {
+            continue;
+        }
+
+        // Try to get from S3 cache first
+        if let Some(cached) = translation::get_cached_translation(&s3_client, &item.id).await {
+            cache.update_item_translation(&item.id, cached.title, cached.description).await;
+            continue;
+        }
+
+        // Translate with Ollama
+        tracing::info!("Translating news item: {}", item.title);
+        
+        // Translate title
+        let translated_title = match translation::translate_with_ollama(&item.title).await {
+            Ok(t) => t,
+            Err(e) => {
+                tracing::warn!("Failed to translate title for {}: {}", item.id, e);
+                continue;
+            }
+        };
+
+        // Translate description if present
+        let mut translated_desc = None;
+        if let Some(desc) = &item.description {
+            if !desc.trim().is_empty() {
+                translated_desc = match translation::translate_with_ollama(desc).await {
+                    Ok(t) => Some(t),
+                    Err(e) => {
+                        tracing::warn!("Failed to translate description for {}: {}", item.id, e);
+                        None
+                    }
+                };
+            }
+        }
+
+        let trans = translation::Translation {
+            id: item.id.clone(),
+            title: translated_title.clone(),
+            description: translated_desc.clone(),
+        };
+
+        // Store to S3
+        if let Err(e) = translation::store_translation(&s3_client, &trans).await {
+            tracing::error!("Failed to store translation to S3 for {}: {}", item.id, e);
+        }
+
+        // Update in-memory cache
+        cache.update_item_translation(&item.id, translated_title, translated_desc).await;
+        
+        // Minor delay to avoid overwhelming Ollama
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    }
 }
 
 // API endpoint handler
