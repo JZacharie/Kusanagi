@@ -74,6 +74,27 @@ pub struct ProxmoxNode {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProxmoxResource {
+    pub id: String,
+    #[serde(rename = "type")]
+    pub resource_type: String,
+    pub vmid: Option<u64>,
+    pub node: String,
+    pub status: String,
+    pub name: Option<String>,
+    pub cpu: Option<f64>,
+    pub mem: Option<u64>,
+    pub maxmem: Option<u64>,
+    pub disk: Option<u64>,
+    pub maxdisk: Option<u64>,
+    pub uptime: Option<u64>,
+    pub netin: Option<u64>,
+    pub netout: Option<u64>,
+    #[serde(default)]
+    pub server: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ClusterStatus {
     pub name: String,
     pub nodes: u32,
@@ -270,52 +291,71 @@ impl ProxmoxClient {
         Ok(all_nodes)
     }
 
-    pub async fn get_vms(&self) -> Result<Vec<ProxmoxVM>, Box<dyn std::error::Error>> {
-        let nodes = self.get_nodes().await?;
-        let mut all_vms = Vec::new();
-
-        for node in nodes {
-            let client = self.nodes.iter().find(|n| n.base_url == node.server);
-            if let Some(client) = client {
-                let path = format!("/nodes/{}/qemu", node.node);
-                match client.get::<Vec<ProxmoxVM>>(&path).await {
-                    Ok(mut vms) => {
-                        for vm in &mut vms {
-                            vm.node = node.node.clone();
-                            vm.server = node.server.clone();
+    pub async fn get_resources(&self) -> Result<Vec<ProxmoxResource>, Box<dyn std::error::Error>> {
+        let mut all_resources = std::collections::HashMap::new();
+        
+        for client in &self.nodes {
+            match client.get::<Vec<ProxmoxResource>>("/cluster/resources").await {
+                Ok(resources) => {
+                    for mut res in resources {
+                        // Only add if not already present to avoid duplicates across cluster nodes
+                        if !all_resources.contains_key(&res.id) {
+                            res.server = client.base_url.clone();
+                            all_resources.insert(res.id.clone(), res);
                         }
-                        all_vms.extend(vms);
                     }
-                    Err(e) => warn!("Failed to get VMs from node {} on server {}: {}", node.node, node.server, e),
                 }
+                Err(e) => warn!("Failed to get resources from {}: {}", client.base_url, e),
             }
         }
+        
+        Ok(all_resources.into_values().collect())
+    }
 
-        Ok(all_vms)
+    pub async fn get_vms(&self) -> Result<Vec<ProxmoxVM>, Box<dyn std::error::Error>> {
+        let resources = self.get_resources().await?;
+        let vms = resources.into_iter()
+            .filter(|r| r.resource_type == "qemu")
+            .map(|r| ProxmoxVM {
+                vmid: r.vmid.unwrap_or(0),
+                name: r.name.unwrap_or_else(|| format!("VM-{}", r.vmid.unwrap_or(0))),
+                status: r.status,
+                node: r.node,
+                server: r.server,
+                cpu: r.cpu.unwrap_or(0.0),
+                mem: r.mem.unwrap_or(0),
+                maxmem: r.maxmem.unwrap_or(0),
+                disk: r.disk.unwrap_or(0),
+                maxdisk: r.maxdisk.unwrap_or(0),
+                uptime: r.uptime.unwrap_or(0),
+                netin: r.netin.unwrap_or(0),
+                netout: r.netout.unwrap_or(0),
+            })
+            .collect();
+
+        Ok(vms)
     }
 
     pub async fn get_containers(&self) -> Result<Vec<ProxmoxContainer>, Box<dyn std::error::Error>> {
-        let nodes = self.get_nodes().await?;
-        let mut all_containers = Vec::new();
+        let resources = self.get_resources().await?;
+        let containers = resources.into_iter()
+            .filter(|r| r.resource_type == "lxc")
+            .map(|r| ProxmoxContainer {
+                vmid: r.vmid.unwrap_or(0),
+                name: r.name.unwrap_or_else(|| format!("CT-{}", r.vmid.unwrap_or(0))),
+                status: r.status,
+                node: r.node,
+                server: r.server,
+                cpu: r.cpu.unwrap_or(0.0),
+                mem: r.mem.unwrap_or(0),
+                maxmem: r.maxmem.unwrap_or(0),
+                disk: r.disk.unwrap_or(0),
+                maxdisk: r.maxdisk.unwrap_or(0),
+                uptime: r.uptime.unwrap_or(0),
+            })
+            .collect();
 
-        for node in nodes {
-            let client = self.nodes.iter().find(|n| n.base_url == node.server);
-            if let Some(client) = client {
-                let path = format!("/nodes/{}/lxc", node.node);
-                match client.get::<Vec<ProxmoxContainer>>(&path).await {
-                    Ok(mut containers) => {
-                        for ct in &mut containers {
-                            ct.node = node.node.clone();
-                            ct.server = node.server.clone();
-                        }
-                        all_containers.extend(containers);
-                    }
-                    Err(e) => warn!("Failed to get containers from node {} on server {}: {}", node.node, node.server, e),
-                }
-            }
-        }
-
-        Ok(all_containers)
+        Ok(containers)
     }
 
     pub async fn get_cluster_status(&self) -> Result<ClusterStatus, Box<dyn std::error::Error>> {
