@@ -9,6 +9,7 @@ pub struct ProxmoxVM {
     pub name: String,
     pub status: String,
     pub node: String,
+    #[serde(default)]
     pub server: String,
     pub cpu: f64,
     pub mem: u64,
@@ -26,6 +27,7 @@ pub struct ProxmoxContainer {
     pub name: String,
     pub status: String,
     pub node: String,
+    #[serde(default)]
     pub server: String,
     pub cpu: f64,
     pub mem: u64,
@@ -39,6 +41,7 @@ pub struct ProxmoxContainer {
 pub struct ProxmoxNode {
     pub node: String,
     pub status: String,
+    #[serde(default)]
     pub server: String,
     pub cpu: f64,
     pub maxcpu: u32,
