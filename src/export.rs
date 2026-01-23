@@ -211,7 +211,7 @@ pub fn export_markdown(report: &ClusterReport) -> Result<String, String> {
     Ok(md)
 }
 /// Export active alerts for agentic remediation
-pub fn export_alerts_for_agent(alerts: &AlertsResponse) -> Result<String, String> {
+pub async fn export_alerts_for_agent(client: &kube::Client, alerts: &AlertsResponse) -> Result<String, String> {
     let mut report = String::new();
     report.push_str("# 🤖 Kusanagi Agent Remediation context\n\n");
     report.push_str(&format!("**Timestamp:** {}\n", Utc::now().to_rfc3339()));
@@ -238,9 +238,23 @@ pub fn export_alerts_for_agent(alerts: &AlertsResponse) -> Result<String, String
         report.push_str(&format!("- **Started At:** {}\n", alert.started_at));
         report.push_str(&format!("- **Fingerprint:** `{}`\n\n", alert.fingerprint));
         
-        // Contextual advice placeholder for agent
+        // Contextual advice and Logs
         report.push_str("> [!IMPORTANT]\n");
         report.push_str("> Agent Action Required: Investigate logs for the mentioned pod and namespace.\n\n");
+
+        if let (Some(ns), Some(p)) = (&alert.namespace, &alert.pod) {
+            report.push_str(&format!("#### 📝 Logs for pod `{}/{}`\n", ns, p));
+            match crate::pods::get_pod_logs(client, ns, p, None, 100).await {
+                Ok(logs) => {
+                    report.push_str("```text\n");
+                    report.push_str(&logs);
+                    report.push_str("\n```\n\n");
+                }
+                Err(e) => {
+                    report.push_str(&format!("*Failed to fetch logs: {}*\n\n", e));
+                }
+            }
+        }
     }
     
     // Process Warning Alerts

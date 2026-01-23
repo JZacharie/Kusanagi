@@ -1,12 +1,132 @@
+use actix_web::{get, post, web, HttpResponse, Responder};
 use chrono::{DateTime, Utc};
 use k8s_openapi::api::core::v1::{Pod, Service};
+use k8s_openapi::api::apps::v1::{Deployment, StatefulSet};
 use kube::{
-    api::{Api, DeleteParams, ListParams, Patch, PatchParams},
+    api::{Api, DeleteParams, ListParams, Patch, PatchParams, LogParams},
     Client,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tracing::info;
+use tracing::{info, error};
+use crate::AppState;
+
+/// Request for logs
+#[derive(Deserialize)]
+pub struct LogsQuery {
+    pub container: Option<String>,
+    pub tail: Option<i64>,
+}
+
+/// Get logs for a specific pod
+#[get("/api/pods/{namespace}/{name}/logs")]
+pub async fn get_pod_logs_handler(
+    data: web::Data<AppState>,
+    path: web::Path<(String, String)>,
+    query: web::Query<LogsQuery>,
+) -> impl Responder {
+    let (namespace, name) = path.into_inner();
+    let container = query.container.clone();
+    let tail = query.tail.unwrap_or(200);
+
+    match get_pod_logs(&data.client, &namespace, &name, container, tail).await {
+        Ok(logs) => HttpResponse::Ok().body(logs),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e})),
+    }
+}
+
+pub async fn get_pod_logs(
+    client: &Client,
+    namespace: &str,
+    name: &str,
+    container: Option<String>,
+    tail_lines: i64,
+) -> Result<String, String> {
+    let pods: Api<Pod> = Api::namespaced(client.clone(), namespace);
+    let lp = LogParams {
+        container,
+        tail_lines: Some(tail_lines),
+        ..LogParams::default()
+    };
+
+    pods.logs(name, &lp)
+        .await
+        .map_err(|e| format!("Failed to fetch logs: {}", e))
+}
+
+#[derive(Deserialize)]
+pub struct ScaleRequest {
+    pub replicas: i32,
+}
+
+/// Scale a deployment or statefulset
+#[post("/api/scale/{type}/{namespace}/{name}")]
+pub async fn scale_resource_handler(
+    data: web::Data<AppState>,
+    path: web::Path<(String, String, String)>,
+    body: web::Json<ScaleRequest>,
+) -> impl Responder {
+    let (resource_type, namespace, name) = path.into_inner();
+    let replicas = body.replicas;
+
+    let result = match resource_type.as_str() {
+        "deployment" => scale_deployment(&data.client, &namespace, &name, replicas).await,
+        "statefulset" => scale_statefulset(&data.client, &namespace, &name, replicas).await,
+        _ => Err("Invalid resource type".to_string()),
+    };
+
+    match result {
+        Ok(_) => HttpResponse::Ok().json(json!({"status": "success", "message": format!("Scaled {} to {}", name, replicas)})),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e})),
+    }
+}
+
+async fn scale_deployment(client: &Client, namespace: &str, name: &str, replicas: i32) -> Result<(), String> {
+    let api: Api<Deployment> = Api::namespaced(client.clone(), namespace);
+    let patch = json!({
+        "spec": {
+            "replicas": replicas
+        }
+    });
+
+    api.patch(name, &PatchParams::default(), &Patch::Merge(&patch))
+        .await
+        .map(|_| ())
+        .map_err(|e| format!("Failed to scale deployment: {}", e))
+}
+
+async fn scale_statefulset(client: &Client, namespace: &str, name: &str, replicas: i32) -> Result<(), String> {
+    let api: Api<StatefulSet> = Api::namespaced(client.clone(), namespace);
+    let patch = json!({
+        "spec": {
+            "replicas": replicas
+        }
+    });
+
+    api.patch(name, &PatchParams::default(), &Patch::Merge(&patch))
+        .await
+        .map(|_| ())
+        .map_err(|e| format!("Failed to scale statefulset: {}", e))
+}
+
+#[get("/api/pods/status")]
+pub async fn pods_status(data: web::Data<AppState>) -> impl Responder {
+    match get_pods_status(&data.client).await {
+        Ok(status) => HttpResponse::Ok().json(status),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e})),
+    }
+}
+
+#[post("/api/pods/force-delete")]
+pub async fn force_delete_pod_handler(
+    data: web::Data<AppState>,
+    body: web::Json<ForceDeleteRequest>,
+) -> impl Responder {
+    match force_delete_pod(&data.client, &body.namespace, &body.pod_name).await {
+        Ok(res) => HttpResponse::Ok().json(res),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e})),
+    }
+}
 
 /// Pods status response
 #[derive(Clone, Debug, Serialize)]

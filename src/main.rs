@@ -32,8 +32,8 @@ mod slack;
 mod setup;
 
 /// Shared application state
-struct AppState {
-    client: kube::Client,
+pub struct AppState {
+    pub client: kube::Client,
 }
 
 #[derive(Deserialize)]
@@ -457,7 +457,7 @@ async fn export_report(data: web::Data<AppState>, query: web::Query<ExportQuery>
 async fn export_alerts_endpoint(data: web::Data<AppState>) -> impl Responder {
     match alertmanager::get_active_alerts().await {
         Ok(alerts) => {
-            match export::export_alerts_for_agent(&alerts) {
+            match export::export_alerts_for_agent(&data.client, &alerts).await {
                 Ok(md) => HttpResponse::Ok()
                     .content_type("text/markdown")
                     .insert_header(("Content-Disposition", "attachment; filename=agent-remediation-context.md"))
@@ -515,6 +515,8 @@ async fn main() -> std::io::Result<()> {
             .service(services_status)
             .service(ingress_status)
             .service(pods_status)
+            .service(pods::get_pod_logs_handler)
+            .service(pods::scale_resource_handler)
             .service(force_delete_pod)
             .service(ws_route)
             .service(cilium_namespaces)

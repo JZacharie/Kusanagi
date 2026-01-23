@@ -801,6 +801,79 @@ const NewsManager = {
     }
 };
 
+/**
+ * Pod logs display manager
+ */
+const LogsManager = {
+    currentPod: null,
+    currentNamespace: null,
+
+    openModal(namespace, podName) {
+        this.currentPod = podName;
+        this.currentNamespace = namespace;
+
+        document.getElementById('logs-modal-title').textContent = `📄 Pod Logs: ${namespace}/${podName}`;
+        document.getElementById('log-content').textContent = 'Loading logs...';
+        const modal = document.getElementById('logs-modal');
+        if (modal) modal.style.display = 'flex';
+
+        this.refreshLogs();
+    },
+
+    closeModal() {
+        const modal = document.getElementById('logs-modal');
+        if (modal) modal.style.display = 'none';
+        this.currentPod = null;
+        this.currentNamespace = null;
+    },
+
+    async refreshLogs() {
+        if (!this.currentPod || !this.currentNamespace) return;
+
+        const tail = document.getElementById('log-tail-select').value;
+        const container = document.getElementById('log-content');
+
+        try {
+            const response = await fetch(`/api/pods/${this.currentNamespace}/${this.currentPod}/logs?tail=${tail}`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || response.statusText);
+            }
+            const logs = await response.text();
+            container.textContent = logs || 'No logs found.';
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        } catch (error) {
+            console.error('Failed to refresh logs:', error);
+            container.textContent = `Error loading logs: ${error.message}`;
+        }
+    }
+};
+
+window.LogsManager = LogsManager;
+
+async function exportAlertsForAgent() {
+    try {
+        const response = await fetch('/api/export/alerts');
+        if (!response.ok) throw new Error('Failed to export alerts');
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'agent-remediation-context.md';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error('Export failed:', error);
+        alert('Failed to export agent remediation context');
+    }
+}
+
+window.exportAlertsForAgent = exportAlertsForAgent;
+
 // Global functions for HTML onclick handlers
 window.fetchNews = () => NewsManager.fetchNews();
 window.filterNews = (source) => NewsManager.filterBySource(source);
