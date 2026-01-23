@@ -726,7 +726,13 @@
 
     <!-- Alerts Section -->
     <section class="argocd-section tab-content" data-tab="alerts" style="display: none;">
-        <h2 class="section-title">⚠️ Active Alerts (Alertmanager)</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 class="section-title" style="margin-bottom: 0;">⚠️ Active Alerts (Alertmanager)</h2>
+            <button class="cyber-btn" onclick="exportAlertsForAgent()"
+                style="border-color: var(--neon-magenta); color: var(--neon-magenta);">
+                🤖 Export for AI Agent
+            </button>
+        </div>
         <div id="alerts-content">
             <div class="loading">Loading alerts from Alertmanager...</div>
         </div>

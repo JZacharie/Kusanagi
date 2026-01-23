@@ -91,8 +91,8 @@ async fn fetch_hackernews() -> Result<Vec<NewsItem>, String> {
 
     let mut items = Vec::new();
     
-    // Fetch first 30 stories
-    for id in top_stories.iter().take(30) {
+    // Fetch first 50 stories for better diversity
+    for id in top_stories.iter().take(50) {
         let story: serde_json::Value = client
             .get(&format!("https://hacker-news.firebaseio.com/v0/item/{}.json", id))
             .send()
@@ -103,43 +103,44 @@ async fn fetch_hackernews() -> Result<Vec<NewsItem>, String> {
             .map_err(|e| e.to_string())?;
 
         if let Some(title) = story.get("title").and_then(|v| v.as_str()) {
-            // Filter for Docker/Kubernetes/DevOps related content
             let title_lower = title.to_lowercase();
-            let is_relevant = title_lower.contains("docker") 
-                || title_lower.contains("kubernetes") 
-                || title_lower.contains("k8s")
-                || title_lower.contains("devops")
-                || title_lower.contains("container")
-                || title_lower.contains("cloud native")
-                || title_lower.contains("gitops")
-                || title_lower.contains("helm")
-                || title_lower.contains("argocd");
-
-            if is_relevant {
-                let url = story.get("url")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or(&format!("https://news.ycombinator.com/item?id={}", id))
-                    .to_string();
-
-                let timestamp = story.get("time")
-                    .and_then(|v| v.as_i64())
-                    .unwrap_or(0);
-
-                let score = story.get("score")
-                    .and_then(|v| v.as_i64())
-                    .map(|s| s as i32);
-
-                items.push(NewsItem {
-                    id: format!("hn_{}", id),
-                    source: "hackernews".to_string(),
-                    title: title.to_string(),
-                    url,
-                    description: None,
-                    published_at: DateTime::from_timestamp(timestamp, 0).unwrap_or_else(Utc::now),
-                    score,
-                    tags: vec!["tech".to_string()],
-                });
+            
+            // Primary tags based on content
+            let mut tags = Vec::new();
+            if title_lower.contains("docker") || title_lower.contains("container") { tags.push("docker".to_string()); }
+            if title_lower.contains("kubernetes") || title_lower.contains("k8s") { tags.push("k8s".to_string()); }
+            if title_lower.contains("devops") || title_lower.contains("gitops") { tags.push("devops".to_string()); }
+            if title_lower.contains("rust") { tags.push("rust".to_string()); }
+            if title_lower.contains("ai") || title_lower.contains("llm") { tags.push("ai".to_string()); }
+            
+            // If no specific tags found, default to general "tech"
+            if tags.is_empty() {
+                tags.push("tech".to_string());
             }
+
+            let url = story.get("url")
+                .and_then(|v| v.as_str())
+                .unwrap_or(&format!("https://news.ycombinator.com/item?id={}", id))
+                .to_string();
+
+            let timestamp = story.get("time")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
+
+            let score = story.get("score")
+                .and_then(|v| v.as_i64())
+                .map(|s| s as i32);
+
+            items.push(NewsItem {
+                id: format!("hn_{}", id),
+                source: "hackernews".to_string(),
+                title: title.to_string(),
+                url,
+                description: None,
+                published_at: DateTime::from_timestamp(timestamp, 0).unwrap_or_else(Utc::now),
+                score,
+                tags,
+            });
         }
     }
 

@@ -210,3 +210,48 @@ pub fn export_markdown(report: &ClusterReport) -> Result<String, String> {
     
     Ok(md)
 }
+/// Export active alerts for agentic remediation
+pub fn export_alerts_for_agent(alerts: &AlertsResponse) -> Result<String, String> {
+    let mut report = String::new();
+    report.push_str("# 🤖 Kusanagi Agent Remediation context\n\n");
+    report.push_str(&format!("**Timestamp:** {}\n", Utc::now().to_rfc3339()));
+    report.push_str("**Purpose:** Provide context for automated error correction.\n\n");
+    
+    report.push_str("## 🚨 Active Alerts\n\n");
+    
+    if alerts.total == 0 {
+        report.push_str("✅ No active alerts firing.\n");
+        return Ok(report);
+    }
+    
+    // Process Critical Alerts
+    for alert in &alerts.critical {
+        report.push_str(&format!("### 🔴 CRITICAL: {}\n", alert.name));
+        report.push_str(&format!("- **Severity:** {}\n", alert.severity));
+        report.push_str(&format!("- **State:** {}\n", alert.state));
+        report.push_str(&format!("- **Summary:** {}\n", alert.summary));
+        if let Some(desc) = &alert.description {
+            report.push_str(&format!("- **Description:** {}\n", desc));
+        }
+        report.push_str(&format!("- **Namespace:** {}\n", alert.namespace.as_deref().unwrap_or("unknown")));
+        report.push_str(&format!("- **Pod:** {}\n", alert.pod.as_deref().unwrap_or("N/A")));
+        report.push_str(&format!("- **Started At:** {}\n", alert.started_at));
+        report.push_str(&format!("- **Fingerprint:** `{}`\n\n", alert.fingerprint));
+        
+        // Contextual advice placeholder for agent
+        report.push_str("> [!IMPORTANT]\n");
+        report.push_str("> Agent Action Required: Investigate logs for the mentioned pod and namespace.\n\n");
+    }
+    
+    // Process Warning Alerts
+    for alert in &alerts.warning {
+        report.push_str(&format!("### 🟠 WARNING: {}\n", alert.name));
+        report.push_str(&format!("- **Summary:** {}\n", alert.summary));
+        report.push_str(&format!("- **Namespace:** {}\n", alert.namespace.as_deref().unwrap_or("unknown")));
+        report.push_str("\n");
+    }
+    
+    report.push_str("---\n*End of Agent Remediation Context*\n");
+    
+    Ok(report)
+}

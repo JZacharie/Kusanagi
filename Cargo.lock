@@ -2223,6 +2223,7 @@ dependencies = [
  "lazy_static",
  "oauth2",
  "rand 0.8.5",
+ "regex",
  "reqwest",
  "rss",
  "schemars",

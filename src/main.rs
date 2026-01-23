@@ -453,6 +453,22 @@ async fn export_report(data: web::Data<AppState>, query: web::Query<ExportQuery>
     }
 }
 
+#[get("/api/export/alerts")]
+async fn export_alerts_endpoint(data: web::Data<AppState>) -> impl Responder {
+    match alertmanager::get_active_alerts().await {
+        Ok(alerts) => {
+            match export::export_alerts_for_agent(&alerts) {
+                Ok(md) => HttpResponse::Ok()
+                    .content_type("text/markdown")
+                    .insert_header(("Content-Disposition", "attachment; filename=agent-remediation-context.md"))
+                    .body(md),
+                Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({"error": e}))
+            }
+        },
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({"error": e}))
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -511,6 +527,7 @@ async fn main() -> std::io::Result<()> {
             .service(prometheus_query)
             .service(alerts_status)
             .service(export_report)
+            .service(export_alerts_endpoint)
             .route("/api/quotas", web::get().to(quota::get_quotas))
             .route("/api/news", web::get().to(newsfeed::get_news))
             .service(Files::new("/static", "./static").show_files_listing())
