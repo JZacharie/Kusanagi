@@ -962,7 +962,7 @@
 
         function initWebSocket() {
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${wsProtocol}//${window.location.host}/ws/notifications`;
+            const wsUrl = `${wsProtocol}//${window.location.host}/api/ws/notifications`;
 
             updateWsStatus('connecting');
 
