@@ -11,13 +11,21 @@ pub struct ProxmoxVM {
     pub node: String,
     #[serde(default)]
     pub server: String,
+    #[serde(default)]
     pub cpu: f64,
+    #[serde(default)]
     pub mem: u64,
+    #[serde(default)]
     pub maxmem: u64,
+    #[serde(default)]
     pub disk: u64,
+    #[serde(default)]
     pub maxdisk: u64,
+    #[serde(default)]
     pub uptime: u64,
+    #[serde(default)]
     pub netin: u64,
+    #[serde(default)]
     pub netout: u64,
 }
 
@@ -29,11 +37,17 @@ pub struct ProxmoxContainer {
     pub node: String,
     #[serde(default)]
     pub server: String,
+    #[serde(default)]
     pub cpu: f64,
+    #[serde(default)]
     pub mem: u64,
+    #[serde(default)]
     pub maxmem: u64,
+    #[serde(default)]
     pub disk: u64,
+    #[serde(default)]
     pub maxdisk: u64,
+    #[serde(default)]
     pub uptime: u64,
 }
 
@@ -43,12 +57,19 @@ pub struct ProxmoxNode {
     pub status: String,
     #[serde(default)]
     pub server: String,
+    #[serde(default)]
     pub cpu: f64,
+    #[serde(default)]
     pub maxcpu: u32,
+    #[serde(default)]
     pub mem: u64,
+    #[serde(default)]
     pub maxmem: u64,
+    #[serde(default)]
     pub disk: u64,
+    #[serde(default)]
     pub maxdisk: u64,
+    #[serde(default)]
     pub uptime: u64,
 }
 
