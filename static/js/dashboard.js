@@ -758,11 +758,14 @@ const NewsManager = {
         // Update button states
         document.getElementById('btn-view-card')?.classList.toggle('active', mode === 'grid');
         document.getElementById('btn-view-list')?.classList.toggle('active', mode === 'list');
+        document.getElementById('btn-view-inline')?.classList.toggle('active', mode === 'inline');
 
         // Update container class
         const container = document.getElementById('news-container');
         if (container) {
-            container.classList.toggle('list-mode', mode === 'list');
+            container.classList.remove('list-mode', 'inline-mode');
+            if (mode === 'list') container.classList.add('list-mode');
+            if (mode === 'inline') container.classList.add('inline-mode');
         }
 
         this.renderNews();
@@ -787,7 +790,10 @@ const NewsManager = {
 
         const html = this.filteredNews.map(item => this.renderNewsCard(item)).join('');
         container.innerHTML = html;
-        container.classList.toggle('list-mode', this.viewMode === 'list');
+
+        container.classList.remove('list-mode', 'inline-mode');
+        if (this.viewMode === 'list') container.classList.add('list-mode');
+        if (this.viewMode === 'inline') container.classList.add('inline-mode');
     },
 
     /**
@@ -824,7 +830,7 @@ const NewsManager = {
         const description = item.translated_description || item.description;
 
         return `
-            <div class="news-card ${this.viewMode === 'list' ? 'list-mode' : ''}" style="border-color: ${color};">
+            <div class="news-card ${this.viewMode === 'list' ? 'list-mode' : (this.viewMode === 'inline' ? 'inline-mode' : '')}" style="border-color: ${color};">
                 <div class="news-header">
                     <span class="news-source-badge" style="background: ${color};">
                         ${icon} ${label}

@@ -2448,7 +2448,49 @@ body {
 .news-card.list-mode .news-time {
   width: 80px;
   text-align: right;
-  font-size: 0.7rem;
+}
+
+/* Inline Mode Styles */
+.news-grid.inline-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.news-card.inline-mode {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  border-left: 2px solid var(--neon-cyan);
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.news-card.inline-mode :is(.news-description, .news-footer, .news-time) {
+  display: none;
+}
+
+.news-card.inline-mode .news-header {
+  margin-bottom: 0;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.news-card.inline-mode .news-source-badge {
+  padding: 0.1rem 0.4rem;
+  font-size: 0.6rem;
+}
+
+.news-card.inline-mode .news-title {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
 }
 
 /* Setup Dashboard Styles */
