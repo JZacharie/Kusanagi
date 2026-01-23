@@ -81,7 +81,7 @@ impl NotificationSession {
     /// Check for alerts periodically
     fn check_alerts(&self, ctx: &mut <Self as Actor>::Context) {
         let client = self.client.clone();
-        ctx.run_interval(ALERT_CHECK_INTERVAL, move |act, ctx| {
+        ctx.run_interval(ALERT_CHECK_INTERVAL, move |_act, ctx| {
             let addr = ctx.address();
             let client = client.clone();
             actix::spawn(async move {

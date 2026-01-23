@@ -30,6 +30,7 @@ mod weather;
 mod calendar;
 mod slack;
 mod setup;
+mod system;
 
 /// Shared application state
 pub struct AppState {
@@ -486,6 +487,10 @@ async fn main() -> std::io::Result<()> {
     let news_cache = web::Data::new(newsfeed::NewsCache::new());
     newsfeed::start_news_refresh_task(news_cache.get_ref().clone()).await;
 
+    // Initialize system manager and auto-update task
+    let system_manager = web::Data::new(system::SystemManager::new());
+    tokio::spawn(system::start_auto_update_task(client.clone(), system_manager.last_image_digest.clone()));
+
     // Start Slack alert monitoring
     slack::start_alert_monitoring_task(client.clone()).await;
 
@@ -493,12 +498,14 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(app_state.clone())
             .app_data(news_cache.clone())
+            .app_data(system_manager.clone())
             .configure(proxmox::configure_routes)
             .configure(homeassistant::configure_routes)
             .configure(weather::configure_routes)
             .configure(calendar::configure_routes)
             .configure(mcp::configure_routes)
             .configure(setup::configure_routes)
+            .configure(system::configure_routes)
             .service(health_check)
             .service(index)
             .service(argocd_status)

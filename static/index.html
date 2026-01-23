@@ -69,6 +69,27 @@
             </div>
         </header>
 
+        <!-- Kusanagi System Status -->
+        <div class="system-status-bar" id="kusanagi-system-status"
+            style="display: flex; gap: 1rem; align-items: center; justify-content: flex-end; padding: 0.5rem 1rem; background: rgba(0, 255, 249, 0.05); border-bottom: 1px solid rgba(0, 255, 249, 0.2); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--neon-cyan);">
+            <div class="system-item">
+                <span style="opacity: 0.7;">UPTIME:</span> <span id="kusanagi-uptime">--:--:--</span>
+            </div>
+            <div class="system-item">
+                <span style="opacity: 0.7;">CPU:</span> <span id="kusanagi-cpu">--%</span>
+            </div>
+            <div class="system-item">
+                <span style="opacity: 0.7;">RAM:</span> <span id="kusanagi-ram">--MB</span>
+            </div>
+            <div class="system-item">
+                <span style="opacity: 0.7;">VERSION:</span> <span id="kusanagi-version">0.1.0</span>
+            </div>
+            <div class="system-item">
+                <span class="status-indicator-dot" id="kusanagi-refresh-indicator"
+                    style="width: 8px; height: 8px; border-radius: 50%; background: var(--neon-cyan); display: inline-block; margin-left: 5px; box-shadow: 0 0 5px var(--neon-cyan);"></span>
+            </div>
+        </div>
+
         <!-- Quick Stats & External Links -->
         <nav class="quick-nav">
             <div class="quick-stats">

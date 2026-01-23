@@ -3,6 +3,68 @@
  * Handles customizable widgets, layout persistence, and export functionality
  */
 
+/**
+ * Kusanagi System Status Manager
+ * Handles uptime, CPU/RAM metrics and auto-refresh on restart
+ */
+const SystemStatusManager = {
+    startTime: null,
+    refreshInterval: null,
+
+    init() {
+        this.fetchStatus();
+        this.refreshInterval = setInterval(() => this.fetchStatus(), 5000);
+        console.log('✅ System Status Manager initialized');
+    },
+
+    async fetchStatus() {
+        try {
+            const response = await fetch('/api/system/status');
+            if (!response.ok) throw new Error('Status fetch failed');
+            const data = await response.json();
+
+            // Check if backend restarted
+            if (this.startTime && this.startTime !== data.start_time) {
+                console.log('🔄 Backend restart detected! Refreshing UI...');
+                showNotification('Kusanagi updated. Refreshing dashboard...', 'info');
+                setTimeout(() => window.location.reload(), 2000);
+                return;
+            }
+            this.startTime = data.start_time;
+
+            this.updateUI(data);
+        } catch (e) {
+            console.error('System status error:', e);
+        }
+    },
+
+    updateUI(data) {
+        const uptimeEl = document.getElementById('kusanagi-uptime');
+        const cpuEl = document.getElementById('kusanagi-cpu');
+        const ramEl = document.getElementById('kusanagi-ram');
+        const versionEl = document.getElementById('kusanagi-version');
+        const indicator = document.getElementById('kusanagi-refresh-indicator');
+
+        if (uptimeEl) uptimeEl.textContent = this.formatUptime(data.uptime_secs);
+        if (cpuEl) cpuEl.textContent = `${data.cpu_usage_percent.toFixed(1)}%`;
+        if (ramEl) ramEl.textContent = `${(data.memory_usage_bytes / (1024 * 1024)).toFixed(0)} MB`;
+        if (versionEl) versionEl.textContent = data.version;
+
+        // Visual flash on update
+        if (indicator) {
+            indicator.style.opacity = '1';
+            setTimeout(() => { if (indicator) indicator.style.opacity = '0.5'; }, 500);
+        }
+    },
+
+    formatUptime(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return [h, m, s].map(v => v < 10 ? '0' + v : v).join(':');
+    }
+};
+
 const DashboardManager = {
     // Available widgets configuration
     widgets: {
@@ -27,6 +89,7 @@ const DashboardManager = {
      * Initialize dashboard manager
      */
     init() {
+        SystemStatusManager.init();
         this.loadLayout();
         this.setupEventListeners();
         this.updateClocks();
