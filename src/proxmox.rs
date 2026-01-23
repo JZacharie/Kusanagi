@@ -9,6 +9,7 @@ pub struct ProxmoxVM {
     pub name: String,
     pub status: String,
     pub node: String,
+    pub server: String,
     pub cpu: f64,
     pub mem: u64,
     pub maxmem: u64,
@@ -25,6 +26,7 @@ pub struct ProxmoxContainer {
     pub name: String,
     pub status: String,
     pub node: String,
+    pub server: String,
     pub cpu: f64,
     pub mem: u64,
     pub maxmem: u64,
@@ -37,6 +39,7 @@ pub struct ProxmoxContainer {
 pub struct ProxmoxNode {
     pub node: String,
     pub status: String,
+    pub server: String,
     pub cpu: f64,
     pub maxcpu: u32,
     pub mem: u64,
@@ -76,6 +79,55 @@ struct ProxmoxNodeClient {
     token: Option<String>,
     ticket: Option<String>,
     csrf_token: Option<String>,
+}
+
+impl ProxmoxNodeClient {
+    async fn get<T: for<'de> Deserialize<'de> + Clone>(
+        &self,
+        path: &str,
+    ) -> Result<T, Box<dyn std::error::Error>> {
+        let url = format!("{}/api2/json{}", self.base_url, path);
+        let mut request = self.client.get(&url);
+
+        if let Some(token) = &self.token {
+            request = request.header("Authorization", token);
+        } else if let Some(ticket) = &self.ticket {
+            request = request.header("Cookie", ticket);
+        }
+
+        let response = request.send().await?;
+        if !response.status().is_success() {
+            return Err(format!("Proxmox node {} returned error: {}", self.base_url, response.status()).into());
+        }
+
+        let api_response: ProxmoxApiResponse<T> = response.json().await?;
+        Ok(api_response.data)
+    }
+
+    async fn post<T: for<'de> Deserialize<'de> + Clone>(
+        &self,
+        path: &str,
+    ) -> Result<T, Box<dyn std::error::Error>> {
+        let url = format!("{}/api2/json{}", self.base_url, path);
+        let mut request = self.client.post(&url);
+
+        if let Some(token) = &self.token {
+            request = request.header("Authorization", token);
+        } else if let Some(ticket) = &self.ticket {
+            request = request.header("Cookie", ticket);
+            if let Some(csrf) = &self.csrf_token {
+                request = request.header("CSRFPreventionToken", csrf);
+            }
+        }
+
+        let response = request.send().await?;
+        if !response.status().is_success() {
+            return Err(format!("Proxmox node {} returned error on POST: {}", self.base_url, response.status()).into());
+        }
+
+        let api_response: ProxmoxApiResponse<T> = response.json().await?;
+        Ok(api_response.data)
+    }
 }
 
 impl ProxmoxClient {
@@ -146,114 +198,52 @@ impl ProxmoxClient {
         Ok(api_response.data)
     }
 
-    async fn get<T: for<'de> Deserialize<'de> + Clone>(
-        &self,
-        path: &str,
-    ) -> Result<Vec<T>, Box<dyn std::error::Error>> {
-        let mut all_data = Vec::new();
-
-        for node in &self.nodes {
-            let url = format!("{}/api2/json{}", node.base_url, path);
-            let mut request = node.client.get(&url);
-
-            if let Some(token) = &node.token {
-                request = request.header("Authorization", token);
-            } else if let Some(ticket) = &node.ticket {
-                request = request.header("Cookie", ticket);
-            }
-
-            match request.send().await {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        match response.json::<ProxmoxApiResponse<T>>().await {
-                            Ok(api_response) => {
-                                all_data.push(api_response.data);
-                            }
-                            Err(e) => warn!("Failed to parse response from {}: {}", node.base_url, e),
-                        }
-                    } else {
-                        warn!("Proxmox node {} returned error: {}", node.base_url, response.status());
-                    }
-                }
-                Err(e) => warn!("Failed to connect to Proxmox node {}: {}", node.base_url, e),
-            }
-        }
-
-        if all_data.is_empty() && !self.nodes.is_empty() {
-            return Err("Failed to retrieve data from any Proxmox node".into());
-        }
-
-        Ok(all_data)
-    }
-
-    async fn post<T: for<'de> Deserialize<'de> + Clone>(
-        &self,
-        path: &str,
-    ) -> Result<Vec<T>, Box<dyn std::error::Error>> {
-        let mut all_data = Vec::new();
-
-        for node in &self.nodes {
-            let url = format!("{}/api2/json{}", node.base_url, path);
-            let mut request = node.client.post(&url);
-
-            if let Some(token) = &node.token {
-                request = request.header("Authorization", token);
-            } else if let Some(ticket) = &node.ticket {
-                request = request.header("Cookie", ticket);
-                if let Some(csrf) = &node.csrf_token {
-                    request = request.header("CSRFPreventionToken", csrf);
-                }
-            }
-
-            match request.send().await {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        match response.json::<ProxmoxApiResponse<T>>().await {
-                            Ok(api_response) => {
-                                all_data.push(api_response.data);
-                            }
-                            Err(e) => warn!("Failed to parse POST response from {}: {}", node.base_url, e),
-                        }
-                    } else {
-                        warn!("Proxmox node {} returned error on POST: {}", node.base_url, response.status());
-                    }
-                }
-                Err(e) => warn!("Failed to connect to Proxmox node {}: {}", node.base_url, e),
-            }
-        }
-
-        if all_data.is_empty() && !self.nodes.is_empty() {
-            return Err("Failed to execute POST on any Proxmox node".into());
-        }
-
-        Ok(all_data)
-    }
-
     pub async fn vm_control(
         &self,
+        server: &str,
         node: &str,
         vmid: u64,
         action: &str,
     ) -> Result<String, Box<dyn std::error::Error>> {
+        let client = self.nodes.iter()
+            .find(|n| n.base_url == server)
+            .ok_or_else(|| format!("Server {} not found", server))?;
+            
         let path = format!("/nodes/{}/qemu/{}/status/{}", node, vmid, action);
-        let upids: Vec<String> = self.post(&path).await?;
-        Ok(upids.get(0).cloned().unwrap_or_default())
+        let upid: String = client.post(&path).await?;
+        Ok(upid)
     }
 
     pub async fn ct_control(
         &self,
+        server: &str,
         node: &str,
         vmid: u64,
         action: &str,
     ) -> Result<String, Box<dyn std::error::Error>> {
+        let client = self.nodes.iter()
+            .find(|n| n.base_url == server)
+            .ok_or_else(|| format!("Server {} not found", server))?;
+
         let path = format!("/nodes/{}/lxc/{}/status/{}", node, vmid, action);
-        let upids: Vec<String> = self.post(&path).await?;
-        Ok(upids.get(0).cloned().unwrap_or_default())
+        let upid: String = client.post(&path).await?;
+        Ok(upid)
     }
 
     pub async fn get_nodes(&self) -> Result<Vec<ProxmoxNode>, Box<dyn std::error::Error>> {
-        let results: Vec<Vec<ProxmoxNode>> = self.get("/nodes").await?;
-        Ok(results.into_iter().flatten().collect())
+        let mut all_nodes = Vec::new();
+        for client in &self.nodes {
+            match client.get::<Vec<ProxmoxNode>>("/nodes").await {
+                Ok(mut nodes) => {
+                    for node in &mut nodes {
+                        node.server = client.base_url.clone();
+                    }
+                    all_nodes.extend(nodes);
+                }
+                Err(e) => warn!("Failed to get nodes from {}: {}", client.base_url, e),
+            }
+        }
+        Ok(all_nodes)
     }
 
     pub async fn get_vms(&self) -> Result<Vec<ProxmoxVM>, Box<dyn std::error::Error>> {
@@ -261,17 +251,19 @@ impl ProxmoxClient {
         let mut all_vms = Vec::new();
 
         for node in nodes {
-            let path = format!("/nodes/{}/qemu", node.node);
-            match self.get::<Vec<ProxmoxVM>>(&path).await {
-                Ok(results) => {
-                    for mut vms in results {
+            let client = self.nodes.iter().find(|n| n.base_url == node.server);
+            if let Some(client) = client {
+                let path = format!("/nodes/{}/qemu", node.node);
+                match client.get::<Vec<ProxmoxVM>>(&path).await {
+                    Ok(mut vms) => {
                         for vm in &mut vms {
                             vm.node = node.node.clone();
+                            vm.server = node.server.clone();
                         }
                         all_vms.extend(vms);
                     }
+                    Err(e) => warn!("Failed to get VMs from node {} on server {}: {}", node.node, node.server, e),
                 }
-                Err(e) => warn!("Failed to get VMs from node {}: {}", node.node, e),
             }
         }
 
@@ -283,17 +275,19 @@ impl ProxmoxClient {
         let mut all_containers = Vec::new();
 
         for node in nodes {
-            let path = format!("/nodes/{}/lxc", node.node);
-            match self.get::<Vec<ProxmoxContainer>>(&path).await {
-                Ok(results) => {
-                    for mut containers in results {
+            let client = self.nodes.iter().find(|n| n.base_url == node.server);
+            if let Some(client) = client {
+                let path = format!("/nodes/{}/lxc", node.node);
+                match client.get::<Vec<ProxmoxContainer>>(&path).await {
+                    Ok(mut containers) => {
                         for ct in &mut containers {
                             ct.node = node.node.clone();
+                            ct.server = node.server.clone();
                         }
                         all_containers.extend(containers);
                     }
+                    Err(e) => warn!("Failed to get containers from node {} on server {}: {}", node.node, node.server, e),
                 }
-                Err(e) => warn!("Failed to get containers from node {}: {}", node.node, e),
             }
         }
 
@@ -309,21 +303,29 @@ impl ProxmoxClient {
             version: Option<String>,
         }
 
-        let results: Vec<Vec<ClusterInfo>> = self.get("/cluster/status").await?;
-        
-        for info in results {
-            if let Some(cluster) = info.iter().find(|i| i.name.is_some()) {
-                return Ok(ClusterStatus {
-                    name: cluster.name.clone().unwrap_or_else(|| "unknown".to_string()),
-                    nodes: cluster.nodes.unwrap_or(0),
-                    quorate: cluster.quorate.unwrap_or(0) == 1,
-                    version: cluster.version.clone().unwrap_or_else(|| "unknown".to_string()),
-                });
+        for client in &self.nodes {
+            match client.get::<Vec<ClusterInfo>>("/cluster/status").await {
+                Ok(info) => {
+                    if let Some(cluster) = info.iter().find(|i| i.name.is_some()) {
+                        return Ok(ClusterStatus {
+                            name: cluster.name.clone().unwrap_or_else(|| "unknown".to_string()),
+                            nodes: cluster.nodes.unwrap_or(0),
+                            quorate: cluster.quorate.unwrap_or(0) == 1,
+                            version: cluster.version.clone().unwrap_or_else(|| "unknown".to_string()),
+                        });
+                    }
+                }
+                Err(e) => warn!("Failed to get cluster info from {}: {}", client.base_url, e),
             }
         }
 
         Err("No cluster info found on any node".into())
     }
+}
+
+#[derive(Deserialize)]
+pub struct ServerQuery {
+    pub server: String,
 }
 
 // API Handlers
@@ -421,13 +423,15 @@ pub async fn get_cluster_handler() -> Result<HttpResponse> {
 
 pub async fn vm_control_handler(
     params: web::Path<(u64, String, String)>,
+    query: web::Query<ServerQuery>,
 ) -> Result<HttpResponse> {
     let (vmid, node, action) = params.into_inner();
+    let server = &query.server;
     
     match ProxmoxClient::new().await {
-        Ok(client) => match client.vm_control(&node, vmid, &action).await {
+        Ok(client) => match client.vm_control(server, &node, vmid, &action).await {
             Ok(upid) => {
-                info!("VM {} {} on node {} initiated: {}", vmid, action, node, upid);
+                info!("VM {} {} on node {} (server {}) initiated: {}", vmid, action, node, server, upid);
                 Ok(HttpResponse::Ok().json(serde_json::json!({
                     "status": "success",
                     "upid": upid,
@@ -435,7 +439,7 @@ pub async fn vm_control_handler(
                 })))
             }
             Err(e) => {
-                error!("Failed to control VM {}: {}", vmid, e);
+                error!("Failed to control VM {} on server {}: {}", vmid, server, e);
                 Ok(HttpResponse::InternalServerError().json(serde_json::json!({
                     "error": format!("Failed to {} VM: {}", action, e)
                 })))
@@ -452,13 +456,15 @@ pub async fn vm_control_handler(
 
 pub async fn ct_control_handler(
     params: web::Path<(u64, String, String)>,
+    query: web::Query<ServerQuery>,
 ) -> Result<HttpResponse> {
     let (vmid, node, action) = params.into_inner();
+    let server = &query.server;
     
     match ProxmoxClient::new().await {
-        Ok(client) => match client.ct_control(&node, vmid, &action).await {
+        Ok(client) => match client.ct_control(server, &node, vmid, &action).await {
             Ok(upid) => {
-                info!("Container {} {} on node {} initiated: {}", vmid, action, node, upid);
+                info!("Container {} {} on node {} (server {}) initiated: {}", vmid, action, node, server, upid);
                 Ok(HttpResponse::Ok().json(serde_json::json!({
                     "status": "success",
                     "upid": upid,
@@ -466,7 +472,7 @@ pub async fn ct_control_handler(
                 })))
             }
             Err(e) => {
-                error!("Failed to control Container {}: {}", vmid, e);
+                error!("Failed to control Container {} on server {}: {}", vmid, server, e);
                 Ok(HttpResponse::InternalServerError().json(serde_json::json!({
                     "error": format!("Failed to {} Container: {}", action, e)
                 })))
