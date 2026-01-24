@@ -17,3 +17,15 @@ nohup: ignoring input
 [2m2026-01-24T06:11:52.640212Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
 [2m2026-01-24T06:45:10.390915Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
 [2m2026-01-24T07:18:28.392350Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T07:51:44.898199Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T08:23:22.425761Z[0m [31mERROR[0m [2mkube_client::client::builder[0m[2m:[0m failed with status 503 Service Unavailable
+[2m2026-01-24T08:23:22.466261Z[0m [31mERROR[0m [2mkube_client::client::builder[0m[2m:[0m failed with status 503 Service Unavailable
+[2m2026-01-24T08:24:29.638544Z[0m [31mERROR[0m [2mkube_client::client::builder[0m[2m:[0m failed with error error trying to connect: tcp connect error: Connection refused (os error 111)
+[2m2026-01-24T08:24:29.639381Z[0m [31mERROR[0m [2mkube_client::client::builder[0m[2m:[0m failed with error error trying to connect: tcp connect error: Connection refused (os error 111)
+[2m2026-01-24T08:24:48.767824Z[0m [31mERROR[0m [2mkube_client::client::builder[0m[2m:[0m failed with status 503 Service Unavailable
+[2m2026-01-24T08:25:04.255150Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T08:25:36.813029Z[0m [31mERROR[0m [2mkube_client::client::builder[0m[2m:[0m failed with status 503 Service Unavailable
+[2m2026-01-24T08:25:36.852801Z[0m [31mERROR[0m [2mkube_client::client::builder[0m[2m:[0m failed with status 503 Service Unavailable
+[2m2026-01-24T08:26:44.253206Z[0m [31mERROR[0m [2mkube_client::client::builder[0m[2m:[0m failed with status 503 Service Unavailable
+[2m2026-01-24T08:58:23.060308Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T09:31:43.505765Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure

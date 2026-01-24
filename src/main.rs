@@ -501,6 +501,9 @@ async fn main() -> std::io::Result<()> {
     // Initialize MQTT
     mqtt::init_mqtt().await;
 
+    // Start Cilium background refresh task
+    tokio::spawn(cilium::start_background_refresh(client.clone()));
+
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
