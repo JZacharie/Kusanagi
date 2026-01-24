@@ -29,3 +29,9 @@ nohup: ignoring input
 [2m2026-01-24T08:26:44.253206Z[0m [31mERROR[0m [2mkube_client::client::builder[0m[2m:[0m failed with status 503 Service Unavailable
 [2m2026-01-24T08:58:23.060308Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
 [2m2026-01-24T09:31:43.505765Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T10:05:04.804135Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T10:38:21.160429Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T11:11:41.652794Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T11:45:02.377637Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T12:18:23.026534Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T12:51:44.197992Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure

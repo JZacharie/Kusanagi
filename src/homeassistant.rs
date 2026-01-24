@@ -78,8 +78,11 @@ pub struct HomeAssistantClient {
 
 impl HomeAssistantClient {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let base_url = env::var("HOME_ASSISTANT_URL")
+        let mut base_url = env::var("HOME_ASSISTANT_URL")
             .unwrap_or_else(|_| "http://homeassistant.local:8123".to_string());
+        if base_url.ends_with('/') {
+            base_url.pop();
+        }
         let token = env::var("HOME_ASSISTANT_TOKEN")
             .unwrap_or_else(|_| "".to_string());
 

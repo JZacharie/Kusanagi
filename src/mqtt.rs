@@ -48,7 +48,8 @@ pub async fn init_mqtt() {
 
     info!("Initializing MQTT client for {}", host);
 
-    let mut mqttoptions = MqttOptions::new("kusanagi-backend", host, 1883);
+    let client_id = format!("kusanagi-backend-{}", chrono::Utc::now().timestamp() % 1000);
+    let mut mqttoptions = MqttOptions::new(client_id, host, 1883);
     mqttoptions.set_keep_alive(Duration::from_secs(5));
 
     if let (Some(u), Some(p)) = (user, pass) {
