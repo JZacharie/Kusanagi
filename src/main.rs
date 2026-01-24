@@ -33,6 +33,7 @@ mod setup;
 mod system;
 mod translation;
 mod mqtt;
+mod security;
 
 /// Shared application state
 pub struct AppState {
@@ -504,6 +505,9 @@ async fn main() -> std::io::Result<()> {
     // Start Cilium background refresh task
     tokio::spawn(cilium::start_background_refresh(client.clone()));
 
+    // Start Security enrichment worker
+    tokio::spawn(security::start_security_worker());
+
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
@@ -517,6 +521,7 @@ async fn main() -> std::io::Result<()> {
             .configure(setup::configure_routes)
             .configure(system::configure_routes)
             .configure(mqtt::configure_routes)
+            .configure(security::configure_routes)
             .service(health_check)
 
             .service(index)
