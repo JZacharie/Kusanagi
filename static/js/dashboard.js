@@ -82,7 +82,8 @@ const DashboardManager = {
         proxmox: { name: 'Proxmox', icon: '🖥️', enabled: true, order: 9 },
         homeassistant: { name: 'Home Assistant', icon: '🏠', enabled: true, order: 10 },
         weather: { name: 'Weather', icon: '🌤️', enabled: true, order: 11 },
-        calendar: { name: 'Calendar', icon: '📅', enabled: true, order: 12 }
+        calendar: { name: 'Calendar', icon: '📅', enabled: true, order: 12 },
+        mqtt: { name: 'MQTT', icon: '📡', enabled: true, order: 13 }
     },
 
     storageKey: 'kusanagi_dashboard_layout',

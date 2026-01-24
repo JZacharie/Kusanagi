@@ -36,6 +36,12 @@ pub enum NotificationMessage {
     Connected { message: String },
     #[serde(rename = "heartbeat")]
     Heartbeat { timestamp: String },
+    #[serde(rename = "mqtt_message")]
+    MqttMessage {
+        topic: String,
+        payload: String,
+        timestamp: String,
+    },
 }
 
 /// Internal message for sending notifications
@@ -113,12 +119,25 @@ impl Actor for NotificationSession {
             ctx.text(json);
         }
 
-        // Send initial stats
+        // Initialize initial stats
         let addr = ctx.address();
         let client = self.client.clone();
         actix::spawn(async move {
             if let Some(stats) = get_current_stats(&client).await {
                 addr.do_send(SendNotification(stats));
+            }
+        });
+
+        // Subscribe to MQTT broadcast
+        let addr_mqtt = ctx.address();
+        let mut mqtt_rx = crate::mqtt::MQTT_STATE.lock().unwrap().tx.subscribe();
+        actix::spawn(async move {
+            while let Ok(msg) = mqtt_rx.recv().await {
+                addr_mqtt.do_send(SendNotification(NotificationMessage::MqttMessage {
+                    topic: msg.topic,
+                    payload: msg.payload,
+                    timestamp: msg.timestamp,
+                }));
             }
         });
     }

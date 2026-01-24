@@ -32,6 +32,7 @@ mod slack;
 mod setup;
 mod system;
 mod translation;
+mod mqtt;
 
 /// Shared application state
 pub struct AppState {
@@ -497,6 +498,9 @@ async fn main() -> std::io::Result<()> {
     // Start Slack alert monitoring
     slack::start_alert_monitoring_task(client.clone()).await;
 
+    // Initialize MQTT
+    mqtt::init_mqtt().await;
+
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
@@ -509,7 +513,9 @@ async fn main() -> std::io::Result<()> {
             .configure(mcp::configure_routes)
             .configure(setup::configure_routes)
             .configure(system::configure_routes)
+            .configure(mqtt::configure_routes)
             .service(health_check)
+
             .service(index)
             .service(argocd_status)
             .service(argocd_sync)

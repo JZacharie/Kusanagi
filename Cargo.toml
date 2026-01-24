@@ -32,5 +32,8 @@ oauth2 = "4.4"
 base64 = "0.21"
 regex = "1.10"
 sysinfo = "0.29"
+rumqttc = "0.24"
+tokio-stream = "0.1"
+
 
 
