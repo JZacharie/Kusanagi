@@ -140,7 +140,13 @@ impl HomeAssistantClient {
         
         let sensors: Vec<Sensor> = states
             .into_iter()
-            .filter(|s| s.entity_id.starts_with("sensor."))
+            .filter(|s| {
+                s.entity_id.starts_with("sensor.") || 
+                s.entity_id.starts_with("binary_sensor.") ||
+                s.entity_id.starts_with("update.") ||
+                s.entity_id.starts_with("number.") ||
+                s.entity_id.starts_with("input_number.")
+            })
             .map(|s| {
                 let attributes = serde_json::from_value::<SensorAttributes>(s.attributes.clone())
                     .unwrap_or_else(|_| SensorAttributes {
