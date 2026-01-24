@@ -1,0 +1,318 @@
+    Checking kusanagi v0.1.0 (/home/joseph/git/Kusanagi)
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `web`
+   --> src/slack.rs:103:36
+    |
+103 | pub async fn handle_webhook(event: web::Json<SlackEvent>) -> Result<HttpResponse, actix_web::Error> {
+    |                                    ^^^ use of unresolved module or unlinked crate `web`
+    |
+    = help: if you wanted to use a crate named `web`, use `cargo add web` to add it to your `Cargo.toml`
+help: consider importing one of these modules
+    |
+  1 + use crate::web;
+    |
+  1 + use actix_web::web;
+    |
+
+error[E0412]: cannot find type `HttpResponse` in this scope
+   --> src/slack.rs:103:69
+    |
+103 | pub async fn handle_webhook(event: web::Json<SlackEvent>) -> Result<HttpResponse, actix_web::Error> {
+    |                                                                     ^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing one of these items
+    |
+  1 + use crate::HttpResponse;
+    |
+  1 + use actix_web::HttpResponse;
+    |
+  1 + use aws_sdk_s3::config::http::HttpResponse;
+    |
+  1 + use oauth2::HttpResponse;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `HttpResponse`
+   --> src/slack.rs:107:19
+    |
+107 |         return Ok(HttpResponse::Ok().json(serde_json::json!({ "challenge": challenge })));
+    |                   ^^^^^^^^^^^^ use of undeclared type `HttpResponse`
+    |
+help: consider importing one of these items
+    |
+  1 + use crate::HttpResponse;
+    |
+  1 + use actix_web::HttpResponse;
+    |
+  1 + use aws_sdk_s3::config::http::HttpResponse;
+    |
+  1 + use oauth2::HttpResponse;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `HttpResponse`
+   --> src/slack.rs:118:8
+    |
+118 |     Ok(HttpResponse::Ok().finish())
+    |        ^^^^^^^^^^^^ use of undeclared type `HttpResponse`
+    |
+help: consider importing one of these items
+    |
+  1 + use crate::HttpResponse;
+    |
+  1 + use actix_web::HttpResponse;
+    |
+  1 + use aws_sdk_s3::config::http::HttpResponse;
+    |
+  1 + use oauth2::HttpResponse;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `web`
+   --> src/slack.rs:121:35
+    |
+121 | pub fn configure_routes(cfg: &mut web::ServiceConfig) {
+    |                                   ^^^ use of unresolved module or unlinked crate `web`
+    |
+    = help: if you wanted to use a crate named `web`, use `cargo add web` to add it to your `Cargo.toml`
+help: consider importing one of these modules
+    |
+  1 + use crate::web;
+    |
+  1 + use actix_web::web;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `web`
+   --> src/slack.rs:123:9
+    |
+123 |         web::scope("/api/slack")
+    |         ^^^ use of unresolved module or unlinked crate `web`
+    |
+    = help: if you wanted to use a crate named `web`, use `cargo add web` to add it to your `Cargo.toml`
+help: consider importing one of these modules
+    |
+  1 + use crate::web;
+    |
+  1 + use actix_web::web;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `web`
+   --> src/slack.rs:124:31
+    |
+124 |             .route("/events", web::post().to(handle_webhook)),
+    |                               ^^^ use of unresolved module or unlinked crate `web`
+    |
+    = help: if you wanted to use a crate named `web`, use `cargo add web` to add it to your `Cargo.toml`
+help: consider importing one of these modules
+    |
+  1 + use crate::web;
+    |
+  1 + use actix_web::web;
+    |
+
+warning: unused imports: `Namespace` and `ResourceRequirements`
+ --> src/apps.rs:2:34
+  |
+2 | use k8s_openapi::api::core::v1::{Namespace, PersistentVolumeClaim, Pod, ResourceRequirements};
+  |                                  ^^^^^^^^^                              ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `error`
+ --> src/chat_storage.rs:4:21
+  |
+4 | use tracing::{info, error};
+  |                     ^^^^^
+
+warning: unused import: `get`
+ --> src/mcp.rs:4:17
+  |
+4 | use actix_web::{get, web, HttpResponse, Result};
+  |                 ^^^
+
+warning: unused import: `error`
+  --> src/pods.rs:11:21
+   |
+11 | use tracing::{info, error};
+   |                     ^^^^^
+
+warning: unused imports: `error` and `warn`
+ --> src/cilium.rs:9:21
+  |
+9 | use tracing::{info, warn, error, debug};
+  |                     ^^^^  ^^^^^
+
+warning: unused import: `Service`
+  --> src/cilium.rs:11:34
+   |
+11 | use k8s_openapi::api::core::v1::{Service, Namespace};
+   |                                  ^^^^^^^
+
+warning: unused import: `std::env`
+ --> src/prometheus.rs:2:5
+  |
+2 | use std::env;
+  |     ^^^^^^^^
+
+warning: unused import: `std::env`
+ --> src/alertmanager.rs:3:5
+  |
+3 | use std::env;
+  |     ^^^^^^^^
+
+warning: unused import: `DateTime`
+ --> src/calendar.rs:7:21
+  |
+7 | use chrono::{Local, DateTime, Utc};
+  |                     ^^^^^^^^
+
+warning: unused import: `Deserialize`
+ --> src/system.rs:2:13
+  |
+2 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^
+
+warning: unused import: `warn`
+ --> src/translation.rs:4:21
+  |
+4 | use tracing::{info, warn};
+  |                     ^^^^
+
+warning: unused import: `Instant`
+ --> src/mqtt.rs:6:27
+  |
+6 | use std::time::{Duration, Instant};
+  |                           ^^^^^^^
+
+warning: unused import: `warn`
+ --> src/mqtt.rs:8:28
+  |
+8 | use tracing::{error, info, warn};
+  |                            ^^^^
+
+warning: unused variable: `u`
+   --> src/nodes.rs:446:16
+    |
+446 |     if let (Ok(u), Ok(p)) = (std::env::var("PROMETHEUS_USERNAME"), std::env::var("PROMETHEUS_PASSWORD")) {
+    |                ^ help: if this is intentional, prefix it with an underscore: `_u`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `p`
+   --> src/nodes.rs:446:23
+    |
+446 |     if let (Ok(u), Ok(p)) = (std::env::var("PROMETHEUS_USERNAME"), std::env::var("PROMETHEUS_PASSWORD")) {
+    |                       ^ help: if this is intentional, prefix it with an underscore: `_p`
+
+warning: unused variable: `node_name`
+  --> src/storage.rs:81:17
+   |
+81 |             Ok((node_name, metrics_text)) => {
+   |                 ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_node_name`
+
+warning: variable does not need to be mutable
+   --> src/storage.rs:147:13
+    |
+147 |         let mut capacity_str = status.capacity
+    |             ----^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `services`
+   --> src/pods.rs:188:9
+    |
+188 |     let services: Api<Service> = Api::all(client.clone());
+    |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_services`
+
+error[E0308]: mismatched types
+   --> src/cilium.rs:185:27
+    |
+185 |                 return Ok(filtered_response);
+    |                        -- ^^^^^^^^^^^^^^^^^ expected `HubbleFlowsResponse`, found `&HubbleFlowsResponse`
+    |                        |
+    |                        arguments to this enum variant are incorrect
+    |
+note: `HubbleFlowsResponse` does not implement `Clone`, so `&HubbleFlowsResponse` was cloned instead
+   --> src/cilium.rs:179:45
+    |
+179 |                 let mut filtered_response = response.clone();
+    |                                             ^^^^^^^^
+help: the type constructed contains `&HubbleFlowsResponse` due to the type of the argument passed
+   --> src/cilium.rs:185:24
+    |
+185 |                 return Ok(filtered_response);
+    |                        ^^^-----------------^
+    |                           |
+    |                           this argument influences the type of `Ok`
+note: tuple variant defined here
+   --> /rustc/f8297e351a40c1439a467bbbb6879088047f50b3/library/core/src/result.rs:554:5
+help: consider annotating `HubbleFlowsResponse` with `#[derive(Clone)]`
+    |
+116 + #[derive(Clone)]
+117 | pub struct HubbleFlowsResponse {
+    |
+
+error[E0308]: mismatched types
+   --> src/cilium.rs:203:28
+    |
+203 |             *cache = Some((flows.clone(), Instant::now()));
+    |                            ^^^^^^^^^^^^^ expected `HubbleFlowsResponse`, found `&HubbleFlowsResponse`
+    |
+note: `HubbleFlowsResponse` does not implement `Clone`, so `&HubbleFlowsResponse` was cloned instead
+   --> src/cilium.rs:203:28
+    |
+203 |             *cache = Some((flows.clone(), Instant::now()));
+    |                            ^^^^^
+help: consider annotating `HubbleFlowsResponse` with `#[derive(Clone)]`
+    |
+116 + #[derive(Clone)]
+117 | pub struct HubbleFlowsResponse {
+    |
+
+warning: unused variable: `kusanagi_deploy`
+  --> src/system.rs:89:9
+   |
+89 |     let kusanagi_deploy = match api.get("kusanagi").await {
+   |         ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_kusanagi_deploy`
+
+error[E0382]: borrow of moved value: `msg.topic`
+   --> src/mqtt.rs:131:79
+    |
+127 |     device.last_topic = msg.topic;
+    |                         --------- value moved here
+...
+131 |     let slack_msg = format!("*MQTT Message*\n*Topic*: `{}`\n*Payload*: `{}`", msg.topic, msg.payload);
+    |                                                                               ^^^^^^^^^ value borrowed here after move
+    |
+    = note: move occurs because `msg.topic` has type `std::string::String`, which does not implement the `Copy` trait
+    = note: this error originates in the macro `$crate::__export::format_args` which comes from the expansion of the macro `format` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: future cannot be sent between threads safely
+   --> src/mqtt.rs:132:5
+    |
+132 | /     tokio::spawn(async move {
+133 | |         if let Ok(slack) = crate::slack::SlackClient::new() {
+134 | |             let _ = slack.send_message(&slack_msg).await;
+135 | |         }
+136 | |     });
+    | |______^ future created by async block is not `Send`
+    |
+    = help: the trait `std::marker::Send` is not implemented for `dyn StdError`
+note: future is not `Send` as this value is used across an await
+   --> src/mqtt.rs:134:52
+    |
+133 |         if let Ok(slack) = crate::slack::SlackClient::new() {
+    |                            -------------------------------- has type `Result<SlackClient, Box<dyn StdError>>` which is not `Send`
+134 |             let _ = slack.send_message(&slack_msg).await;
+    |                                                    ^^^^^ await occurs here, with `crate::slack::SlackClient::new()` maybe used later
+note: required by a bound in `tokio::spawn`
+   --> /home/joseph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.49.0/src/task/spawn.rs:171:21
+    |
+169 |     pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
+    |            ----- required by a bound in this function
+170 |     where
+171 |         F: Future + Send + 'static,
+    |                     ^^^^ required by this bound in `spawn`
+
+Some errors have detailed explanations: E0308, E0382, E0412, E0433.
+For more information about an error, try `rustc --explain E0308`.
+warning: `kusanagi` (bin "kusanagi") generated 19 warnings
+error: could not compile `kusanagi` (bin "kusanagi") due to 11 previous errors; 19 warnings emitted

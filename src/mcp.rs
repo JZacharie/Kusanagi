@@ -6,10 +6,18 @@ use serde::{Deserialize, Serialize};
 use tracing::{info, warn, error};
 
 /// MCP Server endpoints (configurable via env vars)
-const MCP_KUBERNETES_URL: &str = "http://localhost:3000/mcp/kubernetes";
-const MCP_CILIUM_URL: &str = "http://localhost:3000/mcp/cilium";
-const MCP_STEAMPIPE_URL: &str = "http://localhost:3000/mcp/steampipe";
-const MCP_TRIVY_URL: &str = "http://localhost:3000/mcp/trivy";
+fn get_mcp_kubernetes_url() -> String {
+    std::env::var("MCP_KUBERNETES_URL").unwrap_or_else(|_| "http://localhost:3000/mcp/kubernetes".to_string())
+}
+fn get_mcp_cilium_url() -> String {
+    std::env::var("MCP_CILIUM_URL").unwrap_or_else(|_| "http://localhost:3000/mcp/cilium".to_string())
+}
+fn get_mcp_steampipe_url() -> String {
+    std::env::var("MCP_STEAMPIPE_URL").unwrap_or_else(|_| "http://localhost:3000/mcp/steampipe".to_string())
+}
+fn get_mcp_trivy_url() -> String {
+    std::env::var("MCP_TRIVY_URL").unwrap_or_else(|_| "http://localhost:3000/mcp/trivy".to_string())
+}
 
 /// MCP Request structure
 #[derive(Serialize)]
@@ -152,7 +160,7 @@ pub async fn get_k8s_resources(namespace: Option<&str>) -> Result<K8sResourceSum
         "namespace": namespace.unwrap_or("all")
     });
 
-    match mcp_request(MCP_KUBERNETES_URL, "list_resources", params).await {
+    match mcp_request(&get_mcp_kubernetes_url(), "list_resources", params).await {
         Ok(response) => {
             if response.success {
                 if let Some(data) = response.data {
@@ -192,7 +200,7 @@ pub async fn get_cilium_policies(namespace: Option<&str>) -> Result<CiliumPolicy
         "namespace": namespace.unwrap_or("all")
     });
 
-    match mcp_request(MCP_CILIUM_URL, "list_policies", params).await {
+    match mcp_request(&get_mcp_cilium_url(), "list_policies", params).await {
         Ok(response) => {
             if response.success {
                 if let Some(data) = response.data {
@@ -233,7 +241,7 @@ pub async fn query_steampipe(sql: &str) -> Result<SteampipeResult, String> {
         "query": sql
     });
 
-    match mcp_request(MCP_STEAMPIPE_URL, "query", params).await {
+    match mcp_request(&get_mcp_steampipe_url(), "query", params).await {
         Ok(response) => {
             if response.success {
                 if let Some(data) = response.data {
@@ -263,7 +271,7 @@ pub async fn get_trivy_vulnerabilities() -> Result<TrivyVulnerabilitySummary, St
 
     let params = serde_json::json!({});
 
-    match mcp_request(MCP_TRIVY_URL, "get_vulnerabilities", params).await {
+    match mcp_request(&get_mcp_trivy_url(), "get_vulnerabilities", params).await {
         Ok(response) => {
             if response.success {
                 if let Some(data) = response.data {
