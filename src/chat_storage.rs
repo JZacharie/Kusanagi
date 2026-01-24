@@ -3,7 +3,7 @@ use aws_config::BehaviorVersion;
 use serde::Serialize;
 use tracing::{info, error};
 
-const MINIO_ENDPOINT: &str = "http://192.168.0.170";
+const MINIO_ENDPOINT: &str = "http://192.168.0.170:9010";
 const BUCKET_NAME: &str = "kusanagi-chat-history";
 
 #[derive(Serialize)]

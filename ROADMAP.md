@@ -19,6 +19,21 @@
 - **Code Quality**: Clippy zero-warnings & >80% test coverage
 - **UX**: Score Lighthouse > 95
 
+## 🚨 Immediate Remediation Tasks (Urgent)
+
+Les alertes suivantes ont été détectées et doivent être traitées en priorité :
+
+### 🔴 Critical Alerts
+- [ ] **KubeClientCertificateExpiration**: Renouveler les certificats clients expirant dans moins de 24h.
+- [ ] **KubeControllerManagerDown**: Diagnostiquer et redémarrer le Controller Manager (disparu de Prometheus).
+- [ ] **KubeProxyDown**: Rétablir le service KubeProxy sur les nœuds affectés.
+- [ ] **KubeSchedulerDown**: Restaurer le Scheduler du plan de contrôle.
+
+### 🟠 Warning Alerts
+- [ ] **HPA Scaling**: Investiguer les limites HPA atteintes dans `devsecops`, `turbot`, `argocd`.
+- [ ] **Job Failures**: Analyser les échecs de jobs dans `vault`, `vault-sbx`, `sim`.
+- [ ] **TargetDown**: Identifier les targets inaccessibles pour Prometheus.
+
 ---
 
 ## 📅 Release Timeline
