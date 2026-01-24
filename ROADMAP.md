@@ -26,8 +26,8 @@
 ```
 Q1 2026          Q2 2026          Q3 2026          Q4 2026
 ───────────────────────────────────────────────────────────
-v0.8 ✅          v0.9 ✅          v1.0 🔄          v1.1 📋          v1.2 📋          v2.0
-News Feed       Infra Monitor    Personal Hub     Data & Messaging Setup Wizard     Enterprise
+v0.8 ✅          v0.9 ✅          v1.0 🔄          v1.1 📋          v1.2 📋          v1.3 📋          v2.0
+News Feed       Infra Monitor    Personal Hub     Data & Messaging Setup Wizard     AI Safety       Enterprise
 ```
 
 ---
@@ -229,6 +229,48 @@ News Feed       Infra Monitor    Personal Hub     Data & Messaging Setup Wizard 
 
 ---
 
+## 🛡️ Future Release: v1.3.0 - AI Safety & Security
+
+**Target Date**: August 2026  
+**Status**: 📋 Planned  
+**Theme**: Robustness Against Adversarial Attacks
+
+### Priority Features
+
+#### P0 - Must Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| **Spotlighting (Data Provenance)** | S | chat.rs | Backend |
+| **Harmlessness Screens** | M | - | Backend |
+| **Canary Tokens Implementation** | S | chat.rs | Backend |
+
+#### P1 - Should Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| Output Validation Engine | M | MCP Integration | Backend |
+| **Input Paraphrasing** | M | - | Backend |
+| **Canary Monitoring Alerts** | S | OpenObserve | DevOps |
+
+#### P2 - Nice to Have
+| Feature | Effort | Dependencies | Owner |
+|---------|--------|--------------|-------|
+| Adversarial Test Suite | L | - | QA |
+| Rate Limiting per AI Session | S | - | Backend |
+
+### Technical Requirements
+- XML-style tagging for context separation
+- Secondary low-latency screening model
+- Automated alert triggers for canary leakage
+- Paraphrasing model integration
+
+### Success Criteria
+- [ ] 0% success for standard jailbreak prompts
+- [ ] <2% success for indirect prompt injection
+- [ ] <200ms overhead for security screens
+- [ ] 100% of external data correctly tagged
+
+---
+
 ## 🏢 Long-term Vision: v2.0.0 - Enterprise Features
 
 **Target Date**: Q4 2026  
@@ -243,6 +285,9 @@ News Feed       Infra Monitor    Personal Hub     Data & Messaging Setup Wizard 
 - [ ] Audit logging (all actions)
 - [ ] Secret management (Vault)
 - [ ] SOC2 compliance readiness
+- [ ] **Dual LLM Architecture (Secure Threads)**
+- [ ] **TaskTracker-style Activation Analysis**
+- [ ] **MELON Trajectory Verification**
 
 #### Scalability
 - [ ] Multi-cluster support
@@ -411,6 +456,7 @@ News Feed       Infra Monitor    Personal Hub     Data & Messaging Setup Wizard 
 - [ ] Code reviewed and approved
 - [ ] Tests passing (when applicable)
 - [ ] Documentation updated
+- [ ] **AI Safety Checklist verified (v1.3.0+)**
 - [ ] Deployed to production
 - [ ] Stakeholders notified
 
