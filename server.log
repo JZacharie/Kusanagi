@@ -43,3 +43,4 @@ nohup: ignoring input
 [2m2026-01-24T16:11:44.063009Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
 [2m2026-01-24T16:45:01.153242Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
 [2m2026-01-24T17:18:22.276640Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T17:51:43.051411Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
