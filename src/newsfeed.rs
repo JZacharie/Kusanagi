@@ -351,13 +351,35 @@ async fn aggregate_news() -> Result<Vec<NewsItem>, String> {
 pub async fn start_news_refresh_task(cache: NewsCache) {
     // Load initial data immediately
     tokio::spawn(async move {
-        // Initial load
-        tracing::info!("Loading initial news cache...");
+        // Initial load from S3
+        tracing::info!("Loading news from S3...");
+        let s3_client = translation::get_s3_client().await;
+        match translation::get_news_from_s3(&s3_client).await {
+            Ok(items) => {
+                if !items.is_empty() {
+                    cache.update_items(items.clone()).await;
+                    tracing::info!("Loaded {} items from S3", items.len());
+                }
+            }
+            Err(e) => {
+                tracing::warn!("Failed to load news from S3: {}", e);
+            }
+        }
+
+        // Fetch fresh news
+        tracing::info!("Fetching fresh news...");
         match aggregate_news().await {
             Ok(items) => {
                 cache.update_items(items.clone()).await;
-                tracing::info!("Initial news cache loaded: {} items", items.len());
+                tracing::info!("News cache updated: {} items", items.len());
                 
+                // Store fresh items to S3
+                for item in &items {
+                    if let Err(e) = translation::store_news_item(&s3_client, item).await {
+                        tracing::error!("Failed to store news item {} to S3: {}", item.id, e);
+                    }
+                }
+
                 // Start background translation
                 let cache_clone = cache.clone();
                 tokio::spawn(async move {
@@ -365,7 +387,7 @@ pub async fn start_news_refresh_task(cache: NewsCache) {
                 });
             }
             Err(e) => {
-                tracing::error!("Failed to load initial news cache: {}", e);
+                tracing::error!("Failed to fetch fresh news: {}", e);
             }
         }
 
@@ -379,9 +401,16 @@ pub async fn start_news_refresh_task(cache: NewsCache) {
                 tracing::info!("Refreshing news cache...");
                 match aggregate_news().await {
                     Ok(items) => {
-                        cache.update_items(items).await;
+                        cache.update_items(items.clone()).await;
                         tracing::info!("News cache refreshed successfully");
                         
+                        let s3_client = translation::get_s3_client().await;
+                        for item in &items {
+                            if let Err(e) = translation::store_news_item(&s3_client, item).await {
+                                tracing::error!("Failed to store news item {} to S3: {}", item.id, e);
+                            }
+                        }
+
                         // Start background translation
                         let cache_clone = cache.clone();
                         tokio::spawn(async move {
@@ -449,13 +478,16 @@ async fn process_translations(cache: NewsCache) {
             description: translated_desc.clone(),
         };
 
-        // Store to S3
-        if let Err(e) = translation::store_translation(&s3_client, &trans).await {
-            tracing::error!("Failed to store translation to S3 for {}: {}", item.id, e);
-        }
-
         // Update in-memory cache
-        cache.update_item_translation(&item.id, translated_title, translated_desc).await;
+        cache.update_item_translation(&item.id, translated_title.clone(), translated_desc.clone()).await;
+
+        // Persist the updated item (with translation) to S3
+        let mut updated_item = item.clone();
+        updated_item.translated_title = Some(translated_title);
+        updated_item.translated_description = translated_desc;
+        if let Err(e) = translation::store_news_item(&s3_client, &updated_item).await {
+            tracing::error!("Failed to persist translated news item {} to S3: {}", item.id, e);
+        }
         
         // Minor delay to avoid overwhelming Ollama
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;

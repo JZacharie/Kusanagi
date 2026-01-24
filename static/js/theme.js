@@ -14,6 +14,11 @@ const ThemeManager = {
             name: 'Modern 2026',
             class: 'theme-modern',
             icon: '✨'
+        },
+        lootdrop: {
+            name: 'Loot-Drop',
+            class: 'theme-loot-drop',
+            icon: '💎'
         }
     },
 
