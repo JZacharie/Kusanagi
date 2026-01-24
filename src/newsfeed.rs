@@ -383,7 +383,7 @@ pub async fn start_news_refresh_task(cache: NewsCache) {
                 // Start background translation
                 let cache_clone = cache.clone();
                 tokio::spawn(async move {
-                    process_translations(cache_clone).await;
+                    process_news_enrichment(cache_clone).await;
                 });
             }
             Err(e) => {
@@ -414,7 +414,7 @@ pub async fn start_news_refresh_task(cache: NewsCache) {
                         // Start background translation
                         let cache_clone = cache.clone();
                         tokio::spawn(async move {
-                            process_translations(cache_clone).await;
+                            process_news_enrichment(cache_clone).await;
                         });
                     }
                     Err(e) => {
@@ -426,7 +426,7 @@ pub async fn start_news_refresh_task(cache: NewsCache) {
     });
 }
 
-async fn process_translations(cache: NewsCache) {
+async fn process_news_enrichment(cache: NewsCache) {
     let s3_client = translation::get_s3_client().await;
     if let Err(e) = translation::ensure_bucket_exists(&s3_client).await {
         tracing::error!("Failed to ensure translation bucket exists: {}", e);
@@ -435,62 +435,66 @@ async fn process_translations(cache: NewsCache) {
 
     let items = cache.get_items().await;
     for item in items {
-        // Skip French sources or already translated items in this run
-        if item.source == "korben" || item.translated_title.is_some() {
-            continue;
-        }
-
-        // Try to get from S3 cache first
-        if let Some(cached) = translation::get_cached_translation(&s3_client, &item.id).await {
-            cache.update_item_translation(&item.id, cached.title, cached.description).await;
-            continue;
-        }
-
-        // Translate with Ollama
-        tracing::info!("Translating news item: {}", item.title);
-        
-        // Translate title
-        let translated_title = match translation::translate_with_ollama(&item.title).await {
-            Ok(t) => t,
-            Err(e) => {
-                tracing::warn!("Failed to translate title for {}: {}", item.id, e);
-                continue;
-            }
-        };
-
-        // Translate description if present
-        let mut translated_desc = None;
-        if let Some(desc) = &item.description {
-            if !desc.trim().is_empty() {
-                translated_desc = match translation::translate_with_ollama(desc).await {
-                    Ok(t) => Some(t),
-                    Err(e) => {
-                        tracing::warn!("Failed to translate description for {}: {}", item.id, e);
-                        None
-                    }
-                };
-            }
-        }
-
-        let trans = translation::Translation {
-            id: item.id.clone(),
-            title: translated_title.clone(),
-            description: translated_desc.clone(),
-        };
-
-        // Update in-memory cache
-        cache.update_item_translation(&item.id, translated_title.clone(), translated_desc.clone()).await;
-
-        // Persist the updated item (with translation) to S3
+        let mut needs_update = false;
         let mut updated_item = item.clone();
-        updated_item.translated_title = Some(translated_title);
-        updated_item.translated_description = translated_desc;
-        if let Err(e) = translation::store_news_item(&s3_client, &updated_item).await {
-            tracing::error!("Failed to persist translated news item {} to S3: {}", item.id, e);
+
+        // 1. Generate tags if missing key:value tags
+        let has_kv_tags = item.tags.iter().any(|t| t.contains(':'));
+        if !has_kv_tags {
+            tracing::info!("Generating tags for news item: {}", item.title);
+            match translation::generate_tags_with_ollama(&item.title).await {
+                Ok(new_tags) => {
+                    if !new_tags.is_empty() {
+                        updated_item.tags = new_tags;
+                        needs_update = true;
+                    }
+                }
+                Err(e) => tracing::warn!("Failed to generate tags for {}: {}", item.id, e),
+            }
         }
-        
-        // Minor delay to avoid overwhelming Ollama
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+
+        // 2. Translate if not French source and not yet translated
+        if item.source != "korben" && item.translated_title.is_none() {
+            // Try to get from S3 cache first
+            if let Some(cached) = translation::get_cached_translation(&s3_client, &item.id).await {
+                updated_item.translated_title = Some(cached.title);
+                updated_item.translated_description = cached.description;
+                needs_update = true;
+            } else {
+                tracing::info!("Translating news item: {}", item.title);
+                
+                // Translate title
+                if let Ok(t_title) = translation::translate_with_ollama(&item.title).await {
+                    updated_item.translated_title = Some(t_title);
+                    needs_update = true;
+
+                    // Translate description if present
+                    if let Some(desc) = &item.description {
+                        if !desc.trim().is_empty() {
+                            if let Ok(t_desc) = translation::translate_with_ollama(desc).await {
+                                updated_item.translated_description = Some(t_desc);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if needs_update {
+            // Update in-memory cache
+            let mut items_write = cache.items.write().await;
+            if let Some(i) = items_write.iter_mut().find(|i| i.id == item.id) {
+                *i = updated_item.clone();
+            }
+
+            // Persist to S3
+            if let Err(e) = translation::store_news_item(&s3_client, &updated_item).await {
+                tracing::error!("Failed to persist enriched news item {} to S3: {}", item.id, e);
+            }
+
+            // Delay to avoid overwhelming Ollama
+            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        }
     }
 }
 
@@ -516,6 +520,11 @@ pub async fn get_news(
     // Filter by source if specified
     if let Some(source) = query.get("source") {
         items.retain(|item| item.source == *source);
+    }
+
+    // Filter by tag if specified
+    if let Some(tag) = query.get("tag") {
+        items.retain(|item| item.tags.contains(tag) || item.tags.iter().any(|t| t.split(':').last() == Some(tag)));
     }
 
     // Limit results if specified

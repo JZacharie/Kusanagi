@@ -84,6 +84,47 @@ impl SlackClient {
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct SlackEvent {
+    pub token: String,
+    pub challenge: Option<String>,
+    #[serde(rename = "type")]
+    pub event_type: String,
+    pub event: Option<SlackEventDetail>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SlackEventDetail {
+    pub text: Option<String>,
+    pub user: Option<String>,
+    pub channel: Option<String>,
+}
+
+pub async fn handle_webhook(event: web::Json<SlackEvent>) -> Result<HttpResponse, actix_web::Error> {
+    info!("Received Slack event: {:?}", event);
+
+    if let Some(challenge) = &event.challenge {
+        return Ok(HttpResponse::Ok().json(serde_json::json!({ "challenge": challenge })));
+    }
+
+    if let Some(detail) = &event.event {
+        if let Some(text) = &detail.text {
+            // Forward Slack message to MQTT
+            let topic = "kusanagi/slack/incoming";
+            let _ = crate::mqtt::publish_message(topic, text).await;
+        }
+    }
+
+    Ok(HttpResponse::Ok().finish())
+}
+
+pub fn configure_routes(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::scope("/api/slack")
+            .route("/events", web::post().to(handle_webhook)),
+    );
+}
+
 /// Start a background task to monitor cluster health and send Slack alerts
 pub async fn start_alert_monitoring_task(client: kube::Client) {
     actix_rt::spawn(async move {

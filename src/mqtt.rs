@@ -28,6 +28,7 @@ pub struct MqttState {
     pub recent_messages: VecDeque<MqttMessage>,
     pub devices: HashMap<String, MqttDevice>,
     pub tx: broadcast::Sender<MqttMessage>,
+    pub client: Option<AsyncClient>,
 }
 
 lazy_static::lazy_static! {
@@ -37,6 +38,7 @@ lazy_static::lazy_static! {
             recent_messages: VecDeque::with_capacity(100),
             devices: HashMap::new(),
             tx,
+            client: None,
         }))
     };
 }
@@ -57,6 +59,12 @@ pub async fn init_mqtt() {
     }
 
     let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
+    
+    // Store client in state
+    {
+        let mut state = MQTT_STATE.lock().unwrap();
+        state.client = Some(client.clone());
+    }
 
     // Subscribe to all topics
     tokio::spawn(async move {
@@ -118,6 +126,28 @@ fn handle_incoming_message(msg: MqttMessage) {
     device.last_seen = now;
     device.last_topic = msg.topic;
     device.message_count += 1;
+
+    // Bridge to Slack
+    let slack_msg = format!("*MQTT Message*\n*Topic*: `{}`\n*Payload*: `{}`", msg.topic, msg.payload);
+    tokio::spawn(async move {
+        if let Ok(slack) = crate::slack::SlackClient::new() {
+            let _ = slack.send_message(&slack_msg).await;
+        }
+    });
+}
+
+pub async fn publish_message(topic: &str, payload: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let client = {
+        let state = MQTT_STATE.lock().unwrap();
+        state.client.clone()
+    };
+
+    if let Some(client) = client {
+        client.publish(topic, QoS::AtMostOnce, false, payload).await?;
+        Ok(())
+    } else {
+        Err("MQTT client not initialized".into())
+    }
 }
 
 // API Handlers

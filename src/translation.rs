@@ -163,7 +163,7 @@ pub async fn translate_with_ollama(text: &str) -> Result<String, String> {
         .map_err(|e| e.to_string())?;
 
     let prompt = format!(
-        "Translate the following technical news text to French. ONLY return the translation, no extra text, no apologies, no conversational filler:\n\n{}",
+        "Translate the following technical news text to French. Output ONLY the translated text. Do not include introductory phrases like 'Here is the translation', explanations, or any other additional content.\n\nText: {}",
         text
     );
 
@@ -198,4 +198,53 @@ pub async fn translate_with_ollama(text: &str) -> Result<String, String> {
     }
     
     Ok(translated)
+}
+
+pub async fn generate_tags_with_ollama(text: &str) -> Result<Vec<String>, String> {
+    let client = HttpClient::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let prompt = format!(
+        "Analyze the following technical news and generate descriptive tags in 'key:value' format (e.g., 'category:devops', 'language:rust', 'tool:kubernetes'). Output ONLY the tags, separated by commas. Do not include any other text.\n\nNews: {}",
+        text
+    );
+
+    let request = serde_json::json!({
+        "model": get_ollama_model(),
+        "prompt": prompt,
+        "stream": false
+    });
+
+    let response = client
+        .post(get_ollama_url())
+        .json(&request)
+        .send()
+        .await
+        .map_err(|e| format!("Ollama request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Ollama returned status: {}", response.status()));
+    }
+
+    let result: serde_json::Value = response.json().await
+        .map_err(|e| format!("Failed to parse Ollama response: {}", e))?;
+    
+    let tags_str = result["response"]
+        .as_str()
+        .unwrap_or("")
+        .trim();
+    
+    if tags_str.is_empty() {
+        return Ok(Vec::new());
+    }
+    
+    let tags = tags_str
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty() && s.contains(':'))
+        .collect();
+    
+    Ok(tags)
 }

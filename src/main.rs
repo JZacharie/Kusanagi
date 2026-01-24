@@ -521,6 +521,7 @@ async fn main() -> std::io::Result<()> {
             .configure(setup::configure_routes)
             .configure(system::configure_routes)
             .configure(mqtt::configure_routes)
+            .configure(slack::configure_routes)
             .configure(security::configure_routes)
             .service(health_check)
 
