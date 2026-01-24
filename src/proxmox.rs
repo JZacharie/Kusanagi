@@ -142,6 +142,13 @@ impl ProxmoxNodeClient {
 
         let response = request.send().await?;
         if !response.status().is_success() {
+            let status = response.status();
+            if status == 401 {
+                error!("Proxmox node {} returned 401 Unauthorized (Auth method: {})", 
+                    self.base_url, 
+                    if self.token.is_some() { "Token" } else if self.ticket.is_some() { "Ticket" } else { "None" }
+                );
+            }
             return Err(format!("Proxmox node {} returned error: {}", self.base_url, response.status()).into());
         }
 

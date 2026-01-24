@@ -5,7 +5,7 @@ use tracing::{info, warn};
 use reqwest::Client as HttpClient;
 
 fn get_s3_endpoint() -> String {
-    std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170".to_string())
+    std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170:9010".to_string())
 }
 
 fn get_s3_bucket() -> String {

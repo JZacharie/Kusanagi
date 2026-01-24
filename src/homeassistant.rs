@@ -123,7 +123,11 @@ impl HomeAssistantClient {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            error!("Home Assistant API error: {} - {}", status, body);
+            if status == 401 {
+                error!("Home Assistant API error: 401 Unauthorized (Token missing: {})", self.token.is_empty());
+            } else {
+                error!("Home Assistant API error: {} - {}", status, body);
+            }
             return Err(format!("Home Assistant API error: {}", status).into());
         }
 
