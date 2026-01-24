@@ -1,3 +1,14 @@
 nohup: ignoring input
 [2m2026-01-23T19:06:55.180963Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
 [2m2026-01-23T19:39:45.116039Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-23T20:12:29.317539Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-23T20:45:15.726825Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-23T21:17:56.684757Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-23T21:51:09.601406Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-23T22:24:30.374781Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-23T22:57:51.102064Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-23T23:31:11.725321Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T00:04:32.307518Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T00:37:53.305204Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T01:11:10.455013Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
+[2m2026-01-24T01:44:30.994184Z[0m [31mERROR[0m [2mkusanagi::newsfeed[0m[2m:[0m Failed to ensure translation bucket exists: Failed to list buckets: dispatch failure
