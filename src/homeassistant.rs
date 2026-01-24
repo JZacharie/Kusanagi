@@ -7,21 +7,18 @@ use tracing::{error, info, warn};
 pub struct Sensor {
     pub entity_id: String,
     pub state: String,
-    pub attributes: SensorAttributes,
+    pub attributes: serde_json::Value,
     pub last_changed: String,
     pub last_updated: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SensorAttributes {
-    #[serde(default)]
-    pub friendly_name: String,
-    #[serde(default)]
-    pub unit_of_measurement: String,
-    #[serde(default)]
-    pub device_class: String,
-    #[serde(default)]
-    pub icon: String,
+pub struct Sensor {
+    pub entity_id: String,
+    pub state: String,
+    pub attributes: serde_json::Value,
+    pub last_changed: String,
+    pub last_updated: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -151,18 +148,10 @@ impl HomeAssistantClient {
                 s.entity_id.starts_with("input_number.")
             })
             .map(|s| {
-                let attributes = serde_json::from_value::<SensorAttributes>(s.attributes.clone())
-                    .unwrap_or_else(|_| SensorAttributes {
-                        friendly_name: s.entity_id.clone(),
-                        unit_of_measurement: String::new(),
-                        device_class: String::new(),
-                        icon: String::new(),
-                    });
-
                 Sensor {
                     entity_id: s.entity_id,
                     state: s.state,
-                    attributes,
+                    attributes: s.attributes,
                     last_changed: s.last_changed,
                     last_updated: s.last_updated,
                 }

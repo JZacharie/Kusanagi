@@ -9,7 +9,12 @@
     <link rel="stylesheet" href="/static/css/cyberpunk.css">
     <link rel="stylesheet" href="/static/css/modern-2026.css">
     <link rel="stylesheet" href="/static/css/loot-drop.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/weather.css">
+    <link rel="stylesheet" href="/static/css/homeassistant.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&family=Rajdhani:wght@500;700&display=swap"
+        rel="stylesheet">
     <link rel="icon" href="/static/images/logo.png">
     <script src="/static/js/theme.js"></script>
 
@@ -2544,45 +2549,62 @@
     <!-- Documentation Section -->
     <section class="argocd-section tab-content" data-tab="docs" style="display: none;">
         <h2 class="section-title">📖 Kusanagi Documentation</h2>
-        
+
         <div class="stats-grid" style="margin-bottom: 2rem;">
             <div class="stat-box info" style="grid-column: span 3; padding: 2rem;">
                 <h3 style="color: var(--neon-cyan); margin-top: 0;">🎯 Notre Vision</h3>
                 <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.9;">
-                    Kusanagi est une plateforme d'observabilité et d'auto-remédiation pour Kubernetes, 
-                    inspirée par l'univers de <em>Ghost in the Shell</em>. 
-                    Notre mission est de fournir une interface cybernétique unifiée pour surveiller et 
+                    Kusanagi est une plateforme d'observabilité et d'auto-remédiation pour Kubernetes,
+                    inspirée par l'univers de <em>Ghost in the Shell</em>.
+                    Notre mission est de fournir une interface cybernétique unifiée pour surveiller et
                     gérer votre infrastructure K8s avec une efficacité et une élégance totales.
                 </p>
             </div>
         </div>
 
         <div class="issues-table-container" style="border-color: var(--neon-magenta);">
-            <div class="issues-table-header" style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-                <span class="issues-table-title" style="color: var(--neon-magenta);">📚 Améliorations & Ressources</span>
+            <div class="issues-table-header"
+                style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                <span class="issues-table-title" style="color: var(--neon-magenta);">📚 Améliorations &
+                    Ressources</span>
             </div>
             <div style="padding: 1.5rem;">
-                <p style="margin-bottom: 1.5rem;">Découvrez comment Kusanagi améliore la gestion de vos systèmes grâce à ces documents :</p>
-                <div class="grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                <p style="margin-bottom: 1.5rem;">Découvrez comment Kusanagi améliore la gestion de vos systèmes grâce à
+                    ces documents :</p>
+                <div class="grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
                     <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
                         <h4 style="color: var(--neon-yellow);">🎬 Ghost Machine Cinema</h4>
-                        <p style="font-size: 0.9rem; opacity: 0.7;">L'inspiration esthétique et philosophique derrière l'interface.</p>
-                        <a href="http://192.168.0.170/kusanagi-docs/Ghost_Machine_Cinema.pdf" target="_blank" class="cyber-btn" style="margin-top: 1rem; display: inline-block;">Ouvrir le PDF</a>
+                        <p style="font-size: 0.9rem; opacity: 0.7;">L'inspiration esthétique et philosophique derrière
+                            l'interface.</p>
+                        <a href="http://192.168.0.170/kusanagi-docs/Ghost_Machine_Cinema.pdf" target="_blank"
+                            class="cyber-btn" style="margin-top: 1rem; display: inline-block;">Ouvrir le PDF</a>
                     </div>
                     <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
                         <h4 style="color: var(--neon-green);">🔄 GitOps DevOps: Next Evolution</h4>
-                        <p style="font-size: 0.9rem; opacity: 0.7;">L'évolution vers l'automatisation totale du cycle de vie du cluster.</p>
-                        <a href="http://192.168.0.170/kusanagi-docs/GitOps_DevOps_Next_Evolution.pdf" target="_blank" class="cyber-btn" style="margin-top: 1rem; display: inline-block;">Ouvrir le PDF</a>
+                        <p style="font-size: 0.9rem; opacity: 0.7;">L'évolution vers l'automatisation totale du cycle de
+                            vie du cluster.</p>
+                        <a href="http://192.168.0.170/kusanagi-docs/GitOps_DevOps_Next_Evolution.pdf" target="_blank"
+                            class="cyber-btn" style="margin-top: 1rem; display: inline-block;">Ouvrir le PDF</a>
                     </div>
                     <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
                         <h4 style="color: var(--neon-blue);">🚀 GitOps Progressive Delivery</h4>
-                        <p style="font-size: 0.9rem; opacity: 0.7;">Stratégies pour un déploiement continu et une résilience accrue.</p>
-                        <a href="http://192.168.0.170/kusanagi-docs/GitOps_Progressive_Delivery.pdf" target="_blank" class="cyber-btn" style="margin-top: 1rem; display: inline-block;">Ouvrir le PDF</a>
+                        <p style="font-size: 0.9rem; opacity: 0.7;">Stratégies pour un déploiement continu et une
+                            résilience accrue.</p>
+                        <a href="http://192.168.0.170/kusanagi-docs/GitOps_Progressive_Delivery.pdf" target="_blank"
+                            class="cyber-btn" style="margin-top: 1rem; display: inline-block;">Ouvrir le PDF</a>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+    <!-- Home Assistant Detail Modal -->
+    <div id="ha-detail-modal">
+        <div class="ha-modal-content">
+            <button class="ha-modal-close" onclick="HomeAssistantDashboard.closeDetail()">&times;</button>
+            <div id="ha-modal-body"></div>
+        </div>
+    </div>
 </body>
 
 </html>

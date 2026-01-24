@@ -1,0 +1,116 @@
+/* Weather Animations & Styles */
+.weather-card {
+    transition: transform 0.3s ease;
+}
+
+.weather-card:hover {
+    transform: translateY(-5px);
+}
+
+.forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 255, 255, 0.1);
+}
+
+.forecast-day {
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+.forecast-temp {
+    font-weight: bold;
+    color: var(--neon-cyan);
+}
+
+/* Animated Weather Icons base */
+.weather-icon-anim {
+    width: 64px;
+    height: 64px;
+    position: relative;
+    margin: 0 auto;
+}
+
+/* Rain Animation */
+@keyframes rain {
+    0% {
+        transform: translateY(0);
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+}
+
+.rain-anim {
+    position: absolute;
+    background: var(--neon-cyan);
+    width: 2px;
+    height: 8px;
+    border-radius: 1px;
+    animation: rain 0.8s infinite linear;
+}
+
+/* Floating Animation */
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.float-anim {
+    animation: float 3s ease-in-out infinite;
+}
+
+/* Pulse Animation for Sun */
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        filter: blur(0px);
+    }
+
+    50% {
+        transform: scale(1.1);
+        filter: blur(2px);
+    }
+}
+
+.pulse-anim {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Flash Animation for Thunder */
+@keyframes flash {
+
+    0%,
+    90%,
+    100% {
+        opacity: 0;
+    }
+
+    92%,
+    98% {
+        opacity: 1;
+    }
+}
+
+.flash-anim {
+    animation: flash 1.5s infinite;
+}

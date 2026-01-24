@@ -5,8 +5,8 @@ const WeatherDashboard = {
     init() {
         this.fetchAndRender();
         if (this.refreshInterval) clearInterval(this.refreshInterval);
-        this.refreshInterval = setInterval(() => this.fetchAndRender(), 1800000); // 30 minutes as per roadmap
-        console.log('✅ Weather Dashboard initialized');
+        this.refreshInterval = setInterval(() => this.fetchAndRender(), 3600000); // 1 hour
+        console.log('✅ Weather Dashboard initialized (hourly refresh)');
     },
 
     async fetchAndRender() {
@@ -26,6 +26,37 @@ const WeatherDashboard = {
         }
     },
 
+    getAnimatedIcon(code) {
+        const iconMap = {
+            '01d': '☀️', '01n': '🌙',
+            '02d': '⛅', '02n': '🌥️',
+            '03d': '☁️', '03n': '☁️',
+            '04d': '☁️', '04n': '☁️',
+            '09d': '🌧️', '09n': '🌧️',
+            '10d': '🌦️', '10n': '🌦️',
+            '11d': '⚡', '11n': '⚡',
+            '13d': '❄️', '13n': '❄️',
+            '50d': '🌫️', '50n': '🌫️'
+        };
+
+        const animationClass = {
+            '01d': 'pulse-anim',
+            '01n': 'float-anim',
+            '02d': 'float-anim',
+            '03d': 'float-anim',
+            '04d': 'float-anim',
+            '09d': 'rain-anim',
+            '10d': 'rain-anim',
+            '11d': 'flash-anim',
+            '13d': 'float-anim'
+        };
+
+        const emoji = iconMap[code] || '🌡️';
+        const cssClass = animationClass[code] || '';
+
+        return `<div class="weather-icon-anim ${cssClass}" style="font-size: 3rem; display: flex; align-items: center; justify-content: center;">${emoji}</div>`;
+    },
+
     renderWeather(data) {
         const container = document.getElementById('weather-content');
         const cities = data.cities || [];
@@ -36,27 +67,42 @@ const WeatherDashboard = {
         }
 
         let html = `
-            <div class="weather-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+            <div class="weather-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
                 ${cities.map(city => `
-                    <div class="weather-card" style="padding: 1.5rem; background: rgba(0, 255, 255, 0.05); border: 1px solid var(--neon-cyan); border-radius: 8px; position: relative; overflow: hidden;">
-                        <div style="font-size: 3rem; position: absolute; top: 1rem; right: 1rem; opacity: 0.8;">${city.icon}</div>
-                        <h3 style="margin: 0; font-size: 1.4rem; color: var(--neon-cyan);">${city.city}</h3>
-                        <div style="font-size: 2.5rem; font-weight: bold; margin: 1rem 0;">${city.temp.toFixed(1)}°C</div>
-                        <div style="text-transform: capitalize; font-size: 1.1rem; opacity: 0.9;">${city.description}</div>
+                    <div class="weather-card" style="padding: 1.5rem; background: rgba(0, 255, 249, 0.05); border: 1px solid var(--neon-cyan); border-radius: 12px; position: relative;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.6rem; color: var(--neon-cyan);">${city.city}</h3>
+                                <div style="text-transform: capitalize; font-size: 1.1rem; opacity: 0.9;">${city.description}</div>
+                            </div>
+                            ${this.getAnimatedIcon(city.icon)}
+                        </div>
+
+                        <div style="font-size: 3rem; font-weight: bold; margin: 0.5rem 0;">${city.temp.toFixed(1)}°C</div>
                         
-                        <div style="margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem; opacity: 0.7;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.9rem; opacity: 0.7; margin-bottom: 1.5rem;">
                             <div>💧 Humidity: ${city.humidity}%</div>
                             <div>💨 Wind: ${city.wind_speed} km/h</div>
                         </div>
+
+                        <div class="forecast-grid">
+                            ${city.forecast.map(day => `
+                                <div class="forecast-day">
+                                    <div style="font-size: 0.7rem; opacity: 0.6; margin-bottom: 0.2rem;">${new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                                    <div style="font-size: 1.2rem; margin: 0.3rem 0;">${this.getAnimatedIcon(day.icon).replace('3rem', '1.2rem')}</div>
+                                    <div class="forecast-temp">${day.temp.toFixed(0)}°</div>
+                                </div>
+                            `).join('')}
+                        </div>
                         
-                        <div style="margin-top: 1rem; font-size: 0.75rem; opacity: 0.5; text-align: right;">
-                            Last updated: ${city.last_updated}
+                        <div style="margin-top: 1rem; font-size: 0.7rem; opacity: 0.4; text-align: right;">
+                            Last update: ${city.last_updated}
                         </div>
                     </div>
                 `).join('')}
             </div>
             <div style="text-align: center; margin-top: 2rem; opacity: 0.4; font-size: 0.8rem;">
-                Cached at: ${data.cached_at}
+                Server cache: ${data.cached_at}
             </div>
         `;
 
