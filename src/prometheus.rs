@@ -211,10 +211,10 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     let gpu_power_usage = query_instant(gpu_power_query).await.unwrap_or(0.0);
 
     // Energy Metrics from Home Assistant via Prometheus
-    let solar_query = r#"avg(homeassistant_sensor_power_watt{entity="sensor.solar_production"}) or avg(homeassistant_sensor_unit_w{entity="sensor.pv_production"}) or vector(0)"#;
+    let solar_query = r#"avg(homeassistant_sensor_unit_w{entity="sensor.envoy_122304017410_current_power_production"}) or avg(homeassistant_sensor_power_watt{entity="sensor.solar_production"}) or avg(homeassistant_sensor_unit_w{entity="sensor.pv_production"}) or vector(0)"#;
     let energy_solar_production = query_instant(solar_query).await.unwrap_or(0.0);
 
-    let consumption_query = r#"avg(homeassistant_sensor_power_watt{entity="sensor.house_consumption"}) or avg(homeassistant_sensor_unit_w{entity="sensor.household_consumption"}) or vector(0)"#;
+    let consumption_query = r#"avg(homeassistant_sensor_unit_w{entity="sensor.envoy_122304017410_current_power_consumption"}) or avg(homeassistant_sensor_power_watt{entity="sensor.house_consumption"}) or avg(homeassistant_sensor_unit_w{entity="sensor.household_consumption"}) or vector(0)"#;
     let energy_house_consumption = query_instant(consumption_query).await.unwrap_or(0.0);
 
     // VPS Metrics from VPS.json - using sum/avg to ensure a single scalar result
