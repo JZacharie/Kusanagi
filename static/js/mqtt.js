@@ -174,6 +174,36 @@ const MqttManager = {
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
+    },
+
+    openLogsModal: function () {
+        document.getElementById('mqtt-logs-modal').style.display = 'flex';
+        this.renderLogsModalContent();
+    },
+
+    closeLogsModal: function () {
+        document.getElementById('mqtt-logs-modal').style.display = 'none';
+    },
+
+    renderLogsModalContent: function () {
+        const container = document.getElementById('mqtt-modal-log-content');
+        if (!container) return;
+
+        // Show only the last 30 messages
+        const last30 = this.messageBuffer.slice(0, 30);
+
+        if (last30.length === 0) {
+            container.innerHTML = '<div style="text-align: center; margin-top: 2rem; opacity: 0.5;">No messages yet.</div>';
+            return;
+        }
+
+        container.innerHTML = last30.map(msg => `
+            <div style="border-bottom: 1px solid rgba(255, 0, 128, 0.1); padding: 0.5rem 0;">
+                <span style="color: #888; font-size: 0.8rem;">[${this.formatTimeOnly(msg.timestamp)}]</span>
+                <span style="color: var(--neon-magenta); font-weight: bold;">${msg.topic}</span>
+                <div style="color: var(--neon-cyan); margin-left: 1rem; word-break: break-all;">${this.escapeHtml(msg.payload)}</div>
+            </div>
+        `).join('');
     }
 };
 

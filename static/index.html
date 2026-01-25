@@ -907,6 +907,8 @@
                             placeholder="Filter topic/payload..." +
                             style="font-size: 0.8rem; padding: 0.2rem 0.5rem; width: 200px;"
                             oninput="MqttManager.applyFilter()">
+                        + <button class="cyber-btn" onclick="MqttManager.openLogsModal()"
+                            style="font-size: 0.7rem; border-color: var(--neon-cyan); color: var(--neon-cyan);">Logs</button>
                         + <button class="cyber-btn" onclick="MqttManager.clearFlux()"
                             style="font-size: 0.7rem;">Clear</button>
                         + </div>
@@ -2665,6 +2667,28 @@
             </div>
         </div>
     </section>
+
+    <!-- MQTT Logs Modal -->
+    <div id="mqtt-logs-modal" class="cyber-modal" style="display: none;">
+        <div class="cyber-modal-content" style="max-width: 90%; width: 1000px; max-height: 80vh;">
+            <div class="cyber-modal-header">
+                <h3>📡 MQTT Real-time Logs (Last 30)</h3>
+                <span class="cyber-modal-close" onclick="MqttManager.closeLogsModal()">&times;</span>
+            </div>
+            <div class="cyber-modal-body"
+                style="background: rgba(0, 0, 0, 0.8); padding: 1rem; border: 1px solid var(--neon-magenta);">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                    <button class="cyber-btn" style="padding: 5px 15px;"
+                        onclick="MqttManager.renderLogsModalContent()">🔄
+                        Refresh</button>
+                </div>
+                <div id="mqtt-modal-log-content"
+                    style="height: 50vh; overflow-y: auto; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; margin: 0;">
+                    <!-- MQTT log lines go here -->
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Home Assistant Detail Modal -->
     <div id="ha-detail-modal">
