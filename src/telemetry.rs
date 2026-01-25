@@ -30,7 +30,10 @@ impl Default for TelemetryConfig {
     fn default() -> Self {
         Self {
             endpoint: std::env::var("OPENOBSERVE_ENDPOINT")
-                .unwrap_or_else(|_| "https://o2-openobserve.p.zacharie.org/api/default/v1/logs".to_string()),
+                .unwrap_or_else(|_| {
+                    tracing::warn!("OPENOBSERVE_ENDPOINT not set, telemetry will be disabled until configured");
+                    "".to_string()
+                }),
             auth_token: std::env::var("OPENOBSERVE_AUTH").ok(),
             batch_size: 10,
             sample_rate: std::env::var("APM_SAMPLE_RATE")

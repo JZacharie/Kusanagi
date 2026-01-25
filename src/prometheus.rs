@@ -46,7 +46,10 @@ struct PromResult {
 
 fn get_prometheus_url() -> String {
     std::env::var("PROMETHEUS_URL")
-        .unwrap_or_else(|_| "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string())
+        .unwrap_or_else(|_| {
+            tracing::warn!("PROMETHEUS_URL not set, using default local K8s service URL");
+            "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
+        })
 }
 
 /// Execute a PromQL instant query
@@ -114,29 +117,69 @@ pub async fn query_raw(query: &str) -> Result<PrometheusQueryResult, String> {
 
 /// Get comprehensive cluster metrics from Prometheus
 pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
+    let mut errors = Vec::new();
+
     // CPU usage across all nodes (percentage)
     let cpu_query = r#"100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)"#;
-    let cpu_usage = query_instant(cpu_query).await.unwrap_or(0.0);
+    let cpu_usage = match query_instant(cpu_query).await {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::error!("Failed to query CPU usage: {}", e);
+            errors.push(format!("CPU: {}", e));
+            0.0
+        }
+    };
     
     // Memory usage percentage
     let mem_percent_query = r#"(1 - (sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes))) * 100"#;
-    let memory_usage_percent = query_instant(mem_percent_query).await.unwrap_or(0.0);
+    let memory_usage_percent = match query_instant(mem_percent_query).await {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::error!("Failed to query memory percentage: {}", e);
+            errors.push(format!("Memory %: {}", e));
+            0.0
+        }
+    };
     
     // Memory usage in bytes
     let mem_bytes_query = r#"sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)"#;
-    let memory_usage_bytes = query_instant(mem_bytes_query).await.unwrap_or(0.0) as i64;
+    let memory_usage_bytes = match query_instant(mem_bytes_query).await {
+        Ok(v) => v as i64,
+        Err(e) => {
+            tracing::error!("Failed to query memory bytes: {}", e);
+            0.0 as i64
+        }
+    };
     
     // Pod count
     let pod_query = r#"count(kube_pod_info)"#;
-    let pod_count = query_instant(pod_query).await.unwrap_or(0.0) as i32;
+    let pod_count = match query_instant(pod_query).await {
+        Ok(v) => v as i32,
+        Err(e) => {
+            tracing::error!("Failed to query pod count: {}", e);
+            0
+        }
+    };
     
     // Node count
     let node_query = r#"count(kube_node_info)"#;
-    let node_count = query_instant(node_query).await.unwrap_or(0.0) as i32;
+    let node_count = match query_instant(node_query).await {
+        Ok(v) => v as i32,
+        Err(e) => {
+            tracing::error!("Failed to query node count: {}", e);
+            0
+        }
+    };
     
     // Container count
     let container_query = r#"count(kube_pod_container_info)"#;
-    let container_count = query_instant(container_query).await.unwrap_or(0.0) as i32;
+    let container_count = match query_instant(container_query).await {
+        Ok(v) => v as i32,
+        Err(e) => {
+            tracing::error!("Failed to query container count: {}", e);
+            0
+        }
+    };
     
     // Firing alerts
     let alerts_firing_query = r#"count(ALERTS{alertstate="firing"}) or vector(0)"#;
@@ -160,6 +203,10 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     let vps_net_query = r#"sum(rate(system_network_io_bytes_total{direction="receive", device="eth0"}[5m])) / 125000000 * 100 or vector(0)"#;
     let vps_net_receive = query_instant(vps_net_query).await.unwrap_or(0.0);
     
+    if !errors.is_empty() {
+        tracing::warn!("Some Prometheus metrics failed to load: {:?}", errors);
+    }
+
     Ok(PrometheusMetrics {
         cpu_usage_percent: cpu_usage,
         memory_usage_percent,
