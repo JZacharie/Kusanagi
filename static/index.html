@@ -137,6 +137,10 @@
                 <a href="https://o2-openobserve.p.zacharie.org" target="_blank" class="ext-link o2" title="OpenObserve">
                     <span class="link-icon">👁️</span> O2
                 </a>
+                <a href="https://github.com/JZacharie/Kusanagi/actions" target="_blank" class="ext-link github"
+                    title="GitHub Actions">
+                    <span class="link-icon mdi mdi-github"></span> Evolution
+                </a>
             </div>
         </nav>
 
@@ -253,6 +257,9 @@
             <!-- Group 4: Information & Help -->
             <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
                 <span class="tab-icon">💬</span> Chat
+            </button>
+            <button class="tab-btn" data-tab="evolution" onclick="switchTab('evolution')">
+                <span class="tab-icon mdi mdi-github"></span> Evolution
             </button>
             <button class="tab-btn" data-tab="docs" onclick="switchTab('docs')">
                 <span class="tab-icon">📖</span> Docs
@@ -2620,6 +2627,45 @@
             </div>
         </div>
     </section>
+    <!-- Evolution Section -->
+    <section class="argocd-section tab-content" data-tab="evolution" style="display: none;">
+        <h2 class="section-title">🚀 Kusanagi Evolution</h2>
+
+        <div class="stats-grid" style="margin-bottom: 2rem;">
+            <div class="stat-box info"
+                style="grid-column: span 3; padding: 2rem; border-color: var(--neon-blue); background: rgba(0, 255, 249, 0.05);">
+                <h3 style="color: var(--neon-cyan); margin-top: 0; display: flex; align-items: center; gap: 0.75rem;">
+                    <span class="mdi mdi-github" style="font-size: 1.5rem;"></span>
+                    Continuous Integration & Deployment
+                </h3>
+                <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.9; margin-bottom: 2rem;">
+                    Suivez en temps réel l'évolution technique de Kusanagi. Chaque modification du code source déclenche
+                    un cycle complet de vérification, de build et de déploiement automatique.
+                </p>
+                <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                    <div
+                        style="flex: 1; min-width: 250px; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h4 style="color: var(--neon-green); margin-top: 0;">🛠️ Build & Analysis</h4>
+                        <p style="font-size: 0.9rem; opacity: 0.7;">Compilation du backend Rust, validation du frontend
+                            et analyse de la qualité du code.</p>
+                    </div>
+                    <div
+                        style="flex: 1; min-width: 250px; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h4 style="color: var(--neon-magenta); margin-top: 0;">📦 Containerization</h4>
+                        <p style="font-size: 0.9rem; opacity: 0.7;">Création et publication automatique des images
+                            Docker sur le registre Kusanagi.</p>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 2.5rem;">
+                    <a href="https://github.com/JZacharie/Kusanagi/actions" target="_blank" class="cyber-btn"
+                        style="padding: 1rem 3rem; font-size: 1.2rem;">
+                        <span class="mdi mdi-open-in-new"></span> VOIR SUR GITHUB ACTIONS
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Home Assistant Detail Modal -->
     <div id="ha-detail-modal">
         <div class="ha-modal-content">

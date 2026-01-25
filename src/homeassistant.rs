@@ -141,7 +141,11 @@ impl HomeAssistantClient {
                 s.entity_id.starts_with("binary_sensor.") ||
                 s.entity_id.starts_with("update.") ||
                 s.entity_id.starts_with("number.") ||
-                s.entity_id.starts_with("input_number.")
+                s.entity_id.starts_with("input_number.") ||
+                s.entity_id.starts_with("switch.") ||
+                s.entity_id.starts_with("light.") ||
+                s.entity_id.starts_with("fan.") ||
+                s.entity_id.starts_with("lock.")
             })
             .map(|s| {
                 Sensor {

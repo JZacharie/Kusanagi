@@ -35,6 +35,43 @@
     box-shadow: 0 4px 20px rgba(0, 255, 249, 0.1);
 }
 
+.sensor-icon-link {
+    text-decoration: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.sensor-card-mini {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sensor-icon-link:hover .sensor-card-mini {
+    background: rgba(255, 255, 255, 0.08);
+    transform: perspective(500px) translateZ(10px);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+    border-color: var(--neon-cyan);
+}
+
+.sensor-mini-state {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    box-shadow: 0 0 5px currentColor;
+}
+
 .sensor-icon {
     font-size: 1.5rem;
     color: var(--text-secondary);

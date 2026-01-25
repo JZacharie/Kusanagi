@@ -114,7 +114,7 @@ const HomeAssistantDashboard = {
                         <span class="mdi ${this.getCategoryIcon(cat)}"></span>
                         ${cat}
                     </div>
-                    <div class="sensors-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                    <div class="sensors-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 1rem;">
                         ${grouped[cat].map(s => this.renderSensorCard(s)).join('')}
                     </div>
                 </div>
@@ -141,18 +141,15 @@ const HomeAssistantDashboard = {
         const unit = sensor.attributes.unit_of_measurement || '';
         const name = sensor.attributes.friendly_name || sensor.entity_id;
         const color = this.getStateColor(sensor);
+        const link = `https://vha.zacharie.org/config/entities?search=${sensor.entity_id}`;
 
         return `
-            <div class="sensor-card" onclick="HomeAssistantDashboard.showDetail('${sensor.entity_id}')">
-                <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
-                    <span class="mdi ${icon}" style="font-size: 1.5rem; color: ${color}; margin-right: 0.75rem;"></span>
-                    <div class="sensor-name" title="${name}">${name}</div>
+            <a href="${link}" target="_blank" rel="noopener" class="sensor-icon-link" title="${name}: ${sensor.state} ${unit}">
+                <div class="sensor-card-mini" style="border-color: ${color}44;">
+                    <span class="mdi ${icon}" style="font-size: 2rem; color: ${color};"></span>
+                    <div class="sensor-mini-state" style="background: ${color};"></div>
                 </div>
-                <div style="display: flex; align-items: baseline;">
-                    <span class="sensor-state" style="color: ${color};">${sensor.state}</span>
-                    <span class="sensor-unit">${unit}</span>
-                </div>
-            </div>
+            </a>
         `;
     },
 
