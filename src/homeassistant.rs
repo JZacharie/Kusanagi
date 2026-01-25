@@ -137,7 +137,7 @@ impl HomeAssistantClient {
         let sensors: Vec<Sensor> = states
             .into_iter()
             .filter(|s| {
-                s.entity_id.starts_with("sensor.") || 
+                (s.entity_id.starts_with("sensor.") || 
                 s.entity_id.starts_with("binary_sensor.") ||
                 s.entity_id.starts_with("update.") ||
                 s.entity_id.starts_with("number.") ||
@@ -145,7 +145,9 @@ impl HomeAssistantClient {
                 s.entity_id.starts_with("switch.") ||
                 s.entity_id.starts_with("light.") ||
                 s.entity_id.starts_with("fan.") ||
-                s.entity_id.starts_with("lock.")
+                s.entity_id.starts_with("lock.")) && 
+                s.state != "unavailable" && 
+                s.state != "unknown"
             })
             .map(|s| {
                 Sensor {
