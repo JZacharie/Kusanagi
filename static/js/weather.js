@@ -163,15 +163,23 @@ const WeatherDashboard = {
 
                         <!-- 5-Day Forecast -->
                         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-top: auto;">
-                            ${city.forecast.map(day => `
-                                <div class="forecast-day" style="padding: 1rem 0.5rem; text-align: center; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
-                                    <div style="font-size: 0.65rem; font-weight: 800; opacity: 0.4; margin-bottom: 8px; letter-spacing: 1px;">${new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}</div>
-                                    <div style="margin-bottom: 8px; transform: scale(0.9);">
-                                        ${this.getWeatherSVG(day.icon, "35px")}
+                            ${city.forecast.map(day => {
+            // Robust date parsing
+            const dateObj = new Date(day.date.replace(' ', 'T'));
+            const weekday = isNaN(dateObj.getTime())
+                ? (day.date.length > 5 ? day.date.substring(0, 3) : day.date)
+                : dateObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+
+            return `
+                                    <div class="forecast-day" style="padding: 1rem 0.5rem; text-align: center; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+                                        <div style="font-size: 0.65rem; font-weight: 800; opacity: 0.4; margin-bottom: 8px; letter-spacing: 1px;">${weekday}</div>
+                                        <div style="margin-bottom: 8px; transform: scale(0.9);">
+                                            ${this.getWeatherSVG(day.icon, "35px")}
+                                        </div>
+                                        <div style="font-size: 1.1rem; font-weight: 700; font-family: 'Orbitron', sans-serif; color: ${this.getTempColor(day.temp)};">${day.temp.toFixed(0)}°</div>
                                     </div>
-                                    <div style="font-size: 1.1rem; font-weight: 700; font-family: 'Orbitron', sans-serif; color: ${this.getTempColor(day.temp)};">${day.temp.toFixed(0)}°</div>
-                                </div>
-                            `).join('')}
+                                `;
+        }).join('')}
                         </div>
                         
                         <div style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; opacity: 0.3; font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; border-top: 1px dotted rgba(255,255,255,0.1); padding-top: 1rem;">

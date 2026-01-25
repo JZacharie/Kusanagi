@@ -150,13 +150,27 @@ impl WeatherClient {
             _ => (15.0, "Clear", "01d"),
         };
 
-        let forecast = vec![
-            ForecastDay { date: "Tomorrow".to_string(), temp: temp + 2.0, description: "Partly Cloudy".to_string(), icon: "02d".to_string() },
-            ForecastDay { date: "Day 2".to_string(), temp: temp + 1.0, description: "Cloudy".to_string(), icon: "03d".to_string() },
-            ForecastDay { date: "Day 3".to_string(), temp: temp - 1.0, description: "Rainy".to_string(), icon: "10d".to_string() },
-            ForecastDay { date: "Day 4".to_string(), temp: temp - 2.0, description: "Stormy".to_string(), icon: "11d".to_string() },
-            ForecastDay { date: "Day 5".to_string(), temp: temp + 3.0, description: "Sunny".to_string(), icon: "01d".to_string() },
-        ];
+        let mut forecast = Vec::new();
+        for i in 1..=5 {
+            let forecast_date = (chrono::Local::now() + chrono::Duration::days(i))
+                .format("%Y-%m-%d 12:00:00")
+                .to_string();
+            
+            let (f_temp, f_desc, f_icon) = match i {
+                1 => (temp + 2.0, "Partly Cloudy", "02d"),
+                2 => (temp + 1.0, "Cloudy", "03d"),
+                3 => (temp - 1.0, "Rainy", "10d"),
+                4 => (temp - 2.0, "Stormy", "11d"),
+                _ => (temp + 3.0, "Sunny", "01d"),
+            };
+
+            forecast.push(ForecastDay {
+                date: forecast_date,
+                temp: f_temp,
+                description: f_desc.to_string(),
+                icon: f_icon.to_string(),
+            });
+        }
 
         WeatherInfo {
             city: city.to_string(),
