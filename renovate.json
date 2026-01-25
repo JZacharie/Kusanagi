@@ -1,187 +1,41 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": [
-        "config:recommended"
+        "config:base",
+        ":separateMajorReleases",
+        ":combinePatchMinorReleases",
+        ":rebaseStalePrs",
+        ":enableLockFileMaintenance"
     ],
-    "description": "Renovate configuration for Kusanagi - Automated dependency management",
-    "timezone": "Europe/Paris",
     "schedule": [
-        "before 6am on Monday"
+        "before 5am on monday"
     ],
+    "timezone": "Europe/Paris",
     "labels": [
         "dependencies",
         "renovate"
     ],
-    "assignees": [
-        "@JZacharie"
-    ],
-    "reviewers": [
-        "@JZacharie"
-    ],
-    "prConcurrentLimit": 5,
-    "prHourlyLimit": 2,
-    "semanticCommits": "enabled",
-    "commitMessagePrefix": "chore(deps):",
     "packageRules": [
         {
-            "description": "Rust dependencies - Auto-merge patch updates",
-            "matchManagers": [
-                "cargo"
-            ],
-            "matchUpdateTypes": [
-                "patch"
-            ],
-            "automerge": true,
-            "automergeType": "pr",
-            "automergeStrategy": "squash"
-        },
-        {
-            "description": "Rust dependencies - Group minor/major updates",
-            "matchManagers": [
-                "cargo"
-            ],
             "matchUpdateTypes": [
                 "minor",
-                "major"
-            ],
-            "groupName": "Rust dependencies"
-        },
-        {
-            "description": "Critical security updates - High priority",
-            "matchUpdateTypes": [
-                "patch"
-            ],
-            "matchCurrentVersion": "!/^0/",
-            "matchDatasources": [
-                "crate"
-            ],
-            "labels": [
-                "security",
-                "priority-high"
+                "patch",
+                "pin",
+                "digest"
             ],
             "automerge": true
-        },
-        {
-            "description": "Actix-web ecosystem - Group together",
-            "matchPackagePatterns": [
-                "^actix"
-            ],
-            "groupName": "Actix ecosystem",
-            "schedule": [
-                "before 6am on Monday"
-            ]
-        },
-        {
-            "description": "Kubernetes ecosystem - Group together",
-            "matchPackagePatterns": [
-                "^kube",
-                "^k8s-openapi"
-            ],
-            "groupName": "Kubernetes ecosystem",
-            "schedule": [
-                "before 6am on Monday"
-            ]
-        },
-        {
-            "description": "AWS SDK - Group together",
-            "matchPackagePatterns": [
-                "^aws-"
-            ],
-            "groupName": "AWS SDK",
-            "schedule": [
-                "before 6am on Monday"
-            ]
-        },
-        {
-            "description": "Tokio ecosystem - Group together",
-            "matchPackagePatterns": [
-                "^tokio"
-            ],
-            "groupName": "Tokio ecosystem"
-        },
-        {
-            "description": "Serde ecosystem - Group together",
-            "matchPackagePatterns": [
-                "^serde"
-            ],
-            "groupName": "Serde ecosystem"
-        },
-        {
-            "description": "Pin Rust toolchain version",
-            "matchDatasources": [
-                "docker"
-            ],
-            "matchPackageNames": [
-                "rust"
-            ],
-            "enabled": true,
-            "pinDigests": false
         }
     ],
     "vulnerabilityAlerts": {
         "enabled": true,
         "labels": [
-            "security",
-            "vulnerability"
-        ],
-        "assignees": [
-            "@JZacharie"
-        ],
-        "reviewers": [
-            "@JZacharie"
+            "security"
         ]
     },
-    "lockFileMaintenance": {
-        "enabled": true,
-        "schedule": [
-            "before 6am on the first day of the month"
-        ],
-        "commitMessageAction": "Update",
-        "commitMessageTopic": "Cargo.lock"
+    "rust": {
+        "enabled": true
     },
-    "dependencyDashboard": true,
-    "dependencyDashboardTitle": "🤖 Dependency Dashboard - Kusanagi",
-    "dependencyDashboardHeader": "This dashboard shows all pending dependency updates for Kusanagi. Review and merge PRs to keep dependencies up-to-date.",
-    "dependencyDashboardLabels": [
-        "dependencies",
-        "renovate-dashboard"
-    ],
-    "platformAutomerge": true,
-    "ignoreTests": false,
-    "ignorePaths": [
-        "**/node_modules/**",
-        "**/target/**",
-        "**/.git/**"
-    ],
-    "customManagers": [
-        {
-            "customType": "regex",
-            "description": "Update Rust version in Dockerfile",
-            "fileMatch": [
-                "^Dockerfile$"
-            ],
-            "matchStrings": [
-                "FROM rust:(?<currentValue>.*?) as"
-            ],
-            "datasourceTemplate": "docker",
-            "depNameTemplate": "rust"
-        }
-    ],
-    "postUpdateOptions": [
-        "gomodTidy",
-        "npmDedupe"
-    ],
-    "prBodyTemplate": "{{{header}}}{{{table}}}{{{notes}}}{{{changelogs}}}{{{configDescription}}}{{{controls}}}{{{footer}}}",
-    "prBodyColumns": [
-        "Package",
-        "Change",
-        "Type",
-        "Update"
-    ],
-    "prBodyNotes": [
-        "🤖 This PR was automatically generated by Renovate Bot",
-        "📦 Review changes carefully before merging",
-        "🔒 Security updates are auto-merged for patch versions",
-        "📊 Check the [Dependency Dashboard]({{dependencyDashboardLink}}) for more updates"
-    ]
+    "npm": {
+        "enabled": true
+    }
 }
