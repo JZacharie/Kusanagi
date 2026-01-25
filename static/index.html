@@ -906,6 +906,25 @@
     <!-- Prometheus Metrics Section -->
     <section class="argocd-section tab-content" data-tab="metrics" style="display: none;">
         <h2 class="section-title">📊 Cluster Metrics (Prometheus)</h2>
+
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+            <a href="https://grafana.p.zacharie.org/d/sys-ops-id/proxmox-ve-dashboard?orgId=1&from=now-5m&to=now&timezone=Europe%2FRome&var-dsProxmox=d8b8f45f-bf2a-4a3f-922b-e75698dc9413&var-server=$__all&refresh=5s"
+                target="_blank" class="cyber-btn"
+                style="border-color: var(--neon-cyan); color: var(--neon-cyan); text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                <span>🖥️</span> Proxmox Dashboard
+            </a>
+            <a href="https://grafana.p.zacharie.org/d/96aeccdb-afe3-4294-a9e9-d95a09bf2665/k8s-dashboard?orgId=1&from=now-30m&to=now&timezone=browser&var-origin_prometheus=&var-Node=$__all&var-NameSpace=$__all&var-Container=$__all&var-Pod=$__all"
+                target="_blank" class="cyber-btn"
+                style="border-color: var(--neon-blue, #007bff); color: var(--neon-blue, #007bff); text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                <span>☸️</span> K8s Dashboard
+            </a>
+            <a href="https://grafana.p.zacharie.org/d/ycwPj724k2/trivy-operator-dashboard?orgId=1&from=now-2d&to=now&timezone=browser&var-DS_PROMETHEUS=d8b8f45f-bf2a-4a3f-922b-e75698dc9413"
+                target="_blank" class="cyber-btn"
+                style="border-color: var(--neon-magenta); color: var(--neon-magenta); text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                <span>🛡️</span> Trivy Dashboard
+            </a>
+        </div>
+
         <div id="metrics-content">
             <div class="loading">Loading metrics from Prometheus...</div>
         </div>
