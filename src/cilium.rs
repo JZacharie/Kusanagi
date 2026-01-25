@@ -175,7 +175,7 @@ pub async fn get_hubble_flows(namespace: Option<&str>, limit: usize) -> Result<H
         let cache = NETWORK_CACHE.flows.read().await;
         if let Some((ref response, timestamp)) = *cache {
             if timestamp.elapsed() < Duration::from_secs(30) {
-                debug!("🚀 Returning hubble flows from cache");
+                debug!("🚀 Returning hubble flows from cache (age: {:?})", timestamp.elapsed());
                 let mut filtered_response = response.clone();
                 if let Some(ns) = namespace {
                     filtered_response.flows.retain(|f| f.source_namespace == ns || f.destination_namespace == ns);
@@ -230,9 +230,11 @@ pub async fn start_background_refresh(client: kube::Client) {
         
         // Refresh Metrics
         if let Ok(metrics) = fetch_live_metrics(&client).await {
+            debug!("✅ Refreshed Cilium bandwidth metrics cache");
             let mut cache = NETWORK_CACHE.metrics.write().await;
             *cache = Some((metrics, Instant::now()));
         }
+        debug!("✨ Finished Cilium background refresh cycle");
     }
 }
 

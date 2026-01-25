@@ -1,7 +1,7 @@
 use actix_web::{web, HttpResponse, Result};
 use serde::{Deserialize, Serialize};
 use std::env;
-use tracing::{error, warn};
+use tracing::{debug, error, warn};
 use chrono;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -59,6 +59,7 @@ impl WeatherClient {
         let mut results = Vec::new();
 
         if self.api_key.is_empty() {
+            debug!("OPENWEATHER_API_KEY is empty, generating mock weather data for all cities");
             let mut results = Vec::new();
             for city in cities {
                 results.push(self.get_mock_city_weather(city));
@@ -92,6 +93,7 @@ impl WeatherClient {
             "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}&units=metric",
             city, self.api_key
         );
+        debug!("Fetching current weather for {} from URL: {}", city, url);
         let resp = self.client.get(&url).send().await?.json::<serde_json::Value>().await?;
 
         let temp = resp["main"]["temp"].as_f64().unwrap_or(0.0) as f32;

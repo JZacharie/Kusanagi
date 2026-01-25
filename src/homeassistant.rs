@@ -12,14 +12,6 @@ pub struct Sensor {
     pub last_updated: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Sensor {
-    pub entity_id: String,
-    pub state: String,
-    pub attributes: serde_json::Value,
-    pub last_changed: String,
-    pub last_updated: String,
-}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Automation {

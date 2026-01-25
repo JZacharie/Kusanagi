@@ -23,7 +23,7 @@ pub struct SlackClient {
 }
 
 impl SlackClient {
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let token = env::var("SLACK_BOT_TOKEN").unwrap_or_default();
         let channel_id = env::var("SLACK_CHANNEL_ID").unwrap_or_default();
         let signing_secret = env::var("SLACK_SIGNING_SECRET").unwrap_or_default();
@@ -51,6 +51,7 @@ impl SlackClient {
             return true; // Skip if no secret set
         }
 
+        debug!("Verifying Slack signature. Timestamp: {}, Body length: {}, Signature: {}", timestamp, body.len(), signature);
         let basestring = format!("v0:{}:{}", timestamp, body);
         let mut mac = Hmac::<Sha256>::new_from_slice(self.signing_secret.as_bytes())
             .expect("HMAC can take key of any size");
@@ -58,7 +59,13 @@ impl SlackClient {
         let result = mac.finalize();
         let expected_signature = format!("v0={}", hex::encode(result.into_bytes()));
 
-        signature == expected_signature
+        let is_valid = signature == expected_signature;
+        if !is_valid {
+            warn!("Slack signature mismatch! Expected: {}, Received: {}", expected_signature, signature);
+        } else {
+            debug!("Slack signature verified successfully");
+        }
+        is_valid
     }
 
     pub async fn send_message(&self, text: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -141,8 +148,13 @@ pub async fn handle_webhook(
         actix_web::error::ErrorInternalServerError(e)
     })?;
 
+    // Log headers for debugging
+    for (name, value) in req.headers().iter() {
+        debug!("Slack Webhook Header: {}: {:?}", name, value);
+    }
+
     // Log the event for debugging
-    debug!("Received Slack event: {:?}", event_json);
+    debug!("Received Slack event body: {:?}", event_json);
 
     if let Some(challenge) = &event_json.challenge {
         return Ok(HttpResponse::Ok().json(serde_json::json!({ "challenge": challenge })));

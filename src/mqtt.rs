@@ -5,7 +5,7 @@ use std::env;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::sync::broadcast;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use actix_web::{web, HttpResponse, Result};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -124,10 +124,11 @@ fn handle_incoming_message(msg: MqttMessage) {
     });
 
     device.last_seen = now;
-    device.last_topic = msg.topic;
+    device.last_topic = msg.topic.clone();
     device.message_count += 1;
 
     // Bridge to Slack
+    debug!("Bridging MQTT message from topic `{}` to Slack", msg.topic);
     let slack_msg = format!("*MQTT Message*\n*Topic*: `{}`\n*Payload*: `{}`", msg.topic, msg.payload);
     tokio::spawn(async move {
         if let Ok(slack) = crate::slack::SlackClient::new() {
