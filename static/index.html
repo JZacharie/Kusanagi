@@ -180,9 +180,9 @@
                 style="display: flex; gap: 1rem; margin-right: auto; padding-left: 1rem; font-family: monospace; font-size: 0.8rem; opacity: 0.8;">
                 <div class="clock" title="Lyon (Local)"><span style="color: var(--neon-cyan);">LYO</span> <span
                         id="clock-lyon">00:00</span></div>
-                <div class="clock" title="Mexico City"><span style="color: var(--neon-magenta);">MEX</span> <span
+                <div class="clock" title="Mexico City"><span style="color: var(--neon-cyan);">MEX</span> <span
                         id="clock-mexico">00:00</span></div>
-                <div class="clock" title="New York"><span style="color: var(--neon-yellow);">NYC</span> <span
+                <div class="clock" title="New York"><span style="color: var(--neon-cyan);">NYC</span> <span
                         id="clock-nyc">00:00</span></div>
             </div>
             <div class="header-content">
@@ -719,8 +719,9 @@
                 style="border-color: #a371f7;">
                 🟣 GitHub
             </button>
-            <button class="cyber-btn" onclick="fetchNews()" style="margin-left: auto;">
-                🔄 Refresh
+            <button class="cyber-btn" id="btn-news-refresh" onclick="NewsManager.manualRefresh()"
+                style="margin-left: auto;">
+                🔄 REFRESH & TRANSLATE
             </button>
             <div class="view-toggle" style="display: flex; gap: 0.5rem; margin-left: 1rem;">
                 <button class="cyber-btn active" id="btn-view-card" onclick="NewsManager.toggleViewMode('grid')"

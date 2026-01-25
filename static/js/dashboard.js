@@ -728,6 +728,40 @@ const NewsManager = {
     },
 
     /**
+     * Trigger manual refresh and translation
+     */
+    async manualRefresh() {
+        const btn = document.getElementById('btn-news-refresh');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> REFRESHING...';
+            btn.classList.add('loading');
+        }
+
+        try {
+            const response = await fetch('/api/news/refresh', { method: 'POST' });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                showNotification('News refresh started. Translation running in background.', 'info');
+                // Fetch first results immediately
+                await this.fetchNews();
+            } else {
+                throw new Error(data.message || 'Refresh failed');
+            }
+        } catch (error) {
+            console.error('Manual refresh error:', error);
+            showNotification(`Refresh failed: ${error.message}`, 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '🔄 REFRESH & TRANSLATE';
+                btn.classList.remove('loading');
+            }
+        }
+    },
+
+    /**
      * Update news statistics
      */
     updateStats(data) {
@@ -896,7 +930,7 @@ const NewsManager = {
                     ${item.score ? `<span class="news-score">⭐ ${item.score}</span>` : ''}
                     ${item.tags && item.tags.length > 0 ? `
                         <div class="news-tags">
-                            ${item.tags.map(tag => `<span class="news-tag">#${tag}</span>`).join('')}
+                            ${item.tags.slice(0, 5).map(tag => `<span class="news-tag">#${tag}</span>`).join('')}
                         </div>
                     ` : ''}
                 </div>
