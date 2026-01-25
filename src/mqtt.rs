@@ -106,7 +106,7 @@ fn handle_incoming_message(msg: MqttMessage) {
     let _ = state.tx.send(msg.clone());
 
     // Update recent messages
-    debug!("Incoming MQTT message topic: {}, payload: {}", msg.topic, msg.payload);
+    info!("Incoming MQTT message topic: {}, payload: {}", msg.topic, msg.payload);
     state.recent_messages.push_back(msg.clone());
     if state.recent_messages.len() > 100 {
         state.recent_messages.pop_front();
@@ -117,7 +117,7 @@ fn handle_incoming_message(msg: MqttMessage) {
     let now = chrono::Utc::now().to_rfc3339();
 
     let device = state.devices.entry(device_id.clone()).or_insert_with(|| {
-        debug!("New MQTT device detected: {}", device_id);
+        info!("New MQTT device detected: {}", device_id);
         MqttDevice {
             id: device_id.clone(),
             name: msg.topic.split('/').next().unwrap_or("Unknown Device").to_string(),
@@ -132,7 +132,7 @@ fn handle_incoming_message(msg: MqttMessage) {
     device.message_count += 1;
 
     // Bridge to Slack
-    debug!("Bridging MQTT message from topic `{}` to Slack", msg.topic);
+    info!("Bridging MQTT message from topic `{}` to Slack", msg.topic);
     let slack_msg = format!("*MQTT Message*\n*Topic*: `{}`\n*Payload*: `{}`", msg.topic, msg.payload);
     tokio::spawn(async move {
         if let Ok(slack) = crate::slack::SlackClient::new() {

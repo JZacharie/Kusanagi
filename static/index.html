@@ -1213,12 +1213,17 @@
         initWebSocket();
 
         // Reconnect WebSocket when page becomes visible
-        document.addEventListener('visibilitychange', () => {
+        document.addEventListener("visibilitychange", () => {
             if (!document.hidden && (!wsConnection || wsConnection.readyState !== WebSocket.OPEN)) {
                 wsReconnectAttempts = 0;
                 initWebSocket();
             }
         });
+
+        // Global dashboard state
+        window.KusanagiDashboard = {
+            activeTab: 'argocd'
+        };
 
         // === TABLE MANAGER (Sort & Search) ===
         const TableManager = {
@@ -1329,38 +1334,43 @@
             }
 
             // Update buttons
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
+            document.querySelectorAll(".tab-btn").forEach(btn => {
+                btn.classList.remove("active");
                 if (btn.dataset.tab === tabName) {
-                    btn.classList.add('active');
+                    btn.classList.add("active");
                 }
             });
 
             // Update content
-            document.querySelectorAll('.tab-content').forEach(section => {
+            document.querySelectorAll(".tab-content").forEach(section => {
                 if (section.dataset.tab === tabName) {
-                    section.style.display = 'block';
+                    section.style.display = "block";
                 } else {
-                    section.style.display = 'none';
+                    section.style.display = "none";
                 }
             });
+            
+            // Update active tab tracking
+            if (window.KusanagiDashboard) {
+                window.KusanagiDashboard.activeTab = tabName;
+            }
 
             // Load data for specific tabs
-            if (tabName === 'proxmox' && window.ProxmoxDashboard) {
+            if (tabName === "proxmox" && window.ProxmoxDashboard) {
                 ProxmoxDashboard.init();
-            } else if (tabName === 'homeassistant' && window.HomeAssistantDashboard) {
+            } else if (tabName === "homeassistant" && window.HomeAssistantDashboard) {
                 HomeAssistantDashboard.init();
-            } else if (tabName === 'weather' && window.WeatherDashboard) {
+            } else if (tabName === "weather" && window.WeatherDashboard) {
                 WeatherDashboard.init();
-            } else if (tabName === 'calendar' && window.CalendarDashboard) {
+            } else if (tabName === "calendar" && window.CalendarDashboard) {
                 CalendarDashboard.init();
-            } else if (tabName === 'security' && window.SecurityDashboard) {
+            } else if (tabName === "security" && window.SecurityDashboard) {
                 SecurityDashboard.init();
             }
         }
 
         // === CHAT FUNCTIONS ===
-        async function sendChatMessage() {
+        function sendChatMessage() {
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
             if (!message) return;

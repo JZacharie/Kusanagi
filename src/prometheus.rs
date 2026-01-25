@@ -12,6 +12,10 @@ pub struct PrometheusMetrics {
     pub alerts_firing: i32,
     pub alerts_pending: i32,
     pub gpu_utilization: f64,
+    pub gpu_temperature: f64,
+    pub gpu_power_usage: f64,
+    pub energy_solar_production: f64,
+    pub energy_house_consumption: f64,
     pub vps_cpu_usage: f64,
     pub vps_disk_usage: f64,
     pub vps_net_receive: f64,
@@ -200,6 +204,19 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     let gpu_query = r#"avg(nvidia_gpu_utilization) or avg(dcgm_gpu_utilization) or vector(0)"#;
     let gpu_utilization = query_instant(gpu_query).await.unwrap_or(0.0);
 
+    let gpu_temp_query = r#"avg(nvidia_gpu_temperature_celsius) or avg(dcgm_gpu_temp) or vector(0)"#;
+    let gpu_temperature = query_instant(gpu_temp_query).await.unwrap_or(0.0);
+
+    let gpu_power_query = r#"avg(nvidia_gpu_power_usage_watts) or avg(dcgm_gpu_power_usage) or vector(0)"#;
+    let gpu_power_usage = query_instant(gpu_power_query).await.unwrap_or(0.0);
+
+    // Energy Metrics from Home Assistant via Prometheus
+    let solar_query = r#"avg(homeassistant_sensor_power_watt{entity="sensor.solar_production"}) or avg(homeassistant_sensor_unit_w{entity="sensor.pv_production"}) or vector(0)"#;
+    let energy_solar_production = query_instant(solar_query).await.unwrap_or(0.0);
+
+    let consumption_query = r#"avg(homeassistant_sensor_power_watt{entity="sensor.house_consumption"}) or avg(homeassistant_sensor_unit_w{entity="sensor.household_consumption"}) or vector(0)"#;
+    let energy_house_consumption = query_instant(consumption_query).await.unwrap_or(0.0);
+
     // VPS Metrics from VPS.json - using sum/avg to ensure a single scalar result
     let vps_cpu_query = r#"avg(system_cpu_utilization{state!="idle"}) * 100 or vector(0)"#;
     let vps_cpu_usage = query_instant(vps_cpu_query).await.unwrap_or(0.0);
@@ -224,6 +241,10 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
         alerts_firing,
         alerts_pending,
         gpu_utilization,
+        gpu_temperature,
+        gpu_power_usage,
+        energy_solar_production,
+        energy_house_consumption,
         vps_cpu_usage,
         vps_disk_usage,
         vps_net_receive,

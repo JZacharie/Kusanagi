@@ -35,6 +35,7 @@ const MqttManager = {
 
     handleWsMessage: function (msg) {
         if (msg.type === 'mqtt_message') {
+            console.log('📡 MQTT Message Received:', msg.topic, msg.payload);
             const newMsg = {
                 topic: msg.topic,
                 payload: msg.payload,
@@ -49,8 +50,13 @@ const MqttManager = {
             // Update device info locally to avoid full fetch
             this.updateDeviceFromMessage(newMsg);
 
-            if (KusanagiDashboard.activeTab === 'mqtt') {
+            if (window.KusanagiDashboard && window.KusanagiDashboard.activeTab === 'mqtt') {
                 this.render();
+                // Also update log modal if it is open
+                const modal = document.getElementById('mqtt-logs-modal');
+                if (modal && modal.style.display === 'flex') {
+                    this.renderLogsModalContent();
+                }
             }
         }
     },

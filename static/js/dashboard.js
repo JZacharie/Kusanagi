@@ -335,6 +335,40 @@ const MetricsManager = {
                         <div class="metric-bar-fill" style="width: ${metrics.gpu_utilization || 0}%; background: var(--neon-green);"></div>
                     </div>
                 </div>
+                <!-- Additional GPU Metrics -->
+                <div class="metric-card">
+                    <div class="metric-icon">🌡️</div>
+                    <div class="metric-value">${metrics.gpu_temperature?.toFixed(1) || 0}°C</div>
+                    <div class="metric-label">GPU Temperature</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${Math.min((metrics.gpu_temperature || 0) / 100 * 100, 100)}%; background: ${metrics.gpu_temperature > 80 ? 'var(--neon-magenta)' : 'var(--neon-cyan)'};"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">⚡</div>
+                    <div class="metric-value">${metrics.gpu_power_usage?.toFixed(1) || 0}W</div>
+                    <div class="metric-label">GPU Power usage</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${Math.min((metrics.gpu_power_usage || 0) / 350 * 100, 100)}%; background: var(--neon-yellow);"></div>
+                    </div>
+                </div>
+                <!-- Energy Metrics from Home Assistant -->
+                <div class="metric-card">
+                    <div class="metric-icon">☀️</div>
+                    <div class="metric-value">${metrics.energy_solar_production?.toFixed(1) || 0}W</div>
+                    <div class="metric-label">Solar Production</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${Math.min((metrics.energy_solar_production || 0) / 3000 * 100, 100)}%; background: var(--neon-green);"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🏠</div>
+                    <div class="metric-value">${metrics.energy_house_consumption?.toFixed(1) || 0}W</div>
+                    <div class="metric-label">House Consumption</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${Math.min((metrics.energy_house_consumption || 0) / 6000 * 100, 100)}%; background: var(--neon-blue);"></div>
+                    </div>
+                </div>
             </div>
 
             <h3 style="margin: 2rem 0 1rem; color: var(--neon-cyan); font-family: 'Orbitron', sans-serif; font-size: 1.1rem; border-bottom: 1px solid rgba(0, 255, 249, 0.2); padding-bottom: 0.5rem;">
