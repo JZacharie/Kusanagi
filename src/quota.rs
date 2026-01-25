@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use actix_web::{HttpResponse, Responder};
-use chrono;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct QuotaMetrics {

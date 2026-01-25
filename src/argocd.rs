@@ -7,22 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::info;
 
-/// ArgoCD Application structure (simplified)
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Application {
-    pub metadata: ApplicationMetadata,
-    pub spec: ApplicationSpec,
-    #[serde(default)]
-    pub status: Option<ApplicationStatus>,
-}
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ApplicationMetadata {
-    pub name: Option<String>,
-    pub namespace: Option<String>,
-}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -111,12 +96,6 @@ pub struct ResourceStatus {
     pub requires_pruning: Option<bool>,
 }
 
-/// Application List response
-#[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ApplicationList {
-    pub items: Vec<Application>,
-}
 
 /// Issue category
 #[derive(Clone, Debug, Serialize, PartialEq)]
@@ -159,11 +138,6 @@ pub struct AppIssue {
     pub argocd_url: String,
 }
 
-/// Sync request
-#[derive(Clone, Debug, Deserialize)]
-pub struct SyncRequest {
-    pub app_name: String,
-}
 
 /// Sync response
 #[derive(Clone, Debug, Serialize)]

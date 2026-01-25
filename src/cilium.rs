@@ -6,9 +6,9 @@
 //! Each function is instrumented with timing spans.
 
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error, debug};
+use tracing::{info, debug};
 use kube::{Api, Client, api::ListParams};
-use k8s_openapi::api::core::v1::{Service, Namespace};
+use k8s_openapi::api::core::v1::Namespace;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::time::{Instant, Duration};
@@ -35,8 +35,6 @@ lazy_static::lazy_static! {
     pub static ref NETWORK_CACHE: Arc<CiliumCache> = Arc::new(CiliumCache::new());
 }
 
-/// Hubble Relay configuration
-const HUBBLE_RELAY_URL: &str = "http://hubble-relay.kube-system.svc.cluster.local:4245";
 
 // ============================================================================
 // Namespace Fetching (Pre-filter for performance)
@@ -74,13 +72,6 @@ pub async fn get_namespaces() -> Result<Vec<String>, String> {
     result
 }
 
-/// Fallback namespaces when K8s is unavailable
-fn get_fallback_namespaces() -> Vec<String> {
-    vec![
-        "argocd", "default", "kube-system", "kusanagi", 
-        "minio", "monitoring", "n8n", "paperless"
-    ].into_iter().map(String::from).collect()
-}
 
 /// Network flow between services
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -142,23 +133,6 @@ pub struct NetworkAnomaly {
     pub timestamp: String,
 }
 
-/// Cilium Network Policy CRD (simplified)
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CiliumNetworkPolicy {
-    pub name: String,
-    pub namespace: String,
-    pub spec_json: String,
-    pub endpoints_matched: i32,
-    pub enabled: bool,
-}
-
-/// Export format options
-#[derive(Deserialize)]
-pub struct ExportOptions {
-    pub format: String,      // "json" or "csv"
-    pub namespace: Option<String>,
-    pub limit: Option<usize>,
-}
 
 // ============================================================================
 // Hubble Flow Fetching
@@ -263,7 +237,7 @@ async fn fetch_live_metrics(_client: &kube::Client) -> Result<Vec<BandwidthMetri
 
 /// Generate mock flows for demonstration
 fn get_mock_flows(namespace: Option<&str>, limit: usize) -> Result<HubbleFlowsResponse, String> {
-    let namespaces = vec![
+    let namespaces = [
         "default", "kube-system", "argocd", "monitoring", 
         "kusanagi", "n8n", "paperless", "minio"
     ];
@@ -272,7 +246,7 @@ fn get_mock_flows(namespace: Option<&str>, limit: usize) -> Result<HubbleFlowsRe
     let mut matrix = vec![];
 
     // Generate sample flows
-    let sample_flows = vec![
+    let sample_flows = [
         ("argocd", "argocd-server", "kusanagi", "kusanagi-app", 8080, "TCP", 1024),
         ("monitoring", "prometheus", "kusanagi", "kusanagi-app", 8080, "TCP", 2048),
         ("default", "nginx", "kube-system", "coredns", 53, "UDP", 256),
@@ -479,22 +453,3 @@ pub fn export_flows_csv(flows: &HubbleFlowsResponse) -> String {
     csv
 }
 
-/// Export matrix as CSV
-pub fn export_matrix_csv(matrix: &[FlowMatrixEntry]) -> String {
-    let mut csv = String::from("source,destination,protocol,port,flow_count,bytes_total,verdict\n");
-    
-    for entry in matrix {
-        csv.push_str(&format!(
-            "{},{},{},{},{},{},{}\n",
-            entry.source,
-            entry.destination,
-            entry.protocol,
-            entry.port,
-            entry.flow_count,
-            entry.bytes_total,
-            entry.verdict
-        ));
-    }
-    
-    csv
-}

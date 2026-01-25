@@ -56,9 +56,9 @@ pub struct NotificationSession {
     /// Shared K8s client
     client: kube::Client,
     /// Last known state for change detection
-    last_argocd_issues: usize,
-    last_error_pods: usize,
-    last_warning_events: usize,
+    _last_argocd_issues: usize,
+    _last_error_pods: usize,
+    _last_warning_events: usize,
 }
 
 impl NotificationSession {
@@ -66,9 +66,9 @@ impl NotificationSession {
         Self {
             hb: Instant::now(),
             client,
-            last_argocd_issues: 0,
-            last_error_pods: 0,
-            last_warning_events: 0,
+            _last_argocd_issues: 0,
+            _last_error_pods: 0,
+            _last_warning_events: 0,
         }
     }
 

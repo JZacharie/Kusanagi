@@ -4,7 +4,7 @@ use std::env;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use tracing::{error, warn, info};
-use chrono::{Local, DateTime, Utc};
+use chrono::{Local, Utc};
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl,
     Scope, TokenResponse, TokenUrl, basic::BasicClient, reqwest::async_http_client,
@@ -45,19 +45,14 @@ impl TokenStore {
         tokens.insert(user_id, token);
     }
 
-    pub fn get_token(&self, user_id: &str) -> Option<String> {
-        let tokens = self.tokens.lock().unwrap();
-        tokens.get(user_id).cloned()
-    }
 }
 
 lazy_static::lazy_static! {
     static ref TOKEN_STORE: TokenStore = TokenStore::new();
 }
-
 pub struct CalendarClient {
     api_key: String,
-    oauth_client: Option<BasicClient>,
+    _oauth_client: Option<BasicClient>,
 }
 
 impl CalendarClient {
@@ -73,7 +68,7 @@ impl CalendarClient {
 
         Ok(Self {
             api_key,
-            oauth_client,
+            _oauth_client: oauth_client,
         })
     }
 
@@ -251,7 +246,7 @@ pub async fn oauth_authorize_handler() -> Result<HttpResponse> {
 #[derive(Deserialize)]
 pub struct OAuthCallbackQuery {
     code: String,
-    state: Option<String>,
+    _state: Option<String>,
 }
 
 pub async fn oauth_callback_handler(query: web::Query<OAuthCallbackQuery>) -> Result<HttpResponse> {

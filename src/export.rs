@@ -193,7 +193,7 @@ pub fn export_markdown(report: &ClusterReport) -> Result<String, String> {
             md.push_str(&format!("- **{}** ({}) - Health: {}, Sync: {}\n", 
                 app.name, app.namespace, app.health_status, app.sync_status));
         }
-        md.push_str("\n");
+        md.push('\n');
     }
     
     // Empty Namespaces section
@@ -262,7 +262,7 @@ pub async fn export_alerts_for_agent(client: &kube::Client, alerts: &AlertsRespo
         report.push_str(&format!("### 🟠 WARNING: {}\n", alert.name));
         report.push_str(&format!("- **Summary:** {}\n", alert.summary));
         report.push_str(&format!("- **Namespace:** {}\n", alert.namespace.as_deref().unwrap_or("unknown")));
-        report.push_str("\n");
+        report.push('\n');
     }
     
     report.push_str("---\n*End of Agent Remediation Context*\n");

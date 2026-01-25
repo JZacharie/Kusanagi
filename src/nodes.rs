@@ -443,7 +443,7 @@ async fn fetch_prometheus_metric(query: &str) -> HashMap<String, f64> {
         .timeout(std::time::Duration::from_secs(3));
 
     // Optional Basic Auth
-    if let (Ok(u), Ok(p)) = (std::env::var("PROMETHEUS_USERNAME"), std::env::var("PROMETHEUS_PASSWORD")) {
+    if let (Ok(_u), Ok(_p)) = (std::env::var("PROMETHEUS_USERNAME"), std::env::var("PROMETHEUS_PASSWORD")) {
         client_builder = client_builder.danger_accept_invalid_certs(true); // Self-signed often used with auth
         // We handle auth in the request builder usually, but reqwest client builder doesn't store auth globally easily implies cookie store etc.
         // Actually it's easier to set it on the client or request.

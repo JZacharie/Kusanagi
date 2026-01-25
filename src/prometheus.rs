@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::env;
 
 /// Prometheus metrics response
 #[derive(Debug, Serialize, Deserialize)]
@@ -34,13 +33,13 @@ struct PromResponse {
 #[derive(Debug, Deserialize)]
 struct PromData {
     #[serde(rename = "resultType")]
-    result_type: String,
+    _result_type: String,
     result: Vec<PromResult>,
 }
 
 #[derive(Debug, Deserialize)]
 struct PromResult {
-    metric: serde_json::Value,
+    _metric: serde_json::Value,
     value: (f64, String),
 }
 
@@ -173,30 +172,3 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     })
 }
 
-/// Get top resource-consuming pods
-pub async fn get_top_pods(limit: usize) -> Result<Vec<serde_json::Value>, String> {
-    let query = format!(
-        r#"topk({}, sum by (pod, namespace) (rate(container_cpu_usage_seconds_total{{container!=""}}[5m])))"#,
-        limit
-    );
-    
-    let result = query_raw(&query).await?;
-    
-    if let Some(results) = result.data.get("result") {
-        Ok(results.as_array().cloned().unwrap_or_default())
-    } else {
-        Ok(vec![])
-    }
-}
-
-/// Get node resource utilization
-pub async fn get_node_resources() -> Result<Vec<serde_json::Value>, String> {
-    let cpu_query = r#"100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)"#;
-    let result = query_raw(cpu_query).await?;
-    
-    if let Some(results) = result.data.get("result") {
-        Ok(results.as_array().cloned().unwrap_or_default())
-    } else {
-        Ok(vec![])
-    }
-}

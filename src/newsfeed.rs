@@ -6,22 +6,7 @@ use tokio::sync::RwLock;
 use std::collections::HashMap;
 use crate::translation;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum NewsSource {
-    HackerNews,
-    Korben,
-    GitHubTrending,
-}
 
-impl NewsSource {
-    fn as_str(&self) -> &str {
-        match self {
-            NewsSource::HackerNews => "hackernews",
-            NewsSource::Korben => "korben",
-            NewsSource::GitHubTrending => "github",
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewsItem {
@@ -89,13 +74,6 @@ impl NewsCache {
         *self.last_update.write().await = Utc::now();
     }
 
-    pub async fn update_item_translation(&self, id: &str, title: String, description: Option<String>) {
-        let mut items = self.items.write().await;
-        if let Some(item) = items.iter_mut().find(|i| i.id == id) {
-            item.translated_title = Some(title);
-            item.translated_description = description;
-        }
-    }
 
     pub async fn last_update(&self) -> DateTime<Utc> {
         *self.last_update.read().await
@@ -127,7 +105,7 @@ async fn fetch_hackernews() -> Result<Vec<NewsItem>, String> {
     // Fetch first 50 stories for better diversity
     for id in top_stories.iter().take(50) {
         let story: serde_json::Value = client
-            .get(&format!("https://hacker-news.firebaseio.com/v0/item/{}.json", id))
+            .get(format!("https://hacker-news.firebaseio.com/v0/item/{}.json", id))
             .send()
             .await
             .map_err(|e| e.to_string())?
@@ -524,7 +502,7 @@ pub async fn get_news(
 
     // Filter by tag if specified
     if let Some(tag) = query.get("tag") {
-        items.retain(|item| item.tags.contains(tag) || item.tags.iter().any(|t| t.split(':').last() == Some(tag)));
+        items.retain(|item| item.tags.contains(tag) || item.tags.iter().any(|t| t.split(':').next_back() == Some(tag)));
     }
 
     // Limit results if specified

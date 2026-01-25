@@ -171,8 +171,7 @@ fn get_jobs_for_cronjob(
             let job_ns = job
                 .metadata
                 .namespace
-                .as_ref()
-                .map(|s| s.as_str())
+                .as_deref()
                 .unwrap_or("default");
 
             if job_ns != namespace {

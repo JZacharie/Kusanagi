@@ -78,7 +78,7 @@ pub async fn get_storage_status(client: &Client) -> Result<StorageStatusResponse
 
     while let Some(result) = futures.next().await {
         match result {
-            Ok((node_name, metrics_text)) => {
+            Ok((_node_name, metrics_text)) => {
                 // Parse Prometheus format line by line
                 for line in metrics_text.lines() {
                     let is_used = line.starts_with("kubelet_volume_stats_used_bytes{");
@@ -144,7 +144,7 @@ pub async fn get_storage_status(client: &Client) -> Result<StorageStatusResponse
 
         let phase = status.phase.unwrap_or_else(|| "Unknown".to_string());
         
-        let mut capacity_str = status.capacity
+        let capacity_str = status.capacity
             .as_ref()
             .and_then(|c| c.get("storage"))
             .map(|q| q.0.clone())
@@ -211,12 +211,12 @@ pub async fn get_storage_status(client: &Client) -> Result<StorageStatusResponse
 
 fn parse_capacity(cap: &str) -> u64 {
     let cap = cap.trim();
-    if cap.ends_with("Gi") {
-        cap.trim_end_matches("Gi").parse::<f64>().unwrap_or(0.0) as u64 * 1024 * 1024 * 1024
-    } else if cap.ends_with("Mi") {
-        cap.trim_end_matches("Mi").parse::<f64>().unwrap_or(0.0) as u64 * 1024 * 1024
-    } else if cap.ends_with("Ki") {
-        cap.trim_end_matches("Ki").parse::<f64>().unwrap_or(0.0) as u64 * 1024
+    if let Some(stripped) = cap.strip_suffix("Gi") {
+        stripped.parse::<f64>().unwrap_or(0.0) as u64 * 1024 * 1024 * 1024
+    } else if let Some(stripped) = cap.strip_suffix("Mi") {
+        stripped.parse::<f64>().unwrap_or(0.0) as u64 * 1024 * 1024
+    } else if let Some(stripped) = cap.strip_suffix("Ki") {
+        stripped.parse::<f64>().unwrap_or(0.0) as u64 * 1024
     } else {
         cap.parse::<u64>().unwrap_or(0)
     }

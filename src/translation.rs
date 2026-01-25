@@ -1,7 +1,7 @@
 use aws_sdk_s3::{Client as S3Client, config::Region};
 use aws_config::BehaviorVersion;
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn};
+use tracing::info;
 use reqwest::Client as HttpClient;
 
 fn get_s3_endpoint() -> String {
@@ -86,22 +86,6 @@ pub async fn get_cached_translation(s3_client: &S3Client, id: &str) -> Option<Tr
     }
 }
 
-pub async fn store_translation(s3_client: &S3Client, translation: &Translation) -> Result<(), String> {
-    let key = format!("translations/{}.json", translation.id);
-    let body = serde_json::to_string(translation)
-        .map_err(|e| format!("Failed to serialize translation: {}", e))?;
-
-    s3_client
-        .put_object()
-        .bucket(get_s3_bucket())
-        .key(&key)
-        .body(body.into_bytes().into())
-        .send()
-        .await
-        .map_err(|e| format!("Failed to upload translation to S3: {}", e))?;
-
-    Ok(())
-}
 
 pub async fn store_news_item(s3_client: &S3Client, item: &crate::newsfeed::NewsItem) -> Result<(), String> {
     let key = format!("news/{}.json", item.id);

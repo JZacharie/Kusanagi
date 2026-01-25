@@ -1,5 +1,5 @@
 use kube::{Client, Api, api::ListParams};
-use k8s_openapi::api::core::v1::{Namespace, PersistentVolumeClaim, Pod, ResourceRequirements};
+use k8s_openapi::api::core::v1::{PersistentVolumeClaim, Pod};
 use serde::Serialize;
 use std::collections::HashMap;
 use tracing::info;
@@ -49,14 +49,14 @@ fn parse_memory(mem: &str) -> i64 {
         return 0;
     }
     
-    let (num_str, unit) = if mem.ends_with("Ki") {
-        (&mem[..mem.len()-2], 1024_i64)
-    } else if mem.ends_with("Mi") {
-        (&mem[..mem.len()-2], 1024_i64 * 1024)
-    } else if mem.ends_with("Gi") {
-        (&mem[..mem.len()-2], 1024_i64 * 1024 * 1024)
-    } else if mem.ends_with("Ti") {
-        (&mem[..mem.len()-2], 1024_i64 * 1024 * 1024 * 1024)
+    let (num_str, unit) = if let Some(stripped) = mem.strip_suffix("Ki") {
+        (stripped, 1024_i64)
+    } else if let Some(stripped) = mem.strip_suffix("Mi") {
+        (stripped, 1024_i64 * 1024)
+    } else if let Some(stripped) = mem.strip_suffix("Gi") {
+        (stripped, 1024_i64 * 1024 * 1024)
+    } else if let Some(stripped) = mem.strip_suffix("Ti") {
+        (stripped, 1024_i64 * 1024 * 1024 * 1024)
     } else if mem.ends_with('K') || mem.ends_with('k') {
         (&mem[..mem.len()-1], 1000_i64)
     } else if mem.ends_with('M') || mem.ends_with('m') {

@@ -8,7 +8,7 @@ use kube::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tracing::{info, error};
+use tracing::info;
 use crate::AppState;
 
 /// Request for logs
@@ -185,7 +185,7 @@ const ERROR_REASONS: &[&str] = &[
 /// Get pods status with focus on error pods
 pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, String> {
 
-    let services: Api<Service> = Api::all(client.clone());
+    let _services: Api<Service> = Api::all(client.clone());
     let pods_api: Api<Pod> = Api::all(client.clone());
 
     let pods = pods_api

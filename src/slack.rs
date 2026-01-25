@@ -2,9 +2,7 @@ use actix_web::{web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use std::env;
 use tracing::{debug, error, info, warn};
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
-use hex;
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SlackMessage {
@@ -17,7 +15,7 @@ pub struct SlackMessage {
 pub struct SlackClient {
     token: String,
     channel_id: String,
-    signing_secret: String,
+    _signing_secret: String,
     bot_user_id: String,
     client: reqwest::Client,
 }
@@ -40,33 +38,12 @@ impl SlackClient {
         Ok(Self {
             token,
             channel_id,
-            signing_secret,
+            _signing_secret: signing_secret,
             bot_user_id,
             client,
         })
     }
 
-    pub fn verify_signature(&self, timestamp: &str, body: &str, signature: &str) -> bool {
-        if self.signing_secret.is_empty() {
-            return true; // Skip if no secret set
-        }
-
-        debug!("Verifying Slack signature. Timestamp: {}, Body length: {}, Signature: {}", timestamp, body.len(), signature);
-        let basestring = format!("v0:{}:{}", timestamp, body);
-        let mut mac = Hmac::<Sha256>::new_from_slice(self.signing_secret.as_bytes())
-            .expect("HMAC can take key of any size");
-        mac.update(basestring.as_bytes());
-        let result = mac.finalize();
-        let expected_signature = format!("v0={}", hex::encode(result.into_bytes()));
-
-        let is_valid = signature == expected_signature;
-        if !is_valid {
-            warn!("Slack signature mismatch! Expected: {}, Received: {}", expected_signature, signature);
-        } else {
-            debug!("Slack signature verified successfully");
-        }
-        is_valid
-    }
 
     pub async fn send_message(&self, text: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.send_response(text, None, None).await
@@ -122,10 +99,10 @@ impl SlackClient {
 
 #[derive(Debug, Deserialize)]
 pub struct SlackEvent {
-    pub token: String,
+    pub _token: String,
     pub challenge: Option<String>,
     #[serde(rename = "type")]
-    pub event_type: String,
+    pub _event_type: String,
     pub event: Option<SlackEventDetail>,
 }
 

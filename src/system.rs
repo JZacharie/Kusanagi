@@ -1,5 +1,5 @@
 use actix_web::{get, web, HttpResponse, Responder};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::time::{Duration, Instant};
 use sysinfo::{System, SystemExt, ProcessExt};
 use kube::{Client, Api, api::{Patch, PatchParams}};
@@ -86,7 +86,7 @@ pub async fn start_auto_update_task(client: Client, last_digest: Arc<Mutex<Optio
 async fn check_for_new_image(client: &Client) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
     // 1. Get current image digest from the deployment status
     let api: Api<Deployment> = Api::namespaced(client.clone(), "default"); // Assuming default namespace
-    let kusanagi_deploy = match api.get("kusanagi").await {
+    let _kusanagi_deploy = match api.get("kusanagi").await {
         Ok(d) => d,
         Err(_) => return Ok(None),
     };

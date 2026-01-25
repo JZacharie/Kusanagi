@@ -151,7 +151,7 @@ pub async fn get_events(
     let filtered_total = event_infos.len();
     let page = page.unwrap_or(1);
     let per_page = per_page.unwrap_or(20);
-    let total_pages = (filtered_total + per_page - 1) / per_page;
+    let total_pages = filtered_total.div_ceil(per_page);
     
     // Slice for pagination
     let start = (page.max(1) - 1) * per_page;

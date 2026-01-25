@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::env;
 
 /// Single alert from Alertmanager
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,7 +34,7 @@ struct AmAlert {
     #[serde(rename = "startsAt")]
     starts_at: String,
     #[serde(rename = "endsAt")]
-    ends_at: String,
+    _ends_at: String,
     fingerprint: String,
     status: AmAlertStatus,
 }
@@ -130,64 +129,3 @@ pub async fn get_active_alerts() -> Result<AlertsResponse, String> {
     })
 }
 
-/// Silence management structures
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Silence {
-    pub id: String,
-    pub matchers: Vec<SilenceMatcher>,
-    pub starts_at: DateTime<Utc>,
-    pub ends_at: DateTime<Utc>,
-    pub created_by: String,
-    pub comment: String,
-    pub status: SilenceStatus,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SilenceMatcher {
-    pub name: String,
-    pub value: String,
-    pub is_regex: bool,
-    pub is_equal: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SilenceStatus {
-    pub state: String,
-}
-
-/// Get all active silences
-pub async fn get_silences() -> Result<Vec<Silence>, String> {
-    let client = reqwest::Client::new();
-    let url = format!("{}/api/v2/silences", get_alertmanager_url());
-    
-    let response = client
-        .get(&url)
-        .timeout(std::time::Duration::from_secs(10))
-        .send()
-        .await
-        .map_err(|e| format!("Alertmanager silences request failed: {}", e))?;
-    
-    if !response.status().is_success() {
-        return Err(format!("Alertmanager returned status: {}", response.status()));
-    }
-    
-    let silences: Vec<Silence> = response
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse silences response: {}", e))?;
-    
-    // Filter to only active silences
-    Ok(silences.into_iter()
-        .filter(|s| s.status.state == "active")
-        .collect())
-}
-
-/// Get alert counts summary
-pub async fn get_alert_counts() -> Result<(i32, i32, i32), String> {
-    let alerts = get_active_alerts().await?;
-    Ok((
-        alerts.critical.len() as i32,
-        alerts.warning.len() as i32,
-        alerts.info.len() as i32,
-    ))
-}

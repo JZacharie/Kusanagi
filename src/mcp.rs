@@ -1,7 +1,7 @@
 //! MCP (Model Context Protocol) integrations for Kusanagi
 //! Provides access to various infrastructure tools via MCP servers
 
-use actix_web::{get, web, HttpResponse, Result};
+use actix_web::{web, HttpResponse, Result};
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn, error};
 
@@ -298,13 +298,6 @@ pub async fn get_trivy_vulnerabilities() -> Result<TrivyVulnerabilitySummary, St
     }
 }
 
-/// Get critical vulnerabilities only
-pub async fn get_critical_vulnerabilities() -> Result<Vec<TrivyImageReport>, String> {
-    let summary = get_trivy_vulnerabilities().await?;
-    Ok(summary.images.into_iter()
-        .filter(|img| img.critical_count > 0)
-        .collect())
-}
 
 // ============================================================================
 // Kyverno Policy Integration

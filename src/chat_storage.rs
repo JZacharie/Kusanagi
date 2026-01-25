@@ -1,7 +1,7 @@
 use aws_sdk_s3::{Client, config::Region};
 use aws_config::BehaviorVersion;
 use serde::Serialize;
-use tracing::{info, error};
+use tracing::info;
 
 const MINIO_ENDPOINT: &str = "http://192.168.0.170:9010";
 const BUCKET_NAME: &str = "kusanagi-chat-history";

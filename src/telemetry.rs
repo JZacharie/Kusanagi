@@ -23,7 +23,6 @@ pub struct TelemetryConfig {
     pub endpoint: String,
     pub auth_token: Option<String>,
     pub batch_size: usize,
-    pub flush_interval_secs: u64,
     pub sample_rate: f64,
 }
 
@@ -34,7 +33,6 @@ impl Default for TelemetryConfig {
                 .unwrap_or_else(|_| "https://o2-openobserve.p.zacharie.org/api/default/v1/logs".to_string()),
             auth_token: std::env::var("OPENOBSERVE_AUTH").ok(),
             batch_size: 10,
-            flush_interval_secs: 5,
             sample_rate: std::env::var("APM_SAMPLE_RATE")
                 .ok()
                 .and_then(|s| s.parse().ok())
@@ -102,22 +100,13 @@ impl TelemetryEvent {
         self
     }
 
-    pub fn with_error(mut self, error: &str) -> Self {
-        self.error = Some(error.to_string());
-        self
-    }
+
 
     pub fn with_items_count(mut self, count: u64) -> Self {
         self.items_count = Some(count);
         self
     }
 
-    pub fn with_extra<V: Serialize>(mut self, key: &str, value: V) -> Self {
-        if let Ok(v) = serde_json::to_value(value) {
-            self.extra.insert(key.to_string(), v);
-        }
-        self
-    }
 }
 
 // ============================================================================
@@ -184,31 +173,6 @@ impl SpanTimer {
         queue_event(event);
     }
 
-    /// Record an error
-    pub fn record_error(mut self, error: &str) {
-        self.recorded = true;
-        let duration = self.start.elapsed();
-        
-        let mut event = TelemetryEvent::new(&self.span_name, duration)
-            .with_status("error")
-            .with_error(error);
-        
-        if let Some(ref ns) = self.namespace {
-            event = event.with_namespace(Some(ns));
-        }
-        if let Some(ref ep) = self.endpoint {
-            event = event.with_endpoint(ep);
-        }
-
-        error!(
-            span = %self.span_name,
-            duration_ms = duration.as_millis(),
-            error = error,
-            "⏱️ APM: Span failed"
-        );
-
-        queue_event(event);
-    }
 }
 
 impl Drop for SpanTimer {
@@ -306,17 +270,6 @@ async fn flush_events(events: Vec<TelemetryEvent>) {
     }
 }
 
-/// Force flush all queued events
-pub async fn force_flush() {
-    let events: Vec<_> = {
-        let mut queue = EVENT_QUEUE.lock().unwrap();
-        queue.drain(..).collect()
-    };
-    
-    if !events.is_empty() {
-        flush_events(events).await;
-    }
-}
 
 // ============================================================================
 // Convenience Functions
@@ -327,37 +280,5 @@ pub fn start_span(name: &str) -> SpanTimer {
     SpanTimer::new(name)
 }
 
-/// Send a standalone metric event
-pub async fn send_metric(name: &str, value: f64, tags: &[(&str, &str)]) {
-    let mut event = TelemetryEvent {
-        timestamp: chrono::Utc::now().to_rfc3339(),
-        service: "kusanagi".to_string(),
-        version: env!("CARGO_PKG_VERSION").to_string(),
-        event_type: "metric".to_string(),
-        span_name: name.to_string(),
-        duration_ms: value,
-        namespace: None,
-        endpoint: None,
-        status: None,
-        error: None,
-        items_count: None,
-        extra: std::collections::HashMap::new(),
-    };
 
-    for (key, val) in tags {
-        event.extra.insert(key.to_string(), serde_json::Value::String(val.to_string()));
-    }
 
-    queue_event(event);
-}
-
-/// Check if telemetry is enabled
-pub fn is_enabled() -> bool {
-    TELEMETRY_ENABLED.load(Ordering::Relaxed)
-}
-
-/// Enable/disable telemetry
-pub fn set_enabled(enabled: bool) {
-    TELEMETRY_ENABLED.store(enabled, Ordering::Relaxed);
-    info!(enabled = enabled, "⏱️ APM: Telemetry status changed");
-}
