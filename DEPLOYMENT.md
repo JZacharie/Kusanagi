@@ -28,6 +28,7 @@ kubectl create secret generic kusanagi-config \
   --from-literal=proxmox-token-secret="$PROXMOX_TOKEN_SECRET" \
   --from-literal=ha-url="$HOME_ASSISTANT_URL" \
   --from-literal=ha-token="$HOME_ASSISTANT_TOKEN" \
+  --from-literal=prometheus-url="http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090" \
   -n kusanagi \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
@@ -95,6 +96,15 @@ kubectl patch deployment kusanagi -n kusanagi --type='json' -p='[
           "secretKeyRef": {
             "name": "kusanagi-config",
             "key": "ha-token"
+          }
+        }
+      },
+      {
+        "name": "PROMETHEUS_URL",
+        "valueFrom": {
+          "secretKeyRef": {
+            "name": "kusanagi-config",
+            "key": "prometheus-url"
           }
         }
       }
