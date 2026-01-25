@@ -11,8 +11,7 @@ pub struct PrometheusMetrics {
     pub container_count: i32,
     pub alerts_firing: i32,
     pub alerts_pending: i32,
-    pub sim_app_status: f64,
-    pub sim_realtime_status: f64,
+    pub alerts_pending: i32,
     pub gpu_utilization: f64,
     pub vps_cpu_usage: f64,
     pub vps_disk_usage: f64,
@@ -148,26 +147,18 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     let alerts_pending_query = r#"count(ALERTS{alertstate="pending"}) or vector(0)"#;
     let alerts_pending = query_instant(alerts_pending_query).await.unwrap_or(0.0) as i32;
     
-    // Custom Job Status: SIM App
-    let sim_app_query = r#"avg(up{job="sim-app"}) * 100 or vector(0)"#;
-    let sim_app_status = query_instant(sim_app_query).await.unwrap_or(0.0);
-
-    // Custom Job Status: SIM Realtime
-    let sim_realtime_query = r#"avg(up{job="sim-realtime"}) * 100 or vector(0)"#;
-    let sim_realtime_status = query_instant(sim_realtime_query).await.unwrap_or(0.0);
-
     // Custom Job Status: NVIDIA GPU
     let gpu_query = r#"avg(nvidia_gpu_utilization) or avg(dcgm_gpu_utilization) or vector(0)"#;
     let gpu_utilization = query_instant(gpu_query).await.unwrap_or(0.0);
 
-    // VPS Metrics from VPS.json
+    // VPS Metrics from VPS.json - using sum/avg to ensure a single scalar result
     let vps_cpu_query = r#"avg(system_cpu_utilization{state!="idle"}) * 100 or vector(0)"#;
     let vps_cpu_usage = query_instant(vps_cpu_query).await.unwrap_or(0.0);
 
-    let vps_disk_query = r#"(system_filesystem_usage_bytes{device="/dev/sda1",state="used"} / ignoring(state) sum without (state) (system_filesystem_usage_bytes) * 100) or vector(0)"#;
+    let vps_disk_query = r#"sum(system_filesystem_usage_bytes{device="/dev/sda1",state="used"}) / sum(system_filesystem_usage_bytes{device="/dev/sda1"}) * 100 or vector(0)"#;
     let vps_disk_usage = query_instant(vps_disk_query).await.unwrap_or(0.0);
 
-    let vps_net_query = r#"(rate(system_network_io_bytes_total{direction="receive", device="eth0"}[5m]) / 125000000 * 100) or vector(0)"#;
+    let vps_net_query = r#"sum(rate(system_network_io_bytes_total{direction="receive", device="eth0"}[5m])) / 125000000 * 100 or vector(0)"#;
     let vps_net_receive = query_instant(vps_net_query).await.unwrap_or(0.0);
     
     Ok(PrometheusMetrics {
@@ -179,8 +170,6 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
         container_count,
         alerts_firing,
         alerts_pending,
-        sim_app_status,
-        sim_realtime_status,
         gpu_utilization,
         vps_cpu_usage,
         vps_disk_usage,
