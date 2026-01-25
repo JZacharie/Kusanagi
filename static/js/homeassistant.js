@@ -95,7 +95,7 @@ const HomeAssistantDashboard = {
         }
 
         const grouped = {};
-        sensors.forEach(s => {
+        this.sensors.filter(s => s.state !== 'unknown').forEach(s => {
             const cat = this.getCategory(s);
             if (!grouped[cat]) grouped[cat] = [];
             grouped[cat].push(s);
@@ -114,7 +114,7 @@ const HomeAssistantDashboard = {
                         <span class="mdi ${this.getCategoryIcon(cat)}"></span>
                         ${cat}
                     </div>
-                    <div class="sensors-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 1rem;">
+                    <div class="sensors-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
                         ${grouped[cat].map(s => this.renderSensorCard(s)).join('')}
                     </div>
                 </div>
@@ -146,7 +146,11 @@ const HomeAssistantDashboard = {
         return `
             <a href="${link}" target="_blank" rel="noopener" class="sensor-icon-link" title="${name}: ${sensor.state} ${unit}">
                 <div class="sensor-card-mini" style="border-color: ${color}44;">
-                    <span class="mdi ${icon}" style="font-size: 2rem; color: ${color};"></span>
+                    <span class="mdi ${icon}" style="font-size: 1.5rem; color: ${color}; margin-right: 0.5rem;"></span>
+                    <div class="sensor-mini-info">
+                        <div class="sensor-mini-name">${name}</div>
+                        <div class="sensor-mini-value" style="color: ${color};">${sensor.state} ${unit}</div>
+                    </div>
                     <div class="sensor-mini-state" style="background: ${color};"></div>
                 </div>
             </a>

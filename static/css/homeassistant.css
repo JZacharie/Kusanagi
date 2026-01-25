@@ -44,15 +44,41 @@
 
 .sensor-card-mini {
     position: relative;
-    width: 64px;
-    height: 64px;
+    width: 100%;
+    min-height: 50px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-md);
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
+    padding: 0.5rem 0.75rem;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sensor-mini-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin-right: 1.5rem;
+    /* Space for the state dot */
+}
+
+.sensor-mini-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sensor-mini-value {
+    font-size: 0.85rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
 }
 
 .sensor-icon-link:hover .sensor-card-mini {
