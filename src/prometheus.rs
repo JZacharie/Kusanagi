@@ -201,13 +201,13 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     let alerts_pending = query_instant(alerts_pending_query).await.unwrap_or(0.0) as i32;
     
     // Custom Job Status: NVIDIA GPU
-    let gpu_query = r#"avg(nvidia_gpu_utilization) or avg(dcgm_gpu_utilization) or vector(0)"#;
+    let gpu_query = r#"avg(nvidia_gpu_utilization) or avg(dcgm_gpu_utilization) or avg(DCGM_FI_DEV_GPU_UTIL) or vector(0)"#;
     let gpu_utilization = query_instant(gpu_query).await.unwrap_or(0.0);
 
-    let gpu_temp_query = r#"avg(nvidia_gpu_temperature_celsius) or avg(dcgm_gpu_temp) or vector(0)"#;
+    let gpu_temp_query = r#"avg(nvidia_gpu_temperature_celsius) or avg(dcgm_gpu_temp) or avg(DCGM_FI_DEV_GPU_TEMP) or vector(0)"#;
     let gpu_temperature = query_instant(gpu_temp_query).await.unwrap_or(0.0);
 
-    let gpu_power_query = r#"avg(nvidia_gpu_power_usage_watts) or avg(dcgm_gpu_power_usage) or vector(0)"#;
+    let gpu_power_query = r#"avg(nvidia_gpu_power_usage_watts) or avg(dcgm_gpu_power_usage) or avg(DCGM_FI_DEV_POWER_USAGE) or vector(0)"#;
     let gpu_power_usage = query_instant(gpu_power_query).await.unwrap_or(0.0);
 
     // Energy Metrics from Home Assistant via Prometheus
