@@ -44,7 +44,7 @@ lazy_static::lazy_static! {
 }
 
 pub async fn init_mqtt() {
-    let host = env::var("MQTT_ENDPOINT").unwrap_or_else(|_| "localhost".to_string());
+    let host = env::var("MQTT_HOST").unwrap_or_else(|_| "localhost".to_string());
     let user = env::var("MQTT_USER").ok();
     let pass = env::var("MQTT_PASSWORD").ok();
 
