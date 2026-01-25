@@ -288,7 +288,10 @@ const MetricsManager = {
         const container = document.getElementById('metrics-content');
         if (!container) return;
 
+        const sectionHeaderStyle = "margin: 2rem 0 1rem; color: var(--neon-cyan); font-family: 'Orbitron', sans-serif; font-size: 1.1rem; border-bottom: 1px solid rgba(0, 255, 249, 0.2); padding-bottom: 0.5rem;";
+
         container.innerHTML = `
+            <h3 style="${sectionHeaderStyle}">🖥️ Cluster Infrastructure</h3>
             <div class="metrics-grid">
                 <div class="metric-card">
                     <div class="metric-icon">🔥</div>
@@ -326,7 +329,10 @@ const MetricsManager = {
                     <div class="metric-value">${metrics.container_count || 0}</div>
                     <div class="metric-label">Containers</div>
                 </div>
-                <!-- Custom Dashboards -->
+            </div>
+
+            <h3 style="${sectionHeaderStyle}">🏎️ GPU Hardware Telemetry</h3>
+            <div class="metrics-grid">
                 <div class="metric-card">
                     <div class="metric-icon">🏎️</div>
                     <div class="metric-value">${metrics.gpu_utilization?.toFixed(1) || 0}%</div>
@@ -335,7 +341,6 @@ const MetricsManager = {
                         <div class="metric-bar-fill" style="width: ${metrics.gpu_utilization || 0}%; background: var(--neon-green);"></div>
                     </div>
                 </div>
-                <!-- Additional GPU Metrics -->
                 <div class="metric-card">
                     <div class="metric-icon">🌡️</div>
                     <div class="metric-value">${metrics.gpu_temperature?.toFixed(1) || 0}°C</div>
@@ -352,7 +357,10 @@ const MetricsManager = {
                         <div class="metric-bar-fill" style="width: ${Math.min((metrics.gpu_power_usage || 0) / 350 * 100, 100)}%; background: var(--neon-yellow);"></div>
                     </div>
                 </div>
-                <!-- Energy Metrics from Home Assistant -->
+            </div>
+
+            <h3 style="${sectionHeaderStyle}">☀️ Enphase Energy Monitoring</h3>
+            <div class="metrics-grid">
                 <div class="metric-card">
                     <div class="metric-icon">☀️</div>
                     <div class="metric-value">${metrics.energy_solar_production?.toFixed(1) || 0}W</div>
@@ -371,9 +379,7 @@ const MetricsManager = {
                 </div>
             </div>
 
-            <h3 style="margin: 2rem 0 1rem; color: var(--neon-cyan); font-family: 'Orbitron', sans-serif; font-size: 1.1rem; border-bottom: 1px solid rgba(0, 255, 249, 0.2); padding-bottom: 0.5rem;">
-                🚀 VPS Infrastructure
-            </h3>
+            <h3 style="${sectionHeaderStyle}">🚀 VPS Infrastructure</h3>
             <div class="metrics-grid">
                 <div class="metric-card">
                     <div class="metric-icon">🖥️</div>
