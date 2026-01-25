@@ -38,18 +38,25 @@ struct PromData {
     result: Vec<PromResult>,
 }
 
+lazy_static::lazy_static! {
+    static ref PROMETHEUS_URL: String = {
+        std::env::var("PROMETHEUS_URL")
+            .unwrap_or_else(|_| {
+                tracing::warn!("PROMETHEUS_URL not set, using default local K8s service URL");
+                "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
+            })
+    };
+}
+
 #[derive(Debug, Deserialize)]
 struct PromResult {
+    #[serde(rename = "metric")]
     _metric: serde_json::Value,
     value: (f64, String),
 }
 
 fn get_prometheus_url() -> String {
-    std::env::var("PROMETHEUS_URL")
-        .unwrap_or_else(|_| {
-            tracing::warn!("PROMETHEUS_URL not set, using default local K8s service URL");
-            "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
-        })
+    PROMETHEUS_URL.clone()
 }
 
 /// Execute a PromQL instant query
