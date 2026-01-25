@@ -4,6 +4,7 @@ use std::time::{Duration};
 use aws_sdk_s3::Client as S3Client;
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::primitives::ByteStream;
+use aws_config::BehaviorVersion;
 use actix_web::{get, web, HttpResponse, Responder};
 
 const TRIVY_JSON_SERVER: &str = "http://trivy-json-server.trivy-system.svc:8080";
@@ -53,6 +54,7 @@ pub async fn start_security_worker() {
     let creds = aws_sdk_s3::config::Credentials::new("minioadmin", "minioadmin", None, None, "static");
     
     let config = aws_sdk_s3::config::Builder::new()
+        .behavior_version(BehaviorVersion::latest())
         .region(region_provider.region().await)
         .credentials_provider(creds)
         .endpoint_url(S3_ENDPOINT)
@@ -157,6 +159,7 @@ async fn get_s3_client() -> S3Client {
     let creds = aws_sdk_s3::config::Credentials::new("minioadmin", "minioadmin", None, None, "static");
     
     let config = aws_sdk_s3::config::Builder::new()
+        .behavior_version(BehaviorVersion::latest())
         .region(region_provider.region().await)
         .credentials_provider(creds)
         .endpoint_url(S3_ENDPOINT)

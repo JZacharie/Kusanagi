@@ -394,8 +394,8 @@ pub async fn sync_application(client: &Client, app_name: &str) -> Result<SyncRes
             }
         }
     });
-
-    let patch_params = PatchParams::apply("kusanagi").force();
+ 
+    let patch_params = PatchParams::default();
     
     apps_api
         .patch(app_name, &patch_params, &Patch::Merge(&patch))

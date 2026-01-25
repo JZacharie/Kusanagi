@@ -477,6 +477,7 @@ async fn export_alerts_endpoint(data: web::Data<AppState>) -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv::dotenv().ok();
     tracing_subscriber::fmt::init();
 
     info!("Starting Kusanagi server on port 8080");

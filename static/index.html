@@ -1501,7 +1501,7 @@
                     <td class="error-duration">${app.error_duration || '-'}</td>
                     ${showSync && app.can_sync ? `
                         <td>
-                            <button class="sync-btn" onclick="syncApp('${app.name}')" title="Sync ${app.name}">
+                            <button class="sync-btn" onclick="syncApp(event, '${app.name}')" title="Sync ${app.name}">
                                 ⟳ Sync
                             </button>
                         </td>
@@ -1568,8 +1568,8 @@
             container.innerHTML = table;
         }
 
-        async function syncApp(appName) {
-            const btn = event.target;
+        async function syncApp(event, appName) {
+            const btn = event.currentTarget || event.target;
             const originalText = btn.textContent;
             btn.textContent = '⏳ Syncing...';
             btn.disabled = true;

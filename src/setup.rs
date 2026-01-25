@@ -95,6 +95,20 @@ pub fn get_env_definitions() -> Vec<EnvVarDefinition> {
             regex: r"^[a-zA-Z0-9\.-]+$".to_string(),
             is_secret: false,
         },
+        EnvVarDefinition {
+            key: "SLACK_BOT_TOKEN".to_string(),
+            description: "Slack Bot OAuth Token (starting with xoxb-)".to_string(),
+            example: "xoxb-your-token-here".to_string(),
+            regex: r"^xoxb-[a-zA-Z0-9-]+$".to_string(),
+            is_secret: true,
+        },
+        EnvVarDefinition {
+            key: "SLACK_CHANNEL_ID".to_string(),
+            description: "The ID of the Slack channel for alerts (e.g. C0123456789)".to_string(),
+            example: "C0123456789".to_string(),
+            regex: r"^[A-Z0-9]+$".to_string(),
+            is_secret: false,
+        },
     ]
 }
 
@@ -122,6 +136,10 @@ pub async fn get_setup_status() -> impl Responder {
     // MQTT Feature
     let mqtt_vars = vec!["MQTT_HOST"];
     features.push(check_feature("MQTT Messaging", mqtt_vars));
+
+    // Slack Feature
+    let slack_vars = vec!["SLACK_BOT_TOKEN", "SLACK_CHANNEL_ID"];
+    features.push(check_feature("Slack Notifications", slack_vars));
 
     HttpResponse::Ok().json(SetupStatus {
         features,
