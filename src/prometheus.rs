@@ -14,6 +14,9 @@ pub struct PrometheusMetrics {
     pub sim_app_status: f64,
     pub sim_realtime_status: f64,
     pub gpu_utilization: f64,
+    pub vps_cpu_usage: f64,
+    pub vps_disk_usage: f64,
+    pub vps_net_receive: f64,
 }
 
 /// Prometheus query result
@@ -156,6 +159,16 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     // Custom Job Status: NVIDIA GPU
     let gpu_query = r#"avg(nvidia_gpu_utilization) or avg(dcgm_gpu_utilization) or vector(0)"#;
     let gpu_utilization = query_instant(gpu_query).await.unwrap_or(0.0);
+
+    // VPS Metrics from VPS.json
+    let vps_cpu_query = r#"avg(system_cpu_utilization{state!="idle"}) * 100 or vector(0)"#;
+    let vps_cpu_usage = query_instant(vps_cpu_query).await.unwrap_or(0.0);
+
+    let vps_disk_query = r#"(system_filesystem_usage_bytes{device="/dev/sda1",state="used"} / ignoring(state) sum without (state) (system_filesystem_usage_bytes) * 100) or vector(0)"#;
+    let vps_disk_usage = query_instant(vps_disk_query).await.unwrap_or(0.0);
+
+    let vps_net_query = r#"(rate(system_network_io_bytes_total{direction="receive", device="eth0"}[5m]) / 125000000 * 100) or vector(0)"#;
+    let vps_net_receive = query_instant(vps_net_query).await.unwrap_or(0.0);
     
     Ok(PrometheusMetrics {
         cpu_usage_percent: cpu_usage,
@@ -169,6 +182,9 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
         sim_app_status,
         sim_realtime_status,
         gpu_utilization,
+        vps_cpu_usage,
+        vps_disk_usage,
+        vps_net_receive,
     })
 }
 

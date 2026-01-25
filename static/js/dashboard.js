@@ -352,6 +352,36 @@ const MetricsManager = {
                     </div>
                 </div>
             </div>
+
+            <h3 style="margin: 2rem 0 1rem; color: var(--neon-cyan); font-family: 'Orbitron', sans-serif; font-size: 1.1rem; border-bottom: 1px solid rgba(0, 255, 249, 0.2); padding-bottom: 0.5rem;">
+                🚀 VPS Infrastructure
+            </h3>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon">🖥️</div>
+                    <div class="metric-value">${metrics.vps_cpu_usage?.toFixed(1) || 0}%</div>
+                    <div class="metric-label">System CPU</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${metrics.vps_cpu_usage || 0}%; background: var(--neon-blue);"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">💽</div>
+                    <div class="metric-value">${metrics.vps_disk_usage?.toFixed(1) || 0}%</div>
+                    <div class="metric-label">Disk Usage (/sda1)</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${metrics.vps_disk_usage || 0}%; background: var(--neon-yellow);"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🌐</div>
+                    <div class="metric-value">${metrics.vps_net_receive?.toFixed(2) || 0}%</div>
+                    <div class="metric-label">Net Receive (eth0)</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${metrics.vps_net_receive || 0}%; background: var(--neon-magenta);"></div>
+                    </div>
+                </div>
+            </div>
         `;
     },
 
