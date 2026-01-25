@@ -59,6 +59,12 @@ pub async fn get_storage_status(client: &Client) -> Result<StorageStatusResponse
 
     for node in &nodes.items {
         let node_name = node.metadata.name.clone().unwrap_or_default();
+
+        // Skip nodes that are known to timeout
+        if node_name == "vm151" || node_name == "vm152" || node_name == "vm153" {
+            continue;
+        }
+
         let client = client.clone();
         
         futures.push(async move {
