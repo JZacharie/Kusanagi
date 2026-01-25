@@ -482,9 +482,40 @@ async fn main() -> std::io::Result<()> {
     info!("Starting Kusanagi server on port 8080");
     info!("Access the cyberpunk interface at http://localhost:8080");
 
-    let client = kube::Client::try_default()
-        .await
-        .expect("Failed to create Kubernetes client");
+    let client = if std::env::var("KUSANAGI_DEV_MODE").is_ok() {
+        tracing::warn!("Running in development mode - Kubernetes features disabled");
+        match kube::Client::try_default().await {
+            Ok(client) => {
+                tracing::info!("Connected to Kubernetes cluster in development mode");
+                client
+            },
+            Err(e) => {
+                tracing::warn!("No Kubernetes cluster available: {} - running in standalone mode", e);
+                tracing::info!("Starting Kusanagi in standalone mode - only basic features available");
+                // Créer un client avec une configuration vide pour éviter le panic
+                // On utilisera une URL factice qui ne sera jamais appelée
+                let config = kube::Config {
+                    cluster_url: "https://localhost:6443".parse().unwrap(),
+                    default_namespace: "default".to_string(),
+                    root_cert: None,
+                    auth_info: kube::config::AuthInfo::default(),
+                    proxy_url: None,
+                    accept_invalid_certs: false,
+                    connect_timeout: None,
+                    read_timeout: None,
+                    write_timeout: None,
+                    tls_server_name: None,
+                };
+                kube::Client::try_from(config).unwrap_or_else(|_| {
+                    panic!("Failed to create development client")
+                })
+            }
+        }
+    } else {
+        kube::Client::try_default()
+            .await
+            .expect("Failed to create Kubernetes client")
+    };
     
     let app_state = web::Data::new(AppState { client: client.clone() });
     

@@ -11,7 +11,6 @@ pub struct PrometheusMetrics {
     pub container_count: i32,
     pub alerts_firing: i32,
     pub alerts_pending: i32,
-    pub alerts_pending: i32,
     pub gpu_utilization: f64,
     pub vps_cpu_usage: f64,
     pub vps_disk_usage: f64,
