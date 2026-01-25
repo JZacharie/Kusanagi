@@ -19,6 +19,9 @@ pub struct WeatherInfo {
     pub icon: String,
     pub humidity: u8,
     pub wind_speed: f32,
+    pub feels_like: f32,
+    pub pressure: u32,
+    pub visibility: u32,
     pub last_updated: String,
     pub forecast: Vec<ForecastDay>,
 }
@@ -100,6 +103,9 @@ impl WeatherClient {
         let icon_code = resp["weather"][0]["icon"].as_str().unwrap_or("01d").to_string();
         let humidity = resp["main"]["humidity"].as_u64().unwrap_or(0) as u8;
         let wind_speed = resp["wind"]["speed"].as_f64().unwrap_or(0.0) as f32;
+        let feels_like = resp["main"]["feels_like"].as_f64().unwrap_or(temp as f64) as f32;
+        let pressure = resp["main"]["pressure"].as_u64().unwrap_or(1013) as u32;
+        let visibility = resp["visibility"].as_u64().unwrap_or(10000) as u32;
 
         // 5-day forecast
         let forecast_url = format!(
@@ -128,6 +134,9 @@ impl WeatherClient {
             icon: icon_code, // Keep raw code for mapping to animated icons in frontend
             humidity,
             wind_speed,
+            feels_like,
+            pressure,
+            visibility,
             last_updated: chrono::Local::now().format("%H:%M").to_string(),
             forecast,
         })
@@ -156,6 +165,9 @@ impl WeatherClient {
             icon: icon.to_string(),
             humidity: 45,
             wind_speed: 12.5,
+            feels_like: temp + 1.0,
+            pressure: 1015,
+            visibility: 10000,
             last_updated: chrono::Local::now().format("%H:%M").to_string(),
             forecast,
         }

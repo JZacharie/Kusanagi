@@ -76,6 +76,31 @@ const WeatherDashboard = {
         return icons[map[code] || 'sun'];
     },
 
+    getSensorSVG(type, size = "20px") {
+        const icons = {
+            'humidity': `
+                <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" class="weather-anim-sun">
+                    <path d="M12 22s8-4 8-10A8 8 0 0 0 4 12c0 6 8 10 8 10z" stroke="var(--neon-cyan)" stroke-width="2"/>
+                    <path d="M12 18s3-1.5 3-4" stroke="var(--neon-cyan)" stroke-width="1.5" opacity="0.6"/>
+                </svg>`,
+            'wind': `
+                <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" class="weather-anim-cloud">
+                    <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" stroke="var(--neon-magenta)" stroke-width="2" stroke-linecap="round"/>
+                </svg>`,
+            'pressure': `
+                <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke="var(--neon-yellow)" stroke-width="2"/>
+                    <path d="M12 7v5l3 3" stroke="var(--neon-yellow)" stroke-width="2" stroke-linecap="round" class="weather-anim-sun"/>
+                </svg>`,
+            'feels_like': `
+                <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" class="weather-anim-sun">
+                    <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" stroke="var(--neon-orange)" stroke-width="2"/>
+                    <path d="M12 12v3" stroke="var(--neon-orange)" stroke-width="2" stroke-linecap="round"/>
+                </svg>`
+        };
+        return icons[type] || '';
+    },
+
     getTempColor(temp) {
         if (temp < 0) return 'var(--neon-blue, #007bff)';
         if (temp < 15) return 'var(--neon-cyan)';
@@ -95,56 +120,69 @@ const WeatherDashboard = {
         let html = `
             <div class="weather-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem; padding: 1rem;">
                 ${cities.map(city => `
-                    <div class="weather-card" style="position: relative; overflow: hidden; border-radius: 16px; padding: 2rem; display: flex; flex-direction: column;">
+                    <div class="weather-card" style="position: relative; overflow: hidden; border-radius: 16px; padding: 2rem; display: flex; flex-direction: column; background: rgba(10, 20, 30, 0.6); border: 1px solid rgba(0, 255, 249, 0.15);">
                         <!-- Header with City & Main Icon -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                             <div>
-                                <h2 style="margin: 0; font-size: 2.2rem; font-family: 'Rajdhani', sans-serif; letter-spacing: 2px; color: ${this.getTempColor(city.temp)};">${city.city.toUpperCase()}</h2>
-                                <div style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 3px; opacity: 0.6;">${city.description}</div>
+                                <h2 style="margin: 0; font-size: 2.2rem; font-family: 'Rajdhani', sans-serif; letter-spacing: 2px; color: ${this.getTempColor(city.temp)}; text-shadow: 0 0 10px ${this.getTempColor(city.temp)}44;">${city.city.toUpperCase()}</h2>
+                                <div style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 3px; opacity: 0.6; margin-top: 5px;">${city.description}</div>
                             </div>
-                            <div style="filter: drop-shadow(0 0 10px rgba(0,255,249,0.3));">
-                                ${this.getWeatherSVG(city.icon, "100px")}
+                            <div style="filter: drop-shadow(0 0 15px rgba(0,255,249,0.3));">
+                                ${this.getWeatherSVG(city.icon, "90px")}
                             </div>
                         </div>
 
-                        <!-- Main Temp & Stats -->
-                        <div style="display: flex; align-items: baseline; gap: 1rem; margin-bottom: 2rem;">
-                            <div style="font-size: 4.5rem; font-weight: 700; font-family: 'Orbitron', sans-serif; color: #fff;">${city.temp.toFixed(1)}<span style="font-size: 2rem; opacity: 0.5;">°C</span></div>
-                            <div style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.5rem;">
-                                <div style="display: flex; align-items: center; gap: 0.8rem;">
-                                    <span style="font-size: 1.2rem;">💧</span>
-                                    <span style="font-size: 0.9rem; opacity: 0.8; width: 80px;">HUMIDITY</span>
-                                    <span style="font-weight: bold; color: var(--neon-cyan);">${city.humidity}%</span>
+                        <!-- Main Temp & Dynamic Sensors -->
+                        <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 2.5rem; background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                            <div style="font-size: 4.8rem; font-weight: 700; font-family: 'Orbitron', sans-serif; color: #fff; line-height: 1;">${city.temp.toFixed(1)}<span style="font-size: 1.8rem; opacity: 0.4; vertical-align: super; margin-left: 5px;">°C</span></div>
+                            
+                            <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 0.8rem;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        ${this.getSensorSVG('humidity')}
+                                        <span style="font-size: 0.75rem; letter-spacing: 1px; opacity: 0.5;">HUMIDITY</span>
+                                    </div>
+                                    <span style="font-family: 'Orbitron', sans-serif; font-weight: bold; color: var(--neon-cyan);">${city.humidity}%</span>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 0.8rem;">
-                                    <span style="font-size: 1.2rem;">💨</span>
-                                    <span style="font-size: 0.9rem; opacity: 0.8; width: 80px;">WIND</span>
-                                    <span style="font-weight: bold; color: var(--neon-magenta);">${city.wind_speed} <span style="font-size: 0.7rem;">km/h</span></span>
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        ${this.getSensorSVG('wind')}
+                                        <span style="font-size: 0.75rem; letter-spacing: 1px; opacity: 0.5;">WIND</span>
+                                    </div>
+                                    <span style="font-family: 'Orbitron', sans-serif; font-weight: bold; color: var(--neon-magenta);">${city.wind_speed}<span style="font-size: 0.6rem; margin-left: 2px;">KM/H</span></span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        ${this.getSensorSVG('feels_like')}
+                                        <span style="font-size: 0.75rem; letter-spacing: 1px; opacity: 0.5;">FEELS LIKE</span>
+                                    </div>
+                                    <span style="font-family: 'Orbitron', sans-serif; font-weight: bold; color: var(--neon-yellow);">${city.feels_like.toFixed(1)}°</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- 5-Day Forecast -->
-                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8rem; margin-top: auto;">
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-top: auto;">
                             ${city.forecast.map(day => `
-                                <div class="forecast-day" style="padding: 0.8rem 0.4rem; text-align: center; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);">
-                                    <div style="font-size: 0.65rem; font-weight: 700; opacity: 0.5; margin-bottom: 0.5rem;">${new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}</div>
-                                    <div style="margin-bottom: 0.5rem;">
-                                        ${this.getWeatherSVG(day.icon, "32px")}
+                                <div class="forecast-day" style="padding: 1rem 0.5rem; text-align: center; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+                                    <div style="font-size: 0.65rem; font-weight: 800; opacity: 0.4; margin-bottom: 8px; letter-spacing: 1px;">${new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}</div>
+                                    <div style="margin-bottom: 8px; transform: scale(0.9);">
+                                        ${this.getWeatherSVG(day.icon, "35px")}
                                     </div>
-                                    <div style="font-size: 1.1rem; font-weight: 600; font-family: 'Orbitron', sans-serif; color: ${this.getTempColor(day.temp)};">${day.temp.toFixed(0)}°</div>
+                                    <div style="font-size: 1.1rem; font-weight: 700; font-family: 'Orbitron', sans-serif; color: ${this.getTempColor(day.temp)};">${day.temp.toFixed(0)}°</div>
                                 </div>
                             `).join('')}
                         </div>
                         
-                        <div style="margin-top: 1.5rem; font-size: 0.65rem; opacity: 0.3; text-align: right; font-family: 'JetBrains Mono', monospace;">
-                            SYNC_T: ${city.last_updated} // KUSANAGI_OS
+                        <div style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; opacity: 0.3; font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; border-top: 1px dotted rgba(255,255,255,0.1); padding-top: 1rem;">
+                            <span>STATUS: LIVE_FEED</span>
+                            <span>SYNC_T: ${city.last_updated} // BUILD_01.25</span>
                         </div>
                     </div>
                 `).join('')}
             </div>
-            <div style="text-align: center; margin-top: 2rem; opacity: 0.2; font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 2px;">
-                Global cache synchronized at: ${data.cached_at}
+            <div style="text-align: center; margin-top: 3rem; opacity: 0.2; font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 3px;">
+                Node synchronization complete // cache_ref: ${data.cached_at}
             </div>
         `;
 
