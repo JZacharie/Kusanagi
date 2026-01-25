@@ -176,6 +176,13 @@
         <!-- Header -->
         <header class="header">
             <div id="theme-switcher-container"></div>
+            <div id="language-switcher-container" style="display: flex; align-items: center; margin-left: 10px;">
+                <select id="language-select" class="cyber-select"
+                    style="background: rgba(0,0,0,0.5); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); border-radius: 4px; padding: 2px 5px; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; cursor: pointer;">
+                    <option value="en">EN</option>
+                    <option value="fr" selected>FR</option>
+                </select>
+            </div>
             <div class="world-clocks" id="world-clocks"
                 style="display: flex; gap: 1rem; margin-right: auto; padding-left: 1rem; font-family: monospace; font-size: 0.8rem; opacity: 0.8;">
                 <div class="clock" title="Lyon (Local)"><span style="color: var(--neon-cyan);">LYO</span> <span
@@ -188,9 +195,9 @@
             <div class="header-content">
                 <img src="/static/images/logo.png" alt="Kusanagi Logo" class="header-logo">
                 <div class="header-text">
-                    <h1 class="logo">KUSANAGI</h1>
+                    <h1 class="logo" data-i18n="app_name">KUSANAGI</h1>
                     <div class="header-sub">
-                        <span class="subtitle">Agent Controller System</span>
+                        <span class="subtitle" data-i18n="app_subtitle">Agent Controller System</span>
                         <span class="japanese-text">// 草薙素子</span>
                     </div>
                 </div>
@@ -201,16 +208,16 @@
         <div class="system-status-bar" id="kusanagi-system-status"
             style="display: flex; gap: 1rem; align-items: center; justify-content: flex-end; padding: 0.5rem 1rem; background: rgba(0, 255, 249, 0.05); border-bottom: 1px solid rgba(0, 255, 249, 0.2); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--neon-cyan);">
             <div class="system-item">
-                <span style="opacity: 0.7;">UPTIME:</span> <span id="kusanagi-uptime">--:--:--</span>
+                <span style="opacity: 0.7;" data-i18n="uptime">UPTIME:</span> <span id="kusanagi-uptime">--:--:--</span>
             </div>
             <div class="system-item">
-                <span style="opacity: 0.7;">CPU:</span> <span id="kusanagi-cpu">--%</span>
+                <span style="opacity: 0.7;" data-i18n="cpu">CPU:</span> <span id="kusanagi-cpu">--%</span>
             </div>
             <div class="system-item">
-                <span style="opacity: 0.7;">RAM:</span> <span id="kusanagi-ram">--MB</span>
+                <span style="opacity: 0.7;" data-i18n="ram">RAM:</span> <span id="kusanagi-ram">--MB</span>
             </div>
             <div class="system-item">
-                <span style="opacity: 0.7;">VERSION:</span> <span id="kusanagi-version">0.1.0</span>
+                <span style="opacity: 0.7;" data-i18n="version">VERSION:</span> <span id="kusanagi-version">0.1.0</span>
             </div>
             <div class="system-item">
                 <span class="status-indicator-dot" id="kusanagi-refresh-indicator"
@@ -224,17 +231,17 @@
                 <div class="quick-stat" title="Namespaces">
                     <span class="quick-icon">📁</span>
                     <span class="quick-value" id="ns-count">-</span>
-                    <span class="quick-label">Namespaces</span>
+                    <span class="quick-label" data-i18n="namespaces">Namespaces</span>
                 </div>
                 <div class="quick-stat" title="Persistent Volume Claims">
                     <span class="quick-icon">💾</span>
                     <span class="quick-value" id="pvc-count">-</span>
-                    <span class="quick-label">PVCs</span>
+                    <span class="quick-label" data-i18n="pvcs">PVCs</span>
                 </div>
                 <div class="quick-stat" title="Total Storage">
                     <span class="quick-icon">📊</span>
                     <span class="quick-value" id="pvc-capacity">-</span>
-                    <span class="quick-label">Storage</span>
+                    <span class="quick-label" data-i18n="storage">Storage</span>
                 </div>
             </div>
             <div class="external-links">
@@ -303,39 +310,25 @@
                 <span class="tab-icon">
                     <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-                        <line x1="6" y1="6" x2="6.01" y2="6" />
-                        <line x1="6" y1="18" x2="6.01" y2="18" />
-                    </svg>
-                </span> Nodes
-            </button>
-            <button class="tab-btn" data-tab="pods" onclick="switchTab('pods')">
-                <span class="tab-icon">🐳</span> Pods
-            </button>
-            <button class="tab-btn" data-tab="quotas" onclick="switchTab('quotas')">
-                <span class="tab-icon">📈</span> Quotas
-            </button>
-            <button class="tab-btn" data-tab="services" onclick="switchTab('services')">
-                <span class="tab-icon">
-                    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="2" y1="12" x2="22" y2="12" />
-                        <path
-                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                    </svg>
-                </span> Services
+                        <span class="tab-icon">🖥️</span> <span data-i18n="tab_nodes">Nodes</span>
             </button>
             <button class="tab-btn" data-tab="storage" onclick="switchTab('storage')">
-                <span class="tab-icon">
-                    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <ellipse cx="12" cy="5" rx="9" ry="3" />
-                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-                    </svg>
-                </span> Storage
+                <span class="tab-icon">💾</span> <span data-i18n="tab_storage">Storage</span>
+            </button>
+            <button class="tab-btn" data-tab="events" onclick="switchTab('events')">
+                <span class="tab-icon">🔔</span> <span data-i18n="tab_events">Events</span>
+            </button>
+            <button class="tab-btn" data-tab="pods" onclick="switchTab('pods')">
+                <span class="tab-icon">📦</span> <span data-i18n="tab_pods">Pods</span>
+            </button>
+            <button class="tab-btn" data-tab="network" onclick="switchTab('network')">
+                <span class="tab-icon">🌐</span> <span data-i18n="tab_network">Network</span>
+            </button>
+            <button class="tab-btn" data-tab="metrics" onclick="switchTab('metrics')">
+                <span class="tab-icon">📈</span> <span data-i18n="tab_metrics">Metrics</span>
+            </button>
+            <button class="tab-btn" data-tab="alerts" onclick="switchTab('alerts')">
+                <span class="tab-icon">⚠️</span> <span data-i18n="tab_alerts">Alerts</span>
             </button>
 
             <div class="tab-separator"></div>
@@ -349,51 +342,51 @@
                         <path
                             d="M110.985 10.209h.22Q126.873 27.613 128 51.114v4.793q-1.1 23.145-16.098 40.192c-12.77 14.514-31.675 22.415-51.067 21.64q-1.181-.049-2.343-.21-.007-.002 0-.002 21.11-.9 36.825-14.431c12.675-10.914 20.095-27.247 20.07-44.035-.026-16.352-6.81-31.694-18.68-42.812a.131.131 0 0 1 .207-.087z" />
                     </svg>
-                </span> ArgoCD
+                </span> <span data-i18n="tab_argocd">ArgoCD</span>
             </button>
             <button class="tab-btn" data-tab="backups" onclick="switchTab('backups')">
-                <span class="tab-icon">📦</span> Backups
+                <span class="tab-icon">📦</span> <span data-i18n="tab_backups">Backups</span>
             </button>
             <button class="tab-btn" data-tab="security" onclick="switchTab('security')">
-                <span class="tab-icon">🛡️</span> Security
+                <span class="tab-icon">🛡️</span> <span data-i18n="tab_security">Security</span>
             </button>
             <button class="tab-btn" data-tab="setup" onclick="switchTab('setup'); KusanagiSetup.init();">
-                <span class="tab-icon">🛠️</span> Setup
+                <span class="tab-icon">🛠️</span> <span data-i18n="tab_setup">Setup</span>
             </button>
 
             <div class="tab-separator"></div>
 
             <!-- Group 3: Home Lab & Hardware -->
             <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar')">
-                <span class="tab-icon">📅</span> Calendar
+                <span class="tab-icon">📅</span> <span data-i18n="tab_calendar">Calendar</span>
             </button>
             <button class="tab-btn" data-tab="homeassistant" onclick="switchTab('homeassistant')">
-                <span class="tab-icon">🏠</span> Home Assistant
+                <span class="tab-icon">🏠</span> <span data-i18n="tab_ha">Home Assistant</span>
             </button>
             <button class="tab-btn" data-tab="mqtt" onclick="switchTab('mqtt'); MqttManager.init();">
-                <span class="tab-icon">📡</span> MQTT
+                <span class="tab-icon">📡</span> <span data-i18n="tab_mqtt">MQTT</span>
             </button>
             <button class="tab-btn" data-tab="proxmox" onclick="switchTab('proxmox')">
-                <span class="tab-icon">🖥️</span> Proxmox
+                <span class="tab-icon">🖥️</span> <span data-i18n="tab_proxmox">Proxmox</span>
             </button>
             <button class="tab-btn" data-tab="weather" onclick="switchTab('weather')">
-                <span class="tab-icon">🌤️</span> Weather
+                <span class="tab-icon">🌤️</span> <span data-i18n="tab_weather">Weather</span>
             </button>
 
             <div class="tab-separator"></div>
 
             <!-- Group 4: Information & Help -->
             <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
-                <span class="tab-icon">💬</span> Chat
+                <span class="tab-icon">💬</span> <span data-i18n="tab_chat">Chat</span>
             </button>
             <button class="tab-btn" data-tab="evolution" onclick="switchTab('evolution')">
-                <span class="tab-icon mdi mdi-github"></span> Evolution
+                <span class="tab-icon mdi mdi-github"></span> <span data-i18n="tab_evolution">Evolution</span>
             </button>
             <button class="tab-btn" data-tab="docs" onclick="switchTab('docs')">
-                <span class="tab-icon">📖</span> Docs
+                <span class="tab-icon">📖</span> <span data-i18n="tab_docs">Docs</span>
             </button>
             <button class="tab-btn" data-tab="news" onclick="switchTab('news')">
-                <span class="tab-icon">📰</span> News
+                <span class="tab-icon">📰</span> <span data-i18n="tab_news">News</span>
             </button>
 
             <div class="tab-separator"></div>
@@ -401,7 +394,7 @@
             <!-- Export Dropdown -->
             <div class="export-dropdown">
                 <button class="tab-btn export-trigger" onclick="toggleExportMenu()">
-                    <span class="tab-icon">📥</span> Export
+                    <span class="tab-icon">📥</span> <span data-i18n="tab_export">Export</span>
                 </button>
                 <div class="export-menu" id="export-menu" style="display:none;">
                     <button class="export-btn" data-format="json">📄 JSON</button>
@@ -410,221 +403,222 @@
                 </div>
             </div>
         </div>
-
-
-
-
-        <!-- ArgoCD Status Section -->
-        <section class="argocd-section tab-content active" data-tab="argocd">
-            <h2 class="section-title">ArgoCD Applications Status</h2>
-
-            <div class="argocd-stats" id="argocd-stats">
-                <div class="stat-box info">
-                    <div class="stat-value" id="stat-total">-</div>
-                    <div class="stat-label">Total Apps</div>
-                </div>
-                <div class="stat-box healthy">
-                    <div class="stat-value" id="stat-healthy">-</div>
-                    <div class="stat-label">Healthy</div>
-                </div>
-                <div class="stat-box unhealthy">
-                    <div class="stat-value" id="stat-unhealthy">-</div>
-                    <div class="stat-label">Unhealthy</div>
-                </div>
-                <div class="stat-box healthy">
-                    <div class="stat-value" id="stat-synced">-</div>
-                    <div class="stat-label">Synced</div>
-                </div>
-                <div class="stat-box unhealthy">
-                    <div class="stat-value" id="stat-outofsync">-</div>
-                    <div class="stat-label">Out of Sync</div>
-                </div>
-                <div class="stat-box warning">
-                    <div class="stat-value" id="stat-progressing">-</div>
-                    <div class="stat-label">Progressing</div>
-                </div>
-                <div class="stat-box info">
-                    <div class="stat-value" id="stat-upgrades">-</div>
-                    <div class="stat-label">Upgrades</div>
-                </div>
-            </div>
-
-            <!-- Real Issues Table -->
-            <div class="issues-table-container" id="issues-container">
-                <div class="issues-table-header">
-                    <span class="issues-table-title">⚠ Real Issues</span>
-                    <span class="issues-count" id="issues-count">0</span>
-                </div>
-                <div id="issues-content">
-                    <div class="loading">Loading ArgoCD status...</div>
-                </div>
-            </div>
-
-            <!-- Upgrades Available Table -->
-            <div class="issues-table-container upgrades-container" id="upgrades-container"
-                style="margin-top: 2rem; border-color: var(--neon-cyan);">
-                <div class="issues-table-header"
-                    style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-                    <span class="issues-table-title" style="color: var(--neon-cyan);">🔄 Upgrades Available</span>
-                    <span class="issues-count" id="upgrades-count" style="background: var(--neon-cyan);">0</span>
-                </div>
-                <div id="upgrades-content">
-                    <div class="no-issues">No upgrades available</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Nodes Monitoring Section -->
-        <section class="argocd-section tab-content" data-tab="nodes" style="display: none;">
-            <h2 class="section-title">🖥️ Cluster Nodes</h2>
-
-            <!-- Node Stats Grid -->
-            <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                <div class="stat-box">
-                    <div class="stat-value" id="node-total">-</div>
-                    <div class="stat-label">Total Nodes</div>
-                </div>
-                <div class="stat-box healthy">
-                    <div class="stat-value" id="node-ready">-</div>
-                    <div class="stat-label">Ready</div>
-                </div>
-                <div class="stat-box unhealthy">
-                    <div class="stat-value" id="node-notready">-</div>
-                    <div class="stat-label">Not Ready</div>
-                </div>
-            </div>
-
-            <!-- Diagnostic Button (Hidden by default, shown on error) -->
-            <div id="nodes-diagnostic-tool"
-                style="display: none; margin-bottom: 1.5rem; padding: 1rem; background: rgba(255, 68, 68, 0.1); border: 1px solid #ff4444; border-radius: 4px;">
-                <h3 style="color: #ff4444; margin-top: 0;">🛠️ Nodes Diagnostic</h3>
-                <p>An error occurred while fetching nodes. Use this tool to identify the cause.</p>
-                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                    <button class="cyber-btn" onclick="runNodesDiagnostic()" id="btn-run-diagnostic">Run Deep
-                        Diagnostic</button>
-                </div>
-                <div id="nodes-diagnostic-result"
-                    style="font-family: monospace; font-size: 0.8rem; background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 4px; display: none; white-space: pre-wrap;">
-                </div>
-            </div>
-
-            <!-- Node Cards Container -->
-            <div class="nodes-container" id="nodes-container">
-                <div class="loading">Loading nodes status...</div>
-            </div>
-        </section>
-
-        <!-- PVC Monitoring Section -->
-        <section class="argocd-section tab-content" data-tab="storage" style="display: none;">
-            <h2 class="section-title">💾 Storage (PVCs)</h2>
-
-            <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                <div class="stat-box">
-                    <div class="stat-value" id="pvc-total-count">-</div>
-                    <div class="stat-label">Total PVCs</div>
-                </div>
-                <div class="stat-box healthy">
-                    <div class="stat-value" id="pvc-bound-count">-</div>
-                    <div class="stat-label">Bound</div>
-                </div>
-                <div class="stat-box warning">
-                    <div class="stat-value" id="pvc-pending-count">-</div>
-                    <div class="stat-label">Pending</div>
-                </div>
-                <div class="stat-box info">
-                    <div class="stat-value" id="pvc-total-storage">-</div>
-                    <div class="stat-label">Total Capacity</div>
-                </div>
-            </div>
-
-            <div class="issues-table-container" id="pvc-container" style="border-color: var(--neon-cyan);">
-                <div class="issues-table-header"
-                    style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-                    <span class="issues-table-title" style="color: var(--neon-cyan);">📊 PVC Details</span>
-                    <span class="issues-count" id="pvc-table-count" style="background: var(--neon-cyan);">0</span>
-                </div>
-                <div id="pvc-content">
-                    <div class="loading">Loading PVC data...</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Services Section -->
-        <section class="argocd-section tab-content" data-tab="services" style="display: none;">
-            <h2 class="section-title">🌐 Services</h2>
-            <div class="issues-table-container" id="services-container">
-                <div class="issues-table-header">
-                    <span class="issues-table-title">Cluster Services</span>
-                    <span class="issues-count" id="services-count">0</span>
-                </div>
-                <div id="services-content">
-                    <div class="loading">Loading services...</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Ingress Section -->
-        <section class="argocd-section tab-content" data-tab="ingress" style="display: none;">
-            <h2 class="section-title">🌍 Ingress Rules</h2>
-            <div class="issues-table-container" id="ingress-container">
-                <div class="issues-table-header">
-                    <span class="issues-table-title">Ingress Routes</span>
-                    <span class="issues-count" id="ingress-count">0</span>
-                </div>
-                <div id="ingress-content">
-                    <div class="loading">Loading ingress rules...</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Kubernetes Events Section -->
-        <section class="argocd-section tab-content" data-tab="events" style="display: none;">
-            <h2 class="section-title">🔔 Kubernetes Events (Last Hour)</h2>
-
-            <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                <div class="stat-box">
-                    <div class="stat-value" id="events-total">-</div>
-                    <div class="stat-label">Total Events</div>
-                </div>
-                <div class="stat-box unhealthy">
-                    <div class="stat-value" id="events-warnings">-</div>
-                    <div class="stat-label">Warnings</div>
-                </div>
-                <div class="stat-box healthy">
-                    <div class="stat-value" id="events-normal">-</div>
-                    <div class="stat-label">Normal</div>
-                </div>
-            </div>
-
-            <!-- Filter Controls -->
-            <div class="filter-controls" style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
-                <button class="cyber-btn active" id="btn-show-all" onclick="filterEvents('all')">Show All</button>
-                <button class="cyber-btn" id="btn-show-warnings" onclick="filterEvents('Warning')">⚠️ Warnings
-                    Only</button>
-            </div>
-
-            <!-- Top Recurrent Warnings (Hidden by default) -->
-            <div class="issues-table-container" id="top-warnings-container"
-                style="display: none; border-color: #ff4444; margin-bottom: 1.5rem;">
-                <div class="issues-table-header" style="background: rgba(255, 68, 68, 0.1); border-color: #ff4444;">
-                    <span class="issues-table-title" style="color: #ff4444;">🔥 Top Recurrent Warnings</span>
-                </div>
-                <div id="top-warnings-content">
-                    <div class="loading">Calculating top warnings...</div>
-                </div>
-            </div>
-
-            <div class="issues-table-container" id="events-container" style="border-color: var(--neon-magenta);">
-                <div class="issues-table-header"
-                    style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-                    <span class="issues-table-title" style="color: var(--neon-magenta);">⚠️ Recent Events</span>
-                    <span class="issues-count" id="events-table-count" style="background: var(--neon-magenta);">0</span>
-                </div>
-                <div id="events-content">
-                    <div class="loading">Loading events...</div>
-                </div>
-            </div>
     </div>
+
+
+
+
+    <!-- ArgoCD Status Section -->
+    <section class="argocd-section tab-content active" data-tab="argocd">
+        <h2 class="section-title">ArgoCD Applications Status</h2>
+
+        <div class="argocd-stats" id="argocd-stats">
+            <div class="stat-box info">
+                <div class="stat-value" id="stat-total">-</div>
+                <div class="stat-label">Total Apps</div>
+            </div>
+            <div class="stat-box healthy">
+                <div class="stat-value" id="stat-healthy">-</div>
+                <div class="stat-label">Healthy</div>
+            </div>
+            <div class="stat-box unhealthy">
+                <div class="stat-value" id="stat-unhealthy">-</div>
+                <div class="stat-label">Unhealthy</div>
+            </div>
+            <div class="stat-box healthy">
+                <div class="stat-value" id="stat-synced">-</div>
+                <div class="stat-label">Synced</div>
+            </div>
+            <div class="stat-box unhealthy">
+                <div class="stat-value" id="stat-outofsync">-</div>
+                <div class="stat-label">Out of Sync</div>
+            </div>
+            <div class="stat-box warning">
+                <div class="stat-value" id="stat-progressing">-</div>
+                <div class="stat-label">Progressing</div>
+            </div>
+            <div class="stat-box info">
+                <div class="stat-value" id="stat-upgrades">-</div>
+                <div class="stat-label">Upgrades</div>
+            </div>
+        </div>
+
+        <!-- Real Issues Table -->
+        <div class="issues-table-container" id="issues-container">
+            <div class="issues-table-header">
+                <span class="issues-table-title">⚠ Real Issues</span>
+                <span class="issues-count" id="issues-count">0</span>
+            </div>
+            <div id="issues-content">
+                <div class="loading">Loading ArgoCD status...</div>
+            </div>
+        </div>
+
+        <!-- Upgrades Available Table -->
+        <div class="issues-table-container upgrades-container" id="upgrades-container"
+            style="margin-top: 2rem; border-color: var(--neon-cyan);">
+            <div class="issues-table-header"
+                style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                <span class="issues-table-title" style="color: var(--neon-cyan);">🔄 Upgrades Available</span>
+                <span class="issues-count" id="upgrades-count" style="background: var(--neon-cyan);">0</span>
+            </div>
+            <div id="upgrades-content">
+                <div class="no-issues">No upgrades available</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Nodes Monitoring Section -->
+    <section class="argocd-section tab-content" data-tab="nodes" style="display: none;">
+        <h2 class="section-title">🖥️ Cluster Nodes</h2>
+
+        <!-- Node Stats Grid -->
+        <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box">
+                <div class="stat-value" id="node-total">-</div>
+                <div class="stat-label">Total Nodes</div>
+            </div>
+            <div class="stat-box healthy">
+                <div class="stat-value" id="node-ready">-</div>
+                <div class="stat-label">Ready</div>
+            </div>
+            <div class="stat-box unhealthy">
+                <div class="stat-value" id="node-notready">-</div>
+                <div class="stat-label">Not Ready</div>
+            </div>
+        </div>
+
+        <!-- Diagnostic Button (Hidden by default, shown on error) -->
+        <div id="nodes-diagnostic-tool"
+            style="display: none; margin-bottom: 1.5rem; padding: 1rem; background: rgba(255, 68, 68, 0.1); border: 1px solid #ff4444; border-radius: 4px;">
+            <h3 style="color: #ff4444; margin-top: 0;">🛠️ Nodes Diagnostic</h3>
+            <p>An error occurred while fetching nodes. Use this tool to identify the cause.</p>
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                <button class="cyber-btn" onclick="runNodesDiagnostic()" id="btn-run-diagnostic">Run Deep
+                    Diagnostic</button>
+            </div>
+            <div id="nodes-diagnostic-result"
+                style="font-family: monospace; font-size: 0.8rem; background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 4px; display: none; white-space: pre-wrap;">
+            </div>
+        </div>
+
+        <!-- Node Cards Container -->
+        <div class="nodes-container" id="nodes-container">
+            <div class="loading">Loading nodes status...</div>
+        </div>
+    </section>
+
+    <!-- PVC Monitoring Section -->
+    <section class="argocd-section tab-content" data-tab="storage" style="display: none;">
+        <h2 class="section-title">💾 Storage (PVCs)</h2>
+
+        <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box">
+                <div class="stat-value" id="pvc-total-count">-</div>
+                <div class="stat-label">Total PVCs</div>
+            </div>
+            <div class="stat-box healthy">
+                <div class="stat-value" id="pvc-bound-count">-</div>
+                <div class="stat-label">Bound</div>
+            </div>
+            <div class="stat-box warning">
+                <div class="stat-value" id="pvc-pending-count">-</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-box info">
+                <div class="stat-value" id="pvc-total-storage">-</div>
+                <div class="stat-label">Total Capacity</div>
+            </div>
+        </div>
+
+        <div class="issues-table-container" id="pvc-container" style="border-color: var(--neon-cyan);">
+            <div class="issues-table-header"
+                style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                <span class="issues-table-title" style="color: var(--neon-cyan);">📊 PVC Details</span>
+                <span class="issues-count" id="pvc-table-count" style="background: var(--neon-cyan);">0</span>
+            </div>
+            <div id="pvc-content">
+                <div class="loading">Loading PVC data...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="argocd-section tab-content" data-tab="services" style="display: none;">
+        <h2 class="section-title">🌐 Services</h2>
+        <div class="issues-table-container" id="services-container">
+            <div class="issues-table-header">
+                <span class="issues-table-title">Cluster Services</span>
+                <span class="issues-count" id="services-count">0</span>
+            </div>
+            <div id="services-content">
+                <div class="loading">Loading services...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Ingress Section -->
+    <section class="argocd-section tab-content" data-tab="ingress" style="display: none;">
+        <h2 class="section-title">🌍 Ingress Rules</h2>
+        <div class="issues-table-container" id="ingress-container">
+            <div class="issues-table-header">
+                <span class="issues-table-title">Ingress Routes</span>
+                <span class="issues-count" id="ingress-count">0</span>
+            </div>
+            <div id="ingress-content">
+                <div class="loading">Loading ingress rules...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Kubernetes Events Section -->
+    <section class="argocd-section tab-content" data-tab="events" style="display: none;">
+        <h2 class="section-title">🔔 Kubernetes Events (Last Hour)</h2>
+
+        <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box">
+                <div class="stat-value" id="events-total">-</div>
+                <div class="stat-label">Total Events</div>
+            </div>
+            <div class="stat-box unhealthy">
+                <div class="stat-value" id="events-warnings">-</div>
+                <div class="stat-label">Warnings</div>
+            </div>
+            <div class="stat-box healthy">
+                <div class="stat-value" id="events-normal">-</div>
+                <div class="stat-label">Normal</div>
+            </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="filter-controls" style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
+            <button class="cyber-btn active" id="btn-show-all" onclick="filterEvents('all')">Show All</button>
+            <button class="cyber-btn" id="btn-show-warnings" onclick="filterEvents('Warning')">⚠️ Warnings
+                Only</button>
+        </div>
+
+        <!-- Top Recurrent Warnings (Hidden by default) -->
+        <div class="issues-table-container" id="top-warnings-container"
+            style="display: none; border-color: #ff4444; margin-bottom: 1.5rem;">
+            <div class="issues-table-header" style="background: rgba(255, 68, 68, 0.1); border-color: #ff4444;">
+                <span class="issues-table-title" style="color: #ff4444;">🔥 Top Recurrent Warnings</span>
+            </div>
+            <div id="top-warnings-content">
+                <div class="loading">Calculating top warnings...</div>
+            </div>
+        </div>
+
+        <div class="issues-table-container" id="events-container" style="border-color: var(--neon-magenta);">
+            <div class="issues-table-header"
+                style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                <span class="issues-table-title" style="color: var(--neon-magenta);">⚠️ Recent Events</span>
+                <span class="issues-count" id="events-table-count" style="background: var(--neon-magenta);">0</span>
+            </div>
+            <div id="events-content">
+                <div class="loading">Loading events...</div>
+            </div>
+        </div>
+        </div>
     </section>
 
     <!-- Pods Error Monitoring Section -->
@@ -1549,7 +1543,10 @@
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message }),
+                    body: JSON.stringify({
+                        message,
+                        language: LocaleManager.currentLocale
+                    }),
                     signal: controller.signal
                 });
 

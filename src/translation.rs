@@ -140,15 +140,16 @@ pub async fn get_news_from_s3(s3_client: &S3Client) -> Result<Vec<crate::newsfee
     Ok(items)
 }
 
-pub async fn translate_with_ollama(text: &str) -> Result<String, String> {
+pub async fn translate_with_ollama(text: &str, target_lang: &str) -> Result<String, String> {
     let client = HttpClient::builder()
         .timeout(std::time::Duration::from_secs(60))
         .build()
         .map_err(|e| e.to_string())?;
 
+    let lang_full = if target_lang == "fr" { "French" } else { "English" };
     let prompt = format!(
-        "Translate the following technical news text to French. Output ONLY the translated text. Do not include introductory phrases like 'Here is the translation', explanations, or any other additional content.\n\nText: {}",
-        text
+        "Translate the following technical news text to {}. Output ONLY the translated text. Do not include introductory phrases like 'Here is the translation', explanations, or any other additional content.\n\nText: {}",
+        lang_full, text
     );
 
     let request = serde_json::json!({

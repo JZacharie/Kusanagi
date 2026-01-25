@@ -118,7 +118,7 @@ async fn process_single_report(http: &reqwest::Client, s3: &S3Client, cat: &str,
     // For now, we overwrite
     
     // 2. Enrich with Ollama
-    let enrichment = match enrich_with_ollama(http, &raw_report).await {
+    let enrichment = match enrich_with_ollama(http, &raw_report, "fr").await {
         Ok(data) => Some(data),
         Err(e) => {
             warn!("Ollama enrichment failed for {}: {}", filename, e);
@@ -217,14 +217,14 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     );
 }
 
-async fn enrich_with_ollama(http: &reqwest::Client, report: &serde_json::Value) -> Result<EnrichmentData, String> {
+async fn enrich_with_ollama(http: &reqwest::Client, report: &serde_json::Value, lang: &str) -> Result<EnrichmentData, String> {
     // Extract summary for the prompt
     let vuln_count = report["Report"]["Vulnerabilities"].as_array().map(|a| a.len()).unwrap_or(0);
     
     if vuln_count == 0 {
         return Ok(EnrichmentData {
-            summary: "No vulnerabilities found.".to_string(),
-            remediation_advice: "System clean. No action required.".to_string(),
+            summary: if lang == "en" { "No vulnerabilities found." } else { "Aucune vulnérabilité trouvée." }.to_string(),
+            remediation_advice: if lang == "en" { "System clean. No action required." } else { "Système propre. Aucune action requise." }.to_string(),
             criticality_score: 0.0,
         });
     }
@@ -234,9 +234,10 @@ async fn enrich_with_ollama(http: &reqwest::Client, report: &serde_json::Value) 
         .map(|v| format!("- {}: {}", v["VulnerabilityID"], v["Title"].as_str().unwrap_or("No title")))
         .collect::<Vec<_>>().join("\n");
 
+    let lang_instruction = if lang == "en" { "in English" } else { "en Français" };
     let prompt = format!(
-        "Analyze this Trivy security report summary:\nTotal Vulnerabilities: {}\nSample:\n{}\n\nProvide a JSON object with: summary (brief), remediation_advice (short action steps), and criticality_score (0-10). Response must be ONLY valid JSON.",
-        vuln_count, sample_vulns
+        "Analyze this Trivy security report summary:\nTotal Vulnerabilities: {}\nSample:\n{}\n\nProvide a JSON object with: summary (brief, {}), remediation_advice (short action steps, {}), and criticality_score (0-10). Response must be ONLY valid JSON.",
+        vuln_count, sample_vulns, lang_instruction, lang_instruction
     );
 
     let request = OllamaRequest {

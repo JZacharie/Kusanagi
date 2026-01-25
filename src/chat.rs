@@ -8,6 +8,7 @@ use kube::Client;
 #[derive(Clone, Debug, Deserialize)]
 pub struct ChatRequest {
     pub message: String,
+    pub language: Option<String>,
 }
 
 /// Chat response
@@ -62,8 +63,9 @@ Or just ask me anything in natural language! I'm powered by Ollama AI."#;
 pub async fn process_message(client: &Client, request: ChatRequest) -> ChatResponse {
     let message = request.message.trim();
     let message_lower = message.to_lowercase();
+    let lang = request.language.unwrap_or_else(|| "fr".to_string());
     
-    info!("Chat message received: {}", message);
+    info!("Chat message received: {} (lang: {})", message, lang);
 
     // Send to Slack
     let slack_msg = message.to_string();
@@ -79,13 +81,12 @@ pub async fn process_message(client: &Client, request: ChatRequest) -> ChatRespo
     }
 
     // Handle natural language queries with Ollama
-    // Handle natural language queries with Ollama
-    let response = handle_query_with_ollama(client, message).await;
+    let response = handle_query_with_ollama(client, message, &lang).await;
 
     // Store chat and Notify Slack
     let user_msg = message.to_string();
     let ai_resp = response.response.clone();
-    let resp_type = response.response_type.clone();
+    let resp_type = response.response.clone();
     
     actix::spawn(async move {
         // Store locally

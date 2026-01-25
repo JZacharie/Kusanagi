@@ -442,14 +442,14 @@ async fn process_news_enrichment(cache: NewsCache) {
                 tracing::info!("Translating news item: {}", item.title);
                 
                 // Translate title
-                if let Ok(t_title) = translation::translate_with_ollama(&item.title).await {
+                if let Ok(t_title) = translation::translate_with_ollama(&item.title, "fr").await {
                     updated_item.translated_title = Some(t_title);
                     needs_update = true;
 
                     // Translate description if present
                     if let Some(desc) = &item.description {
                         if !desc.trim().is_empty() {
-                            if let Ok(t_desc) = translation::translate_with_ollama(desc).await {
+                            if let Ok(t_desc) = translation::translate_with_ollama(desc, "fr").await {
                                 updated_item.translated_description = Some(t_desc);
                             }
                         }

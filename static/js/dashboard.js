@@ -4,6 +4,77 @@
  */
 
 /**
+ * Kusanagi Localization Manager
+ * Handles multi-language support (EN/FR)
+ */
+const LocaleManager = {
+    currentLocale: 'fr',
+    translations: {},
+
+    async init() {
+        const savedLocale = localStorage.getItem('kusanagi_locale');
+        if (savedLocale) {
+            this.currentLocale = savedLocale;
+        }
+
+        const languageSelect = document.getElementById('language-select');
+        if (languageSelect) {
+            languageSelect.value = this.currentLocale;
+            languageSelect.addEventListener('change', (e) => {
+                this.setLocale(e.target.value);
+            });
+        }
+
+        await this.loadTranslations();
+        this.applyTranslations();
+        console.log(`✅ Locale Manager initialized (${this.currentLocale})`);
+    },
+
+    async loadTranslations() {
+        try {
+            const response = await fetch(`/static/locales/${this.currentLocale}.json`);
+            if (!response.ok) throw new Error(`Failed to load locale: ${this.currentLocale}`);
+            this.translations = await response.json();
+        } catch (e) {
+            console.error('Localization error:', e);
+        }
+    },
+
+    async setLocale(locale) {
+        if (locale === this.currentLocale) return;
+        this.currentLocale = locale;
+        localStorage.setItem('kusanagi_locale', locale);
+        await this.loadTranslations();
+        this.applyTranslations();
+
+        // Notify other managers if needed
+        if (window.ChatManager) window.ChatManager.updateSystemPrompt();
+    },
+
+    applyTranslations() {
+        const elements = document.querySelectorAll('[data-i18n]');
+        elements.forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (this.translations[key]) {
+                el.textContent = this.translations[key];
+            }
+        });
+
+        // Update placeholders
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (this.translations[key]) {
+                el.placeholder = this.translations[key];
+            }
+        });
+    },
+
+    t(key) {
+        return this.translations[key] || key;
+    }
+};
+
+/**
  * Kusanagi System Status Manager
  * Handles uptime, CPU/RAM metrics and auto-refresh on restart
  */
