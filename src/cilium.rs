@@ -112,7 +112,7 @@ pub struct FlowMatrixEntry {
 }
 
 /// Hubble flows response
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HubbleFlowsResponse {
     pub total_flows: u64,
     pub flows: Vec<NetworkFlow>,
@@ -197,7 +197,6 @@ pub async fn get_hubble_flows(namespace: Option<&str>, limit: usize) -> Result<H
     if let Ok(ref flows) = result {
         span.record("success", Some(flows.flows.len() as u64));
         
-        // Update cache if no namespace filter (store full view)
         if namespace.is_none() {
             let mut cache = NETWORK_CACHE.flows.write().await;
             *cache = Some((flows.clone(), Instant::now()));

@@ -59,7 +59,14 @@ impl WeatherClient {
         let mut results = Vec::new();
 
         if self.api_key.is_empty() {
-            return Ok(self.get_mock_weather());
+            let mut results = Vec::new();
+            for city in cities {
+                results.push(self.get_mock_city_weather(city));
+            }
+            return Ok(WeatherResponse {
+                cities: results,
+                cached_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+            });
         }
 
         for city in cities {

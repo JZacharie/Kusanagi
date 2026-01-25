@@ -1,6 +1,10 @@
+use actix_web::{web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use std::env;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
+use hex;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SlackMessage {
@@ -13,6 +17,8 @@ pub struct SlackMessage {
 pub struct SlackClient {
     token: String,
     channel_id: String,
+    signing_secret: String,
+    bot_user_id: String,
     client: reqwest::Client,
 }
 
@@ -20,9 +26,11 @@ impl SlackClient {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let token = env::var("SLACK_BOT_TOKEN").unwrap_or_default();
         let channel_id = env::var("SLACK_CHANNEL_ID").unwrap_or_default();
+        let signing_secret = env::var("SLACK_SIGNING_SECRET").unwrap_or_default();
+        let bot_user_id = env::var("SLACK_BOT_USER_ID").unwrap_or_default();
 
         if token.is_empty() || channel_id.is_empty() {
-            warn!("SLACK_BOT_TOKEN or SLACK_CHANNEL_ID not set, Slack integration will be mocked");
+            warn!("SLACK_BOT_TOKEN or SLACK_CHANNEL_ID not set, Slack integration will be limited");
         }
 
         let client = reqwest::Client::builder()
@@ -32,20 +40,41 @@ impl SlackClient {
         Ok(Self {
             token,
             channel_id,
+            signing_secret,
+            bot_user_id,
             client,
         })
     }
 
+    pub fn verify_signature(&self, timestamp: &str, body: &str, signature: &str) -> bool {
+        if self.signing_secret.is_empty() {
+            return true; // Skip if no secret set
+        }
+
+        let basestring = format!("v0:{}:{}", timestamp, body);
+        let mut mac = Hmac::<Sha256>::new_from_slice(self.signing_secret.as_bytes())
+            .expect("HMAC can take key of any size");
+        mac.update(basestring.as_bytes());
+        let result = mac.finalize();
+        let expected_signature = format!("v0={}", hex::encode(result.into_bytes()));
+
+        signature == expected_signature
+    }
+
     pub async fn send_message(&self, text: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.send_response(text, None, None).await
+    }
+
+    pub async fn send_response(&self, text: &str, channel: Option<&str>, thread_ts: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
         if self.token.is_empty() {
-            info!("[MOCK SLACK] Sending message: {}", text);
+            info!("[MOCK SLACK] Sending message to {}: {}", channel.unwrap_or(&self.channel_id), text);
             return Ok(());
         }
 
         let message = SlackMessage {
-            channel: self.channel_id.clone(),
+            channel: channel.unwrap_or(&self.channel_id).to_string(),
             text: text.to_string(),
-            thread_ts: None,
+            thread_ts: thread_ts.map(|s| s.to_string()),
         };
 
         let response = self.client.post("https://slack.com/api/chat.postMessage")
@@ -97,21 +126,65 @@ pub struct SlackEvent {
 pub struct SlackEventDetail {
     pub text: Option<String>,
     pub user: Option<String>,
+    pub bot_id: Option<String>,
     pub channel: Option<String>,
+    pub ts: Option<String>,
+    pub thread_ts: Option<String>,
 }
 
-pub async fn handle_webhook(event: web::Json<SlackEvent>) -> Result<HttpResponse, actix_web::Error> {
-    info!("Received Slack event: {:?}", event);
+pub async fn handle_webhook(
+    req: actix_web::HttpRequest,
+    event_json: web::Json<SlackEvent>,
+) -> Result<HttpResponse, actix_web::Error> {
+    let slack_client = SlackClient::new().map_err(|e| {
+        error!("Failed to create Slack client: {}", e);
+        actix_web::error::ErrorInternalServerError(e)
+    })?;
 
-    if let Some(challenge) = &event.challenge {
+    // Log the event for debugging
+    debug!("Received Slack event: {:?}", event_json);
+
+    if let Some(challenge) = &event_json.challenge {
         return Ok(HttpResponse::Ok().json(serde_json::json!({ "challenge": challenge })));
     }
 
-    if let Some(detail) = &event.event {
+    if let Some(detail) = &event_json.event {
+        // Prevent infinite loops by ignoring bot messages
+        if detail.bot_id.is_some() || detail.user.as_deref() == Some(&slack_client.bot_user_id) {
+            return Ok(HttpResponse::Ok().finish());
+        }
+
         if let Some(text) = &detail.text {
             // Forward Slack message to MQTT
             let topic = "kusanagi/slack/incoming";
             let _ = crate::mqtt::publish_message(topic, text).await;
+
+            // Process message with AI if it's in a channel we care about
+            if let Some(channel) = &detail.channel {
+                let ai_request = crate::chat::ChatRequest {
+                    message: text.clone(),
+                };
+
+                // Spawn the processing in a background task to avoid Slack timeouts
+                let channel_clone = channel.clone();
+                let thread_ts = detail.thread_ts.clone().or_else(|| detail.ts.clone());
+                
+                actix_rt::spawn(async move {
+                    let client = match kube::Client::try_default().await {
+                        Ok(c) => c,
+                        Err(e) => {
+                            error!("Failed to create K8s client for Slack AI: {}", e);
+                            return;
+                        }
+                    };
+
+                    let response = crate::chat::process_message(&client, ai_request).await;
+                    
+                    if let Ok(sc) = SlackClient::new() {
+                        let _ = sc.send_response(&response.response, Some(&channel_clone), thread_ts.as_deref()).await;
+                    }
+                });
+            }
         }
     }
 
