@@ -211,16 +211,41 @@ pub fn export_markdown(report: &ClusterReport) -> Result<String, String> {
     Ok(md)
 }
 /// Export active alerts for agentic remediation
-pub async fn export_alerts_for_agent(client: &kube::Client, alerts: &AlertsResponse) -> Result<String, String> {
+pub async fn export_alerts_for_agent(client: &kube::Client, alerts: &AlertsResponse, lang: &str) -> Result<String, String> {
     let mut report = String::new();
-    report.push_str("# 🤖 Kusanagi Agent Remediation context\n\n");
-    report.push_str(&format!("**Timestamp:** {}\n", Utc::now().to_rfc3339()));
-    report.push_str("**Purpose:** Provide context for automated error correction.\n\n");
     
-    report.push_str("## 🚨 Active Alerts\n\n");
+    let (header, timestamp_label, purpose_label, active_alerts_label, no_alerts_msg, action_required_label, logs_label, end_msg) = if lang == "fr" {
+        (
+            "# 🤖 Contexte de Remédiation Kusanagi",
+            "Horodatage",
+            "Objet : Fournir un contexte pour la correction automatique d'erreurs.",
+            "## 🚨 Alertes Actives",
+            "✅ Aucune alerte active.",
+            "Action Agent Requise",
+            "Journaux pour le pod",
+            "*Fin du Contexte de Remédiation Agent*"
+        )
+    } else {
+        (
+            "# 🤖 Kusanagi Agent Remediation context",
+            "Timestamp",
+            "Purpose: Provide context for automated error correction.",
+            "## 🚨 Active Alerts",
+            "✅ No active alerts firing.",
+            "Agent Action Required",
+            "Logs for pod",
+            "*End of Agent Remediation Context*"
+        )
+    };
+
+    report.push_str(&format!("{}\n\n", header));
+    report.push_str(&format!("**{}:** {}\n", timestamp_label, Utc::now().to_rfc3339()));
+    report.push_str(&format!("{}\n\n", purpose_label));
+    
+    report.push_str(&format!("{}\n\n", active_alerts_label));
     
     if alerts.total == 0 {
-        report.push_str("✅ No active alerts firing.\n");
+        report.push_str(&format!("{}\n", no_alerts_msg));
         return Ok(report);
     }
     
@@ -238,12 +263,25 @@ pub async fn export_alerts_for_agent(client: &kube::Client, alerts: &AlertsRespo
         report.push_str(&format!("- **Started At:** {}\n", alert.started_at));
         report.push_str(&format!("- **Fingerprint:** `{}`\n\n", alert.fingerprint));
         
-        // Contextual advice and Logs
-        report.push_str("> [!IMPORTANT]\n");
-        report.push_str("> Agent Action Required: Investigate logs for the mentioned pod and namespace.\n\n");
+        // Contextual advice
+        let specific_advice = if alert.name.contains("Certificate") {
+            if lang == "fr" { "Vérifiez la validité des certificats et renouvelez-les si nécessaire." }
+            else { "Check certificate validity and rotate if necessary." }
+        } else if alert.name.contains("Down") || alert.name.contains("Absent") {
+            if lang == "fr" { "Vérifiez si le composant est en cours d'exécution et accessible par Prometheus." }
+            else { "Check if the component is running and accessible by Prometheus." }
+        } else if alert.pod.is_some() {
+            if lang == "fr" { "Examinez les journaux du pod et son état de santé (Health Checks)." }
+            else { "Investigate pod logs and health check status." }
+        } else {
+            if lang == "fr" { "Analysez la description de l'alerte pour identifier la cause racine." }
+            else { "Analyze the alert description to identify the root cause." }
+        };
+
+        report.push_str(&format!("> [!IMPORTANT]\n> {}: {}\n\n", action_required_label, specific_advice));
 
         if let (Some(ns), Some(p)) = (&alert.namespace, &alert.pod) {
-            report.push_str(&format!("#### 📝 Logs for pod `{}/{}`\n", ns, p));
+            report.push_str(&format!("#### 📝 {} `{}/{}`\n", logs_label, ns, p));
             match crate::pods::get_pod_logs(client, ns, p, None, 100).await {
                 Ok(logs) => {
                     report.push_str("```text\n");
@@ -265,7 +303,7 @@ pub async fn export_alerts_for_agent(client: &kube::Client, alerts: &AlertsRespo
         report.push('\n');
     }
     
-    report.push_str("---\n*End of Agent Remediation Context*\n");
+    report.push_str(&format!("---\n{}\n", end_msg));
     
     Ok(report)
 }

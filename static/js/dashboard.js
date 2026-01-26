@@ -49,6 +49,7 @@ const LocaleManager = {
 
         // Notify other managers if needed
         if (window.ChatManager) window.ChatManager.updateSystemPrompt();
+        if (window.NewsManager) window.NewsManager.renderNews();
     },
 
     applyTranslations() {
@@ -985,9 +986,12 @@ const NewsManager = {
         const date = new Date(item.published_at);
         const timeAgo = this.formatTimeAgo(date);
 
-        // Use translated title/description if available
-        const title = item.translated_title || item.title;
-        const description = item.translated_description || item.description;
+        // Use translated title/description if available for current locale
+        const currentLang = typeof LocaleManager !== 'undefined' ? LocaleManager.currentLocale : 'en';
+        const translation = item.translations ? item.translations[currentLang] : null;
+
+        const title = translation ? translation.title : item.title;
+        const description = (translation && translation.description) ? translation.description : item.description;
 
         return `
             <div class="news-card ${this.viewMode === 'list' ? 'list-mode' : (this.viewMode === 'inline' ? 'inline-mode' : '')}" style="border-color: ${color};">

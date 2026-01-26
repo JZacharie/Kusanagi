@@ -413,6 +413,7 @@ async fn alerts_status() -> impl Responder {
 #[derive(Deserialize)]
 struct ExportQuery {
     format: Option<String>,
+    lang: Option<String>,
 }
 
 #[get("/api/export/report")]
@@ -460,10 +461,11 @@ async fn export_report(data: web::Data<AppState>, query: web::Query<ExportQuery>
 }
 
 #[get("/api/export/alerts")]
-async fn export_alerts_endpoint(data: web::Data<AppState>) -> impl Responder {
+async fn export_alerts_endpoint(data: web::Data<AppState>, query: web::Query<ExportQuery>) -> impl Responder {
     match alertmanager::get_active_alerts().await {
         Ok(alerts) => {
-            match export::export_alerts_for_agent(&data.client, &alerts).await {
+            let lang = query.lang.as_deref().unwrap_or("en");
+            match export::export_alerts_for_agent(&data.client, &alerts, lang).await {
                 Ok(md) => HttpResponse::Ok()
                     .content_type("text/markdown")
                     .insert_header(("Content-Disposition", "attachment; filename=agent-remediation-context.md"))

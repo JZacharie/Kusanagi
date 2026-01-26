@@ -9,6 +9,12 @@ use crate::translation;
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewsTranslation {
+    pub title: String,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewsItem {
     pub id: String,
     pub source: String,
@@ -18,8 +24,8 @@ pub struct NewsItem {
     pub published_at: DateTime<Utc>,
     pub score: Option<i32>,
     pub tags: Vec<String>,
-    pub translated_title: Option<String>,
-    pub translated_description: Option<String>,
+    #[serde(default)]
+    pub translations: HashMap<String, NewsTranslation>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -151,8 +157,7 @@ async fn fetch_hackernews() -> Result<Vec<NewsItem>, String> {
                 published_at: DateTime::from_timestamp(timestamp, 0).unwrap_or_else(Utc::now),
                 score,
                 tags,
-                translated_title: None,
-                translated_description: None,
+                translations: HashMap::new(),
             });
         }
     }
@@ -218,8 +223,7 @@ async fn fetch_korben_rss() -> Result<Vec<NewsItem>, String> {
             published_at: pub_date,
             score: None,
             tags: vec!["tech".to_string(), "french".to_string()],
-            translated_title: None,
-            translated_description: None,
+            translations: std::collections::HashMap::new(),
         });
     }
 
@@ -287,8 +291,7 @@ async fn fetch_github_trending() -> Result<Vec<NewsItem>, String> {
                     published_at: updated_at,
                     score: stars,
                     tags: vec![topic.to_string()],
-                    translated_title: None,
-                    translated_description: None,
+                    translations: std::collections::HashMap::new(),
                 });
             }
         }
@@ -431,29 +434,32 @@ async fn process_news_enrichment(cache: NewsCache) {
             }
         }
 
-        // 2. Translate if not French source and not yet translated
-        if item.source != "korben" && item.translated_title.is_none() {
-            // Try to get from S3 cache first
-            if let Some(cached) = translation::get_cached_translation(&s3_client, &item.id).await {
-                updated_item.translated_title = Some(cached.title);
-                updated_item.translated_description = cached.description;
-                needs_update = true;
-            } else {
-                tracing::info!("Translating news item: {}", item.title);
-                
-                // Translate title
-                if let Ok(t_title) = translation::translate_with_ollama(&item.title, "fr").await {
-                    updated_item.translated_title = Some(t_title);
-                    needs_update = true;
+        // 2. Translate to target languages missing
+        let source_lang = if item.source == "korben" { "fr" } else { "en" };
+        let target_langs = if source_lang == "fr" { vec!["en"] } else { vec!["fr"] };
 
-                    // Translate description if present
-                    if let Some(desc) = &item.description {
-                        if !desc.trim().is_empty() {
-                            if let Ok(t_desc) = translation::translate_with_ollama(desc, "fr").await {
-                                updated_item.translated_description = Some(t_desc);
+        for target_lang in target_langs {
+            if !updated_item.translations.contains_key(target_lang) {
+                tracing::info!("Translating news item {} to {}", item.title, target_lang);
+                
+                match translation::translate_with_ollama(&item.title, target_lang).await {
+                    Ok(t_title) => {
+                        let mut t_desc = None;
+                        if let Some(desc) = &item.description {
+                            if !desc.trim().is_empty() {
+                                if let Ok(translated) = translation::translate_with_ollama(desc, target_lang).await {
+                                    t_desc = Some(translated);
+                                }
                             }
                         }
+                        
+                        updated_item.translations.insert(target_lang.to_string(), NewsTranslation {
+                            title: t_title,
+                            description: t_desc,
+                        });
+                        needs_update = true;
                     }
+                    Err(e) => tracing::warn!("Failed to translate {} to {}: {}", item.id, target_lang, e),
                 }
             }
         }
