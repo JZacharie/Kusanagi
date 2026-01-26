@@ -208,6 +208,11 @@ pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, Stri
         let name = pod.metadata.name.clone().unwrap_or_default();
         let namespace = pod.metadata.namespace.clone().unwrap_or_default();
         
+        // Skip metrics proxy pods from the error list as requested by user
+        if name.contains("k3s-metrics-proxy") {
+            continue;
+        }
+        
         let status = pod.status.as_ref();
         let spec = pod.spec.as_ref();
         

@@ -163,7 +163,7 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     };
     
     // Pod count
-    let pod_query = r#"count(kube_pod_info)"#;
+    let pod_query = r#"count(kube_pod_info) or vector(0)"#;
     let pod_count = match query_instant(pod_query).await {
         Ok(v) => v as i32,
         Err(e) => {
@@ -173,7 +173,7 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     };
     
     // Node count
-    let node_query = r#"count(kube_node_info)"#;
+    let node_query = r#"count(kube_node_info) or vector(0)"#;
     let node_count = match query_instant(node_query).await {
         Ok(v) => v as i32,
         Err(e) => {
@@ -183,7 +183,7 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     };
     
     // Container count
-    let container_query = r#"count(kube_pod_container_info)"#;
+    let container_query = r#"count(kube_pod_container_info) or vector(0)"#;
     let container_count = match query_instant(container_query).await {
         Ok(v) => v as i32,
         Err(e) => {
@@ -211,10 +211,10 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     let gpu_power_usage = query_instant(gpu_power_query).await.unwrap_or(0.0);
 
     // Energy Metrics from Home Assistant via Prometheus
-    let solar_query = r#"avg(homeassistant_sensor_unit_w{entity="sensor.envoy_122304017410_current_power_production"}) or avg(homeassistant_sensor_power_watt{entity="sensor.solar_production"}) or avg(homeassistant_sensor_unit_w{entity="sensor.pv_production"}) or vector(0)"#;
+    let solar_query = r#"avg(homeassistant_sensor_unit_w{entity="sensor.envoy_122304017410_current_power_production"}) or avg(homeassistant_sensor_unit_w{entity="sensor.solar_production"}) or avg(homeassistant_sensor_unit_w{entity="sensor.pv_production"}) or vector(0)"#;
     let energy_solar_production = query_instant(solar_query).await.unwrap_or(0.0);
 
-    let consumption_query = r#"avg(homeassistant_sensor_unit_w{entity="sensor.envoy_122304017410_current_power_consumption"}) or avg(homeassistant_sensor_power_watt{entity="sensor.house_consumption"}) or avg(homeassistant_sensor_unit_w{entity="sensor.household_consumption"}) or vector(0)"#;
+    let consumption_query = r#"avg(homeassistant_sensor_unit_w{entity="sensor.envoy_122304017410_current_power_consumption"}) or avg(homeassistant_sensor_unit_w{entity="sensor.house_consumption"}) or avg(homeassistant_sensor_unit_w{entity="sensor.household_consumption"}) or vector(0)"#;
     let energy_house_consumption = query_instant(consumption_query).await.unwrap_or(0.0);
 
     // VPS Metrics from VPS.json - using sum/avg to ensure a single scalar result
