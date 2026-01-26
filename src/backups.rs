@@ -121,28 +121,25 @@ pub async fn get_backups_status(client: &Client) -> Result<BackupsResponse, Stri
         }
     });
 
-    // Calculate statistics from all jobs
+    // Calculate statistics based on the LATEST job of each CronJob
     let mut active_count = 0;
     let mut succeeded_count = 0;
     let mut failed_count = 0;
 
-    for job in &jobs.items {
-        let status = job.status.as_ref();
-        if let Some(status) = status {
-            if status.active.unwrap_or(0) > 0 {
-                active_count += 1;
-            } else if status.succeeded.unwrap_or(0) > 0 {
-                succeeded_count += 1;
-            } else if status.failed.unwrap_or(0) > 0 {
-                failed_count += 1;
+    for cj in &cronjob_infos {
+        if let Some(latest_job) = cj.recent_jobs.first() {
+            match latest_job.status.as_str() {
+                "Running" => active_count += 1,
+                "Succeeded" => succeeded_count += 1,
+                "Failed" => failed_count += 1,
+                _ => {}
             }
         }
     }
 
     info!(
-        "Backups: {} CronJobs, {} Jobs ({} active, {} succeeded, {} failed)",
+        "Backups: {} CronJobs processed ({} active, {} succeeded, {} failed based on latest attempts)",
         cronjob_infos.len(),
-        jobs.items.len(),
         active_count,
         succeeded_count,
         failed_count

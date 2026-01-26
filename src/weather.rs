@@ -61,10 +61,15 @@ impl WeatherClient {
         let mut results = Vec::new();
 
         if self.api_key.is_empty() {
-            debug!("OPENWEATHER_API_KEY is empty, generating mock weather data for all cities");
-            let mut results = Vec::new();
+            debug!("OPENWEATHER_API_KEY is empty, trying wttr.in fallback for all cities");
             for city in cities {
-                results.push(self.get_mock_city_weather(city));
+                match self.fetch_fallback_weather(city).await {
+                    Ok(info) => results.push(info),
+                    Err(e) => {
+                        warn!("wttr.in fallback failed for {}: {}, using final mock fallback", city, e);
+                        results.push(self.get_mock_city_weather(city));
+                    }
+                }
             }
             return Ok(WeatherResponse {
                 cities: results,
@@ -132,6 +137,59 @@ impl WeatherClient {
             temp,
             description,
             icon: icon_code, // Keep raw code for mapping to animated icons in frontend
+            humidity,
+            wind_speed,
+            feels_like,
+            pressure,
+            visibility,
+            last_updated: chrono::Local::now().format("%H:%M").to_string(),
+            forecast,
+        })
+    }
+
+    async fn fetch_fallback_weather(&self, city: &str) -> Result<WeatherInfo, Box<dyn std::error::Error>> {
+        let url = format!("https://wttr.in/{}?format=j1", city);
+        let resp = self.client.get(&url).send().await?.json::<serde_json::Value>().await?;
+
+        let current = &resp["current_condition"][0];
+        let temp = current["temp_C"].as_str().unwrap_or("0").parse::<f32>().unwrap_or(0.0);
+        let description = current["weatherDesc"][0]["value"].as_str().unwrap_or("unknown").to_string();
+        let humidity = current["humidity"].as_str().unwrap_or("0").parse::<u8>().unwrap_or(0);
+        let wind_speed = current["windspeedKmph"].as_str().unwrap_or("0").parse::<f32>().unwrap_or(0.0);
+        let feels_like = current["FeelsLikeC"].as_str().unwrap_or("0").parse::<f32>().unwrap_or(temp);
+        let pressure = current["pressure"].as_str().unwrap_or("1013").parse::<u32>().unwrap_or(1013);
+        let visibility = current["visibility"].as_str().unwrap_or("10").parse::<u32>().unwrap_or(10) * 1000;
+
+        // Simple icon mapping for wttr.in condition codes or text
+        let icon_code = match description.to_lowercase().as_str() {
+            d if d.contains("sunny") || d.contains("clear") => "01d",
+            d if d.contains("partly cloudy") => "02d",
+            d if d.contains("cloudy") || d.contains("overcast") => "04d",
+            d if d.contains("rain") || d.contains("drizzle") => "10d",
+            d if d.contains("snow") => "13d",
+            d if d.contains("thunder") || d.contains("storm") => "11d",
+            _ => "03d",
+        };
+
+        let mut forecast = Vec::new();
+        if let Some(weather_list) = resp["weather"].as_array() {
+            for day in weather_list.iter().take(5) {
+                let date = day["date"].as_str().unwrap_or("").to_string();
+                let hourly = &day["hourly"][4]; // Mid-day roughly
+                forecast.push(ForecastDay {
+                    date,
+                    temp: day["avgtempC"].as_str().unwrap_or("0").parse::<f32>().unwrap_or(0.0),
+                    description: hourly["weatherDesc"][0]["value"].as_str().unwrap_or("").to_string(),
+                    icon: "03d".to_string(), // Default icon for forecast in fallback
+                });
+            }
+        }
+
+        Ok(WeatherInfo {
+            city: city.to_string(),
+            temp,
+            description,
+            icon: icon_code.to_string(),
             humidity,
             wind_speed,
             feels_like,
