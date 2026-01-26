@@ -354,6 +354,50 @@ const MetricsManager = {
     },
 
     /**
+     * Fetch 24h range data for a query
+     */
+    async fetchRangeData(query, hours = 24) {
+        try {
+            const end = Math.floor(Date.now() / 1000);
+            const start = end - (hours * 3600);
+            const step = '15m'; // 15 minute resolution for 24h
+
+            const response = await fetch(`/api/prometheus/range?query=${encodeURIComponent(query)}&start=${start}&end=${end}&step=${step}`);
+            if (!response.ok) return null;
+            const data = await response.json();
+            return data.data?.result?.[0]?.values || null;
+        } catch (e) {
+            console.error('Range query failed:', e);
+            return null;
+        }
+    },
+
+    /**
+     * Render SVG Sparkline for metrics
+     */
+    renderSparkline(values, width = 300, height = 50, color = 'var(--neon-green)') {
+        if (!values || values.length < 2) return '';
+
+        const dataPoints = values.map(v => parseFloat(v[1]));
+        const min = Math.min(...dataPoints);
+        const max = Math.max(...dataPoints);
+        const range = max - min || 1;
+
+        const points = dataPoints.map((v, i) => {
+            const x = (i / (dataPoints.length - 1)) * width;
+            const y = height - ((v - min) / range) * height;
+            return `${x},${y}`;
+        }).join(' ');
+
+        return `
+            <svg width="${width}" height="${height}" style="overflow: visible; margin-top: 10px;">
+                <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M 0 ${height} L ${points} L ${width} ${height} Z" fill="${color}" fill-opacity="0.1" />
+            </svg>
+        `;
+    },
+
+    /**
      * Render metrics to UI
      */
     renderMetrics(metrics) {
@@ -433,14 +477,28 @@ const MetricsManager = {
 
             <h3 style="${sectionHeaderStyle}">☀️ Enphase Energy Monitoring</h3>
             <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-icon">☀️</div>
-                    <div class="metric-value">${metrics.energy_solar_production?.toFixed(1) || 0}W</div>
-                    <div class="metric-label">Solar Production</div>
-                    <div class="metric-bar">
+                <div class="metric-card" style="grid-column: span 2; display: flex; flex-direction: column; align-items: stretch; height: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="metric-icon">☀️</div>
+                            <div>
+                                <div class="metric-value" id="solar-current-value">${metrics.energy_solar_production?.toFixed(1) || 0}W</div>
+                                <div class="metric-label">Enphase Power Production (Live)</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.7rem; opacity: 0.5; font-family: 'JetBrains Mono';">RANGE: 24H</div>
+                            <div style="font-size: 0.8rem; color: var(--neon-green); font-family: 'Orbitron'; font-weight: bold;">LIVE_FEED</div>
+                        </div>
+                    </div>
+                    <div id="solar-24h-graph" style="height: 80px; width: 100%; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(0,255,249,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                        <div class="loading-mini" style="font-size: 0.7rem; opacity: 0.5;">FRACTAL_SCAN...</div>
+                    </div>
+                    <div class="metric-bar" style="margin-top: 15px;">
                         <div class="metric-bar-fill" style="width: ${Math.min((metrics.energy_solar_production || 0) / 3000 * 100, 100)}%; background: var(--neon-green);"></div>
                     </div>
                 </div>
+                <!-- 🏠 House Consumption (remains) -->
                 <div class="metric-card">
                     <div class="metric-icon">🏠</div>
                     <div class="metric-value">${metrics.energy_house_consumption?.toFixed(1) || 0}W</div>
@@ -479,6 +537,24 @@ const MetricsManager = {
                 </div>
             </div>
         `;
+
+        // Load 24h graph data asynchronously
+        this.loadSolarGraph();
+    },
+
+    /**
+     * Load Enphase solar graph data
+     */
+    async loadSolarGraph() {
+        const query = 'avg(homeassistant_sensor_unit_w{entity="sensor.envoy_122304017410_current_power_production"}) or vector(0)';
+        const values = await this.fetchRangeData(query, 24);
+        const container = document.getElementById('solar-24h-graph');
+
+        if (container && values) {
+            container.innerHTML = this.renderSparkline(values, container.clientWidth, 80, 'var(--neon-green)');
+        } else if (container) {
+            container.innerHTML = '<span style="font-size: 0.7rem; opacity: 0.3;">DATA_UNAVAILABLE</span>';
+        }
     },
 
     /**

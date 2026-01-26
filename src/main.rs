@@ -252,6 +252,27 @@ async fn force_delete_pod(data: web::Data<AppState>, body: web::Json<pods::Force
     }
 }
 
+#[derive(Deserialize)]
+struct RangeQuery {
+    query: String,
+    start: i64,
+    end: i64,
+    step: String,
+}
+
+#[get("/api/prometheus/range")]
+async fn prometheus_range(data: web::Data<AppState>, query: web::Query<RangeQuery>) -> impl Responder {
+    match prometheus::query_range(&query.query, query.start, query.end, &query.step).await {
+        Ok(result) => HttpResponse::Ok().json(result),
+        Err(e) => {
+            tracing::error!("Failed to query Prometheus range: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": e
+            }))
+        }
+    }
+}
+
 #[get("/api/ws/notifications")]
 async fn ws_route(req: HttpRequest, stream: web::Payload, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
     ws::ws_notifications(req, stream, data.get_ref().client.clone()).await

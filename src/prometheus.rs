@@ -126,6 +126,36 @@ pub async fn query_raw(query: &str) -> Result<PrometheusQueryResult, String> {
     })
 }
 
+/// Execute a PromQL range query
+pub async fn query_range(query: &str, start: i64, end: i64, step: &str) -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::new();
+    let url = format!("{}/api/v1/query_range", get_prometheus_url());
+    
+    let response = client
+        .get(&url)
+        .query(&[
+            ("query", query),
+            ("start", &start.to_string()),
+            ("end", &end.to_string()),
+            ("step", step),
+        ])
+        .timeout(std::time::Duration::from_secs(10))
+        .send()
+        .await
+        .map_err(|e| format!("Prometheus request failed: {}", e))?;
+    
+    if !response.status().is_success() {
+        return Err(format!("Prometheus returned status: {}", response.status()));
+    }
+    
+    let result: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Prometheus response: {}", e))?;
+    
+    Ok(result)
+}
+
 /// Get comprehensive cluster metrics from Prometheus
 pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     let mut errors = Vec::new();
