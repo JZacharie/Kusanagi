@@ -152,6 +152,7 @@ pub async fn handle_webhook(
             if let Some(channel) = &detail.channel {
                 let ai_request = crate::chat::ChatRequest {
                     message: text.clone(),
+                    language: None,
                 };
 
                 // Spawn the processing in a background task to avoid Slack timeouts
