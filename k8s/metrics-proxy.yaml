@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: k3s-metrics-proxy
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: k3s-metrics-proxy
+  template:
+    metadata:
+      labels:
+        app: k3s-metrics-proxy
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      tolerations:
+      - key: "k3s-controlplane"
+        operator: "Exists"
+        effect: "NoExecute"
+      - key: "CriticalAddonsOnly"
+        operator: "Exists"
+        effect: "NoExecute"
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - name: proxy-controller
+        image: alpine/socat
+        command: ["sh", "-c", "socat TCP4-LISTEN:10257,fork,reuseaddr,bind=$(NODE_IP) TCP4:127.0.0.1:10257"]
+        env:
+        - name: NODE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+      - name: proxy-scheduler
+        image: alpine/socat
+        command: ["sh", "-c", "socat TCP4-LISTEN:10259,fork,reuseaddr,bind=$(NODE_IP) TCP4:127.0.0.1:10259"]
+        env:
+        - name: NODE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+      - name: proxy-etcd
+        image: alpine/socat
+        command: ["sh", "-c", "socat TCP4-LISTEN:2381,fork,reuseaddr,bind=$(NODE_IP) TCP4:127.0.0.1:2381"]
+        env:
+        - name: NODE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
