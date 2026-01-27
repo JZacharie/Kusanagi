@@ -4,9 +4,11 @@
         "config:base",
         ":separateMajorReleases",
         ":combinePatchMinorReleases",
-        ":rebaseStalePrs",
-        ":enableLockFileMaintenance"
+        ":rebaseStalePrs"
     ],
+    "lockFileMaintenance": {
+        "enabled": true
+    },
     "schedule": [
         "before 5am on monday"
     ],
