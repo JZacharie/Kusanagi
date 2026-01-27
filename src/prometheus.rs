@@ -21,6 +21,21 @@ pub struct PrometheusMetrics {
     pub vps_net_receive: f64,
 }
 
+lazy_static::lazy_static! {
+    static ref PROMETHEUS_URL: String = {
+        std::env::var("PROMETHEUS_URL")
+            .unwrap_or_else(|_| {
+                tracing::warn!("PROMETHEUS_URL not set, using default local K8s service URL");
+                "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
+            })
+    };
+
+    static ref PROMETHEUS_URL_HA: String = {
+        std::env::var("PROMETHEUS_URL_HA")
+            .unwrap_or_else(|_| PROMETHEUS_URL.clone())
+    };
+}
+
 /// Prometheus query result
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PrometheusQueryResult {
@@ -42,15 +57,6 @@ struct PromData {
     result: Vec<PromResult>,
 }
 
-lazy_static::lazy_static! {
-    static ref PROMETHEUS_URL: String = {
-        std::env::var("PROMETHEUS_URL")
-            .unwrap_or_else(|_| {
-                tracing::warn!("PROMETHEUS_URL not set, using default local K8s service URL");
-                "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
-            })
-    };
-}
 
 #[derive(Debug, Deserialize)]
 struct PromResult {
@@ -63,10 +69,14 @@ fn get_prometheus_url() -> String {
     PROMETHEUS_URL.clone()
 }
 
-/// Execute a PromQL instant query
-pub async fn query_instant(query: &str) -> Result<f64, String> {
+fn get_prometheus_url_ha() -> String {
+    PROMETHEUS_URL_HA.clone()
+}
+
+/// Execute a PromQL instant query at a specific Prometheus URL
+pub async fn query_instant_at(query: &str, url: &str) -> Result<f64, String> {
     let client = reqwest::Client::new();
-    let url = format!("{}/api/v1/query", get_prometheus_url());
+    let url = format!("{}/api/v1/query", url);
     
     let response = client
         .get(&url)
@@ -98,10 +108,15 @@ pub async fn query_instant(query: &str) -> Result<f64, String> {
     }
 }
 
-/// Execute a raw PromQL query and return the full result
-pub async fn query_raw(query: &str) -> Result<PrometheusQueryResult, String> {
+/// Execute a PromQL instant query (default URL)
+pub async fn query_instant(query: &str) -> Result<f64, String> {
+    query_instant_at(query, &get_prometheus_url()).await
+}
+
+/// Execute a raw PromQL query at a specific URL
+pub async fn query_raw_at(query: &str, url: &str) -> Result<PrometheusQueryResult, String> {
     let client = reqwest::Client::new();
-    let url = format!("{}/api/v1/query", get_prometheus_url());
+    let url = format!("{}/api/v1/query", url);
     
     let response = client
         .get(&url)
@@ -126,10 +141,15 @@ pub async fn query_raw(query: &str) -> Result<PrometheusQueryResult, String> {
     })
 }
 
-/// Execute a PromQL range query
-pub async fn query_range(query: &str, start: i64, end: i64, step: &str) -> Result<serde_json::Value, String> {
+/// Execute a raw PromQL query (default URL)
+pub async fn query_raw(query: &str) -> Result<PrometheusQueryResult, String> {
+    query_raw_at(query, &get_prometheus_url()).await
+}
+
+/// Execute a PromQL range query at a specific URL
+pub async fn query_range_at(query: &str, start: i64, end: i64, step: &str, url: &str) -> Result<serde_json::Value, String> {
     let client = reqwest::Client::new();
-    let url = format!("{}/api/v1/query_range", get_prometheus_url());
+    let url = format!("{}/api/v1/query_range", url);
     
     let response = client
         .get(&url)
@@ -154,6 +174,11 @@ pub async fn query_range(query: &str, start: i64, end: i64, step: &str) -> Resul
         .map_err(|e| format!("Failed to parse Prometheus response: {}", e))?;
     
     Ok(result)
+}
+
+/// Execute a PromQL range query (default URL)
+pub async fn query_range(query: &str, start: i64, end: i64, step: &str) -> Result<serde_json::Value, String> {
+    query_range_at(query, start, end, step, &get_prometheus_url()).await
 }
 
 /// Get comprehensive cluster metrics from Prometheus
@@ -242,20 +267,20 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
 
     // Energy Metrics from Home Assistant via Prometheus
     let solar_query = r#"avg(homeassistant_sensor_unit_w{entity="sensor.envoy_122304017410_current_power_production"}) or avg(homeassistant_sensor_unit_w{entity="sensor.solar_production"}) or avg(homeassistant_sensor_unit_w{entity="sensor.pv_production"}) or vector(0)"#;
-    let energy_solar_production = query_instant(solar_query).await.unwrap_or(0.0);
+    let energy_solar_production = query_instant_at(solar_query, &get_prometheus_url_ha()).await.unwrap_or(0.0);
 
     let consumption_query = r#"avg(homeassistant_sensor_unit_w{entity="sensor.envoy_122304017410_current_power_consumption"}) or avg(homeassistant_sensor_unit_w{entity="sensor.house_consumption"}) or avg(homeassistant_sensor_unit_w{entity="sensor.household_consumption"}) or vector(0)"#;
-    let energy_house_consumption = query_instant(consumption_query).await.unwrap_or(0.0);
+    let energy_house_consumption = query_instant_at(consumption_query, &get_prometheus_url_ha()).await.unwrap_or(0.0);
 
     // VPS Metrics from VPS.json - using sum/avg to ensure a single scalar result
     let vps_cpu_query = r#"avg(system_cpu_utilization{state!="idle"}) * 100 or vector(0)"#;
-    let vps_cpu_usage = query_instant(vps_cpu_query).await.unwrap_or(0.0);
+    let vps_cpu_usage = query_instant_at(vps_cpu_query, &get_prometheus_url_ha()).await.unwrap_or(0.0);
 
     let vps_disk_query = r#"sum(system_filesystem_usage_bytes{device="/dev/sda1",state="used"}) / sum(system_filesystem_usage_bytes{device="/dev/sda1"}) * 100 or vector(0)"#;
-    let vps_disk_usage = query_instant(vps_disk_query).await.unwrap_or(0.0);
+    let vps_disk_usage = query_instant_at(vps_disk_query, &get_prometheus_url_ha()).await.unwrap_or(0.0);
 
     let vps_net_query = r#"sum(rate(system_network_io_bytes_total{direction="receive", device="eth0"}[5m])) / 125000000 * 100 or vector(0)"#;
-    let vps_net_receive = query_instant(vps_net_query).await.unwrap_or(0.0);
+    let vps_net_receive = query_instant_at(vps_net_query, &get_prometheus_url_ha()).await.unwrap_or(0.0);
     
     if !errors.is_empty() {
         tracing::warn!("Some Prometheus metrics failed to load: {:?}", errors);
