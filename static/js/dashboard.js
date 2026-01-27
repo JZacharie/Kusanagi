@@ -536,6 +536,30 @@ const MetricsManager = {
                     </div>
                 </div>
             </div>
+
+            <h3 style="${sectionHeaderStyle}">🛡️ Security Vulnerabilities (Trivy Scan)</h3>
+            <div class="metrics-grid">
+                <div class="metric-card alert-critical">
+                    <div class="metric-icon">🔴</div>
+                    <div class="metric-value">${metrics.trivy_critical_count || 0}</div>
+                    <div class="metric-label">Critical</div>
+                </div>
+                <div class="metric-card alert-warning" style="border-color: var(--neon-orange);">
+                    <div class="metric-icon">🟠</div>
+                    <div class="metric-value">${metrics.trivy_high_count || 0}</div>
+                    <div class="metric-label">High</div>
+                </div>
+                <div class="metric-card" style="border-color: var(--neon-yellow);">
+                    <div class="metric-icon">🟡</div>
+                    <div class="metric-value">${metrics.trivy_medium_count || 0}</div>
+                    <div class="metric-label">Medium</div>
+                </div>
+                <div class="metric-card" style="border-color: var(--neon-blue);">
+                    <div class="metric-icon">🔵</div>
+                    <div class="metric-value">${metrics.trivy_low_count || 0}</div>
+                    <div class="metric-label">Low</div>
+                </div>
+            </div>
         `;
 
         // Load 24h graph data asynchronously

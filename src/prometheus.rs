@@ -19,6 +19,10 @@ pub struct PrometheusMetrics {
     pub vps_cpu_usage: f64,
     pub vps_disk_usage: f64,
     pub vps_net_receive: f64,
+    pub trivy_critical_count: i32,
+    pub trivy_high_count: i32,
+    pub trivy_medium_count: i32,
+    pub trivy_low_count: i32,
 }
 
 lazy_static::lazy_static! {
@@ -282,6 +286,19 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
     let vps_net_query = r#"sum(rate(system_network_io_bytes_total{direction="receive", device="eth0"}[5m])) / 125000000 * 100 or vector(0)"#;
     let vps_net_receive = query_instant(vps_net_query).await.unwrap_or(0.0);
     
+    // Trivy Vulnerabilities
+    let trivy_critical_query = r#"sum(trivy_image_vulnerabilities{severity="Critical"}) or vector(0)"#;
+    let trivy_critical_count = query_instant(trivy_critical_query).await.unwrap_or(0.0) as i32;
+
+    let trivy_high_query = r#"sum(trivy_image_vulnerabilities{severity="High"}) or vector(0)"#;
+    let trivy_high_count = query_instant(trivy_high_query).await.unwrap_or(0.0) as i32;
+
+    let trivy_medium_query = r#"sum(trivy_image_vulnerabilities{severity="Medium"}) or vector(0)"#;
+    let trivy_medium_count = query_instant(trivy_medium_query).await.unwrap_or(0.0) as i32;
+
+    let trivy_low_query = r#"sum(trivy_image_vulnerabilities{severity="Low"}) or vector(0)"#;
+    let trivy_low_count = query_instant(trivy_low_query).await.unwrap_or(0.0) as i32;
+
     if !errors.is_empty() {
         tracing::warn!("Some Prometheus metrics failed to load: {:?}", errors);
     }
@@ -303,6 +320,10 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
         vps_cpu_usage,
         vps_disk_usage,
         vps_net_receive,
+        trivy_critical_count,
+        trivy_high_count,
+        trivy_medium_count,
+        trivy_low_count,
     })
 }
 
