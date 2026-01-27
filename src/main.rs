@@ -64,6 +64,46 @@ async fn index() -> impl Responder {
         .body(include_str!("../static/index.html"))
 }
 
+async fn preload_data(client: kube::Client) {
+    info!("🚀 Kusanagi Preloading initiated...");
+    
+    let c = client.clone();
+    tokio::spawn(async move {
+        if let Err(e) = argocd::get_argocd_status(&c).await {
+            tracing::error!("Preload ArgoCD failed: {}", e);
+        } else {
+            info!("✅ ArgoCD data preloaded");
+        }
+    });
+
+    let c = client.clone();
+    tokio::spawn(async move {
+        if let Err(e) = nodes::get_nodes_status(&c).await {
+            tracing::error!("Preload Nodes failed: {}", e);
+        } else {
+            info!("✅ Nodes status preloaded");
+        }
+    });
+
+    let c = client.clone();
+    tokio::spawn(async move {
+        if let Err(e) = cluster::get_cluster_overview(&c).await {
+            tracing::error!("Preload Cluster Overview failed: {}", e);
+        } else {
+            info!("✅ Cluster overview preloaded");
+        }
+    });
+
+    let c = client.clone();
+    tokio::spawn(async move {
+        if let Err(e) = storage::get_storage_status(&c).await {
+            tracing::error!("Preload Storage failed: {}", e);
+        } else {
+            info!("✅ Storage status preloaded");
+        }
+    });
+}
+
 #[get("/api/argocd/status")]
 async fn argocd_status(data: web::Data<AppState>) -> impl Responder {
     match argocd::get_argocd_status(&data.client).await {
@@ -540,6 +580,9 @@ async fn main() -> std::io::Result<()> {
             .await
             .expect("Failed to create Kubernetes client")
     };
+    
+    // Start data preloading
+    preload_data(client.clone()).await;
     
     let app_state = web::Data::new(AppState { client: client.clone() });
     

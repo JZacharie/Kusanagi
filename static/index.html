@@ -68,6 +68,28 @@
             }
         }
 
+        @keyframes logo-spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .header-logo.refreshing {
+            animation: logo-spin 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .header-content {
+            transition: transform 0.2s ease;
+        }
+
+        .header-content:active {
+            transform: scale(0.98);
+        }
+
         @keyframes thunder-bolt {
 
             0%,
@@ -192,7 +214,8 @@
                 <div class="clock" title="New York"><span style="color: var(--neon-cyan);">NYC</span> <span
                         id="clock-nyc">00:00</span></div>
             </div>
-            <div class="header-content">
+            <div class="header-content" onclick="refreshAllKusanagiData()" style="cursor: pointer;"
+                title="Refresh all system data (Manual Reload)">
                 <img src="/static/images/logo.png" alt="Kusanagi Logo" class="header-logo">
                 <div class="header-text">
                     <h1 class="logo" data-i18n="app_name">KUSANAGI</h1>
@@ -1544,6 +1567,52 @@
                 CalendarDashboard.init();
             } else if (tabName === "security" && window.SecurityDashboard) {
                 SecurityDashboard.init();
+            }
+        }
+
+        /**
+         * Centralized refresh function for all Kusanagi data
+         */
+        function refreshAllKusanagiData() {
+            console.log("🔄 Global Kusanagi refresh triggered...");
+
+            // Visual feedback
+            const logo = document.querySelector('.header-logo');
+            if (logo) {
+                logo.classList.add('refreshing');
+                setTimeout(() => logo.classList.remove('refreshing'), 1000);
+            }
+
+            if (typeof showNotification === 'function') {
+                showNotification({
+                    title: "System Refresh",
+                    message: "Syncing all components with real-time cluster state...",
+                    severity: "info"
+                });
+            }
+
+            // Core Kubernetes & ArgoCD Status
+            if (typeof fetchArgoStatus === 'function') fetchArgoStatus();
+            if (typeof fetchNodesStatus === 'function') fetchNodesStatus();
+            if (typeof fetchClusterOverview === 'function') fetchClusterOverview();
+            if (typeof fetchEvents === 'function') fetchEvents(window.currentEventFilter || 'all', 1);
+            if (typeof fetchBackupsStatus === 'function') fetchBackupsStatus();
+            if (typeof fetchStorageStatus === 'function') fetchStorageStatus();
+            if (typeof fetchServices === 'function') fetchServices();
+            if (typeof fetchIngress === 'function') fetchIngress();
+            if (typeof fetchAppsWithResources === 'function') fetchAppsWithResources();
+
+            // Component Managers
+            if (window.MetricsManager && MetricsManager.init) MetricsManager.init();
+            if (window.AlertsManager && AlertsManager.init) AlertsManager.init();
+            if (window.NewsManager && NewsManager.fetchNews) NewsManager.fetchNews();
+            if (window.QuotasManager && QuotasManager.fetchQuotas) QuotasManager.fetchQuotas();
+            if (window.MqttManager && MqttManager.fetchInitialData) MqttManager.fetchInitialData();
+
+            // Refresh current active tab if it's a dashboard
+            const activeTab = window.KusanagiDashboard ? KusanagiDashboard.activeTab : null;
+            if (activeTab && typeof switchTab === 'function') {
+                switchTab(activeTab);
             }
         }
 
