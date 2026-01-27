@@ -274,13 +274,13 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
 
     // VPS Metrics from VPS.json - using sum/avg to ensure a single scalar result
     let vps_cpu_query = r#"avg(system_cpu_utilization{state!="idle"}) * 100 or vector(0)"#;
-    let vps_cpu_usage = query_instant_at(vps_cpu_query, &get_prometheus_url_ha()).await.unwrap_or(0.0);
+    let vps_cpu_usage = query_instant(vps_cpu_query).await.unwrap_or(0.0);
 
     let vps_disk_query = r#"sum(system_filesystem_usage_bytes{device="/dev/sda1",state="used"}) / sum(system_filesystem_usage_bytes{device="/dev/sda1"}) * 100 or vector(0)"#;
-    let vps_disk_usage = query_instant_at(vps_disk_query, &get_prometheus_url_ha()).await.unwrap_or(0.0);
+    let vps_disk_usage = query_instant(vps_disk_query).await.unwrap_or(0.0);
 
     let vps_net_query = r#"sum(rate(system_network_io_bytes_total{direction="receive", device="eth0"}[5m])) / 125000000 * 100 or vector(0)"#;
-    let vps_net_receive = query_instant_at(vps_net_query, &get_prometheus_url_ha()).await.unwrap_or(0.0);
+    let vps_net_receive = query_instant(vps_net_query).await.unwrap_or(0.0);
     
     if !errors.is_empty() {
         tracing::warn!("Some Prometheus metrics failed to load: {:?}", errors);
