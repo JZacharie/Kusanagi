@@ -142,7 +142,7 @@ pub async fn get_news_from_s3(s3_client: &S3Client) -> Result<Vec<crate::newsfee
 
 pub async fn translate_with_ollama(text: &str, target_lang: &str) -> Result<String, String> {
     let client = HttpClient::builder()
-        .timeout(std::time::Duration::from_secs(60))
+        .timeout(std::time::Duration::from_secs(300))
         .build()
         .map_err(|e| e.to_string())?;
 

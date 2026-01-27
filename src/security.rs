@@ -62,7 +62,11 @@ pub async fn start_security_worker() {
         .build();
     
     let s3_client = S3Client::from_conf(config);
-    let http_client = reqwest::Client::new();
+    let http_client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(300))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))
+        .expect("Failed to create HTTP client");
 
     let mut interval = tokio::time::interval(Duration::from_secs(3600)); // Every hour
 
