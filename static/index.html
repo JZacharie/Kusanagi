@@ -180,7 +180,9 @@
     <script src="/static/js/calendar_oauth.js"></script>
     <script src="/static/js/security.js"></script>
     <script src="/static/js/mqtt.js"></script>
+    <script src="/static/js/mqtt.js"></script>
     <script src="/static/js/setup.js"></script>
+    <script src="/static/js/sidebar.js"></script>
 </head>
 
 <body>
@@ -197,8 +199,9 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <button id="sidebar-toggle" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
-                <span class="mdi mdi-menu"></span>
+            <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="Toggle Navigation"
+                aria-controls="sidebar" aria-expanded="true">
+                <span class="mdi mdi-menu" aria-hidden="true"></span>
             </button>
             <div id="theme-switcher-container"></div>
             <div id="language-switcher-container" style="display: flex; align-items: center; margin-left: 10px;">
@@ -231,7 +234,7 @@
         </header>
 
         <!-- Sidebar Navigation -->
-        <aside class="sidebar" id="sidebar">
+        <aside class="sidebar" id="sidebar" aria-label="Main Navigation">
             <div class="sidebar-content">
                 <div class="sidebar-group-label" data-i18n="group_infrastructure">INFRASTRUCTURE</div>
                 <button class="tab-btn" data-tab="nodes" onclick="switchTab('nodes')">

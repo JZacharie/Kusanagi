@@ -312,3 +312,46 @@ body.theme-modern .footer-quote {
     font-style: italic;
     font-family: serif;
 }
+
+/* Sidebar Collapse Logic */
+body.theme-modern .sidebar {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s ease;
+    /* width value is inherited or defined elsewhere in layout, usually tied to grid or flex */
+    transform: translateX(0);
+}
+
+body.theme-modern .sidebar.collapsed {
+    transform: translateX(-100%);
+    width: 0;
+    opacity: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    border: none; /* Hide border when collapsed */
+}
+
+body.theme-modern .main-content.expanded {
+    margin-left: 0;
+    width: 100%;
+}
+
+/* Mobile responsive adjustments for sidebar override */
+@media (max-width: 768px) {
+    body.theme-modern .sidebar {
+        position: fixed;
+        z-index: 1000;
+        height: 100%;
+        top: 0;
+        left: 0;
+        transform: translateX(-100%); /* Default hidden on mobile */
+        width: 80%;
+        max-width: 300px;
+    }
+
+    /* When NOT collapsed (i.e. open) on mobile */
+    body.theme-modern .sidebar:not(.collapsed) {
+        transform: translateX(0);
+    }
+}
