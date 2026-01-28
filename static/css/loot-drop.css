@@ -165,6 +165,7 @@ body.theme-loot-drop .tab-btn {
     border-radius: 0;
     clip-path: none;
     margin: 0 5px;
+    font-size: 0.8rem;
 }
 
 body.theme-loot-drop .tab-btn.active {

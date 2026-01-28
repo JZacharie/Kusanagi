@@ -159,6 +159,7 @@ body.theme-modern .tab-btn {
     border-radius: var(--radius-sm);
     color: var(--text-secondary);
     font-weight: 500;
+    font-size: 0.8rem;
     padding: 0.5rem 1.25rem;
     clip-path: none;
     text-transform: none;

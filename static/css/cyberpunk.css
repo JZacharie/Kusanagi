@@ -1232,7 +1232,7 @@ body {
   color: var(--neon-green);
   cursor: pointer;
   font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   transition: all 0.3s ease;
 }
 
@@ -1249,7 +1249,7 @@ body {
 }
 
 .tab-icon {
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 /* External Links Colors */
