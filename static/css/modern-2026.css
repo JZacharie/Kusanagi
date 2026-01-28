@@ -314,26 +314,56 @@ body.theme-modern .footer-quote {
 }
 
 /* Sidebar Collapse Logic */
+/* Layout Fixes */
+body.theme-modern .layout-flex {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    margin: 0 auto;
+    position: relative;
+    gap: 1.5rem;
+    /* Space between sidebar and content */
+}
+
+/* Sidebar Logic */
 body.theme-modern .sidebar {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.3s ease;
-    /* width value is inherited or defined elsewhere in layout, usually tied to grid or flex */
-    transform: translateX(0);
+    width: 260px;
+    /* Specific width */
+    flex-shrink: 0;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.3s ease,
+        transform 0.3s ease;
+
+    /* Sticky behavior */
+    position: sticky;
+    top: 100px;
+    /* Below header */
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+
+    /* Ensure styles from card are kept but modified for layout */
+    margin-bottom: 0;
+    /* Remove bottom margin in flex context */
 }
 
 body.theme-modern .sidebar.collapsed {
-    transform: translateX(-100%);
     width: 0;
     opacity: 0;
     padding: 0;
-    margin: 0;
     overflow: hidden;
-    border: none; /* Hide border when collapsed */
+    border: none;
+    margin: 0;
+}
+
+body.theme-modern .main-content {
+    flex-grow: 1;
+    min-width: 0;
+    /* Prevent flex overflow */
+    width: 100%;
+    transition: width 0.3s ease;
 }
 
 body.theme-modern .main-content.expanded {
-    margin-left: 0;
     width: 100%;
 }
 
@@ -345,7 +375,8 @@ body.theme-modern .main-content.expanded {
         height: 100%;
         top: 0;
         left: 0;
-        transform: translateX(-100%); /* Default hidden on mobile */
+        transform: translateX(-100%);
+        /* Default hidden on mobile */
         width: 80%;
         max-width: 300px;
     }

@@ -234,923 +234,941 @@
         </header>
 
         <!-- Sidebar Navigation -->
-        <aside class="sidebar" id="sidebar" aria-label="Main Navigation">
-            <div class="sidebar-content">
-                <div class="sidebar-group-label" data-i18n="group_infrastructure">INFRASTRUCTURE</div>
-                <button class="tab-btn" data-tab="nodes" onclick="switchTab('nodes')">
-                    <span class="tab-icon">🖥️</span> <span data-i18n="tab_nodes">Nodes</span>
-                </button>
-                <button class="tab-btn" data-tab="pods" onclick="switchTab('pods')">
-                    <span class="tab-icon">📦</span> <span data-i18n="tab_pods">Pods</span>
-                </button>
-                <button class="tab-btn" data-tab="ingress" onclick="switchTab('ingress')">
-                    <span class="tab-icon">🌐</span> <span data-i18n="tab_ingress">Ingress</span>
-                </button>
-                <button class="tab-btn" data-tab="network" onclick="switchTab('network')">
-                    <span class="tab-icon">🌐</span> <span data-i18n="tab_network">Network</span>
-                </button>
-                <button class="tab-btn" data-tab="storage" onclick="switchTab('storage')">
-                    <span class="tab-icon">💾</span> <span data-i18n="tab_storage">Storage</span>
-                </button>
-                <button class="tab-btn" data-tab="events" onclick="switchTab('events')">
-                    <span class="tab-icon">🔔</span> <span data-i18n="tab_events">Events</span>
-                </button>
-                <button class="tab-btn" data-tab="metrics" onclick="switchTab('metrics')">
-                    <span class="tab-icon">📊</span> <span data-i18n="tab_metrics">Metrics</span>
-                </button>
-                <button class="tab-btn" data-tab="alerts" onclick="switchTab('alerts')">
-                    <span class="tab-icon">⚠️</span> <span data-i18n="tab_alerts">Alerts</span> <span class="badge"
-                        id="alerts-badge" style="display:none;">0</span>
-                </button>
-
-                <div class="sidebar-separator"></div>
-                <div class="sidebar-group-label" data-i18n="group_management">MANAGEMENT</div>
-                <button class="tab-btn active" data-tab="argocd" onclick="switchTab('argocd')">
-                    <span class="tab-icon">🚀</span> <span data-i18n="tab_argocd">ArgoCD</span>
-                </button>
-                <button class="tab-btn" data-tab="backups" onclick="switchTab('backups')">
-                    <span class="tab-icon">📦</span> <span data-i18n="tab_backups">Backups</span>
-                </button>
-                <button class="tab-btn" data-tab="security" onclick="switchTab('security')">
-                    <span class="tab-icon">🛡️</span> <span data-i18n="tab_security">Security</span>
-                </button>
-                <button class="tab-btn" data-tab="setup" onclick="switchTab('setup'); KusanagiSetup.init();">
-                    <span class="tab-icon">🛠️</span> <span data-i18n="tab_setup">Setup</span>
-                </button>
-
-                <div class="sidebar-separator"></div>
-                <div class="sidebar-group-label" data-i18n="group_homelab">HOME LAB</div>
-                <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar')">
-                    <span class="tab-icon">📅</span> <span data-i18n="tab_calendar">Calendar</span>
-                </button>
-                <button class="tab-btn" data-tab="homeassistant" onclick="switchTab('homeassistant')">
-                    <span class="tab-icon">🏠</span> <span data-i18n="tab_ha">Home Assistant</span>
-                </button>
-                <button class="tab-btn" data-tab="mqtt" onclick="switchTab('mqtt'); MqttManager.init();">
-                    <span class="tab-icon">📡</span> <span data-i18n="tab_mqtt">MQTT</span>
-                </button>
-                <button class="tab-btn" data-tab="proxmox" onclick="switchTab('proxmox')">
-                    <span class="tab-icon">🖥️</span> <span data-i18n="tab_proxmox">Proxmox</span>
-                </button>
-                <button class="tab-btn" data-tab="weather" onclick="switchTab('weather')">
-                    <span class="tab-icon">🌤️</span> <span data-i18n="tab_weather">Weather</span>
-                </button>
-
-                <div class="sidebar-separator"></div>
-                <div class="sidebar-group-label" data-i18n="group_info">INFO</div>
-                <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
-                    <span class="tab-icon">💬</span> <span data-i18n="tab_chat">Chat</span>
-                </button>
-                <button class="tab-btn" data-tab="evolution" onclick="switchTab('evolution')">
-                    <span class="tab-icon mdi mdi-github"></span> <span data-i18n="tab_evolution">Evolution</span>
-                </button>
-                <button class="tab-btn" data-tab="docs" onclick="switchTab('docs')">
-                    <span class="tab-icon">📖</span> <span data-i18n="tab_docs">Docs</span>
-                </button>
-                <button class="tab-btn" data-tab="news" onclick="switchTab('news')">
-                    <span class="tab-icon">📰</span> <span data-i18n="tab_news">News</span>
-                </button>
-
-                <div class="sidebar-separator"></div>
-                <div class="export-dropdown">
-                    <button class="tab-btn export-trigger" onclick="toggleExportMenu()">
-                        <span class="tab-icon">📥</span> <span data-i18n="tab_export">Export</span>
+        <!-- Sidebar Navigation -->
+        <div class="layout-flex">
+            <aside class="sidebar" id="sidebar" aria-label="Main Navigation">
+                <div class="sidebar-content">
+                    <div class="sidebar-group-label" data-i18n="group_infrastructure">INFRASTRUCTURE</div>
+                    <button class="tab-btn" data-tab="nodes" onclick="switchTab('nodes')">
+                        <span class="tab-icon">🖥️</span> <span data-i18n="tab_nodes">Nodes</span>
                     </button>
-                    <div class="export-menu" id="export-menu" style="display:none;">
-                        <button class="export-btn" data-format="json">📄 JSON</button>
-                        <button class="export-btn" data-format="csv">📊 CSV</button>
-                        <button class="export-btn" data-format="markdown">📝 Markdown</button>
+                    <button class="tab-btn" data-tab="pods" onclick="switchTab('pods')">
+                        <span class="tab-icon">📦</span> <span data-i18n="tab_pods">Pods</span>
+                    </button>
+                    <button class="tab-btn" data-tab="ingress" onclick="switchTab('ingress')">
+                        <span class="tab-icon">🌐</span> <span data-i18n="tab_ingress">Ingress</span>
+                    </button>
+                    <button class="tab-btn" data-tab="network" onclick="switchTab('network')">
+                        <span class="tab-icon">🌐</span> <span data-i18n="tab_network">Network</span>
+                    </button>
+                    <button class="tab-btn" data-tab="storage" onclick="switchTab('storage')">
+                        <span class="tab-icon">💾</span> <span data-i18n="tab_storage">Storage</span>
+                    </button>
+                    <button class="tab-btn" data-tab="events" onclick="switchTab('events')">
+                        <span class="tab-icon">🔔</span> <span data-i18n="tab_events">Events</span>
+                    </button>
+                    <button class="tab-btn" data-tab="metrics" onclick="switchTab('metrics')">
+                        <span class="tab-icon">📊</span> <span data-i18n="tab_metrics">Metrics</span>
+                    </button>
+                    <button class="tab-btn" data-tab="alerts" onclick="switchTab('alerts')">
+                        <span class="tab-icon">⚠️</span> <span data-i18n="tab_alerts">Alerts</span> <span class="badge"
+                            id="alerts-badge" style="display:none;">0</span>
+                    </button>
+
+                    <div class="sidebar-separator"></div>
+                    <div class="sidebar-group-label" data-i18n="group_management">MANAGEMENT</div>
+                    <button class="tab-btn active" data-tab="argocd" onclick="switchTab('argocd')">
+                        <span class="tab-icon">🚀</span> <span data-i18n="tab_argocd">ArgoCD</span>
+                    </button>
+                    <button class="tab-btn" data-tab="backups" onclick="switchTab('backups')">
+                        <span class="tab-icon">📦</span> <span data-i18n="tab_backups">Backups</span>
+                    </button>
+                    <button class="tab-btn" data-tab="security" onclick="switchTab('security')">
+                        <span class="tab-icon">🛡️</span> <span data-i18n="tab_security">Security</span>
+                    </button>
+                    <button class="tab-btn" data-tab="setup" onclick="switchTab('setup'); KusanagiSetup.init();">
+                        <span class="tab-icon">🛠️</span> <span data-i18n="tab_setup">Setup</span>
+                    </button>
+
+                    <div class="sidebar-separator"></div>
+                    <div class="sidebar-group-label" data-i18n="group_homelab">HOME LAB</div>
+                    <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar')">
+                        <span class="tab-icon">📅</span> <span data-i18n="tab_calendar">Calendar</span>
+                    </button>
+                    <button class="tab-btn" data-tab="homeassistant" onclick="switchTab('homeassistant')">
+                        <span class="tab-icon">🏠</span> <span data-i18n="tab_ha">Home Assistant</span>
+                    </button>
+                    <button class="tab-btn" data-tab="mqtt" onclick="switchTab('mqtt'); MqttManager.init();">
+                        <span class="tab-icon">📡</span> <span data-i18n="tab_mqtt">MQTT</span>
+                    </button>
+                    <button class="tab-btn" data-tab="proxmox" onclick="switchTab('proxmox')">
+                        <span class="tab-icon">🖥️</span> <span data-i18n="tab_proxmox">Proxmox</span>
+                    </button>
+                    <button class="tab-btn" data-tab="weather" onclick="switchTab('weather')">
+                        <span class="tab-icon">🌤️</span> <span data-i18n="tab_weather">Weather</span>
+                    </button>
+
+                    <div class="sidebar-separator"></div>
+                    <div class="sidebar-group-label" data-i18n="group_info">INFO</div>
+                    <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
+                        <span class="tab-icon">💬</span> <span data-i18n="tab_chat">Chat</span>
+                    </button>
+                    <button class="tab-btn" data-tab="evolution" onclick="switchTab('evolution')">
+                        <span class="tab-icon mdi mdi-github"></span> <span data-i18n="tab_evolution">Evolution</span>
+                    </button>
+                    <button class="tab-btn" data-tab="docs" onclick="switchTab('docs')">
+                        <span class="tab-icon">📖</span> <span data-i18n="tab_docs">Docs</span>
+                    </button>
+                    <button class="tab-btn" data-tab="news" onclick="switchTab('news')">
+                        <span class="tab-icon">📰</span> <span data-i18n="tab_news">News</span>
+                    </button>
+
+                    <div class="sidebar-separator"></div>
+                    <div class="export-dropdown">
+                        <button class="tab-btn export-trigger" onclick="toggleExportMenu()">
+                            <span class="tab-icon">📥</span> <span data-i18n="tab_export">Export</span>
+                        </button>
+                        <div class="export-menu" id="export-menu" style="display:none;">
+                            <button class="export-btn" data-format="json">📄 JSON</button>
+                            <button class="export-btn" data-format="csv">📊 CSV</button>
+                            <button class="export-btn" data-format="markdown">📝 Markdown</button>
+                        </div>
                     </div>
                 </div>
+            </aside>
+
+            <div class="main-content" id="main-content">
+
+
+
+
+                <!-- ArgoCD Status Section -->
+                <section class="argocd-section tab-content active" data-tab="argocd">
+                    <h2 class="section-title">ArgoCD Applications Status</h2>
+
+                    <div class="argocd-stats" id="argocd-stats">
+                        <div class="stat-box info">
+                            <div class="stat-value" id="stat-total">-</div>
+                            <div class="stat-label">Total Apps</div>
+                        </div>
+                        <div class="stat-box healthy">
+                            <div class="stat-value" id="stat-healthy">-</div>
+                            <div class="stat-label">Healthy</div>
+                        </div>
+                        <div class="stat-box unhealthy">
+                            <div class="stat-value" id="stat-unhealthy">-</div>
+                            <div class="stat-label">Unhealthy</div>
+                        </div>
+                        <div class="stat-box healthy">
+                            <div class="stat-value" id="stat-synced">-</div>
+                            <div class="stat-label">Synced</div>
+                        </div>
+                        <div class="stat-box unhealthy">
+                            <div class="stat-value" id="stat-outofsync">-</div>
+                            <div class="stat-label">Out of Sync</div>
+                        </div>
+                        <div class="stat-box warning">
+                            <div class="stat-value" id="stat-progressing">-</div>
+                            <div class="stat-label">Progressing</div>
+                        </div>
+                        <div class="stat-box info">
+                            <div class="stat-value" id="stat-upgrades">-</div>
+                            <div class="stat-label">Upgrades</div>
+                        </div>
+                    </div>
+
+                    <!-- Real Issues Table -->
+                    <div class="issues-table-container" id="issues-container">
+                        <div class="issues-table-header">
+                            <span class="issues-table-title">⚠ Real Issues</span>
+                            <span class="issues-count" id="issues-count">0</span>
+                        </div>
+                        <div id="issues-content">
+                            <div class="loading">Loading ArgoCD status...</div>
+                        </div>
+                    </div>
+
+                    <!-- Upgrades Available Table -->
+                    <div class="issues-table-container upgrades-container" id="upgrades-container"
+                        style="margin-top: 2rem; border-color: var(--neon-cyan);">
+                        <div class="issues-table-header"
+                            style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                            <span class="issues-table-title" style="color: var(--neon-cyan);">🔄 Upgrades
+                                Available</span>
+                            <span class="issues-count" id="upgrades-count"
+                                style="background: var(--neon-cyan);">0</span>
+                        </div>
+                        <div id="upgrades-content">
+                            <div class="no-issues">No upgrades available</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Nodes Monitoring Section -->
+                <section class="argocd-section tab-content" data-tab="nodes" style="display: none;">
+                    <h2 class="section-title">🖥️ Cluster Nodes</h2>
+
+                    <!-- Node Stats Grid -->
+                    <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                        <div class="stat-box">
+                            <div class="stat-value" id="node-total">-</div>
+                            <div class="stat-label">Total Nodes</div>
+                        </div>
+                        <div class="stat-box healthy">
+                            <div class="stat-value" id="node-ready">-</div>
+                            <div class="stat-label">Ready</div>
+                        </div>
+                        <div class="stat-box unhealthy">
+                            <div class="stat-value" id="node-notready">-</div>
+                            <div class="stat-label">Not Ready</div>
+                        </div>
+                    </div>
+
+                    <!-- Diagnostic Button (Hidden by default, shown on error) -->
+                    <div id="nodes-diagnostic-tool"
+                        style="display: none; margin-bottom: 1.5rem; padding: 1rem; background: rgba(255, 68, 68, 0.1); border: 1px solid #ff4444; border-radius: 4px;">
+                        <h3 style="color: #ff4444; margin-top: 0;">🛠️ Nodes Diagnostic</h3>
+                        <p>An error occurred while fetching nodes. Use this tool to identify the cause.</p>
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                            <button class="cyber-btn" onclick="runNodesDiagnostic()" id="btn-run-diagnostic">Run Deep
+                                Diagnostic</button>
+                        </div>
+                        <div id="nodes-diagnostic-result"
+                            style="font-family: monospace; font-size: 0.8rem; background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 4px; display: none; white-space: pre-wrap;">
+                        </div>
+                    </div>
+
+                    <!-- Node Cards Container -->
+                    <div class="nodes-container" id="nodes-container">
+                        <div class="loading">Loading nodes status...</div>
+                    </div>
+                </section>
+
+                <!-- PVC Monitoring Section -->
+                <section class="argocd-section tab-content" data-tab="storage" style="display: none;">
+                    <h2 class="section-title">💾 Storage (PVCs)</h2>
+
+                    <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                        <div class="stat-box">
+                            <div class="stat-value" id="pvc-total-count">-</div>
+                            <div class="stat-label">Total PVCs</div>
+                        </div>
+                        <div class="stat-box healthy">
+                            <div class="stat-value" id="pvc-bound-count">-</div>
+                            <div class="stat-label">Bound</div>
+                        </div>
+                        <div class="stat-box warning">
+                            <div class="stat-value" id="pvc-pending-count">-</div>
+                            <div class="stat-label">Pending</div>
+                        </div>
+                        <div class="stat-box info">
+                            <div class="stat-value" id="pvc-total-storage">-</div>
+                            <div class="stat-label">Total Capacity</div>
+                        </div>
+                    </div>
+
+                    <div class="issues-table-container" id="pvc-container" style="border-color: var(--neon-cyan);">
+                        <div class="issues-table-header"
+                            style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                            <span class="issues-table-title" style="color: var(--neon-cyan);">📊 PVC Details</span>
+                            <span class="issues-count" id="pvc-table-count"
+                                style="background: var(--neon-cyan);">0</span>
+                        </div>
+                        <div id="pvc-content">
+                            <div class="loading">Loading PVC data...</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Services Section -->
+                <section class="argocd-section tab-content" data-tab="services" style="display: none;">
+                    <h2 class="section-title">🌐 Services</h2>
+                    <div class="issues-table-container" id="services-container">
+                        <div class="issues-table-header">
+                            <span class="issues-table-title">Cluster Services</span>
+                            <span class="issues-count" id="services-count">0</span>
+                        </div>
+                        <div id="services-content">
+                            <div class="loading">Loading services...</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Ingress Section -->
+                <section class="argocd-section tab-content" data-tab="ingress" style="display: none;">
+                    <h2 class="section-title">🌍 Ingress Rules</h2>
+                    <div class="issues-table-container" id="ingress-container">
+                        <div class="issues-table-header">
+                            <span class="issues-table-title">Ingress Routes</span>
+                            <span class="issues-count" id="ingress-count">0</span>
+                        </div>
+                        <div id="ingress-content">
+                            <div class="loading">Loading ingress rules...</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Kubernetes Events Section -->
+                <section class="argocd-section tab-content" data-tab="events" style="display: none;">
+                    <h2 class="section-title">🔔 Kubernetes Events (Last Hour)</h2>
+
+                    <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                        <div class="stat-box">
+                            <div class="stat-value" id="events-total">-</div>
+                            <div class="stat-label">Total Events</div>
+                        </div>
+                        <div class="stat-box unhealthy">
+                            <div class="stat-value" id="events-warnings">-</div>
+                            <div class="stat-label">Warnings</div>
+                        </div>
+                        <div class="stat-box healthy">
+                            <div class="stat-value" id="events-normal">-</div>
+                            <div class="stat-label">Normal</div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div class="filter-controls" style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
+                        <button class="cyber-btn active" id="btn-show-all" onclick="filterEvents('all')">Show
+                            All</button>
+                        <button class="cyber-btn" id="btn-show-warnings" onclick="filterEvents('Warning')">⚠️ Warnings
+                            Only</button>
+                    </div>
+
+                    <!-- Top Recurrent Warnings (Hidden by default) -->
+                    <div class="issues-table-container" id="top-warnings-container"
+                        style="display: none; border-color: #ff4444; margin-bottom: 1.5rem;">
+                        <div class="issues-table-header"
+                            style="background: rgba(255, 68, 68, 0.1); border-color: #ff4444;">
+                            <span class="issues-table-title" style="color: #ff4444;">🔥 Top Recurrent Warnings</span>
+                        </div>
+                        <div id="top-warnings-content">
+                            <div class="loading">Calculating top warnings...</div>
+                        </div>
+                    </div>
+
+                    <div class="issues-table-container" id="events-container"
+                        style="border-color: var(--neon-magenta);">
+                        <div class="issues-table-header"
+                            style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                            <span class="issues-table-title" style="color: var(--neon-magenta);">⚠️ Recent Events</span>
+                            <span class="issues-count" id="events-table-count"
+                                style="background: var(--neon-magenta);">0</span>
+                        </div>
+                        <div id="events-content">
+                            <div class="loading">Loading events...</div>
+                        </div>
+                    </div>
             </div>
-        </aside>
+            </section>
 
-        <div class="main-content" id="main-content">
-        </div>
+            <!-- Pods Error Monitoring Section -->
+            <section class="argocd-section tab-content" data-tab="pods" style="display: none;">
+                <h2 class="section-title">🐳 Pods in Error</h2>
 
-
-
-
-        <!-- ArgoCD Status Section -->
-        <section class="argocd-section tab-content active" data-tab="argocd">
-            <h2 class="section-title">ArgoCD Applications Status</h2>
-
-            <div class="argocd-stats" id="argocd-stats">
-                <div class="stat-box info">
-                    <div class="stat-value" id="stat-total">-</div>
-                    <div class="stat-label">Total Apps</div>
-                </div>
-                <div class="stat-box healthy">
-                    <div class="stat-value" id="stat-healthy">-</div>
-                    <div class="stat-label">Healthy</div>
-                </div>
-                <div class="stat-box unhealthy">
-                    <div class="stat-value" id="stat-unhealthy">-</div>
-                    <div class="stat-label">Unhealthy</div>
-                </div>
-                <div class="stat-box healthy">
-                    <div class="stat-value" id="stat-synced">-</div>
-                    <div class="stat-label">Synced</div>
-                </div>
-                <div class="stat-box unhealthy">
-                    <div class="stat-value" id="stat-outofsync">-</div>
-                    <div class="stat-label">Out of Sync</div>
-                </div>
-                <div class="stat-box warning">
-                    <div class="stat-value" id="stat-progressing">-</div>
-                    <div class="stat-label">Progressing</div>
-                </div>
-                <div class="stat-box info">
-                    <div class="stat-value" id="stat-upgrades">-</div>
-                    <div class="stat-label">Upgrades</div>
-                </div>
-            </div>
-
-            <!-- Real Issues Table -->
-            <div class="issues-table-container" id="issues-container">
-                <div class="issues-table-header">
-                    <span class="issues-table-title">⚠ Real Issues</span>
-                    <span class="issues-count" id="issues-count">0</span>
-                </div>
-                <div id="issues-content">
-                    <div class="loading">Loading ArgoCD status...</div>
-                </div>
-            </div>
-
-            <!-- Upgrades Available Table -->
-            <div class="issues-table-container upgrades-container" id="upgrades-container"
-                style="margin-top: 2rem; border-color: var(--neon-cyan);">
-                <div class="issues-table-header"
-                    style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-                    <span class="issues-table-title" style="color: var(--neon-cyan);">🔄 Upgrades Available</span>
-                    <span class="issues-count" id="upgrades-count" style="background: var(--neon-cyan);">0</span>
-                </div>
-                <div id="upgrades-content">
-                    <div class="no-issues">No upgrades available</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Nodes Monitoring Section -->
-        <section class="argocd-section tab-content" data-tab="nodes" style="display: none;">
-            <h2 class="section-title">🖥️ Cluster Nodes</h2>
-
-            <!-- Node Stats Grid -->
-            <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                <div class="stat-box">
-                    <div class="stat-value" id="node-total">-</div>
-                    <div class="stat-label">Total Nodes</div>
-                </div>
-                <div class="stat-box healthy">
-                    <div class="stat-value" id="node-ready">-</div>
-                    <div class="stat-label">Ready</div>
-                </div>
-                <div class="stat-box unhealthy">
-                    <div class="stat-value" id="node-notready">-</div>
-                    <div class="stat-label">Not Ready</div>
-                </div>
-            </div>
-
-            <!-- Diagnostic Button (Hidden by default, shown on error) -->
-            <div id="nodes-diagnostic-tool"
-                style="display: none; margin-bottom: 1.5rem; padding: 1rem; background: rgba(255, 68, 68, 0.1); border: 1px solid #ff4444; border-radius: 4px;">
-                <h3 style="color: #ff4444; margin-top: 0;">🛠️ Nodes Diagnostic</h3>
-                <p>An error occurred while fetching nodes. Use this tool to identify the cause.</p>
-                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                    <button class="cyber-btn" onclick="runNodesDiagnostic()" id="btn-run-diagnostic">Run Deep
-                        Diagnostic</button>
-                </div>
-                <div id="nodes-diagnostic-result"
-                    style="font-family: monospace; font-size: 0.8rem; background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 4px; display: none; white-space: pre-wrap;">
-                </div>
-            </div>
-
-            <!-- Node Cards Container -->
-            <div class="nodes-container" id="nodes-container">
-                <div class="loading">Loading nodes status...</div>
-            </div>
-        </section>
-
-        <!-- PVC Monitoring Section -->
-        <section class="argocd-section tab-content" data-tab="storage" style="display: none;">
-            <h2 class="section-title">💾 Storage (PVCs)</h2>
-
-            <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                <div class="stat-box">
-                    <div class="stat-value" id="pvc-total-count">-</div>
-                    <div class="stat-label">Total PVCs</div>
-                </div>
-                <div class="stat-box healthy">
-                    <div class="stat-value" id="pvc-bound-count">-</div>
-                    <div class="stat-label">Bound</div>
-                </div>
-                <div class="stat-box warning">
-                    <div class="stat-value" id="pvc-pending-count">-</div>
-                    <div class="stat-label">Pending</div>
-                </div>
-                <div class="stat-box info">
-                    <div class="stat-value" id="pvc-total-storage">-</div>
-                    <div class="stat-label">Total Capacity</div>
-                </div>
-            </div>
-
-            <div class="issues-table-container" id="pvc-container" style="border-color: var(--neon-cyan);">
-                <div class="issues-table-header"
-                    style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-                    <span class="issues-table-title" style="color: var(--neon-cyan);">📊 PVC Details</span>
-                    <span class="issues-count" id="pvc-table-count" style="background: var(--neon-cyan);">0</span>
-                </div>
-                <div id="pvc-content">
-                    <div class="loading">Loading PVC data...</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Services Section -->
-        <section class="argocd-section tab-content" data-tab="services" style="display: none;">
-            <h2 class="section-title">🌐 Services</h2>
-            <div class="issues-table-container" id="services-container">
-                <div class="issues-table-header">
-                    <span class="issues-table-title">Cluster Services</span>
-                    <span class="issues-count" id="services-count">0</span>
-                </div>
-                <div id="services-content">
-                    <div class="loading">Loading services...</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Ingress Section -->
-        <section class="argocd-section tab-content" data-tab="ingress" style="display: none;">
-            <h2 class="section-title">🌍 Ingress Rules</h2>
-            <div class="issues-table-container" id="ingress-container">
-                <div class="issues-table-header">
-                    <span class="issues-table-title">Ingress Routes</span>
-                    <span class="issues-count" id="ingress-count">0</span>
-                </div>
-                <div id="ingress-content">
-                    <div class="loading">Loading ingress rules...</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Kubernetes Events Section -->
-        <section class="argocd-section tab-content" data-tab="events" style="display: none;">
-            <h2 class="section-title">🔔 Kubernetes Events (Last Hour)</h2>
-
-            <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                <div class="stat-box">
-                    <div class="stat-value" id="events-total">-</div>
-                    <div class="stat-label">Total Events</div>
-                </div>
-                <div class="stat-box unhealthy">
-                    <div class="stat-value" id="events-warnings">-</div>
-                    <div class="stat-label">Warnings</div>
-                </div>
-                <div class="stat-box healthy">
-                    <div class="stat-value" id="events-normal">-</div>
-                    <div class="stat-label">Normal</div>
-                </div>
-            </div>
-
-            <!-- Filter Controls -->
-            <div class="filter-controls" style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
-                <button class="cyber-btn active" id="btn-show-all" onclick="filterEvents('all')">Show All</button>
-                <button class="cyber-btn" id="btn-show-warnings" onclick="filterEvents('Warning')">⚠️ Warnings
-                    Only</button>
-            </div>
-
-            <!-- Top Recurrent Warnings (Hidden by default) -->
-            <div class="issues-table-container" id="top-warnings-container"
-                style="display: none; border-color: #ff4444; margin-bottom: 1.5rem;">
-                <div class="issues-table-header" style="background: rgba(255, 68, 68, 0.1); border-color: #ff4444;">
-                    <span class="issues-table-title" style="color: #ff4444;">🔥 Top Recurrent Warnings</span>
-                </div>
-                <div id="top-warnings-content">
-                    <div class="loading">Calculating top warnings...</div>
-                </div>
-            </div>
-
-            <div class="issues-table-container" id="events-container" style="border-color: var(--neon-magenta);">
-                <div class="issues-table-header"
-                    style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-                    <span class="issues-table-title" style="color: var(--neon-magenta);">⚠️ Recent Events</span>
-                    <span class="issues-count" id="events-table-count" style="background: var(--neon-magenta);">0</span>
-                </div>
-                <div id="events-content">
-                    <div class="loading">Loading events...</div>
-                </div>
-            </div>
-    </div>
-    </section>
-
-    <!-- Pods Error Monitoring Section -->
-    <section class="argocd-section tab-content" data-tab="pods" style="display: none;">
-        <h2 class="section-title">🐳 Pods in Error</h2>
-
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
-                <div class="stat-value" id="pods-total">-</div>
-                <div class="stat-label">Total Pods</div>
-            </div>
-            <div class="stat-box healthy">
-                <div class="stat-value" id="pods-running">-</div>
-                <div class="stat-label">Running</div>
-            </div>
-            <div class="stat-box warning">
-                <div class="stat-value" id="pods-pending">-</div>
-                <div class="stat-label">Pending</div>
-            </div>
-            <div class="stat-box unhealthy">
-                <div class="stat-value" id="pods-error">-</div>
-                <div class="stat-label">In Error</div>
-            </div>
-        </div>
-
-        <div class="issues-table-container" id="pods-container" style="border-color: var(--neon-orange, #ff8c00);">
-            <div class="issues-table-header"
-                style="background: rgba(255, 140, 0, 0.1); border-color: var(--neon-orange, #ff8c00);">
-                <span class="issues-table-title" style="color: var(--neon-orange, #ff8c00);">⚠️ Pods with
-                    Issues</span>
-                <span class="issues-count" id="pods-error-count"
-                    style="background: var(--neon-orange, #ff8c00);">0</span>
-            </div>
-            <div id="pods-content">
-                <div class="loading">Loading pods status...</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Chat Section -->
-    <section class="argocd-section tab-content" data-tab="chat" style="display: none;">
-        <h2 class="section-title">💬 Kusanagi Chat</h2>
-
-        <div class="chat-container">
-            <div class="chat-messages" id="chat-messages">
-                <div class="chat-message bot">
-                    <div class="message-content">
-                        <span class="bot-header"><img src="/static/images/logo.png" class="chat-avatar" alt="Kusanagi">
-                            <strong>Kusanagi</strong></span><br>
-                        Welcome! Type <code>/help</code> for available commands, or ask me about your cluster
-                        status.
+                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                    <div class="stat-box">
+                        <div class="stat-value" id="pods-total">-</div>
+                        <div class="stat-label">Total Pods</div>
+                    </div>
+                    <div class="stat-box healthy">
+                        <div class="stat-value" id="pods-running">-</div>
+                        <div class="stat-label">Running</div>
+                    </div>
+                    <div class="stat-box warning">
+                        <div class="stat-value" id="pods-pending">-</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                    <div class="stat-box unhealthy">
+                        <div class="stat-value" id="pods-error">-</div>
+                        <div class="stat-label">In Error</div>
                     </div>
                 </div>
-            </div>
-            <div class="chat-input-container">
-                <input type="text" id="chat-input" class="chat-input"
-                    placeholder="Type a command or question... (e.g., /status, /nodes, /events)"
-                    onkeypress="handleChatKeypress(event)">
-                <button class="chat-send-btn" onclick="sendChatMessage()">Send ➤</button>
-            </div>
-        </div>
-    </section>
 
-    <!-- News Feed Section -->
-    <section class="argocd-section tab-content" data-tab="news" style="display: none;">
-        <h2 class="section-title">📰 Tech News Feed</h2>
-
-        <!-- News Stats -->
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
-                <div class="stat-value" id="news-total">-</div>
-                <div class="stat-label">Total News</div>
-            </div>
-            <div class="stat-box" style="border-color: #ff6600;">
-                <div class="stat-value" id="news-hn">-</div>
-                <div class="stat-label">Hacker News</div>
-            </div>
-            <div class="stat-box" style="border-color: #4a9eff;">
-                <div class="stat-value" id="news-korben">-</div>
-                <div class="stat-label">Korben</div>
-            </div>
-            <div class="stat-box" style="border-color: #a371f7;">
-                <div class="stat-value" id="news-github">-</div>
-                <div class="stat-label">GitHub Trending</div>
-            </div>
-        </div>
-
-        <!-- Filter Controls -->
-        <div class="filter-controls" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-            <button class="cyber-btn active" id="btn-news-all" onclick="filterNews('all')">All Sources</button>
-            <button class="cyber-btn" id="btn-news-hn" onclick="filterNews('hackernews')"
-                style="border-color: #ff6600;">
-                🟠 Hacker News
-            </button>
-            <button class="cyber-btn" id="btn-news-korben" onclick="filterNews('korben')"
-                style="border-color: #4a9eff;">
-                🔵 Korben
-            </button>
-            <button class="cyber-btn" id="btn-news-github" onclick="filterNews('github')"
-                style="border-color: #a371f7;">
-                🟣 GitHub
-            </button>
-            <button class="cyber-btn" id="btn-news-refresh" onclick="NewsManager.manualRefresh()"
-                style="margin-left: auto;">
-                🔄 REFRESH & TRANSLATE
-            </button>
-            <div class="view-toggle" style="display: flex; gap: 0.5rem; margin-left: 1rem;">
-                <button class="cyber-btn active" id="btn-view-card" onclick="NewsManager.toggleViewMode('grid')"
-                    title="Card View">🎴</button>
-                <button class="cyber-btn" id="btn-view-list" onclick="NewsManager.toggleViewMode('list')"
-                    title="List View">🗒️</button>
-                <button class="cyber-btn" id="btn-view-inline" onclick="NewsManager.toggleViewMode('inline')"
-                    title="Inline View">➖</button>
-            </div>
-        </div>
-
-        <!-- Search Bar -->
-        <div style="margin-bottom: 1.5rem;">
-            <input type="text" id="news-search" class="chat-input" placeholder="Search news..."
-                oninput="searchNews(this.value)" style="width: 100%;">
-        </div>
-
-        <!-- News Cards Container -->
-        <div class="news-grid" id="news-container">
-            <div class="loading">Loading news feed...</div>
-        </div>
-
-        <!-- Last Updated -->
-        <div style="text-align: center; margin-top: 1.5rem; opacity: 0.6; font-size: 0.9rem;">
-            Last updated: <span id="news-updated-at">-</span>
-        </div>
-    </section>
-
-    <!-- Backups Section -->
-    <section class="argocd-section tab-content" data-tab="backups" style="display: none;">
-        <h2 class="section-title">📦 Backup Jobs Status</h2>
-
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
-                <div class="stat-value" id="backup-cronjobs">-</div>
-                <div class="stat-label">CronJobs</div>
-            </div>
-            <div class="stat-box warning">
-                <div class="stat-value" id="backup-active">-</div>
-                <div class="stat-label">Running</div>
-            </div>
-            <div class="stat-box healthy">
-                <div class="stat-value" id="backup-succeeded">-</div>
-                <div class="stat-label">Succeeded</div>
-            </div>
-            <div class="stat-box unhealthy">
-                <div class="stat-value" id="backup-failed">-</div>
-                <div class="stat-label">Failed</div>
-            </div>
-        </div>
-
-        <div class="issues-table-container" id="backups-container" style="border-color: var(--neon-green);">
-            <div class="issues-table-header"
-                style="background: rgba(0, 255, 136, 0.1); border-color: var(--neon-green);">
-                <span class="issues-table-title" style="color: var(--neon-green);">⏰ CronJobs & Recent Jobs</span>
-                <span class="issues-count" id="backups-count" style="background: var(--neon-green);">0</span>
-            </div>
-            <div id="backups-content">
-                <div class="loading">Loading backup jobs...</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Quotas Section -->
-    <section class="argocd-section tab-content" data-tab="quotas" style="display: none;">
-        <h2 class="section-title">📊 Google Services Quotas</h2>
-
-        <div class="quotas-grid" id="quotas-grid">
-            <!-- Antigravity Quota -->
-            <div class="quota-card">
-                <div class="quota-header">
-                    <span class="quota-icon">⚡</span>
-                    <span class="quota-title">Antigravity (Gemini)</span>
-                </div>
-                <div class="quota-gauge-container">
-                    <div class="quota-gauge" id="antigravity-gauge" data-value="0">
-                        <svg viewBox="0 0 100 100" class="gauge-svg">
-                            <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-bg" />
-                            <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-fill" id="antigravity-fill"
-                                stroke-dasharray="0 251" />
-                        </svg>
-                        <div class="gauge-value" id="antigravity-value">0%</div>
+                <div class="issues-table-container" id="pods-container"
+                    style="border-color: var(--neon-orange, #ff8c00);">
+                    <div class="issues-table-header"
+                        style="background: rgba(255, 140, 0, 0.1); border-color: var(--neon-orange, #ff8c00);">
+                        <span class="issues-table-title" style="color: var(--neon-orange, #ff8c00);">⚠️ Pods with
+                            Issues</span>
+                        <span class="issues-count" id="pods-error-count"
+                            style="background: var(--neon-orange, #ff8c00);">0</span>
+                    </div>
+                    <div id="pods-content">
+                        <div class="loading">Loading pods status...</div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- NotebookLM Quota -->
-            <div class="quota-card">
-                <div class="quota-header">
-                    <span class="quota-icon">📓</span>
-                    <span class="quota-title">NotebookLM</span>
-                </div>
-                <div class="quota-gauge-container">
-                    <div class="quota-gauge" id="notebooklm-gauge" data-value="0">
-                        <svg viewBox="0 0 100 100" class="gauge-svg">
-                            <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-bg" />
-                            <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-fill" id="notebooklm-fill"
-                                stroke-dasharray="0 251" />
-                        </svg>
-                        <div class="gauge-value" id="notebooklm-value">0%</div>
+            <!-- Chat Section -->
+            <section class="argocd-section tab-content" data-tab="chat" style="display: none;">
+                <h2 class="section-title">💬 Kusanagi Chat</h2>
+
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="chat-message bot">
+                            <div class="message-content">
+                                <span class="bot-header"><img src="/static/images/logo.png" class="chat-avatar"
+                                        alt="Kusanagi">
+                                    <strong>Kusanagi</strong></span><br>
+                                Welcome! Type <code>/help</code> for available commands, or ask me about your cluster
+                                status.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chat-input" class="chat-input"
+                            placeholder="Type a command or question... (e.g., /status, /nodes, /events)"
+                            onkeypress="handleChatKeypress(event)">
+                        <button class="chat-send-btn" onclick="sendChatMessage()">Send ➤</button>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Google Storage Quota -->
-            <div class="quota-card full-width">
-                <div class="quota-header">
-                    <span class="quota-icon">💾</span>
-                    <span class="quota-title">Google One Storage</span>
-                </div>
-                <div class="storage-bar-container">
-                    <div class="storage-info">
-                        <span id="storage-used">0 GB</span> used of <span id="storage-total">2 TB</span>
+            <!-- News Feed Section -->
+            <section class="argocd-section tab-content" data-tab="news" style="display: none;">
+                <h2 class="section-title">📰 Tech News Feed</h2>
+
+                <!-- News Stats -->
+                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                    <div class="stat-box">
+                        <div class="stat-value" id="news-total">-</div>
+                        <div class="stat-label">Total News</div>
                     </div>
-                    <div class="storage-progress-bar">
-                        <div class="storage-fill" id="storage-fill" style="width: 0%"></div>
+                    <div class="stat-box" style="border-color: #ff6600;">
+                        <div class="stat-value" id="news-hn">-</div>
+                        <div class="stat-label">Hacker News</div>
+                    </div>
+                    <div class="stat-box" style="border-color: #4a9eff;">
+                        <div class="stat-value" id="news-korben">-</div>
+                        <div class="stat-label">Korben</div>
+                    </div>
+                    <div class="stat-box" style="border-color: #a371f7;">
+                        <div class="stat-value" id="news-github">-</div>
+                        <div class="stat-label">GitHub Trending</div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="quota-footer">
-            <p>Data last updated: <span id="quota-updated-at">-</span></p>
-            <button class="cyber-btn" onclick="fetchQuotas()">🔄 Refresh Data</button>
-        </div>
-    </section>
+                <!-- Filter Controls -->
+                <div class="filter-controls" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="cyber-btn active" id="btn-news-all" onclick="filterNews('all')">All Sources</button>
+                    <button class="cyber-btn" id="btn-news-hn" onclick="filterNews('hackernews')"
+                        style="border-color: #ff6600;">
+                        🟠 Hacker News
+                    </button>
+                    <button class="cyber-btn" id="btn-news-korben" onclick="filterNews('korben')"
+                        style="border-color: #4a9eff;">
+                        🔵 Korben
+                    </button>
+                    <button class="cyber-btn" id="btn-news-github" onclick="filterNews('github')"
+                        style="border-color: #a371f7;">
+                        🟣 GitHub
+                    </button>
+                    <button class="cyber-btn" id="btn-news-refresh" onclick="NewsManager.manualRefresh()"
+                        style="margin-left: auto;">
+                        🔄 REFRESH & TRANSLATE
+                    </button>
+                    <div class="view-toggle" style="display: flex; gap: 0.5rem; margin-left: 1rem;">
+                        <button class="cyber-btn active" id="btn-view-card" onclick="NewsManager.toggleViewMode('grid')"
+                            title="Card View">🎴</button>
+                        <button class="cyber-btn" id="btn-view-list" onclick="NewsManager.toggleViewMode('list')"
+                            title="List View">🗒️</button>
+                        <button class="cyber-btn" id="btn-view-inline" onclick="NewsManager.toggleViewMode('inline')"
+                            title="Inline View">➖</button>
+                    </div>
+                </div>
 
-    <!-- Network Visualization Section -->
-    <section class="argocd-section tab-content" data-tab="network" style="display: none;">
-        <h2 class="section-title">🌐 Network Flows (Cilium/Hubble)</h2>
+                <!-- Search Bar -->
+                <div style="margin-bottom: 1.5rem;">
+                    <input type="text" id="news-search" class="chat-input" placeholder="Search news..."
+                        oninput="searchNews(this.value)" style="width: 100%;">
+                </div>
 
-        <!-- Network Controls -->
-        <div class="network-controls" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-            <select id="network-namespace-filter" class="cyber-select"
-                onchange="KusanagiNetwork.filterByNamespace(this.value)">
-                <option value="">All Namespaces</option>
-            </select>
-            <button class="cyber-btn" onclick="KusanagiNetwork.fetchAndRender()">
-                🔄 Refresh
-            </button>
-            <button class="cyber-btn" onclick="KusanagiNetwork.exportData('json')">
-                📥 Export JSON
-            </button>
-            <button class="cyber-btn" onclick="KusanagiNetwork.exportData('csv')">
-                📥 Export CSV
-            </button>
-        </div>
+                <!-- News Cards Container -->
+                <div class="news-grid" id="news-container">
+                    <div class="loading">Loading news feed...</div>
+                </div>
 
-        <!-- APM Performance Stats -->
-        <div id="network-perf-stats" class="network-perf-container" style="margin-bottom: 1.5rem;">
-            <!-- Populated by JavaScript -->
-        </div>
+                <!-- Last Updated -->
+                <div style="text-align: center; margin-top: 1.5rem; opacity: 0.6; font-size: 0.9rem;">
+                    Last updated: <span id="news-updated-at">-</span>
+                </div>
+            </section>
 
-        <!-- Network Stats -->
-        <div id="network-stats" style="margin-bottom: 1.5rem;">
-            <div class="loading">Loading network stats...</div>
-        </div>
+            <!-- Backups Section -->
+            <section class="argocd-section tab-content" data-tab="backups" style="display: none;">
+                <h2 class="section-title">📦 Backup Jobs Status</h2>
 
-        <!-- Network Graph -->
-        <div class="issues-table-container" style="border-color: var(--neon-cyan); margin-bottom: 1.5rem;">
-            <div class="issues-table-header"
-                style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-                <span class="issues-table-title" style="color: var(--neon-cyan);">Service Graph</span>
-            </div>
-            <div id="network-visualization" style="min-height: 400px; background: rgba(0,0,0,0.3);">
-                <div class="loading">Loading network graph...</div>
-            </div>
-        </div>
+                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                    <div class="stat-box">
+                        <div class="stat-value" id="backup-cronjobs">-</div>
+                        <div class="stat-label">CronJobs</div>
+                    </div>
+                    <div class="stat-box warning">
+                        <div class="stat-value" id="backup-active">-</div>
+                        <div class="stat-label">Running</div>
+                    </div>
+                    <div class="stat-box healthy">
+                        <div class="stat-value" id="backup-succeeded">-</div>
+                        <div class="stat-label">Succeeded</div>
+                    </div>
+                    <div class="stat-box unhealthy">
+                        <div class="stat-value" id="backup-failed">-</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                </div>
 
-        <!-- Flow Matrix -->
-        <div class="issues-table-container" style="border-color: var(--neon-magenta);">
-            <div class="issues-table-header"
-                style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-                <span class="issues-table-title" style="color: var(--neon-magenta);">📊 Flow Matrix</span>
-            </div>
-            <div id="network-matrix">
-                <div class="loading">Loading flow matrix...</div>
-            </div>
-        </div>
-    </section>
+                <div class="issues-table-container" id="backups-container" style="border-color: var(--neon-green);">
+                    <div class="issues-table-header"
+                        style="background: rgba(0, 255, 136, 0.1); border-color: var(--neon-green);">
+                        <span class="issues-table-title" style="color: var(--neon-green);">⏰ CronJobs & Recent
+                            Jobs</span>
+                        <span class="issues-count" id="backups-count" style="background: var(--neon-green);">0</span>
+                    </div>
+                    <div id="backups-content">
+                        <div class="loading">Loading backup jobs...</div>
+                    </div>
+                </div>
+            </section>
 
-    <!-- Prometheus Metrics Section -->
-    <section class="argocd-section tab-content" data-tab="metrics" style="display: none;">
-        <h2 class="section-title">📊 Cluster Metrics (Prometheus)</h2>
+            <!-- Quotas Section -->
+            <section class="argocd-section tab-content" data-tab="quotas" style="display: none;">
+                <h2 class="section-title">📊 Google Services Quotas</h2>
 
-        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
-            <a href="https://grafana.p.zacharie.org/d/sys-ops-id/proxmox-ve-dashboard?orgId=1&from=now-5m&to=now&timezone=Europe%2FRome&var-dsProxmox=d8b8f45f-bf2a-4a3f-922b-e75698dc9413&var-server=$__all&refresh=5s"
-                target="_blank" class="cyber-btn"
-                style="border-color: var(--neon-cyan); color: var(--neon-cyan); text-decoration: none; display: flex; align-items: center; gap: 8px;">
-                <span>🖥️</span> Proxmox Dashboard
-            </a>
-            <a href="https://grafana.p.zacharie.org/d/96aeccdb-afe3-4294-a9e9-d95a09bf2665/k8s-dashboard?orgId=1&from=now-30m&to=now&timezone=browser&var-origin_prometheus=&var-Node=$__all&var-NameSpace=$__all&var-Container=$__all&var-Pod=$__all"
-                target="_blank" class="cyber-btn"
-                style="border-color: var(--neon-blue, #007bff); color: var(--neon-blue, #007bff); text-decoration: none; display: flex; align-items: center; gap: 8px;">
-                <span>☸️</span> K8s Dashboard
-            </a>
-            <a href="https://grafana.p.zacharie.org/d/ycwPj724k2/trivy-operator-dashboard?orgId=1&from=now-2d&to=now&timezone=browser&var-DS_PROMETHEUS=d8b8f45f-bf2a-4a3f-922b-e75698dc9413"
-                target="_blank" class="cyber-btn"
-                style="border-color: var(--neon-magenta); color: var(--neon-magenta); text-decoration: none; display: flex; align-items: center; gap: 8px;">
-                <span>🛡️</span> Trivy Dashboard
-            </a>
-            <a href="https://grafana.p.zacharie.org/d/cilium-metrics/cilium-metrics?orgId=1&from=now-30m&to=now&timezone=browser&var-DS_PROMETHEUS=d8b8f45f-bf2a-4a3f-922b-e75698dc9413&var-node=$__all"
-                target="_blank" class="cyber-btn"
-                style="border-color: var(--neon-green, #00ff88); color: var(--neon-green, #00ff88); text-decoration: none; display: flex; align-items: center; gap: 8px;">
-                <span>🐝</span> Cilium Metrics
-            </a>
-            <a href="https://grafana.p.zacharie.org/d/cloudnative-pg/cloudnativepg?orgId=1&from=now-24h&to=now&timezone=browser&var-DS_PROMETHEUS=d8b8f45f-bf2a-4a3f-922b-e75698dc9413&var-operatorNamespace=&var-namespace=pg-prd&var-cluster=cluster-pg&var-instances=$__all&refresh=30s"
-                target="_blank" class="cyber-btn"
-                style="border-color: #336791; color: #336791; text-decoration: none; display: flex; align-items: center; gap: 8px;">
-                <span>🐘</span> CloudNativePG
-            </a>
-            <a href="https://gpu-hot.p.zacharie.org/" target="_blank" class="cyber-btn"
-                style="border-color: var(--neon-magenta, #ff00ff); color: var(--neon-magenta, #ff00ff); text-decoration: none; display: flex; align-items: center; gap: 8px;">
-                <span>🔥</span> GPU-Hot
-            </a>
-            <a href="https://enlighten.enphaseenergy.com/web/4050782/history/graph/hours?v=3.4.0" target="_blank"
-                class="cyber-btn"
-                style="border-color: #ffaa00; color: #ffaa00; text-decoration: none; display: flex; align-items: center; gap: 8px;">
-                <span>☀️</span> Enphase Enlighten
-            </a>
-            <a href="https://prometheus.p.zacharie.org/query" target="_blank" class="cyber-btn"
-                style="border-color: var(--neon-orange, #ff8800); color: var(--neon-orange, #ff8800); text-decoration: none; display: flex; align-items: center; gap: 8px;">
-                <span>🔥</span> Prometheus Query
-            </a>
-        </div>
+                <div class="quotas-grid" id="quotas-grid">
+                    <!-- Antigravity Quota -->
+                    <div class="quota-card">
+                        <div class="quota-header">
+                            <span class="quota-icon">⚡</span>
+                            <span class="quota-title">Antigravity (Gemini)</span>
+                        </div>
+                        <div class="quota-gauge-container">
+                            <div class="quota-gauge" id="antigravity-gauge" data-value="0">
+                                <svg viewBox="0 0 100 100" class="gauge-svg">
+                                    <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-bg" />
+                                    <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-fill" id="antigravity-fill"
+                                        stroke-dasharray="0 251" />
+                                </svg>
+                                <div class="gauge-value" id="antigravity-value">0%</div>
+                            </div>
+                        </div>
+                    </div>
 
-        <div id="metrics-content">
-            <div class="loading">Loading metrics from Prometheus...</div>
-        </div>
-    </section>
+                    <!-- NotebookLM Quota -->
+                    <div class="quota-card">
+                        <div class="quota-header">
+                            <span class="quota-icon">📓</span>
+                            <span class="quota-title">NotebookLM</span>
+                        </div>
+                        <div class="quota-gauge-container">
+                            <div class="quota-gauge" id="notebooklm-gauge" data-value="0">
+                                <svg viewBox="0 0 100 100" class="gauge-svg">
+                                    <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-bg" />
+                                    <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-fill" id="notebooklm-fill"
+                                        stroke-dasharray="0 251" />
+                                </svg>
+                                <div class="gauge-value" id="notebooklm-value">0%</div>
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- Alerts Section -->
-    <section class="argocd-section tab-content" data-tab="alerts" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2 class="section-title" style="margin-bottom: 0;">⚠️ Active Alerts (Alertmanager)</h2>
-            <button class="cyber-btn" onclick="exportAlertsForAgent()"
-                style="border-color: var(--neon-magenta); color: var(--neon-magenta);">
-                🤖 Export for AI Agent
-            </button>
-        </div>
-        <div id="alerts-content">
-            <div class="loading">Loading alerts from Alertmanager...</div>
-        </div>
-    </section>
+                    <!-- Google Storage Quota -->
+                    <div class="quota-card full-width">
+                        <div class="quota-header">
+                            <span class="quota-icon">💾</span>
+                            <span class="quota-title">Google One Storage</span>
+                        </div>
+                        <div class="storage-bar-container">
+                            <div class="storage-info">
+                                <span id="storage-used">0 GB</span> used of <span id="storage-total">2 TB</span>
+                            </div>
+                            <div class="storage-progress-bar">
+                                <div class="storage-fill" id="storage-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- Security Dashboard Section -->
-    <section class="argocd-section tab-content" data-tab="security" style="display: none;">
-        <h2 class="section-title">🛡️ Security & Policies</h2>
+                <div class="quota-footer">
+                    <p>Data last updated: <span id="quota-updated-at">-</span></p>
+                    <button class="cyber-btn" onclick="fetchQuotas()">🔄 Refresh Data</button>
+                </div>
+            </section>
 
-        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
-            <a href="https://powerpipe.p.zacharie.org/kubernetes_compliance.benchmark.cis_v170" target="_blank"
-                class="cyber-btn"
-                style="border-color: var(--neon-cyan); color: var(--neon-cyan); text-decoration: none; display: flex; align-items: center; gap: 8px;">
-                <span>📜</span> CIS Compliance (Powerpipe)
-            </a>
-        </div>
+            <!-- Network Visualization Section -->
+            <section class="argocd-section tab-content" data-tab="network" style="display: none;">
+                <h2 class="section-title">🌐 Network Flows (Cilium/Hubble)</h2>
 
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box unhealthy">
-                <div class="stat-value" id="security-critical-vulns">-</div>
-                <div class="stat-label">Critical Vulns</div>
-            </div>
-            <div class="stat-box warning">
-                <div class="stat-value" id="security-high-vulns">-</div>
-                <div class="stat-label">High Vulns</div>
-            </div>
-            <div class="stat-box info">
-                <div class="stat-value" id="security-total-policies">-</div>
-                <div class="stat-label">Network Policies</div>
-            </div>
-            <div class="stat-box healthy" id="fence-status-box">
-                <div class="stat-value" id="fence-status-text">-</div>
-                <div class="stat-label">Fence Status</div>
-            </div>
-        </div>
+                <!-- Network Controls -->
+                <div class="network-controls" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                    <select id="network-namespace-filter" class="cyber-select"
+                        onchange="KusanagiNetwork.filterByNamespace(this.value)">
+                        <option value="">All Namespaces</option>
+                    </select>
+                    <button class="cyber-btn" onclick="KusanagiNetwork.fetchAndRender()">
+                        🔄 Refresh
+                    </button>
+                    <button class="cyber-btn" onclick="KusanagiNetwork.exportData('json')">
+                        📥 Export JSON
+                    </button>
+                    <button class="cyber-btn" onclick="KusanagiNetwork.exportData('csv')">
+                        📥 Export CSV
+                    </button>
+                </div>
 
-        <div class="issues-table-container" style="border-color: var(--neon-magenta); margin-bottom: 1.5rem;">
-            <div class="issues-table-header"
-                style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-                <span class="issues-table-title" style="color: var(--neon-magenta);">🔍 Container Vulnerabilities
-                    (Trivy)</span>
-                <span class="issues-count" id="security-vuln-count" style="background: var(--neon-magenta);">0</span>
-            </div>
-            <div id="security-vulns-content">
-                <div class="loading">Loading vulnerability reports...</div>
-            </div>
-        </div>
+                <!-- APM Performance Stats -->
+                <div id="network-perf-stats" class="network-perf-container" style="margin-bottom: 1.5rem;">
+                    <!-- Populated by JavaScript -->
+                </div>
 
-        <div class="issues-table-container" style="border-color: var(--neon-cyan); margin-bottom: 1.5rem;">
-            <div class="issues-table-header"
-                style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-                <span class="issues-table-title" style="color: var(--neon-cyan);">🛡️ Network Policies (Cilium)</span>
-                <span class="issues-count" id="security-policies-count" style="background: var(--neon-cyan);">0</span>
-            </div>
-            <div id="security-policies-content">
-                <div class="loading">Loading network policies...</div>
-            </div>
-        </div>
+                <!-- Network Stats -->
+                <div id="network-stats" style="margin-bottom: 1.5rem;">
+                    <div class="loading">Loading network stats...</div>
+                </div>
 
-        <div class="issues-table-container" style="border-color: var(--neon-yellow, #ffff00);">
-            <div class="issues-table-header"
-                style="background: rgba(255, 255, 0, 0.1); border-color: var(--neon-yellow, #ffff00);">
-                <span class="issues-table-title" style="color: var(--neon-yellow, #ffff00);">⚖️ Policy Violations
-                    (Kyverno)</span>
-                <span class="issues-count" id="security-violations-count"
-                    style="background: var(--neon-yellow, #ffff00);">0</span>
-            </div>
-            <div id="security-violations-content">
-                <div class="loading">Loading policy reports...</div>
-            </div>
-        </div>
-    </section>
+                <!-- Network Graph -->
+                <div class="issues-table-container" style="border-color: var(--neon-cyan); margin-bottom: 1.5rem;">
+                    <div class="issues-table-header"
+                        style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                        <span class="issues-table-title" style="color: var(--neon-cyan);">Service Graph</span>
+                    </div>
+                    <div id="network-visualization" style="min-height: 400px; background: rgba(0,0,0,0.3);">
+                        <div class="loading">Loading network graph...</div>
+                    </div>
+                </div>
 
-    + <!-- MQTT Section -->
-    + <section class="argocd-section tab-content" data-tab="mqtt" style="display: none;">
-        + <h2 class="section-title">📡 MQTT Device Hub & Message Flux</h2>
-        +
-        + <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            + <div class="stat-box info">
-                + <div class="stat-value" id="mqtt-device-count">-</div>
-                + <div class="stat-label">Detected Devices</div>
-                + </div>
-            + <div class="stat-box healthy">
-                + <div class="stat-value" id="mqtt-msg-rate">-</div>
-                + <div class="stat-label">Messages/min</div>
-                + </div>
-            + <div class="stat-box warning">
-                + <div class="stat-value" id="mqtt-total-msg">-</div>
-                + <div class="stat-label">Total Buffered</div>
-                + </div>
-            + </div>
-        +
-        + <div class="mqtt-layout" style="display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem;">
-            + <!-- Device List Card -->
-            + <div class="issues-table-container" style="border-color: var(--neon-cyan);">
-                + <div class="issues-table-header"
-                    style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-                    + <span class="issues-table-title" style="color: var(--neon-cyan);">📱 Devices</span>
-                    + <span class="issues-count" id="mqtt-device-table-count"
-                        style="background: var(--neon-cyan);">0</span>
-                    + </div>
-                + <div id="mqtt-devices-content" style="max-height: 600px; overflow-y: auto; padding: 1rem;">
-                    + <div class="loading">Waiting for discovery...</div>
-                    + </div>
-                + </div>
-            +
-            + <!-- Message Flux Card -->
-            + <div class="issues-table-container" style="border-color: var(--neon-magenta);">
-                + <div class="issues-table-header"
-                    style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-                    + <span class="issues-table-title" style="color: var(--neon-magenta);">🌊 Message Flux</span>
-                    + <div class="filter-controls" style="margin-left: auto; display: flex; gap: 0.5rem;">
-                        + <input type="text" id="mqtt-filter-input" class="chat-input"
-                            placeholder="Filter topic/payload..." +
-                            style="font-size: 0.8rem; padding: 0.2rem 0.5rem; width: 200px;"
-                            oninput="MqttManager.applyFilter()">
-                        + <button class="cyber-btn" onclick="MqttManager.openLogsModal()"
-                            style="font-size: 0.7rem; border-color: var(--neon-cyan); color: var(--neon-cyan);">Logs</button>
-                        + <button class="cyber-btn" onclick="MqttManager.clearFlux()"
-                            style="font-size: 0.7rem;">Clear</button>
+                <!-- Flow Matrix -->
+                <div class="issues-table-container" style="border-color: var(--neon-magenta);">
+                    <div class="issues-table-header"
+                        style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                        <span class="issues-table-title" style="color: var(--neon-magenta);">📊 Flow Matrix</span>
+                    </div>
+                    <div id="network-matrix">
+                        <div class="loading">Loading flow matrix...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Prometheus Metrics Section -->
+            <section class="argocd-section tab-content" data-tab="metrics" style="display: none;">
+                <h2 class="section-title">📊 Cluster Metrics (Prometheus)</h2>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                    <a href="https://grafana.p.zacharie.org/d/sys-ops-id/proxmox-ve-dashboard?orgId=1&from=now-5m&to=now&timezone=Europe%2FRome&var-dsProxmox=d8b8f45f-bf2a-4a3f-922b-e75698dc9413&var-server=$__all&refresh=5s"
+                        target="_blank" class="cyber-btn"
+                        style="border-color: var(--neon-cyan); color: var(--neon-cyan); text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                        <span>🖥️</span> Proxmox Dashboard
+                    </a>
+                    <a href="https://grafana.p.zacharie.org/d/96aeccdb-afe3-4294-a9e9-d95a09bf2665/k8s-dashboard?orgId=1&from=now-30m&to=now&timezone=browser&var-origin_prometheus=&var-Node=$__all&var-NameSpace=$__all&var-Container=$__all&var-Pod=$__all"
+                        target="_blank" class="cyber-btn"
+                        style="border-color: var(--neon-blue, #007bff); color: var(--neon-blue, #007bff); text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                        <span>☸️</span> K8s Dashboard
+                    </a>
+                    <a href="https://grafana.p.zacharie.org/d/ycwPj724k2/trivy-operator-dashboard?orgId=1&from=now-2d&to=now&timezone=browser&var-DS_PROMETHEUS=d8b8f45f-bf2a-4a3f-922b-e75698dc9413"
+                        target="_blank" class="cyber-btn"
+                        style="border-color: var(--neon-magenta); color: var(--neon-magenta); text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                        <span>🛡️</span> Trivy Dashboard
+                    </a>
+                    <a href="https://grafana.p.zacharie.org/d/cilium-metrics/cilium-metrics?orgId=1&from=now-30m&to=now&timezone=browser&var-DS_PROMETHEUS=d8b8f45f-bf2a-4a3f-922b-e75698dc9413&var-node=$__all"
+                        target="_blank" class="cyber-btn"
+                        style="border-color: var(--neon-green, #00ff88); color: var(--neon-green, #00ff88); text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                        <span>🐝</span> Cilium Metrics
+                    </a>
+                    <a href="https://grafana.p.zacharie.org/d/cloudnative-pg/cloudnativepg?orgId=1&from=now-24h&to=now&timezone=browser&var-DS_PROMETHEUS=d8b8f45f-bf2a-4a3f-922b-e75698dc9413&var-operatorNamespace=&var-namespace=pg-prd&var-cluster=cluster-pg&var-instances=$__all&refresh=30s"
+                        target="_blank" class="cyber-btn"
+                        style="border-color: #336791; color: #336791; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                        <span>🐘</span> CloudNativePG
+                    </a>
+                    <a href="https://gpu-hot.p.zacharie.org/" target="_blank" class="cyber-btn"
+                        style="border-color: var(--neon-magenta, #ff00ff); color: var(--neon-magenta, #ff00ff); text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                        <span>🔥</span> GPU-Hot
+                    </a>
+                    <a href="https://enlighten.enphaseenergy.com/web/4050782/history/graph/hours?v=3.4.0"
+                        target="_blank" class="cyber-btn"
+                        style="border-color: #ffaa00; color: #ffaa00; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                        <span>☀️</span> Enphase Enlighten
+                    </a>
+                    <a href="https://prometheus.p.zacharie.org/query" target="_blank" class="cyber-btn"
+                        style="border-color: var(--neon-orange, #ff8800); color: var(--neon-orange, #ff8800); text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                        <span>🔥</span> Prometheus Query
+                    </a>
+                </div>
+
+                <div id="metrics-content">
+                    <div class="loading">Loading metrics from Prometheus...</div>
+                </div>
+            </section>
+
+            <!-- Alerts Section -->
+            <section class="argocd-section tab-content" data-tab="alerts" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2 class="section-title" style="margin-bottom: 0;">⚠️ Active Alerts (Alertmanager)</h2>
+                    <button class="cyber-btn" onclick="exportAlertsForAgent()"
+                        style="border-color: var(--neon-magenta); color: var(--neon-magenta);">
+                        🤖 Export for AI Agent
+                    </button>
+                </div>
+                <div id="alerts-content">
+                    <div class="loading">Loading alerts from Alertmanager...</div>
+                </div>
+            </section>
+
+            <!-- Security Dashboard Section -->
+            <section class="argocd-section tab-content" data-tab="security" style="display: none;">
+                <h2 class="section-title">🛡️ Security & Policies</h2>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                    <a href="https://powerpipe.p.zacharie.org/kubernetes_compliance.benchmark.cis_v170" target="_blank"
+                        class="cyber-btn"
+                        style="border-color: var(--neon-cyan); color: var(--neon-cyan); text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                        <span>📜</span> CIS Compliance (Powerpipe)
+                    </a>
+                </div>
+
+                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                    <div class="stat-box unhealthy">
+                        <div class="stat-value" id="security-critical-vulns">-</div>
+                        <div class="stat-label">Critical Vulns</div>
+                    </div>
+                    <div class="stat-box warning">
+                        <div class="stat-value" id="security-high-vulns">-</div>
+                        <div class="stat-label">High Vulns</div>
+                    </div>
+                    <div class="stat-box info">
+                        <div class="stat-value" id="security-total-policies">-</div>
+                        <div class="stat-label">Network Policies</div>
+                    </div>
+                    <div class="stat-box healthy" id="fence-status-box">
+                        <div class="stat-value" id="fence-status-text">-</div>
+                        <div class="stat-label">Fence Status</div>
+                    </div>
+                </div>
+
+                <div class="issues-table-container" style="border-color: var(--neon-magenta); margin-bottom: 1.5rem;">
+                    <div class="issues-table-header"
+                        style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                        <span class="issues-table-title" style="color: var(--neon-magenta);">🔍 Container
+                            Vulnerabilities
+                            (Trivy)</span>
+                        <span class="issues-count" id="security-vuln-count"
+                            style="background: var(--neon-magenta);">0</span>
+                    </div>
+                    <div id="security-vulns-content">
+                        <div class="loading">Loading vulnerability reports...</div>
+                    </div>
+                </div>
+
+                <div class="issues-table-container" style="border-color: var(--neon-cyan); margin-bottom: 1.5rem;">
+                    <div class="issues-table-header"
+                        style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                        <span class="issues-table-title" style="color: var(--neon-cyan);">🛡️ Network Policies
+                            (Cilium)</span>
+                        <span class="issues-count" id="security-policies-count"
+                            style="background: var(--neon-cyan);">0</span>
+                    </div>
+                    <div id="security-policies-content">
+                        <div class="loading">Loading network policies...</div>
+                    </div>
+                </div>
+
+                <div class="issues-table-container" style="border-color: var(--neon-yellow, #ffff00);">
+                    <div class="issues-table-header"
+                        style="background: rgba(255, 255, 0, 0.1); border-color: var(--neon-yellow, #ffff00);">
+                        <span class="issues-table-title" style="color: var(--neon-yellow, #ffff00);">⚖️ Policy
+                            Violations
+                            (Kyverno)</span>
+                        <span class="issues-count" id="security-violations-count"
+                            style="background: var(--neon-yellow, #ffff00);">0</span>
+                    </div>
+                    <div id="security-violations-content">
+                        <div class="loading">Loading policy reports...</div>
+                    </div>
+                </div>
+            </section>
+
+            + <!-- MQTT Section -->
+            + <section class="argocd-section tab-content" data-tab="mqtt" style="display: none;">
+                + <h2 class="section-title">📡 MQTT Device Hub & Message Flux</h2>
+                +
+                + <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                    + <div class="stat-box info">
+                        + <div class="stat-value" id="mqtt-device-count">-</div>
+                        + <div class="stat-label">Detected Devices</div>
+                        + </div>
+                    + <div class="stat-box healthy">
+                        + <div class="stat-value" id="mqtt-msg-rate">-</div>
+                        + <div class="stat-label">Messages/min</div>
+                        + </div>
+                    + <div class="stat-box warning">
+                        + <div class="stat-value" id="mqtt-total-msg">-</div>
+                        + <div class="stat-label">Total Buffered</div>
                         + </div>
                     + </div>
-                + <div id="mqtt-flux-content"
-                    style="max-height: 600px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.5rem;">
-                    + <div class="loading">Listening for messages...</div>
+                +
+                + <div class="mqtt-layout" style="display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem;">
+                    + <!-- Device List Card -->
+                    + <div class="issues-table-container" style="border-color: var(--neon-cyan);">
+                        + <div class="issues-table-header"
+                            style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                            + <span class="issues-table-title" style="color: var(--neon-cyan);">📱 Devices</span>
+                            + <span class="issues-count" id="mqtt-device-table-count"
+                                style="background: var(--neon-cyan);">0</span>
+                            + </div>
+                        + <div id="mqtt-devices-content" style="max-height: 600px; overflow-y: auto; padding: 1rem;">
+                            + <div class="loading">Waiting for discovery...</div>
+                            + </div>
+                        + </div>
+                    +
+                    + <!-- Message Flux Card -->
+                    + <div class="issues-table-container" style="border-color: var(--neon-magenta);">
+                        + <div class="issues-table-header"
+                            style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                            + <span class="issues-table-title" style="color: var(--neon-magenta);">🌊 Message
+                                Flux</span>
+                            + <div class="filter-controls" style="margin-left: auto; display: flex; gap: 0.5rem;">
+                                + <input type="text" id="mqtt-filter-input" class="chat-input"
+                                    placeholder="Filter topic/payload..." +
+                                    style="font-size: 0.8rem; padding: 0.2rem 0.5rem; width: 200px;"
+                                    oninput="MqttManager.applyFilter()">
+                                + <button class="cyber-btn" onclick="MqttManager.openLogsModal()"
+                                    style="font-size: 0.7rem; border-color: var(--neon-cyan); color: var(--neon-cyan);">Logs</button>
+                                + <button class="cyber-btn" onclick="MqttManager.clearFlux()"
+                                    style="font-size: 0.7rem;">Clear</button>
+                                + </div>
+                            + </div>
+                        + <div id="mqtt-flux-content"
+                            style="max-height: 600px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.5rem;">
+                            + <div class="loading">Listening for messages...</div>
+                            + </div>
+                        + </div>
                     + </div>
-                + </div>
-            + </div>
-        + </section>
-    +
-    <!-- Proxmox Section -->
+                + </section>
+            +
+            <!-- Proxmox Section -->
 
-    <section class="argocd-section tab-content" data-tab="proxmox" style="display: none;">
-        <h2 class="section-title">🖥️ Proxmox Infrastructure</h2>
+            <section class="argocd-section tab-content" data-tab="proxmox" style="display: none;">
+                <h2 class="section-title">🖥️ Proxmox Infrastructure</h2>
 
-        <!-- Proxmox Stats -->
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
-                <div class="stat-value" id="proxmox-nodes">-</div>
-                <div class="stat-label">Nodes</div>
-            </div>
-            <div class="stat-box healthy">
-                <div class="stat-value" id="proxmox-vms">-</div>
-                <div class="stat-label">Virtual Machines</div>
-            </div>
-            <div class="stat-box info">
-                <div class="stat-value" id="proxmox-containers">-</div>
-                <div class="stat-label">Containers</div>
-            </div>
+                <!-- Proxmox Stats -->
+                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                    <div class="stat-box">
+                        <div class="stat-value" id="proxmox-nodes">-</div>
+                        <div class="stat-label">Nodes</div>
+                    </div>
+                    <div class="stat-box healthy">
+                        <div class="stat-value" id="proxmox-vms">-</div>
+                        <div class="stat-label">Virtual Machines</div>
+                    </div>
+                    <div class="stat-box info">
+                        <div class="stat-value" id="proxmox-containers">-</div>
+                        <div class="stat-label">Containers</div>
+                    </div>
+                </div>
+
+                <!-- VMs Table -->
+                <div class="issues-table-container" style="border-color: var(--neon-cyan); margin-bottom: 1.5rem;">
+                    <div class="issues-table-header"
+                        style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                        <span class="issues-table-title" style="color: var(--neon-cyan);">💻 Virtual Machines</span>
+                        <span class="issues-count" id="proxmox-vms-count" style="background: var(--neon-cyan);">0</span>
+                    </div>
+                    <div id="proxmox-vms-content">
+                        <div class="loading">Loading VMs...</div>
+                    </div>
+                </div>
+
+                <!-- Containers Table -->
+                <div class="issues-table-container" style="border-color: var(--neon-magenta);">
+                    <div class="issues-table-header"
+                        style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                        <span class="issues-table-title" style="color: var(--neon-magenta);">📦 LXC Containers</span>
+                        <span class="issues-count" id="proxmox-containers-count"
+                            style="background: var(--neon-magenta);">0</span>
+                    </div>
+                    <div id="proxmox-containers-content">
+                        <div class="loading">Loading containers...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Home Assistant Section -->
+            <section class="argocd-section tab-content" data-tab="homeassistant" style="display: none;">
+                <h2 class="section-title">🏠 Home Assistant</h2>
+
+                <!-- HA Stats -->
+                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                    <div class="stat-box">
+                        <div class="stat-value" id="ha-sensors">-</div>
+                        <div class="stat-label">Sensors</div>
+                    </div>
+                    <div class="stat-box healthy">
+                        <div class="stat-value" id="ha-automations">-</div>
+                        <div class="stat-label">Automations</div>
+                    </div>
+                    <div class="stat-box info">
+                        <div class="stat-value" id="ha-devices">-</div>
+                        <div class="stat-label">Devices</div>
+                    </div>
+                </div>
+
+                <!-- Sensors Grid -->
+                <div class="issues-table-container" style="border-color: var(--neon-green); margin-bottom: 1.5rem;">
+                    <div class="issues-table-header"
+                        style="background: rgba(0, 255, 136, 0.1); border-color: var(--neon-green);">
+                        <span class="issues-table-title" style="color: var(--neon-green);">📊 Sensors</span>
+                        <span class="issues-count" id="ha-sensors-count" style="background: var(--neon-green);">0</span>
+                    </div>
+                    <div id="ha-sensors-content">
+                        <div class="loading">Loading sensors...</div>
+                    </div>
+                </div>
+
+                <!-- Automations Table -->
+                <div class="issues-table-container" style="border-color: var(--neon-cyan);">
+                    <div class="issues-table-header"
+                        style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                        <span class="issues-table-title" style="color: var(--neon-cyan);">⚙️ Automations</span>
+                        <span class="issues-count" id="ha-automations-count"
+                            style="background: var(--neon-cyan);">0</span>
+                    </div>
+                    <div id="ha-automations-content">
+                        <div class="loading">Loading automations...</div>
+                    </div>
+                </div>
         </div>
+        </section>
 
-        <!-- VMs Table -->
-        <div class="issues-table-container" style="border-color: var(--neon-cyan); margin-bottom: 1.5rem;">
-            <div class="issues-table-header"
-                style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-                <span class="issues-table-title" style="color: var(--neon-cyan);">💻 Virtual Machines</span>
-                <span class="issues-count" id="proxmox-vms-count" style="background: var(--neon-cyan);">0</span>
+        <!-- Weather Section -->
+        <section class="argocd-section tab-content" data-tab="weather" style="display: none;">
+            <h2 class="section-title">🌤️ Multi-City Weather</h2>
+            <div id="weather-content">
+                <div class="loading">Loading weather data...</div>
             </div>
-            <div id="proxmox-vms-content">
-                <div class="loading">Loading VMs...</div>
-            </div>
-        </div>
+        </section>
 
-        <!-- Containers Table -->
-        <div class="issues-table-container" style="border-color: var(--neon-magenta);">
-            <div class="issues-table-header"
-                style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-                <span class="issues-table-title" style="color: var(--neon-magenta);">📦 LXC Containers</span>
-                <span class="issues-count" id="proxmox-containers-count"
-                    style="background: var(--neon-magenta);">0</span>
+        <!-- Calendar Section -->
+        <section class="argocd-section tab-content" data-tab="calendar" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 class="section-title" style="margin-bottom: 0;">📅 Google Calendar</h2>
+                <div id="calendar-auth-container">
+                    <button class="tab-btn" onclick="CalendarOAuth.login()" id="btn-calendar-login"
+                        style="background: var(--neon-cyan); color: #000;">
+                        🔑 Login
+                    </button>
+                    <button class="tab-btn" onclick="CalendarOAuth.logout()" id="btn-calendar-logout"
+                        style="display: none; background: var(--neon-magenta); color: #000;">
+                        🚪 Logout
+                    </button>
+                </div>
             </div>
-            <div id="proxmox-containers-content">
-                <div class="loading">Loading containers...</div>
+            <div id="calendar-content">
+                <div class="loading">Loading calendar events...</div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Home Assistant Section -->
-    <section class="argocd-section tab-content" data-tab="homeassistant" style="display: none;">
-        <h2 class="section-title">🏠 Home Assistant</h2>
+        <!-- Setup Interview Section -->
+        <section class="argocd-section tab-content" data-tab="setup" style="display: none;">
+            <h2 class="section-title">🛠️ Guided Configuration Interview</h2>
+            <div id="setup-dashboard">
+                <div class="loading">Loading setup status...</div>
+            </div>
+        </section>
 
-        <!-- HA Stats -->
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
-                <div class="stat-value" id="ha-sensors">-</div>
-                <div class="stat-label">Sensors</div>
-            </div>
-            <div class="stat-box healthy">
-                <div class="stat-value" id="ha-automations">-</div>
-                <div class="stat-label">Automations</div>
-            </div>
-            <div class="stat-box info">
-                <div class="stat-value" id="ha-devices">-</div>
-                <div class="stat-label">Devices</div>
-            </div>
-        </div>
-
-        <!-- Sensors Grid -->
-        <div class="issues-table-container" style="border-color: var(--neon-green); margin-bottom: 1.5rem;">
-            <div class="issues-table-header"
-                style="background: rgba(0, 255, 136, 0.1); border-color: var(--neon-green);">
-                <span class="issues-table-title" style="color: var(--neon-green);">📊 Sensors</span>
-                <span class="issues-count" id="ha-sensors-count" style="background: var(--neon-green);">0</span>
-            </div>
-            <div id="ha-sensors-content">
-                <div class="loading">Loading sensors...</div>
-            </div>
-        </div>
-
-        <!-- Automations Table -->
-        <div class="issues-table-container" style="border-color: var(--neon-cyan);">
-            <div class="issues-table-header"
-                style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-                <span class="issues-table-title" style="color: var(--neon-cyan);">⚙️ Automations</span>
-                <span class="issues-count" id="ha-automations-count" style="background: var(--neon-cyan);">0</span>
-            </div>
-            <div id="ha-automations-content">
-                <div class="loading">Loading automations...</div>
-            </div>
-        </div>
-        </div>
-    </section>
-
-    <!-- Weather Section -->
-    <section class="argocd-section tab-content" data-tab="weather" style="display: none;">
-        <h2 class="section-title">🌤️ Multi-City Weather</h2>
-        <div id="weather-content">
-            <div class="loading">Loading weather data...</div>
-        </div>
-    </section>
-
-    <!-- Calendar Section -->
-    <section class="argocd-section tab-content" data-tab="calendar" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2 class="section-title" style="margin-bottom: 0;">📅 Google Calendar</h2>
-            <div id="calendar-auth-container">
-                <button class="tab-btn" onclick="CalendarOAuth.login()" id="btn-calendar-login"
-                    style="background: var(--neon-cyan); color: #000;">
-                    🔑 Login
-                </button>
-                <button class="tab-btn" onclick="CalendarOAuth.logout()" id="btn-calendar-logout"
-                    style="display: none; background: var(--neon-magenta); color: #000;">
-                    🚪 Logout
-                </button>
-            </div>
-        </div>
-        <div id="calendar-content">
-            <div class="loading">Loading calendar events...</div>
-        </div>
-    </section>
-
-    <!-- Setup Interview Section -->
-    <section class="argocd-section tab-content" data-tab="setup" style="display: none;">
-        <h2 class="section-title">🛠️ Guided Configuration Interview</h2>
-        <div id="setup-dashboard">
-            <div class="loading">Loading setup status...</div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <p class="footer-quote">"Your effort to remain what you are is what limits you."</p>
-        <p>KUSANAGI // Ghost in the Shell Inspired // Built with ⚡ by Rust</p>
-    </footer>
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="footer-quote">"Your effort to remain what you are is what limits you."</p>
+            <p>KUSANAGI // Ghost in the Shell Inspired // Built with ⚡ by Rust</p>
+        </footer>
     </div>
 
     <script>
@@ -2823,6 +2841,8 @@
         </div>
     </section>
 
+    </div>
+    </div>
     <!-- MQTT Logs Modal -->
     <div id="mqtt-logs-modal" class="cyber-modal" style="display: none;">
         <div class="cyber-modal-content" style="max-width: 90%; width: 1000px; max-height: 80vh;">
