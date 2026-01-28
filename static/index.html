@@ -976,63 +976,63 @@
                 </div>
             </section>
 
-            + <!-- MQTT Section -->
-            + <section class="argocd-section tab-content" data-tab="mqtt" style="display: none;">
-                + <h2 class="section-title">📡 MQTT Device Hub & Message Flux</h2>
+            <!-- MQTT Section -->
+            <section class="argocd-section tab-content" data-tab="mqtt" style="display: none;">
+            <h2 class="section-title">📡 MQTT Device Hub & Message Flux</h2>
                 +
-                + <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                    + <div class="stat-box info">
-                        + <div class="stat-value" id="mqtt-device-count">-</div>
-                        + <div class="stat-label">Detected Devices</div>
-                        + </div>
-                    + <div class="stat-box healthy">
-                        + <div class="stat-value" id="mqtt-msg-rate">-</div>
-                        + <div class="stat-label">Messages/min</div>
-                        + </div>
-                    + <div class="stat-box warning">
-                        + <div class="stat-value" id="mqtt-total-msg">-</div>
-                        + <div class="stat-label">Total Buffered</div>
-                        + </div>
-                    + </div>
+            <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box info">
+            <div class="stat-value" id="mqtt-device-count">-</div>
+            <div class="stat-label">Detected Devices</div>
+            </div>
+            <div class="stat-box healthy">
+            <div class="stat-value" id="mqtt-msg-rate">-</div>
+            <div class="stat-label">Messages/min</div>
+            </div>
+            <div class="stat-box warning">
+            <div class="stat-value" id="mqtt-total-msg">-</div>
+            <div class="stat-label">Total Buffered</div>
+            </div>
+            </div>
                 +
-                + <div class="mqtt-layout" style="display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem;">
-                    + <!-- Device List Card -->
-                    + <div class="issues-table-container" style="border-color: var(--neon-cyan);">
-                        + <div class="issues-table-header"
+            <div class="mqtt-layout" style="display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem;">
+            <!-- Device List Card -->
+            <div class="issues-table-container" style="border-color: var(--neon-cyan);">
+            <div class="issues-table-header"
                             style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-                            + <span class="issues-table-title" style="color: var(--neon-cyan);">📱 Devices</span>
-                            + <span class="issues-count" id="mqtt-device-table-count"
+            <span class="issues-table-title" style="color: var(--neon-cyan);">📱 Devices</span>
+            <span class="issues-count" id="mqtt-device-table-count"
                                 style="background: var(--neon-cyan);">0</span>
-                            + </div>
-                        + <div id="mqtt-devices-content" style="max-height: 600px; overflow-y: auto; padding: 1rem;">
-                            + <div class="loading">Waiting for discovery...</div>
-                            + </div>
-                        + </div>
+            </div>
+            <div id="mqtt-devices-content" style="max-height: 600px; overflow-y: auto; padding: 1rem;">
+            <div class="loading">Waiting for discovery...</div>
+            </div>
+            </div>
                     +
-                    + <!-- Message Flux Card -->
-                    + <div class="issues-table-container" style="border-color: var(--neon-magenta);">
-                        + <div class="issues-table-header"
+            <!-- Message Flux Card -->
+            <div class="issues-table-container" style="border-color: var(--neon-magenta);">
+            <div class="issues-table-header"
                             style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-                            + <span class="issues-table-title" style="color: var(--neon-magenta);">🌊 Message
+            <span class="issues-table-title" style="color: var(--neon-magenta);">🌊 Message
                                 Flux</span>
-                            + <div class="filter-controls" style="margin-left: auto; display: flex; gap: 0.5rem;">
-                                + <input type="text" id="mqtt-filter-input" class="chat-input"
+            <div class="filter-controls" style="margin-left: auto; display: flex; gap: 0.5rem;">
+            <input type="text" id="mqtt-filter-input" class="chat-input"
                                     placeholder="Filter topic/payload..." +
                                     style="font-size: 0.8rem; padding: 0.2rem 0.5rem; width: 200px;"
                                     oninput="MqttManager.applyFilter()">
-                                + <button class="cyber-btn" onclick="MqttManager.openLogsModal()"
+            <button class="cyber-btn" onclick="MqttManager.openLogsModal()"
                                     style="font-size: 0.7rem; border-color: var(--neon-cyan); color: var(--neon-cyan);">Logs</button>
-                                + <button class="cyber-btn" onclick="MqttManager.clearFlux()"
+            <button class="cyber-btn" onclick="MqttManager.clearFlux()"
                                     style="font-size: 0.7rem;">Clear</button>
-                                + </div>
-                            + </div>
-                        + <div id="mqtt-flux-content"
+            </div>
+            </div>
+            <div id="mqtt-flux-content"
                             style="max-height: 600px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.5rem;">
-                            + <div class="loading">Listening for messages...</div>
-                            + </div>
-                        + </div>
-                    + </div>
-                + </section>
+            <div class="loading">Listening for messages...</div>
+            </div>
+            </div>
+            </div>
+            </section>
             +
             <!-- Proxmox Section -->
 
