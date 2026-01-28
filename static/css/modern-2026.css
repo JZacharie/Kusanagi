@@ -385,10 +385,28 @@ body.theme-modern .main-content.expanded {
         /* Default hidden on mobile */
         width: 80%;
         max-width: 300px;
+
+        /* Android optimizations */
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     /* When NOT collapsed (i.e. open) on mobile */
     body.theme-modern .sidebar:not(.collapsed) {
         transform: translateX(0);
+    }
+
+    /* Overlay backdrop when sidebar is open */
+    body.theme-modern .sidebar:not(.collapsed)::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: -1;
+        pointer-events: auto;
     }
 }

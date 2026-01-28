@@ -223,6 +223,17 @@ body {
 
 /* Mobile responsive adjustments for header */
 @media (max-width: 768px) {
+
+  /* Container optimizations */
+  .container {
+    padding: 1rem;
+  }
+
+  .header {
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+  }
+
   .header-content {
     flex-direction: column;
     gap: 0.5rem;
@@ -233,11 +244,49 @@ body {
   }
 
   .logo {
-    font-size: 2rem;
+    font-size: 1.5rem;
+    letter-spacing: 0.2rem;
   }
 
   .header-logo {
-    height: 40px;
+    height: 35px;
+  }
+
+  /* World clocks - stack vertically on mobile */
+  .world-clocks {
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    padding-left: 0.5rem;
+  }
+
+  /* Touch-friendly buttons */
+  .tab-btn,
+  .cyber-btn {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+  }
+
+  .sidebar-toggle-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Stats grid responsive */
+  .argocd-stats,
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+  }
+
+  /* Tables responsive with horizontal scroll */
+  .issues-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .issues-table {
+    min-width: 600px;
   }
 }
 
@@ -2680,4 +2729,50 @@ body {
   font-size: 0.8em;
   margin-left: 5px;
   opacity: 0.7;
+}
+
+/* Very small screens (small Android phones) */
+@media (max-width: 480px) {
+  .container {
+    padding: 0.5rem;
+  }
+
+  .logo {
+    font-size: 1.2rem;
+    letter-spacing: 0.1rem;
+  }
+
+  .header-logo {
+    height: 30px;
+  }
+
+  .stat-box {
+    padding: 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.8rem;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+  }
+
+  /* Hide non-essential elements on very small screens */
+  .world-clocks {
+    display: none;
+  }
+
+  /* Further reduce spacing */
+  .argocd-stats,
+  .stats-grid {
+    gap: 0.5rem;
+  }
+
+  /* Smaller buttons but still touch-friendly */
+  .tab-btn,
+  .cyber-btn {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
 }
