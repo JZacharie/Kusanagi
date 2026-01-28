@@ -239,30 +239,30 @@
             <aside class="sidebar" id="sidebar" aria-label="Main Navigation">
                 <div class="sidebar-content">
                     <div class="sidebar-group-label" data-i18n="group_infrastructure">INFRASTRUCTURE</div>
+                    <button class="tab-btn" data-tab="alerts" onclick="switchTab('alerts')">
+                        <span class="tab-icon">⚠️</span> <span data-i18n="tab_alerts">Alerts</span> <span class="badge"
+                            id="alerts-badge" style="display:none;">0</span>
+                    </button>
+                    <button class="tab-btn" data-tab="events" onclick="switchTab('events')">
+                        <span class="tab-icon">🔔</span> <span data-i18n="tab_events">Events</span>
+                    </button>
+                    <button class="tab-btn" data-tab="ingress" onclick="switchTab('ingress')">
+                        <span class="tab-icon">🌐</span> <span data-i18n="tab_ingress">Ingress</span>
+                    </button>
+                    <button class="tab-btn" data-tab="metrics" onclick="switchTab('metrics')">
+                        <span class="tab-icon">📊</span> <span data-i18n="tab_metrics">Metrics</span>
+                    </button>
+                    <button class="tab-btn" data-tab="network" onclick="switchTab('network')">
+                        <span class="tab-icon">🌐</span> <span data-i18n="tab_network">Network</span>
+                    </button>
                     <button class="tab-btn" data-tab="nodes" onclick="switchTab('nodes')">
                         <span class="tab-icon">🖥️</span> <span data-i18n="tab_nodes">Nodes</span>
                     </button>
                     <button class="tab-btn" data-tab="pods" onclick="switchTab('pods')">
                         <span class="tab-icon">📦</span> <span data-i18n="tab_pods">Pods</span>
                     </button>
-                    <button class="tab-btn" data-tab="ingress" onclick="switchTab('ingress')">
-                        <span class="tab-icon">🌐</span> <span data-i18n="tab_ingress">Ingress</span>
-                    </button>
-                    <button class="tab-btn" data-tab="network" onclick="switchTab('network')">
-                        <span class="tab-icon">🌐</span> <span data-i18n="tab_network">Network</span>
-                    </button>
                     <button class="tab-btn" data-tab="storage" onclick="switchTab('storage')">
                         <span class="tab-icon">💾</span> <span data-i18n="tab_storage">Storage</span>
-                    </button>
-                    <button class="tab-btn" data-tab="events" onclick="switchTab('events')">
-                        <span class="tab-icon">🔔</span> <span data-i18n="tab_events">Events</span>
-                    </button>
-                    <button class="tab-btn" data-tab="metrics" onclick="switchTab('metrics')">
-                        <span class="tab-icon">📊</span> <span data-i18n="tab_metrics">Metrics</span>
-                    </button>
-                    <button class="tab-btn" data-tab="alerts" onclick="switchTab('alerts')">
-                        <span class="tab-icon">⚠️</span> <span data-i18n="tab_alerts">Alerts</span> <span class="badge"
-                            id="alerts-badge" style="display:none;">0</span>
                     </button>
 
                     <div class="sidebar-separator"></div>
@@ -303,11 +303,11 @@
                     <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
                         <span class="tab-icon">💬</span> <span data-i18n="tab_chat">Chat</span>
                     </button>
-                    <button class="tab-btn" data-tab="evolution" onclick="switchTab('evolution')">
-                        <span class="tab-icon mdi mdi-github"></span> <span data-i18n="tab_evolution">Evolution</span>
-                    </button>
                     <button class="tab-btn" data-tab="docs" onclick="switchTab('docs')">
                         <span class="tab-icon">📖</span> <span data-i18n="tab_docs">Docs</span>
+                    </button>
+                    <button class="tab-btn" data-tab="evolution" onclick="switchTab('evolution')">
+                        <span class="tab-icon mdi mdi-github"></span> <span data-i18n="tab_evolution">Evolution</span>
                     </button>
                     <button class="tab-btn" data-tab="news" onclick="switchTab('news')">
                         <span class="tab-icon">📰</span> <span data-i18n="tab_news">News</span>
