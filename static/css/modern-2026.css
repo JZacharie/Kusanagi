@@ -96,7 +96,8 @@ body.theme-modern .scanlines {
 
 /* Container & Layout */
 body.theme-modern .container {
-    max-width: 1440px;
+    /* max-width: 1440px; */
+    /* Removed to use full screen width */
     margin: 0 auto;
     padding: 2rem;
 }
@@ -344,6 +345,11 @@ body.theme-modern .sidebar {
     /* Ensure styles from card are kept but modified for layout */
     margin-bottom: 0;
     /* Remove bottom margin in flex context */
+
+    /* Opaque background instead of transparent glassmorphism */
+    background: rgba(10, 10, 15, 0.95) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
 body.theme-modern .sidebar.collapsed {

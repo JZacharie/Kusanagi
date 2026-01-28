@@ -106,7 +106,8 @@ body {
 
 /* Main Container */
 .container {
-  max-width: 1200px;
+  /* max-width: 1200px; */
+  /* Removed to use full screen width */
   margin: 0 auto;
   padding: 2rem;
   position: relative;
