@@ -218,3 +218,117 @@ body.theme-loot-drop ::-webkit-scrollbar-thumb {
     background: var(--ld-neon-cyan);
     box-shadow: 0 0 5px var(--ld-neon-cyan);
 }
+
+/* Sidebar Styles */
+body.theme-loot-drop .sidebar {
+    background: rgba(10, 10, 15, 0.95) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-right: 2px solid var(--ld-neon-cyan);
+    box-shadow: 2px 0 15px rgba(0, 242, 255, 0.2);
+}
+
+/* Mobile Responsive - Standard Phones (768px) */
+@media (max-width: 768px) {
+
+    /* Container optimizations */
+    body.theme-loot-drop .container {
+        padding: 1rem;
+    }
+
+    body.theme-loot-drop .header {
+        padding: 1rem;
+    }
+
+    /* Touch-friendly buttons */
+    body.theme-loot-drop .tab-btn,
+    body.theme-loot-drop .cyber-btn {
+        min-height: 44px;
+        padding: 0.75rem 1rem;
+    }
+
+    body.theme-loot-drop .sidebar-toggle-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Stats grid responsive */
+    body.theme-loot-drop .argocd-stats,
+    body.theme-loot-drop .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.75rem;
+    }
+
+    /* Tables responsive */
+    body.theme-loot-drop .issues-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    body.theme-loot-drop .issues-table {
+        min-width: 600px;
+    }
+
+    /* Sidebar mobile behavior */
+    body.theme-loot-drop .sidebar {
+        position: fixed;
+        z-index: 1000;
+        height: 100%;
+        top: 0;
+        left: 0;
+        transform: translateX(-100%);
+        width: 80%;
+        max-width: 300px;
+        box-shadow: 2px 0 10px rgba(0, 242, 255, 0.5);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    body.theme-loot-drop .sidebar:not(.collapsed) {
+        transform: translateX(0);
+    }
+
+    /* Overlay backdrop */
+    body.theme-loot-drop .sidebar:not(.collapsed)::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: -1;
+    }
+}
+
+/* Very Small Screens (480px) */
+@media (max-width: 480px) {
+    body.theme-loot-drop .container {
+        padding: 0.5rem;
+    }
+
+    body.theme-loot-drop .logo {
+        font-size: 1.2rem;
+        letter-spacing: 1px;
+    }
+
+    body.theme-loot-drop .stat-box {
+        padding: 0.75rem;
+    }
+
+    body.theme-loot-drop .stat-value {
+        font-size: 1.8rem;
+    }
+
+    /* Hide non-essential elements */
+    body.theme-loot-drop .world-clocks {
+        display: none;
+    }
+
+    /* Compact buttons */
+    body.theme-loot-drop .tab-btn,
+    body.theme-loot-drop .cyber-btn {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.75rem;
+    }
+}

@@ -2776,3 +2776,45 @@ body {
     font-size: 0.85rem;
   }
 }
+
+/* Sidebar Styles for Cyberpunk Theme */
+body.theme-cyberpunk .sidebar {
+  background: rgba(10, 10, 15, 0.95) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-right: 1px solid var(--neon-green);
+  box-shadow: 2px 0 15px rgba(0, 255, 65, 0.2);
+}
+
+/* Sidebar mobile behavior for Cyberpunk */
+@media (max-width: 768px) {
+  body.theme-cyberpunk .sidebar {
+    position: fixed;
+    z-index: 1000;
+    height: 100%;
+    top: 0;
+    left: 0;
+    transform: translateX(-100%);
+    width: 80%;
+    max-width: 300px;
+    box-shadow: 2px 0 10px rgba(0, 255, 65, 0.5);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.theme-cyberpunk .sidebar:not(.collapsed) {
+    transform: translateX(0);
+  }
+
+  /* Overlay backdrop */
+  body.theme-cyberpunk .sidebar:not(.collapsed)::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: -1;
+  }
+}
