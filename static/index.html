@@ -848,7 +848,7 @@
             </a>
         </div>
 
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
+        <div class="argocd-stats" id="security-stats-grid" style="margin-bottom: 1.5rem;">
             <div class="stat-box unhealthy">
                 <div class="stat-value" id="security-critical-vulns">-</div>
                 <div class="stat-label">Critical Vulns</div>
@@ -906,7 +906,7 @@
 
     <section class="argocd-section tab-content" data-tab="mqtt" style="display: none;">
         <h2 class="section-title">📡 MQTT Device Hub & Message Flux</h2>
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
+        <div class="argocd-stats" id="mqtt-stats-grid" style="margin-bottom: 1.5rem;">
             <div class="stat-box info">
                 <div class="stat-value" id="mqtt-device-count">-</div>
                 <div class="stat-label">Detected Devices</div>
@@ -965,8 +965,8 @@
         <h2 class="section-title">🖥️ Proxmox Infrastructure</h2>
 
         <!-- Proxmox Stats -->
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
+        <div class="argocd-stats" id="proxmox-stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box info">
                 <div class="stat-value" id="proxmox-nodes">-</div>
                 <div class="stat-label">Nodes</div>
             </div>
@@ -1011,8 +1011,8 @@
         <h2 class="section-title">🏠 Home Assistant</h2>
 
         <!-- HA Stats -->
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
+        <div class="argocd-stats" id="ha-stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box info">
                 <div class="stat-value" id="ha-sensors">-</div>
                 <div class="stat-label">Sensors</div>
             </div>
