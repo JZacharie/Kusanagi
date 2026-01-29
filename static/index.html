@@ -1050,7 +1050,7 @@
 
             <!-- Proxmox Section -->
 
-            <section class="argocd-section tab-content" data-tab="proxmox">
+            <section class="argocd-section tab-content" data-tab="proxmox" style="display: none;">
                 <h2 class="section-title">🖥️ Proxmox Infrastructure</h2>
 
                 <!-- Proxmox Stats -->
@@ -1139,153 +1139,165 @@
                         <div class="loading">Loading automations...</div>
                     </div>
                 </div>
+                <!-- Weather Section -->
+                <section class="argocd-section tab-content" data-tab="weather" style="display: none;">
+                    <h2 class="section-title">🌤️ Multi-City Weather</h2>
+                    <div id="weather-content">
+                        <div class="loading">Loading weather data...</div>
+                    </div>
+                </section>
+
+                <!-- Calendar Section -->
+                <section class="argocd-section tab-content" data-tab="calendar" style="display: none;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h2 class="section-title" style="margin-bottom: 0;">📅 Google Calendar</h2>
+                        <div id="calendar-auth-container">
+                            <button class="tab-btn" onclick="CalendarOAuth.login()" id="btn-calendar-login"
+                                style="background: var(--neon-cyan); color: #000;">
+                                🔑 Login
+                            </button>
+                            <button class="tab-btn" onclick="CalendarOAuth.logout()" id="btn-calendar-logout"
+                                style="display: none; background: var(--neon-magenta); color: #000;">
+                                🚪 Logout
+                            </button>
+                        </div>
+                    </div>
+                    <div id="calendar-content">
+                        <div class="loading">Loading calendar events...</div>
+                    </div>
+                </section>
+
+                <!-- Setup Interview Section -->
+                <section class="argocd-section tab-content" data-tab="setup" style="display: none;">
+                    <h2 class="section-title">🛠️ Guided Configuration Interview</h2>
+                    <div id="setup-dashboard">
+                        <div class="loading">Loading setup status...</div>
+                    </div>
+                </section>
+
+                <!-- Footer -->
+                <!-- Documentation Section -->
+                <section class="argocd-section tab-content" data-tab="docs">
+                    <h2 class="section-title">📖 Kusanagi Documentation</h2>
+
+                    <div class="stats-grid" style="margin-bottom: 2rem;">
+                        <div class="stat-box info" style="grid-column: span 3; padding: 2rem;">
+                            <h3 style="color: var(--neon-cyan); margin-top: 0;">🎯 Notre Vision</h3>
+                            <div style="text-align: center; margin-bottom: 2rem;">
+                                <img src="https://minio-170-api.zacharie.org/kusanagi-docs/vision.png"
+                                    alt="Vision Kusanagi"
+                                    style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 255, 249, 0.3);">
+                            </div>
+                            <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.9;">
+                                Kusanagi est une plateforme d'observabilité et d'auto-remédiation pour Kubernetes,
+                                inspirée par l'univers de <em>Ghost in the Shell</em>.
+                                Notre mission est de fournir une interface cybernétique unifiée pour surveiller et
+                                gérer votre infrastructure K8s avec une efficacité et une élégance totales.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="issues-table-container" style="border-color: var(--neon-magenta);">
+                        <div class="issues-table-header"
+                            style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                            <span class="issues-table-title" style="color: var(--neon-magenta);">📚 Améliorations &
+                                Ressources</span>
+                        </div>
+                        <div style="padding: 1.5rem;">
+                            <p style="margin-bottom: 1.5rem;">Découvrez comment Kusanagi améliore la gestion de vos
+                                systèmes
+                                grâce à
+                                ces documents :</p>
+                            <div class="grid"
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                                <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
+                                    <h4 style="color: var(--neon-blue);">🚀 GitOps Progressive Delivery</h4>
+                                    <p style="font-size: 0.9rem; opacity: 0.7;">Stratégies pour un déploiement continu
+                                        et une
+                                        résilience accrue.</p>
+                                    <a href="https://minio-170-api.zacharie.org/kusanagi-docs/GitOps_Progressive_Delivery.pdf"
+                                        target="_blank" class="cyber-btn"
+                                        style="margin-top: 1rem; display: inline-block;">Ouvrir le
+                                        PDF</a>
+                                </div>
+                                <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
+                                    <h4 style="color: var(--neon-green);">🔄 GitOps DevOps: Next Evolution</h4>
+                                    <p style="font-size: 0.9rem; opacity: 0.7;">L'évolution vers l'automatisation totale
+                                        du
+                                        cycle de
+                                        vie du cluster.</p>
+                                    <a href="https://minio-170-api.zacharie.org/kusanagi-docs/GitOps_DevOps_Next_Evolution.pdf"
+                                        target="_blank" class="cyber-btn"
+                                        style="margin-top: 1rem; display: inline-block;">Ouvrir le
+                                        PDF</a>
+                                </div>
+                                <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
+                                    <h4 style="color: var(--neon-yellow);">🎬 Ghost Machine Cinema</h4>
+                                    <p style="font-size: 0.9rem; opacity: 0.7;">L'inspiration esthétique et
+                                        philosophique
+                                        derrière
+                                        l'interface.</p>
+                                    <a href="https://minio-170-api.zacharie.org/kusanagi-docs/Ghost_Machine_Cinema.pdf"
+                                        target="_blank" class="cyber-btn"
+                                        style="margin-top: 1rem; display: inline-block;">Ouvrir le
+                                        PDF</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Evolution Section -->
+                <section class="argocd-section tab-content" data-tab="evolution">
+                    <h2 class="section-title">🚀 Kusanagi Evolution</h2>
+
+                    <div class="stats-grid" style="margin-bottom: 2rem;">
+                        <div class="stat-box info"
+                            style="grid-column: span 3; padding: 2rem; border-color: var(--neon-blue); background: rgba(0, 255, 249, 0.05);">
+                            <h3
+                                style="color: var(--neon-cyan); margin-top: 0; display: flex; align-items: center; gap: 0.75rem;">
+                                <span class="mdi mdi-github" style="font-size: 1.5rem;"></span>
+                                Continuous Integration & Deployment
+                            </h3>
+                            <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.9; margin-bottom: 2rem;">
+                                Suivez en temps réel l'évolution technique de Kusanagi. Chaque modification du code
+                                source
+                                déclenche
+                                un cycle complet de vérification, de build et de déploiement automatique.
+                            </p>
+                            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                                <div
+                                    style="flex: 1; min-width: 250px; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                                    <h4 style="color: var(--neon-green); margin-top: 0;">🛠️ Build & Analysis</h4>
+                                    <p style="font-size: 0.9rem; opacity: 0.7;">Compilation du backend Rust, validation
+                                        du
+                                        frontend
+                                        et analyse de la qualité du code.</p>
+                                </div>
+                                <div
+                                    style="flex: 1; min-width: 250px; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                                    <h4 style="color: var(--neon-magenta); margin-top: 0;">📦 Containerization</h4>
+                                    <p style="font-size: 0.9rem; opacity: 0.7;">Création et publication automatique des
+                                        images
+                                        Docker sur le registre Kusanagi.</p>
+                                </div>
+                            </div>
+                            <div style="text-align: center; margin-top: 2.5rem;">
+                                <a href="https://github.com/JZacharie/Kusanagi/actions" target="_blank"
+                                    class="cyber-btn" style="padding: 1rem 3rem; font-size: 1.2rem;">
+                                    <span class="mdi mdi-open-in-new"></span> VOIR SUR GITHUB ACTIONS
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+
         </div>
         </section>
 
-        <!-- Weather Section -->
-        <section class="argocd-section tab-content" data-tab="weather" style="display: none;">
-            <h2 class="section-title">🌤️ Multi-City Weather</h2>
-            <div id="weather-content">
-                <div class="loading">Loading weather data...</div>
-            </div>
-        </section>
-
-        <!-- Calendar Section -->
-        <section class="argocd-section tab-content" data-tab="calendar" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h2 class="section-title" style="margin-bottom: 0;">📅 Google Calendar</h2>
-                <div id="calendar-auth-container">
-                    <button class="tab-btn" onclick="CalendarOAuth.login()" id="btn-calendar-login"
-                        style="background: var(--neon-cyan); color: #000;">
-                        🔑 Login
-                    </button>
-                    <button class="tab-btn" onclick="CalendarOAuth.logout()" id="btn-calendar-logout"
-                        style="display: none; background: var(--neon-magenta); color: #000;">
-                        🚪 Logout
-                    </button>
-                </div>
-            </div>
-            <div id="calendar-content">
-                <div class="loading">Loading calendar events...</div>
-            </div>
-        </section>
-
-        <!-- Setup Interview Section -->
-        <section class="argocd-section tab-content" data-tab="setup" style="display: none;">
-            <h2 class="section-title">🛠️ Guided Configuration Interview</h2>
-            <div id="setup-dashboard">
-                <div class="loading">Loading setup status...</div>
-            </div>
-        </section>
-
-        <!-- Footer -->
-        <!-- Documentation Section -->
-        <section class="argocd-section tab-content" data-tab="docs">
-            <h2 class="section-title">📖 Kusanagi Documentation</h2>
-
-            <div class="stats-grid" style="margin-bottom: 2rem;">
-                <div class="stat-box info" style="grid-column: span 3; padding: 2rem;">
-                    <h3 style="color: var(--neon-cyan); margin-top: 0;">🎯 Notre Vision</h3>
-                    <div style="text-align: center; margin-bottom: 2rem;">
-                        <img src="https://minio-170-api.zacharie.org/kusanagi-docs/vision.png" alt="Vision Kusanagi"
-                            style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 255, 249, 0.3);">
-                    </div>
-                    <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.9;">
-                        Kusanagi est une plateforme d'observabilité et d'auto-remédiation pour Kubernetes,
-                        inspirée par l'univers de <em>Ghost in the Shell</em>.
-                        Notre mission est de fournir une interface cybernétique unifiée pour surveiller et
-                        gérer votre infrastructure K8s avec une efficacité et une élégance totales.
-                    </p>
-                </div>
-            </div>
-
-            <div class="issues-table-container" style="border-color: var(--neon-magenta);">
-                <div class="issues-table-header"
-                    style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-                    <span class="issues-table-title" style="color: var(--neon-magenta);">📚 Améliorations &
-                        Ressources</span>
-                </div>
-                <div style="padding: 1.5rem;">
-                    <p style="margin-bottom: 1.5rem;">Découvrez comment Kusanagi améliore la gestion de vos systèmes
-                        grâce à
-                        ces documents :</p>
-                    <div class="grid"
-                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
-                        <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
-                            <h4 style="color: var(--neon-blue);">🚀 GitOps Progressive Delivery</h4>
-                            <p style="font-size: 0.9rem; opacity: 0.7;">Stratégies pour un déploiement continu et une
-                                résilience accrue.</p>
-                            <a href="https://minio-170-api.zacharie.org/kusanagi-docs/GitOps_Progressive_Delivery.pdf"
-                                target="_blank" class="cyber-btn"
-                                style="margin-top: 1rem; display: inline-block;">Ouvrir le
-                                PDF</a>
-                        </div>
-                        <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
-                            <h4 style="color: var(--neon-green);">🔄 GitOps DevOps: Next Evolution</h4>
-                            <p style="font-size: 0.9rem; opacity: 0.7;">L'évolution vers l'automatisation totale du
-                                cycle de
-                                vie du cluster.</p>
-                            <a href="https://minio-170-api.zacharie.org/kusanagi-docs/GitOps_DevOps_Next_Evolution.pdf"
-                                target="_blank" class="cyber-btn"
-                                style="margin-top: 1rem; display: inline-block;">Ouvrir le
-                                PDF</a>
-                        </div>
-                        <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
-                            <h4 style="color: var(--neon-yellow);">🎬 Ghost Machine Cinema</h4>
-                            <p style="font-size: 0.9rem; opacity: 0.7;">L'inspiration esthétique et philosophique
-                                derrière
-                                l'interface.</p>
-                            <a href="https://minio-170-api.zacharie.org/kusanagi-docs/Ghost_Machine_Cinema.pdf"
-                                target="_blank" class="cyber-btn"
-                                style="margin-top: 1rem; display: inline-block;">Ouvrir le
-                                PDF</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Evolution Section -->
-        <section class="argocd-section tab-content" data-tab="evolution">
-            <h2 class="section-title">🚀 Kusanagi Evolution</h2>
-
-            <div class="stats-grid" style="margin-bottom: 2rem;">
-                <div class="stat-box info"
-                    style="grid-column: span 3; padding: 2rem; border-color: var(--neon-blue); background: rgba(0, 255, 249, 0.05);">
-                    <h3
-                        style="color: var(--neon-cyan); margin-top: 0; display: flex; align-items: center; gap: 0.75rem;">
-                        <span class="mdi mdi-github" style="font-size: 1.5rem;"></span>
-                        Continuous Integration & Deployment
-                    </h3>
-                    <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.9; margin-bottom: 2rem;">
-                        Suivez en temps réel l'évolution technique de Kusanagi. Chaque modification du code source
-                        déclenche
-                        un cycle complet de vérification, de build et de déploiement automatique.
-                    </p>
-                    <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
-                        <div
-                            style="flex: 1; min-width: 250px; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
-                            <h4 style="color: var(--neon-green); margin-top: 0;">🛠️ Build & Analysis</h4>
-                            <p style="font-size: 0.9rem; opacity: 0.7;">Compilation du backend Rust, validation du
-                                frontend
-                                et analyse de la qualité du code.</p>
-                        </div>
-                        <div
-                            style="flex: 1; min-width: 250px; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
-                            <h4 style="color: var(--neon-magenta); margin-top: 0;">📦 Containerization</h4>
-                            <p style="font-size: 0.9rem; opacity: 0.7;">Création et publication automatique des images
-                                Docker sur le registre Kusanagi.</p>
-                        </div>
-                    </div>
-                    <div style="text-align: center; margin-top: 2.5rem;">
-                        <a href="https://github.com/JZacharie/Kusanagi/actions" target="_blank" class="cyber-btn"
-                            style="padding: 1rem 3rem; font-size: 1.2rem;">
-                            <span class="mdi mdi-open-in-new"></span> VOIR SUR GITHUB ACTIONS
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </section>
 
         <footer class="footer">
             <p class="footer-quote">"Your effort to remain what you are is what limits you."</p>
