@@ -396,8 +396,8 @@
                     <h2 class="section-title">🖥️ Cluster Nodes</h2>
 
                     <!-- Node Stats Grid -->
-                    <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                        <div class="stat-box">
+                    <div class="argocd-stats" style="margin-bottom: 2rem;">
+                        <div class="stat-box info">
                             <div class="stat-value" id="node-total">-</div>
                             <div class="stat-label">Total Nodes</div>
                         </div>
@@ -435,8 +435,8 @@
                 <section class="argocd-section tab-content" data-tab="storage" style="display: none;">
                     <h2 class="section-title">💾 Storage (PVCs)</h2>
 
-                    <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                        <div class="stat-box">
+                    <div class="argocd-stats" style="margin-bottom: 2rem;">
+                        <div class="stat-box info">
                             <div class="stat-value" id="pvc-total-count">-</div>
                             <div class="stat-label">Total PVCs</div>
                         </div>
@@ -499,8 +499,8 @@
                 <section class="argocd-section tab-content" data-tab="events" style="display: none;">
                     <h2 class="section-title">🔔 Kubernetes Events (Last Hour)</h2>
 
-                    <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                        <div class="stat-box">
+                    <div class="argocd-stats" style="margin-bottom: 2rem;">
+                        <div class="stat-box info">
                             <div class="stat-value" id="events-total">-</div>
                             <div class="stat-label">Total Events</div>
                         </div>
@@ -553,8 +553,8 @@
             <section class="argocd-section tab-content" data-tab="pods" style="display: none;">
                 <h2 class="section-title">🐳 Pods in Error</h2>
 
-                <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                    <div class="stat-box">
+                <div class="argocd-stats" style="margin-bottom: 2rem;">
+                    <div class="stat-box info">
                         <div class="stat-value" id="pods-total">-</div>
                         <div class="stat-label">Total Pods</div>
                     </div>
@@ -617,8 +617,8 @@
                 <h2 class="section-title">📰 Tech News Feed</h2>
 
                 <!-- News Stats -->
-                <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                    <div class="stat-box">
+                <div class="argocd-stats" style="margin-bottom: 2rem;">
+                    <div class="stat-box info">
                         <div class="stat-value" id="news-total">-</div>
                         <div class="stat-label">Total News</div>
                     </div>
@@ -686,8 +686,8 @@
             <section class="argocd-section tab-content" data-tab="backups" style="display: none;">
                 <h2 class="section-title">📦 Backup Jobs Status</h2>
 
-                <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                    <div class="stat-box">
+                <div class="argocd-stats" style="margin-bottom: 2rem;">
+                    <div class="stat-box info">
                         <div class="stat-value" id="backup-cronjobs">-</div>
                         <div class="stat-label">CronJobs</div>
                     </div>
@@ -705,11 +705,37 @@
                     </div>
                 </div>
 
-                <div class="issues-table-container" id="backups-container" style="border-color: var(--neon-green);">
+                <!-- Failed Jobs Table -->
+                <div class="issues-table-container" id="failed-jobs-container">
+                    <div class="issues-table-header">
+                        <span class="issues-table-title">❌ Failed Jobs</span>
+                        <span class="issues-count" id="failed-jobs-count">0</span>
+                    </div>
+                    <div id="failed-jobs-content">
+                        <div class="loading">Loading failed jobs...</div>
+                    </div>
+                </div>
+
+                <!-- CronJobs Table -->
+                <div class="issues-table-container" id="cronjobs-container"
+                    style="margin-top: 2rem; border-color: var(--neon-cyan);">
+                    <div class="issues-table-header"
+                        style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                        <span class="issues-table-title" style="color: var(--neon-cyan);">⏰ Scheduled CronJobs</span>
+                        <span class="issues-count" id="cronjobs-count" style="background: var(--neon-cyan);">0</span>
+                    </div>
+                    <div id="cronjobs-content">
+                        <div class="loading">Loading CronJobs...</div>
+                    </div>
+                </div>
+
+                <!-- Recent Jobs Table -->
+                <div class="issues-table-container" id="backups-container"
+                    style="margin-top: 2rem; border-color: var(--neon-green);">
                     <div class="issues-table-header"
                         style="background: rgba(0, 255, 136, 0.1); border-color: var(--neon-green);">
-                        <span class="issues-table-title" style="color: var(--neon-green);">⏰ CronJobs & Recent
-                            Jobs</span>
+                        <span class="issues-table-title" style="color: var(--neon-green);">📋 Recent Job
+                            Executions</span>
                         <span class="issues-count" id="backups-count" style="background: var(--neon-green);">0</span>
                     </div>
                     <div id="backups-content">
@@ -908,7 +934,7 @@
                     <span>📜</span> CIS Compliance (Powerpipe)
                 </a>
 
-                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="argocd-stats" style="margin-bottom: 2rem;">
                     <div class="stat-box unhealthy">
                         <div class="stat-value" id="security-critical-vulns">-</div>
                         <div class="stat-label">Critical Vulns</div>
@@ -972,7 +998,7 @@
             <!-- MQTT Section -->
             <section class="argocd-section tab-content" data-tab="mqtt" style="display: none;">
                 <h2 class="section-title">📡 MQTT Device Hub & Message Flux</h2>
-                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="argocd-stats" style="margin-bottom: 2rem;">
                     <div class="stat-box info">
                         <div class="stat-value" id="mqtt-device-count">-</div>
                         <div class="stat-label">Detected Devices</div>
@@ -1030,8 +1056,8 @@
                 <h2 class="section-title">🖥️ Proxmox Infrastructure</h2>
 
                 <!-- Proxmox Stats -->
-                <div class="stats-grid">
-                    <div class="stat-box">
+                <div class="argocd-stats" style="margin-bottom: 2rem;">
+                    <div class="stat-box info">
                         <div class="stat-value" id="proxmox-nodes">-</div>
                         <div class="stat-label">Nodes</div>
                     </div>
@@ -1076,8 +1102,8 @@
                 <h2 class="section-title">🏠 Home Assistant</h2>
 
                 <!-- HA Stats -->
-                <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                    <div class="stat-box">
+                <div class="argocd-stats" style="margin-bottom: 2rem;">
+                    <div class="stat-box info">
                         <div class="stat-value" id="ha-sensors">-</div>
                         <div class="stat-label">Sensors</div>
                     </div>
@@ -2836,7 +2862,7 @@
     </div> <!-- layout-flex -->
     <!-- MQTT Logs Modal -->
     <div id="mqtt-logs-modal" class="cyber-modal" style="display: none;">
-        <div class="cyber-modal-content" style="max-width: 90%; width: 1000px; max-height: 80vh;">
+        <div class="cyber-modal-content">
             <div class="cyber-modal-header">
                 <h3>📡 MQTT Real-time Logs (Last 30)</h3>
                 <span class="cyber-modal-close" onclick="MqttManager.closeLogsModal()">&times;</span>
