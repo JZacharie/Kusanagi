@@ -1987,6 +1987,13 @@ body {
   box-sizing: border-box;
 }
 
+/* Calendar and Weather Sections */
+#calendar-content,
+#weather-content {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .success-icon {
   font-size: 3rem;
   display: block;

@@ -419,6 +419,8 @@ body.theme-modern #security-vulns-content,
 body.theme-modern #security-policies-content,
 body.theme-modern #security-violations-content,
 body.theme-modern #backups-content,
+body.theme-modern #calendar-content,
+body.theme-modern #weather-content,
 body.theme-modern .issues-table-container {
     width: 100%;
     box-sizing: border-box;
