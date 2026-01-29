@@ -309,6 +309,33 @@ header.header {
     filter: drop-shadow(0 0 5px rgba(99, 102, 241, 0.5));
 }
 
+/* Compact Header Layout */
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-text {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+}
+
+.header-sub {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.logo {
+    margin: 0;
+    line-height: 1;
+    font-size: 1.5rem;
+}
+
 .footer {
     width: 100%;
     margin-top: 4rem;

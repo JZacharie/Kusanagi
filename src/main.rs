@@ -541,6 +541,9 @@ async fn export_alerts_endpoint(data: web::Data<AppState>, query: web::Query<Exp
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "warn");
+    }
     tracing_subscriber::fmt::init();
 
     info!("Starting Kusanagi server on port 8080");
