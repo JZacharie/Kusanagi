@@ -46,7 +46,10 @@ struct AmAlertStatus {
 
 fn get_alertmanager_url() -> String {
     std::env::var("ALERTMANAGER_URL")
-        .unwrap_or_else(|_| "http://kube-prometheus-stack-alertmanager.kube-prometheus-stack.svc:9093".to_string())
+        .unwrap_or_else(|_| {
+            tracing::warn!("ALERTMANAGER_URL not set, using default local K8s service URL");
+            "http://kube-prometheus-stack-alertmanager.kube-prometheus-stack.svc:9093".to_string()
+        })
 }
 
 /// Get all active alerts from Alertmanager

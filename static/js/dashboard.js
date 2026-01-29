@@ -620,7 +620,14 @@ const AlertsManager = {
         try {
             const response = await fetch('/api/alerts');
             if (!response.ok) {
-                throw new Error('Failed to fetch alerts');
+                let errorMsg = `Server returned ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData.error) errorMsg = errorData.error;
+                } catch (e) {
+                    // Not JSON, use status
+                }
+                throw new Error(errorMsg);
             }
 
             const alerts = await response.json();
