@@ -2868,6 +2868,7 @@ body.theme-cyberpunk .sidebar {
     -webkit-overflow-scrolling: touch;
   }
 
+
   body.theme-cyberpunk .sidebar:not(.collapsed) {
     transform: translateX(0);
   }
@@ -2883,4 +2884,50 @@ body.theme-cyberpunk .sidebar {
     background: rgba(0, 0, 0, 0.7);
     z-index: -1;
   }
+}
+
+/* ===================== */
+/* Layout Flex System */
+/* ===================== */
+
+.layout-flex {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+  gap: 1.5rem;
+}
+
+.main-content {
+  flex-grow: 1;
+  min-width: 0;
+  width: 100%;
+  transition: width 0.3s ease;
+}
+
+.main-content.expanded {
+  width: 100%;
+}
+
+/* Ensure all content sections use full width */
+#pods-content,
+#pvc-content,
+#metrics-content,
+.issues-table-container,
+.chat-container,
+.mqtt-layout,
+#proxmox-vms-content,
+#proxmox-containers-content,
+#ha-sensors-content,
+#ha-automations-content,
+#security-vulns-content,
+#security-policies-content,
+#security-violations-content,
+#backups-content,
+#calendar-content,
+#weather-content,
+#evolution-content {
+  width: 100%;
+  box-sizing: border-box;
 }
