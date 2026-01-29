@@ -155,7 +155,9 @@ const DashboardManager = {
         homeassistant: { name: 'Home Assistant', icon: '🏠', enabled: true, order: 10 },
         weather: { name: 'Weather', icon: '🌤️', enabled: true, order: 11 },
         calendar: { name: 'Calendar', icon: '📅', enabled: true, order: 12 },
-        mqtt: { name: 'MQTT', icon: '📡', enabled: true, order: 13 }
+        mqtt: { name: 'MQTT', icon: '📡', enabled: true, order: 13 },
+        docs: { name: 'Docs', icon: '📖', enabled: true, order: 14 },
+        evolution: { name: 'Evolution', icon: '🚀', enabled: true, order: 15 }
     },
 
     storageKey: 'kusanagi_dashboard_layout',
