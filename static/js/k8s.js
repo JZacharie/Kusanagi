@@ -16,7 +16,7 @@ const K8sManager = {
     init() {
         this.fetchAll();
         // Set up intervals if needed (or move to main init)
-        setInterval(() => this.fetchAll(), 60000);
+        setInterval(() => this.fetchAll(), 30000);
         console.log('✅ K8s Manager initialized');
     },
 

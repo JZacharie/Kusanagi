@@ -1250,12 +1250,6 @@ if (typeof window !== 'undefined') {
     window.QuotasManager = QuotasManager;
     window.NewsManager = NewsManager;
 
-    window.DashboardManager = DashboardManager;
-    window.MetricsManager = MetricsManager;
-    window.AlertsManager = AlertsManager;
-    window.QuotasManager = QuotasManager;
-    window.NewsManager = NewsManager;
-
     document.addEventListener('DOMContentLoaded', () => {
         // Initialize Core UI systems first
         if (window.LocaleManager) LocaleManager.init();
@@ -1278,6 +1272,14 @@ if (typeof window !== 'undefined') {
         if (window.SecurityManager) SecurityManager.init();
         if (window.NetworkManager) NetworkManager.init();
         if (window.SetupManager) SetupManager.init();
+
+        // Initial Data Sync
+        if (window.refreshAllKusanagiData) {
+            refreshAllKusanagiData();
+            // Global Refresh Interval (30s)
+            setInterval(refreshAllKusanagiData, 30000);
+        }
     });
 }
+
 
