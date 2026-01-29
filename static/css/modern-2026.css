@@ -303,11 +303,13 @@ body.theme-modern .header-title {
 }
 
 body.theme-modern .footer {
+    width: 100%;
     margin-top: 4rem;
     padding: 2rem;
     text-align: center;
     border-top: 1px solid var(--border-color);
     color: var(--text-muted);
+    box-sizing: border-box;
 }
 
 body.theme-modern .footer-quote {
@@ -421,6 +423,7 @@ body.theme-modern #security-violations-content,
 body.theme-modern #backups-content,
 body.theme-modern #calendar-content,
 body.theme-modern #weather-content,
+body.theme-modern #evolution-content,
 body.theme-modern .issues-table-container {
     width: 100%;
     box-sizing: border-box;

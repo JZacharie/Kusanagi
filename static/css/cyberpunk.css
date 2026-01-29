@@ -636,12 +636,14 @@ body {
 
 /* Footer */
 .footer {
+  width: 100%;
   text-align: center;
   padding: 3rem 0;
   color: var(--text-secondary);
   font-size: 0.8rem;
   border-top: 1px solid rgba(0, 255, 65, 0.2);
   margin-top: 3rem;
+  box-sizing: border-box;
 }
 
 .footer-quote {
@@ -1989,7 +1991,8 @@ body {
 
 /* Calendar and Weather Sections */
 #calendar-content,
-#weather-content {
+#weather-content,
+#evolution-content {
   width: 100%;
   box-sizing: border-box;
 }
