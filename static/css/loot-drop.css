@@ -220,6 +220,56 @@ body.theme-loot-drop ::-webkit-scrollbar-thumb {
     box-shadow: 0 0 5px var(--ld-neon-cyan);
 }
 
+/* Alerts Section */
+body.theme-loot-drop .alerts-list {
+    width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+body.theme-loot-drop .alert-group {
+    width: 100%;
+}
+
+body.theme-loot-drop .alert-card {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Metrics Section */
+body.theme-loot-drop .metrics-grid {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+body.theme-loot-drop .metric-card {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Pods Section */
+body.theme-loot-drop #pods-content,
+body.theme-loot-drop #metrics-content {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* All Content Sections */
+body.theme-loot-drop .chat-container,
+body.theme-loot-drop .mqtt-layout,
+body.theme-loot-drop #proxmox-vms-content,
+body.theme-loot-drop #proxmox-containers-content,
+body.theme-loot-drop #ha-sensors-content,
+body.theme-loot-drop #ha-automations-content,
+body.theme-loot-drop #security-vulns-content,
+body.theme-loot-drop #security-policies-content,
+body.theme-loot-drop #security-violations-content,
+body.theme-loot-drop #backups-content,
+body.theme-loot-drop .issues-table-container {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 /* Sidebar Styles */
 body.theme-loot-drop .sidebar {
     background: rgba(10, 10, 15, 0.95) !important;

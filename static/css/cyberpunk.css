@@ -1753,19 +1753,23 @@ body {
    ============================================ */
 
 .metrics-grid {
+  width: 100%;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1.5rem;
   padding: 1rem;
+  box-sizing: border-box;
 }
 
 .metric-card {
+  width: 100%;
   background: rgba(0, 0, 0, 0.6);
   border: 1px solid var(--neon-cyan);
   border-radius: 8px;
   padding: 1.5rem;
   text-align: center;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .metric-card:hover {
@@ -1838,7 +1842,9 @@ body {
    ============================================ */
 
 .alerts-list {
+  width: 100%;
   padding: 1rem;
+  box-sizing: border-box;
 }
 
 .alert-group {
@@ -1929,6 +1935,56 @@ body {
   text-align: center;
   padding: 3rem;
   color: var(--neon-green);
+}
+
+/* ============================================
+   CONTENT SECTIONS - FULL WIDTH
+   ============================================ */
+
+/* Chat Section */
+.chat-container {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* MQTT Section */
+.mqtt-layout {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Proxmox Section */
+#proxmox-vms-content,
+#proxmox-containers-content {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Home Assistant Section */
+#ha-sensors-content,
+#ha-automations-content {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Security Section */
+#security-vulns-content,
+#security-policies-content,
+#security-violations-content {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Backups Section */
+#backups-content {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Issues Table Container */
+.issues-table-container {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .success-icon {

@@ -374,6 +374,56 @@ body.theme-modern .main-content.expanded {
     width: 100%;
 }
 
+/* Alerts Section */
+body.theme-modern .alerts-list {
+    width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+body.theme-modern .alert-group {
+    width: 100%;
+}
+
+body.theme-modern .alert-card {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Metrics Section */
+body.theme-modern .metrics-grid {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+body.theme-modern .metric-card {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Pods Section */
+body.theme-modern #pods-content,
+body.theme-modern #metrics-content {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* All Content Sections */
+body.theme-modern .chat-container,
+body.theme-modern .mqtt-layout,
+body.theme-modern #proxmox-vms-content,
+body.theme-modern #proxmox-containers-content,
+body.theme-modern #ha-sensors-content,
+body.theme-modern #ha-automations-content,
+body.theme-modern #security-vulns-content,
+body.theme-modern #security-policies-content,
+body.theme-modern #security-violations-content,
+body.theme-modern #backups-content,
+body.theme-modern .issues-table-container {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 /* Mobile responsive adjustments for sidebar override */
 @media (max-width: 768px) {
     body.theme-modern .sidebar {
