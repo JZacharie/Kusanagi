@@ -1,11 +1,145 @@
-/* Weather Animations & Styles */
+/* === WEATHER ANIMATIONS === */
+@keyframes sun-pulse {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 5px var(--neon-cyan));
+    }
+
+    50% {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 15px var(--neon-cyan));
+    }
+
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 5px var(--neon-cyan));
+    }
+}
+
+@keyframes cloud-float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+@keyframes rain-fall {
+    0% {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+}
+
+@keyframes snow-fall {
+    0% {
+        transform: translateY(-10px) rotate(0deg);
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(10px) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes logo-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.header-logo.refreshing {
+    animation: logo-spin 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-content {
+    transition: transform 0.2s ease;
+}
+
+.header-content:active {
+    transform: scale(0.98);
+}
+
+@keyframes thunder-bolt {
+
+    0%,
+    90%,
+    100% {
+        opacity: 0;
+    }
+
+    92%,
+    98% {
+        opacity: 1;
+        filter: brightness(2);
+    }
+}
+
+.weather-anim-sun {
+    animation: sun-pulse 4s ease-in-out infinite;
+}
+
+.weather-anim-cloud {
+    animation: cloud-float 6s ease-in-out infinite;
+}
+
+.weather-anim-rain {
+    animation: rain-fall 1.5s linear infinite;
+}
+
+.weather-anim-snow {
+    animation: snow-fall 3s linear infinite;
+}
+
+.weather-anim-bolt {
+    animation: thunder-bolt 2s ease-in-out infinite;
+}
+
 .weather-card {
-    transition: transform 0.3s ease;
+    background: rgba(10, 20, 30, 0.4);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 255, 249, 0.2);
+    transition: all 0.3s ease;
 }
 
 .weather-card:hover {
-    transform: translateY(-5px);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 20px rgba(0, 255, 249, 0.1);
+    transform: translateY(-2px);
 }
+
+.forecast-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+/* Original contents of weather.css below */
 
 .forecast-grid {
     display: grid;
@@ -14,11 +148,6 @@
     margin-top: 1.5rem;
     padding-top: 1rem;
     border-top: 1px solid rgba(0, 255, 255, 0.1);
-}
-
-.forecast-day {
-    text-align: center;
-    font-size: 0.8rem;
 }
 
 .forecast-temp {

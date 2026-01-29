@@ -5,149 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Kusanagi - Agent Controller for K3s Infrastructure">
-    <style>
-        /* === WEATHER ANIMATIONS === */
-        @keyframes sun-pulse {
-            0% {
-                transform: scale(1);
-                filter: drop-shadow(0 0 5px var(--neon-cyan));
-            }
-
-            50% {
-                transform: scale(1.1);
-                filter: drop-shadow(0 0 15px var(--neon-cyan));
-            }
-
-            100% {
-                transform: scale(1);
-                filter: drop-shadow(0 0 5px var(--neon-cyan));
-            }
-        }
-
-        @keyframes cloud-float {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-5px);
-            }
-        }
-
-        @keyframes rain-fall {
-            0% {
-                transform: translateY(-10px);
-                opacity: 0;
-            }
-
-            50% {
-                opacity: 1;
-            }
-
-            100% {
-                transform: translateY(10px);
-                opacity: 0;
-            }
-        }
-
-        @keyframes snow-fall {
-            0% {
-                transform: translateY(-10px) rotate(0deg);
-                opacity: 0;
-            }
-
-            50% {
-                opacity: 1;
-            }
-
-            100% {
-                transform: translateY(10px) rotate(360deg);
-                opacity: 0;
-            }
-        }
-
-        @keyframes logo-spin {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .header-logo.refreshing {
-            animation: logo-spin 1s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .header-content {
-            transition: transform 0.2s ease;
-        }
-
-        .header-content:active {
-            transform: scale(0.98);
-        }
-
-        @keyframes thunder-bolt {
-
-            0%,
-            90%,
-            100% {
-                opacity: 0;
-            }
-
-            92%,
-            98% {
-                opacity: 1;
-                filter: brightness(2);
-            }
-        }
-
-        .weather-anim-sun {
-            animation: sun-pulse 4s ease-in-out infinite;
-        }
-
-        .weather-anim-cloud {
-            animation: cloud-float 6s ease-in-out infinite;
-        }
-
-        .weather-anim-rain {
-            animation: rain-fall 1.5s linear infinite;
-        }
-
-        .weather-anim-snow {
-            animation: snow-fall 3s linear infinite;
-        }
-
-        .weather-anim-bolt {
-            animation: thunder-bolt 2s ease-in-out infinite;
-        }
-
-        .weather-card {
-            background: rgba(10, 20, 30, 0.4);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 255, 249, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .weather-card:hover {
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 20px rgba(0, 255, 249, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .forecast-day {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 0.5rem;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-        }
-    </style>
-    <title>Kusanagi | 草薙</title>
     <link rel="stylesheet" href="/static/css/cyberpunk.css">
     <link rel="stylesheet" href="/static/css/modern-2026.css">
     <link rel="stylesheet" href="/static/css/loot-drop.css">
@@ -1258,321 +1115,24 @@
     </footer>
     </div>
 
+    <script src="/static/js/theme.js"></script>
+    <script src="/static/js/core.js"></script>
+    <script src="/static/js/rum.js"></script>
+    <script src="/static/js/api-tracker.js"></script>
+    <script src="/static/js/error-boundary.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/proxmox.js"></script>
+    <script src="/static/js/homeassistant.js"></script>
+    <script src="/static/js/calendar.js"></script>
+    <script src="/static/js/calendar_oauth.js"></script>
+    <script src="/static/js/weather.js"></script>
+    <script src="/static/js/security.js"></script>
+    <script src="/static/js/network.js"></script>
+    <script src="/static/js/setup.js"></script>
+    <script src="/static/js/mqtt.js"></script>
+
     <script>
-        // === WEBSOCKET NOTIFICATIONS ===
-        let wsConnection = null;
-        let wsReconnectAttempts = 0;
-        const WS_MAX_RECONNECT_ATTEMPTS = 5;
-        const WS_RECONNECT_DELAY = 3000;
-
-        function initWebSocket() {
-            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${wsProtocol}//${window.location.host}/api/ws/notifications`;
-
-            updateWsStatus('connecting');
-
-            try {
-                wsConnection = new WebSocket(wsUrl);
-
-                wsConnection.onopen = function () {
-                    console.log('✅ WebSocket connected');
-                    wsReconnectAttempts = 0;
-                    updateWsStatus('connected');
-                };
-
-                wsConnection.onmessage = function (event) {
-                    try {
-                        const data = JSON.parse(event.data);
-                        handleWsMessage(data);
-                    } catch (e) {
-                        console.error('Failed to parse WebSocket message:', e);
-                    }
-                };
-
-                wsConnection.onclose = function (event) {
-                    console.log('WebSocket closed:', event.code, event.reason);
-                    updateWsStatus('disconnected');
-                    attemptReconnect();
-                };
-
-                wsConnection.onerror = function (error) {
-                    console.error('WebSocket error:', error);
-                    updateWsStatus('disconnected');
-                };
-            } catch (error) {
-                console.error('Failed to create WebSocket:', error);
-                updateWsStatus('disconnected');
-            }
-        }
-
-        function attemptReconnect() {
-            if (wsReconnectAttempts < WS_MAX_RECONNECT_ATTEMPTS) {
-                wsReconnectAttempts++;
-                console.log(`Attempting WebSocket reconnect (${wsReconnectAttempts}/${WS_MAX_RECONNECT_ATTEMPTS})...`);
-                setTimeout(initWebSocket, WS_RECONNECT_DELAY);
-            } else {
-                console.log('Max WebSocket reconnect attempts reached');
-            }
-        }
-
-        function updateWsStatus(status) {
-            const indicator = document.getElementById('ws-indicator');
-            const statusEl = document.getElementById('ws-status');
-
-            indicator.className = 'ws-indicator ' + status;
-
-            const labels = {
-                'connected': 'Live',
-                'disconnected': 'Offline',
-                'connecting': 'Connecting...'
-            };
-
-            statusEl.title = `WebSocket: ${labels[status] || status}`;
-        }
-
-        function handleWsMessage(data) {
-            switch (data.type) {
-                case 'connected':
-                    console.log('WebSocket:', data.message);
-                    break;
-
-                case 'alert':
-                    showNotification({
-                        title: data.title,
-                        message: data.message,
-                        severity: data.severity,
-                        source: data.source
-                    });
-                    break;
-
-                case 'stats_update':
-                    // Update live stats if needed
-                    console.log('Stats update:', data);
-                    break;
-
-                case 'heartbeat':
-                    // Silent heartbeat
-                    break;
-
-                case 'mqtt_message':
-                    // MQTT messages are handled by MqttManager via the event listener
-                    break;
-
-                default:
-                    console.log('Unknown WebSocket message:', data);
-            }
-
-            // Dispatch globally for modules (like MqttManager) to listen
-            window.dispatchEvent(new CustomEvent('kusanagi-ws-message', { detail: data }));
-        }
-
-        function showNotification(options) {
-            const container = document.getElementById('notification-container');
-            const id = 'notif-' + Date.now();
-
-            const notification = document.createElement('div');
-            notification.id = id;
-            notification.className = `notification ${options.severity || 'info'}`;
-
-            notification.innerHTML = `
-                <div class="notification-header">
-                    <span class="notification-title">${getSeverityIcon(options.severity)} ${options.title}</span>
-                    <button class="notification-close" onclick="dismissNotification('${id}')">&times;</button>
-                </div>
-                <div class="notification-body">${options.message}</div>
-                ${options.source ? `<div class="notification-source">Source: ${options.source}</div>` : ''}
-            `;
-
-            container.appendChild(notification);
-
-            // Auto-dismiss after 8 seconds
-            setTimeout(() => dismissNotification(id), 8000);
-
-            // Play sound if enabled (optional)
-            // playNotificationSound(options.severity);
-        }
-
-        function dismissNotification(id) {
-            const notification = document.getElementById(id);
-            if (notification) {
-                notification.classList.add('hiding');
-                setTimeout(() => notification.remove(), 300);
-            }
-        }
-
-        function getSeverityIcon(severity) {
-            const icons = {
-                'error': '🔴',
-                'warning': '🟠',
-                'success': '🟢',
-                'info': '🔵'
-            };
-            return icons[severity] || icons.info;
-        }
-
-        // Initialize WebSocket on page load
-        initWebSocket();
-
-        // Reconnect WebSocket when page becomes visible
-        document.addEventListener("visibilitychange", () => {
-            if (!document.hidden && (!wsConnection || wsConnection.readyState !== WebSocket.OPEN)) {
-                wsReconnectAttempts = 0;
-                initWebSocket();
-            }
-        });
-
-        // Global dashboard state
-        window.KusanagiDashboard = {
-            activeTab: 'argocd'
-        };
-
-        // === TABLE MANAGER (Sort & Search) ===
-        const TableManager = {
-            // Store table data for filtering/sorting
-            tables: {},
-
-            // Initialize a searchable/sortable table
-            init(tableId, data, renderFn, columns) {
-                this.tables[tableId] = {
-                    data: data,
-                    filtered: [...data],
-                    renderFn: renderFn,
-                    columns: columns,
-                    sortCol: null,
-                    sortDir: 'asc',
-                    searchTerm: ''
-                };
-            },
-
-            // Create search input HTML
-            createSearchInput(tableId, placeholder = 'Search...') {
-                return `
-                    <div class="table-search">
-                        <input type="text" 
-                               class="search-input" 
-                               id="search-${tableId}" 
-                               placeholder="${placeholder}"
-                               oninput="TableManager.search('${tableId}', this.value)">
-                        <span class="search-icon">🔍</span>
-                    </div>
-                `;
-            },
-
-            // Create sortable header
-            createSortableHeader(tableId, columns) {
-                return columns.map((col, idx) => {
-                    const table = this.tables[tableId];
-                    const isSorted = table && table.sortCol === col.key;
-                    const sortIcon = isSorted ? (table.sortDir === 'asc' ? '▲' : '▼') : '⇅';
-                    return `<th class="sortable" onclick="TableManager.sort('${tableId}', '${col.key}')">${col.label} <span class="sort-icon">${sortIcon}</span></th>`;
-                }).join('');
-            },
-
-            // Search/filter function
-            search(tableId, term) {
-                const table = this.tables[tableId];
-                if (!table) return;
-
-                table.searchTerm = term.toLowerCase();
-                table.filtered = table.data.filter(item => {
-                    return Object.values(item).some(val =>
-                        String(val).toLowerCase().includes(table.searchTerm)
-                    );
-                });
-
-                table.renderFn(table.filtered);
-            },
-
-            // Sort function
-            sort(tableId, column) {
-                const table = this.tables[tableId];
-                if (!table) return;
-
-                // Toggle direction if same column
-                if (table.sortCol === column) {
-                    table.sortDir = table.sortDir === 'asc' ? 'desc' : 'asc';
-                } else {
-                    table.sortCol = column;
-                    table.sortDir = 'asc';
-                }
-
-                table.filtered.sort((a, b) => {
-                    let valA = a[column];
-                    let valB = b[column];
-
-                    // Handle null/undefined
-                    if (valA == null) valA = '';
-                    if (valB == null) valB = '';
-
-                    // Check if numeric
-                    const numA = parseFloat(valA);
-                    const numB = parseFloat(valB);
-
-                    if (!isNaN(numA) && !isNaN(numB)) {
-                        return table.sortDir === 'asc' ? numA - numB : numB - numA;
-                    }
-
-                    // String comparison
-                    const strA = String(valA).toLowerCase();
-                    const strB = String(valB).toLowerCase();
-
-                    if (table.sortDir === 'asc') {
-                        return strA.localeCompare(strB);
-                    } else {
-                        return strB.localeCompare(strA);
-                    }
-                });
-
-                table.renderFn(table.filtered);
-            }
-        };
-
-        // === TAB NAVIGATION ===
-        function switchTab(tabName) {
-            // Track tab switch with RUM
-            if (window.KusanagiRUM) {
-                window.KusanagiRUM.trackTabSwitch(tabName);
-            }
-
-            // Update buttons
-            document.querySelectorAll(".tab-btn").forEach(btn => {
-                btn.classList.remove("active");
-                if (btn.dataset.tab === tabName) {
-                    btn.classList.add("active");
-                }
-            });
-
-            // Update content
-            document.querySelectorAll(".tab-content").forEach(section => {
-                if (section.dataset.tab === tabName) {
-                    section.style.display = "block";
-                } else {
-                    section.style.display = "none";
-                }
-            });
-
-            // Update active tab tracking
-            if (window.KusanagiDashboard) {
-                window.KusanagiDashboard.activeTab = tabName;
-            }
-
-            // Load data for specific tabs
-            if (tabName === "proxmox" && window.ProxmoxDashboard) {
-                ProxmoxDashboard.init();
-            } else if (tabName === "homeassistant" && window.HomeAssistantDashboard) {
-                HomeAssistantDashboard.init();
-            } else if (tabName === "weather" && window.WeatherDashboard) {
-                WeatherDashboard.init();
-            } else if (tabName === "calendar" && window.CalendarDashboard) {
-                CalendarDashboard.init();
-            } else if (tabName === "security" && window.SecurityDashboard) {
-                SecurityDashboard.init();
-            }
-        }
-
-        /**
-         * Centralized refresh function for all Kusanagi data
-         */
+        // Global refresh trigger that uses modules
         function refreshAllKusanagiData() {
             console.log("🔄 Global Kusanagi refresh triggered...");
 
@@ -1600,17 +1160,9 @@
             if (typeof fetchStorageStatus === 'function') fetchStorageStatus();
             if (typeof fetchServices === 'function') fetchServices();
             if (typeof fetchIngress === 'function') fetchIngress();
-            if (typeof fetchAppsWithResources === 'function') fetchAppsWithResources();
-
-            // Component Managers
-            if (window.MetricsManager && MetricsManager.init) MetricsManager.init();
-            if (window.AlertsManager && AlertsManager.init) AlertsManager.init();
-            if (window.NewsManager && NewsManager.fetchNews) NewsManager.fetchNews();
-            if (window.QuotasManager && QuotasManager.fetchQuotas) QuotasManager.fetchQuotas();
-            if (window.MqttManager && MqttManager.fetchInitialData) MqttManager.fetchInitialData();
 
             // Refresh current active tab if it's a dashboard
-            const activeTab = window.KusanagiDashboard ? KusanagiDashboard.activeTab : null;
+            const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
             if (activeTab && typeof switchTab === 'function') {
                 switchTab(activeTab);
             }
@@ -1757,7 +1309,7 @@
                         </td>
                     ` : `<td class="error-message" title="${app.message || ''}">${app.message || '-'}</td>`}
                 </tr>
-            `;
+                `;
         }
 
         function updateIssuesTable(issues) {
@@ -1785,7 +1337,7 @@
                         ${issues.map(app => renderAppRow(app, false)).join('')}
                     </tbody>
                 </table>
-            `;
+                `;
             container.innerHTML = table;
         }
 
@@ -1814,7 +1366,7 @@
                         ${upgrades.map(app => renderAppRow(app, true)).join('')}
                     </tbody>
                 </table>
-            `;
+                `;
             container.innerHTML = table;
         }
 
@@ -1866,15 +1418,6 @@
         let storageSortField = 'usage_percent';
         let storageSortDir = 'desc';
 
-        // Initial fetch
-        fetchArgoStatus();
-        fetchNodesStatus();
-        fetchPodsStatus();
-
-        // Refresh every 30 seconds
-        setInterval(fetchArgoStatus, 30000);
-        setInterval(fetchNodesStatus, 30000);
-        setInterval(fetchPodsStatus, 30000);
 
         // === PODS ERROR MONITORING ===
         async function fetchPodsStatus() {
@@ -1951,7 +1494,7 @@
                         ${renderPodsRows(pods)}
                     </tbody>
                 </table>
-            `;
+                `;
             container.innerHTML = table;
         }
 
@@ -1986,7 +1529,7 @@
                         </div>
                     </td>
                 </tr>
-            `).join('');
+                `).join('');
         }
 
 
@@ -2084,10 +1627,10 @@
                 console.error('Nodes error:', error);
                 document.getElementById('nodes-container').innerHTML =
                     `<div class="error-state">
-                        <span class="error-icon">⚠️</span>
-                        <p>Failed to fetch nodes: ${error.message}</p>
-                        <button onclick="fetchNodesStatus()" class="retry-btn">Retry</button>
-                    </div>`;
+                    <span class="error-icon">⚠️</span>
+                    <p>Failed to fetch nodes: ${error.message}</p>
+                    <button onclick="fetchNodesStatus()" class="retry-btn">Retry</button>
+                </div>`;
                 document.getElementById('nodes-diagnostic-tool').style.display = 'block';
             }
         }
@@ -2167,59 +1710,59 @@
                 const memDisplay = node.memory_usage_percent != null ? `${node.memory_usage_percent.toFixed(1)}%` : 'N/A';
 
                 return `
-                    <div class="node-card ${statusClass} ${node.pods_in_error > 0 ? 'has-errors' : ''}">
-                        <div class="node-header">
-                            <div class="node-title">
-                                <span class="node-name">${node.name}</span>
-                                <span class="node-type">${nodeType}</span>
-                            </div>
-                            <span class="arch-badge ${archClass}">${node.architecture}</span>
+                <div class="node-card ${statusClass} ${node.pods_in_error > 0 ? 'has-errors' : ''}">
+                    <div class="node-header">
+                        <div class="node-title">
+                            <span class="node-name">${node.name}</span>
+                            <span class="node-type">${nodeType}</span>
                         </div>
-                        
-                        <div class="node-resources">
-                            <div class="resource-row">
-                                <span class="resource-icon">⚡</span>
-                                <span class="resource-label">CPU</span>
-                                <div class="pod-bar-container" title="Capacity: ${node.cpu_capacity} cores">
-                                    <div class="pod-bar ${cpuBarClass}" style="width: ${Math.min(cpuPercent, 100)}%"></div>
-                                    <span class="pod-text">${cpuDisplay}</span>
-                                </div>
-                            </div>
-                            <div class="resource-row">
-                                <span class="resource-icon">🧠</span>
-                                <span class="resource-label">RAM</span>
-                                <div class="pod-bar-container" title="Allocatable: ${node.memory_allocatable}">
-                                    <div class="pod-bar ${memBarClass}" style="width: ${Math.min(memPercent, 100)}%"></div>
-                                    <span class="pod-text">${memDisplay}</span>
-                                </div>
-                            </div>
-                            <div class="resource-row pods-row">
-                                <span class="resource-icon">📦</span>
-                                <span class="resource-label">Pods</span>
-                                <div class="pod-bar-container">
-                                    <div class="pod-bar ${podBarClass}" style="width: ${Math.min(podPercent, 100)}%"></div>
-                                    <span class="pod-text">${node.pod_count}/${node.pod_capacity}</span>
-                                </div>
-                            </div>
-                        </div>
+                        <span class="arch-badge ${archClass}">${node.architecture}</span>
+                    </div>
 
-                        <div class="node-uptime">
-                            <span class="uptime-icon">⏱</span>
-                            <span class="uptime-value">${node.uptime || 'Unknown'}</span>
+                    <div class="node-resources">
+                        <div class="resource-row">
+                            <span class="resource-icon">⚡</span>
+                            <span class="resource-label">CPU</span>
+                            <div class="pod-bar-container" title="Capacity: ${node.cpu_capacity} cores">
+                                <div class="pod-bar ${cpuBarClass}" style="width: ${Math.min(cpuPercent, 100)}%"></div>
+                                <span class="pod-text">${cpuDisplay}</span>
+                            </div>
                         </div>
+                        <div class="resource-row">
+                            <span class="resource-icon">🧠</span>
+                            <span class="resource-label">RAM</span>
+                            <div class="pod-bar-container" title="Allocatable: ${node.memory_allocatable}">
+                                <div class="pod-bar ${memBarClass}" style="width: ${Math.min(memPercent, 100)}%"></div>
+                                <span class="pod-text">${memDisplay}</span>
+                            </div>
+                        </div>
+                        <div class="resource-row pods-row">
+                            <span class="resource-icon">📦</span>
+                            <span class="resource-label">Pods</span>
+                            <div class="pod-bar-container">
+                                <div class="pod-bar ${podBarClass}" style="width: ${Math.min(podPercent, 100)}%"></div>
+                                <span class="pod-text">${node.pod_count}/${node.pod_capacity}</span>
+                            </div>
+                        </div>
+                    </div>
 
-                        ${node.pods_in_error > 0 ? `
+                    <div class="node-uptime">
+                        <span class="uptime-icon">⏱</span>
+                        <span class="uptime-value">${node.uptime || 'Unknown'}</span>
+                    </div>
+
+                    ${node.pods_in_error > 0 ? `
                             <div class="node-errors">
                                 <div class="error-header">⚠️ ${node.pods_in_error} pod${node.pods_in_error > 1 ? 's' : ''} in error</div>
                                 <div class="error-pods">${node.error_pod_names.map(p => `<span class="error-pod">${p}</span>`).join('')}</div>
                             </div>
                         ` : ''}
 
-                        <div class="node-footer">
-                            <span class="footer-item" title="${node.kernel_version}">${node.container_runtime.split('://')[0]}</span>
-                            <span class="footer-item">${node.kubelet_version}</span>
-                        </div>
+                    <div class="node-footer">
+                        <span class="footer-item" title="${node.kernel_version}">${node.container_runtime.split('://')[0]}</span>
+                        <span class="footer-item">${node.kubelet_version}</span>
                     </div>
+                </div>
                 `;
             }).join('');
 
@@ -2346,7 +1889,7 @@
                         `}).join('')}
                     </tbody>
                 </table>
-                
+
                 <!-- Pagination Controls -->
                 <div class="pagination-controls">
                     <button ${storagePage === 1 ? 'disabled' : ''} onclick="changeStoragePage(-1)" class="page-btn">◀</button>
@@ -2358,7 +1901,7 @@
                         <option value="50" ${storagePerPage === 50 ? 'selected' : ''}>50</option>
                     </select>
                 </div>
-            `;
+                `;
             container.innerHTML = table;
         }
 
@@ -2486,7 +2029,7 @@
                         <button class="cyber-btn" onclick="changeEventsPage(1)" ${data.page >= data.total_pages ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''}>NEXT</button>
                     </div>
                 </div>
-            `;
+                `;
             container.innerHTML = table;
         }
 
@@ -2555,7 +2098,7 @@
             }).join('')}
                     </tbody>
                 </table>
-            `;
+                `;
             container.innerHTML = table;
         }
 
@@ -2583,9 +2126,9 @@
             } catch (error) {
                 console.error('Error fetching services:', error);
                 document.getElementById('services-content').innerHTML = `
-                    <div class="error-state">
-                        Failed to load services data: ${error.message}
-                    </div>
+                <div class="error-state">
+                    Failed to load services data: ${error.message}
+                </div>
                 `;
             }
         }
@@ -2606,7 +2149,7 @@
                         <span class="tab-icon">❌</span>
                     </button>
                 </div>
-            `;
+                `;
 
             const columns = [
                 { key: 'name', label: 'Name' },
@@ -2623,13 +2166,13 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                             ${TableManager.createSortableHeader('services', columns)}
+                            ${TableManager.createSortableHeader('services', columns)}
                         </tr>
                     </thead>
                     <tbody id="services-table-body">
                     </tbody>
                 </table>
-            `;
+                `;
 
             container.innerHTML = tableHtml;
 
@@ -2656,7 +2199,7 @@
                     <td>${svc.ports}</td>
                     <td>${svc.age}</td>
                 </tr>
-            `).join('');
+                `).join('');
         }
 
         function toggleLoadBalancerFilter() {
@@ -2690,9 +2233,9 @@
             } catch (error) {
                 console.error('Error fetching ingress:', error);
                 document.getElementById('ingress-content').innerHTML = `
-                    <div class="error-state">
-                        Failed to load ingress data: ${error.message}
-                    </div>
+                <div class="error-state">
+                    Failed to load ingress data: ${error.message}
+                </div>
                 `;
             }
         }
