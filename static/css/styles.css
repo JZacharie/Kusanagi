@@ -403,11 +403,27 @@ header.header {
     min-width: 0;
     /* Prevent flex overflow */
     width: 100%;
+    max-width: 100%;
     transition: width 0.3s ease;
 }
 
 .main-content.expanded {
     width: 100%;
+}
+
+/* ArgoCD Stats Grid */
+.argocd-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+/* Ensure sections use full width */
+.argocd-section {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Alerts Section */
