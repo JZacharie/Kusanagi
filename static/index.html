@@ -340,8 +340,8 @@
         <h2 class="section-title">🖥️ Cluster Nodes</h2>
 
         <!-- Node Stats Grid -->
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
+        <div class="argocd-stats" id="node-stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box info">
                 <div class="stat-value" id="node-total">-</div>
                 <div class="stat-label">Total Nodes</div>
             </div>
@@ -379,8 +379,8 @@
     <section class="argocd-section tab-content" data-tab="storage" style="display: none;">
         <h2 class="section-title">💾 Storage (PVCs)</h2>
 
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
+        <div class="argocd-stats" id="storage-stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box info">
                 <div class="stat-value" id="pvc-total-count">-</div>
                 <div class="stat-label">Total PVCs</div>
             </div>
@@ -442,8 +442,8 @@
     <section class="argocd-section tab-content" data-tab="events" style="display: none;">
         <h2 class="section-title">🔔 Kubernetes Events (Last Hour)</h2>
 
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
+        <div class="argocd-stats" id="events-stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box info">
                 <div class="stat-value" id="events-total">-</div>
                 <div class="stat-label">Total Events</div>
             </div>
@@ -492,8 +492,8 @@
     <section class="argocd-section tab-content" data-tab="pods" style="display: none;">
         <h2 class="section-title">🐳 Pods in Error</h2>
 
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
+        <div class="argocd-stats" id="pods-stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box info">
                 <div class="stat-value" id="pods-total">-</div>
                 <div class="stat-label">Total Pods</div>
             </div>
@@ -554,8 +554,8 @@
         <h2 class="section-title">📰 Tech News Feed</h2>
 
         <!-- News Stats -->
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
+        <div class="argocd-stats" id="news-stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box info">
                 <div class="stat-value" id="news-total">-</div>
                 <div class="stat-label">Total News</div>
             </div>
@@ -623,8 +623,8 @@
     <section class="argocd-section tab-content" data-tab="backups" style="display: none;">
         <h2 class="section-title">📦 Backup Jobs Status</h2>
 
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box">
+        <div class="argocd-stats" id="backups-stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-box info">
                 <div class="stat-value" id="backup-cronjobs">-</div>
                 <div class="stat-label">CronJobs</div>
             </div>
