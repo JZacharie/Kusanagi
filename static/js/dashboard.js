@@ -1234,6 +1234,59 @@ async function exportAlertsForAgent() {
 
 window.exportAlertsForAgent = exportAlertsForAgent;
 
+/**
+ * Switch dashboard tab
+ * @param {string} tabId - The data-tab ID to switch to
+ */
+window.switchTab = function (tabId) {
+    console.log('Switching to tab:', tabId);
+
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(el => {
+        el.style.display = 'none';
+        el.classList.remove('active');
+    });
+
+    // Show selected tab content
+    const selectedTab = document.querySelector(`.tab-content[data-tab="${tabId}"]`);
+    if (selectedTab) {
+        selectedTab.style.display = 'block';
+        selectedTab.classList.add('active');
+    } else {
+        console.warn(`Tab content not found for: ${tabId}`);
+    }
+
+    // Update button states
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    const selectedBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('active');
+    }
+
+    // Persist selection
+    localStorage.setItem('kusanagi_active_tab', tabId);
+
+    // Close sidebar on mobile if open
+    if (window.innerWidth <= 768 && window.SidebarManager) {
+        window.SidebarManager.toggle(false);
+    }
+};
+
+// Restore last active tab on load
+document.addEventListener('DOMContentLoaded', () => {
+    const lastTab = localStorage.getItem('kusanagi_active_tab');
+    if (lastTab) {
+        // Check if tab still exists/is enabled
+        const tabBtn = document.querySelector(`.tab-btn[data-tab="${lastTab}"]`);
+        if (tabBtn && tabBtn.style.display !== 'none') {
+            window.switchTab(lastTab);
+        }
+    }
+});
+
 // Global functions for HTML onclick handlers
 window.fetchNews = () => NewsManager.fetchNews();
 window.filterNews = (source) => NewsManager.filterBySource(source);
