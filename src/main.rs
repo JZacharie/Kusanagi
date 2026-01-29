@@ -541,7 +541,14 @@ async fn export_alerts_endpoint(data: web::Data<AppState>, query: web::Query<Exp
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
-    tracing_subscriber::fmt::init();
+    
+    // Configure logging with a default level of 'warn' if RUST_LOG is not set
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn"));
+        
+    tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .init();
 
     info!("Starting Kusanagi server on port 8080");
     info!("Access the cyberpunk interface at http://localhost:8080");

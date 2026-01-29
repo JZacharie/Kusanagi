@@ -342,7 +342,14 @@ const MetricsManager = {
         try {
             const response = await fetch('/api/prometheus/metrics');
             if (!response.ok) {
-                throw new Error('Failed to fetch metrics');
+                let errorMsg = `Server returned ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData.error) errorMsg = errorData.error;
+                } catch (e) {
+                    // Not JSON, use status
+                }
+                throw new Error(errorMsg);
             }
 
             const metrics = await response.json();
