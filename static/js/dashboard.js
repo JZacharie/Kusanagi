@@ -1250,12 +1250,34 @@ if (typeof window !== 'undefined') {
     window.QuotasManager = QuotasManager;
     window.NewsManager = NewsManager;
 
+    window.DashboardManager = DashboardManager;
+    window.MetricsManager = MetricsManager;
+    window.AlertsManager = AlertsManager;
+    window.QuotasManager = QuotasManager;
+    window.NewsManager = NewsManager;
+
     document.addEventListener('DOMContentLoaded', () => {
+        // Initialize Core UI systems first
+        if (window.LocaleManager) LocaleManager.init();
+        if (window.ThemeManager) ThemeManager.init();
+
+        // Initialize Feature Managers
         DashboardManager.init();
-        // Initialize other managers as needed
         MetricsManager.init();
         AlertsManager.init();
         QuotasManager.init();
         NewsManager.init();
+
+        // Initialize Specialized Managers
+        if (window.K8sManager) K8sManager.init();
+        if (window.ProxmoxDashboard) ProxmoxDashboard.init();
+        if (window.HomeAssistantDashboard) HomeAssistantDashboard.init();
+        if (window.CalendarManager) CalendarManager.init();
+        if (window.WeatherManager) WeatherManager.init();
+        if (window.MqttManager) MqttManager.init();
+        if (window.SecurityManager) SecurityManager.init();
+        if (window.NetworkManager) NetworkManager.init();
+        if (window.SetupManager) SetupManager.init();
     });
 }
+

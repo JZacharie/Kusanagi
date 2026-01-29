@@ -15,30 +15,37 @@
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&family=Rajdhani:wght@500;700&display=swap"
         rel="stylesheet">
     <link rel="icon" href="/static/images/logo.png">
-    <script src="/static/js/theme.js"></script>
 
-    <!-- OpenObserve RUM & Logs SDK via jsDelivr CDN -->
+    <!-- Core UI & Utilities -->
+    <script src="/static/js/theme.js"></script>
+    <script src="/static/js/utils.js"></script>
+
+    <!-- OpenObserve RUM & Logs SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@openobserve/browser-rum@0.3.1/bundle/openobserve-rum.min.js"
         crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@openobserve/browser-logs@0.3.1/bundle/openobserve-logs.min.js"
         crossorigin="anonymous"></script>
-    <!-- RUM (Real User Monitoring) - Must load after OpenObserve SDK -->
     <script src="/static/js/rum.js"></script>
-    <!-- API Performance Tracking -->
+
+    <!-- Monitoring & Infrastructure Modules -->
     <script src="/static/js/api-tracker.js"></script>
-    <!-- Error Boundary Integration -->
     <script src="/static/js/error-boundary.js"></script>
-    <script src="/static/js/network.js"></script>
-    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/core.js"></script>
+    <script src="/static/js/k8s.js"></script>
     <script src="/static/js/proxmox.js"></script>
     <script src="/static/js/homeassistant.js"></script>
     <script src="/static/js/weather.js"></script>
     <script src="/static/js/calendar.js"></script>
     <script src="/static/js/calendar_oauth.js"></script>
     <script src="/static/js/security.js"></script>
+    <script src="/static/js/network.js"></script>
     <script src="/static/js/mqtt.js"></script>
     <script src="/static/js/setup.js"></script>
+
+    <!-- Main Orchestrator -->
+    <script src="/static/js/dashboard.js"></script>
 </head>
+
 
 <body>
     <!-- Background Effects -->
@@ -192,11 +199,9 @@
                 <span class="tab-icon">🌐</span> Network
             </button>
             <button class="tab-btn" data-tab="nodes" onclick="switchTab('nodes')">
-                <span class="tab-icon">
-                    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <span class="tab-icon">🖥️</span> <span data-i18n="tab_nodes">Nodes</span>
+                <span class="tab-icon">🖥️</span> <span data-i18n="tab_nodes">Nodes</span>
             </button>
+
             <button class="tab-btn" data-tab="storage" onclick="switchTab('storage')">
                 <span class="tab-icon">💾</span> <span data-i18n="tab_storage">Storage</span>
             </button>
@@ -289,9 +294,6 @@
             </div>
         </div>
     </div>
-
-
-
 
     <!-- ArgoCD Status Section -->
     <section class="argocd-section tab-content active" data-tab="argocd">
@@ -922,11 +924,10 @@
         </div>
     </section>
 
-    + <!-- MQTT Section -->
-    + <section class="argocd-section tab-content" data-tab="mqtt" style="display: none;">
-        + <h2 class="section-title">📡 MQTT Device Hub & Message Flux</h2>
-        +
-        + <div class="stats-grid" style="margin-bottom: 1.5rem;">
+    <!-- MQTT Section -->
+    <section class="argocd-section tab-content" data-tab="mqtt" style="display: none;">
+        <h2 class="section-title">📡 MQTT Device Hub & Message Flux</h2>
+        <div class="stats-grid" style="margin-bottom: 1.5rem;">
             + <div class="stat-box info">
                 + <div class="stat-value" id="mqtt-device-count">-</div>
                 + <div class="stat-label">Detected Devices</div>
@@ -977,10 +978,9 @@
                     + </div>
                 + </div>
             + </div>
-        + </section>
-    +
-    <!-- Proxmox Section -->
+    </section>
 
+    <!-- Proxmox Section -->
     <section class="argocd-section tab-content" data-tab="proxmox" style="display: none;">
         <h2 class="section-title">🖥️ Proxmox Infrastructure</h2>
 
@@ -1108,6 +1108,169 @@
         </div>
     </section>
 
+    <!-- Documentation Section -->
+    <section class="argocd-section tab-content" data-tab="docs" style="display: none;">
+        <h2 class="section-title">📖 Kusanagi Documentation</h2>
+
+        <div class="stats-grid" style="margin-bottom: 2rem;">
+            <div class="stat-box info" style="grid-column: span 3; padding: 2rem;">
+                <h3 style="color: var(--neon-cyan); margin-top: 0;">🎯 Notre Vision</h3>
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <img src="https://minio-170-api.zacharie.org/kusanagi-docs/vision.png" alt="Vision Kusanagi"
+                        style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 255, 249, 0.3);">
+                </div>
+                <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.9;">
+                    Kusanagi est une plateforme d'observabilité et d'auto-remédiation pour Kubernetes,
+                    inspirée par l'univers de <em>Ghost in the Shell</em>.
+                    Notre mission est de fournir une interface cybernétique unifiée pour surveiller et
+                    gérer votre infrastructure K8s avec une efficacité et une élégance totales.
+                </p>
+            </div>
+        </div>
+
+        <div class="issues-table-container" style="border-color: var(--neon-magenta);">
+            <div class="issues-table-header"
+                style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+                <span class="issues-table-title" style="color: var(--neon-magenta);">📚 Améliorations &
+                    Ressources</span>
+            </div>
+            <div style="padding: 1.5rem;">
+                <p style="margin-bottom: 1.5rem;">Découvrez comment Kusanagi améliore la gestion de vos systèmes grâce à
+                    ces documents :</p>
+                <div class="grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                    <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
+                        <h4 style="color: var(--neon-blue);">🚀 GitOps Progressive Delivery</h4>
+                        <p style="font-size: 0.9rem; opacity: 0.7;">Stratégies pour un déploiement continu et une
+                            résilience accrue.</p>
+                        <a href="https://minio-170-api.zacharie.org/kusanagi-docs/GitOps_Progressive_Delivery.pdf"
+                            target="_blank" class="cyber-btn" style="margin-top: 1rem; display: inline-block;">Ouvrir le
+                            PDF</a>
+                    </div>
+                    <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
+                        <h4 style="color: var(--neon-green);">🔄 GitOps DevOps: Next Evolution</h4>
+                        <p style="font-size: 0.9rem; opacity: 0.7;">L'évolution vers l'automatisation totale du cycle de
+                            vie du cluster.</p>
+                        <a href="https://minio-170-api.zacharie.org/kusanagi-docs/GitOps_DevOps_Next_Evolution.pdf"
+                            target="_blank" class="cyber-btn" style="margin-top: 1rem; display: inline-block;">Ouvrir le
+                            PDF</a>
+                    </div>
+                    <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
+                        <h4 style="color: var(--neon-yellow);">🎬 Ghost Machine Cinema</h4>
+                        <p style="font-size: 0.9rem; opacity: 0.7;">L'inspiration esthétique et philosophique derrière
+                            l'interface.</p>
+                        <a href="https://minio-170-api.zacharie.org/kusanagi-docs/Ghost_Machine_Cinema.pdf"
+                            target="_blank" class="cyber-btn" style="margin-top: 1rem; display: inline-block;">Ouvrir le
+                            PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Evolution Section -->
+    <section class="argocd-section tab-content" data-tab="evolution" style="display: none;">
+        <h2 class="section-title">🚀 Kusanagi Evolution</h2>
+
+        <div class="stats-grid" style="margin-bottom: 2rem;">
+            <div class="stat-box info"
+                style="grid-column: span 3; padding: 2rem; border-color: var(--neon-blue); background: rgba(0, 255, 249, 0.05);">
+                <h3 style="color: var(--neon-cyan); margin-top: 0; display: flex; align-items: center; gap: 0.75rem;">
+                    <span class="mdi mdi-github" style="font-size: 1.5rem;"></span>
+                    Continuous Integration & Deployment
+                </h3>
+                <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.9; margin-bottom: 2rem;">
+                    Suivez en temps réel l'évolution technique de Kusanagi. Chaque modification du code source déclenche
+                    un cycle complet de vérification, de build et de déploiement automatique.
+                </p>
+                <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                    <div
+                        style="flex: 1; min-width: 250px; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h4 style="color: var(--neon-green); margin-top: 0;">🛠️ Build & Analysis</h4>
+                        <p style="font-size: 0.9rem; opacity: 0.7;">Compilation du backend Rust, validation du frontend
+                            et analyse de la qualité du code.</p>
+                    </div>
+                    <div
+                        style="flex: 1; min-width: 250px; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h4 style="color: var(--neon-magenta); margin-top: 0;">📦 Containerization</h4>
+                        <p style="font-size: 0.9rem; opacity: 0.7;">Création et publication automatique des images
+                            Docker sur le registre Kusanagi.</p>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 2.5rem;">
+                    <a href="https://github.com/JZacharie/Kusanagi/actions" target="_blank" class="cyber-btn"
+                        style="padding: 1rem 3rem; font-size: 1.2rem;">
+                        <span class="mdi mdi-open-in-new"></span> VOIR SUR GITHUB ACTIONS
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MQTT Logs Modal -->
+    <section class="argocd-section tab-content" data-tab="mqtt" style="display: none;">
+        <div id="mqtt-logs-modal" class="cyber-modal" style="display: none;">
+            <div class="cyber-modal-content" style="max-width: 90%; width: 1000px; max-height: 80vh;">
+                <div class="cyber-modal-header">
+                    <h3>📡 MQTT Real-time Logs (Last 30)</h3>
+                    <span class="cyber-modal-close" onclick="MqttManager.closeLogsModal()">&times;</span>
+                </div>
+                <div class="cyber-modal-body"
+                    style="background: rgba(0, 0, 0, 0.8); padding: 1rem; border: 1px solid var(--neon-magenta);">
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                        <button class="cyber-btn" style="padding: 5px 15px;"
+                            onclick="MqttManager.renderLogsModalContent()">🔄
+                            Refresh</button>
+                    </div>
+                    <div id="mqtt-modal-log-content"
+                        style="height: 50vh; overflow-y: auto; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; margin: 0;">
+                        <!-- MQTT log lines go here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pod Logs Modal -->
+    <section class="argocd-section tab-content" data-tab="logs" style="display: none;">
+        <div id="logs-modal" class="cyber-modal" style="display: none;">
+            <div class="cyber-modal-content" style="max-width: 90%; width: 1000px; max-height: 80vh;">
+                <div class="cyber-modal-header">
+                    <h3 id="logs-modal-title">📄 Pod Logs: Unknown</h3>
+                    <span class="cyber-modal-close" onclick="LogsManager.closeModal()">&times;</span>
+                </div>
+                <div class="cyber-modal-body"
+                    style="background: rgba(0, 0, 0, 0.8); padding: 1rem; border: 1px solid var(--neon-blue);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <div>
+                            <span class="stat-label">Lines: </span>
+                            <select id="log-tail-select" class="cyber-input" style="width: 100px; padding: 2px 5px;"
+                                onchange="LogsManager.refreshLogs()">
+                                <option value="100">100</option>
+                                <option value="500">500</option>
+                                <option value="1000">1000</option>
+                            </select>
+                        </div>
+                        <button class="cyber-btn" style="padding: 5px 15px;" onclick="LogsManager.refreshLogs()">🔄
+                            Refresh</button>
+                    </div>
+                    <pre id="log-content"
+                        style="height: 50vh; overflow-y: auto; color: #fff; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 0; white-space: pre-wrap;"></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Home Assistant Detail Modal -->
+    <section class="argocd-section tab-content" data-tab="ha" style="display: none;">
+        <div id="ha-detail-modal">
+            <div class="ha-modal-content">
+                <button class="ha-modal-close" onclick="HomeAssistantDashboard.closeDetail()">&times;</button>
+                <div id="ha-modal-body"></div>
+            </div>
+        </div>
+    </section>
+
     <!-- Footer -->
     <footer class="footer">
         <p class="footer-quote">"Your effort to remain what you are is what limits you."</p>
@@ -1130,7 +1293,6 @@
     <script src="/static/js/network.js"></script>
     <script src="/static/js/setup.js"></script>
     <script src="/static/js/mqtt.js"></script>
-
     <script>
         // Global refresh trigger that uses modules
         function refreshAllKusanagiData() {
@@ -2346,160 +2508,7 @@
             }
         }, 300000);
     </script>
-    <!-- Pod Logs Modal -->
-    <div id="logs-modal" class="cyber-modal" style="display: none;">
-        <div class="cyber-modal-content" style="max-width: 90%; width: 1000px; max-height: 80vh;">
-            <div class="cyber-modal-header">
-                <h3 id="logs-modal-title">📄 Pod Logs: Unknown</h3>
-                <span class="cyber-modal-close" onclick="LogsManager.closeModal()">&times;</span>
-            </div>
-            <div class="cyber-modal-body"
-                style="background: rgba(0, 0, 0, 0.8); padding: 1rem; border: 1px solid var(--neon-blue);">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
-                    <div>
-                        <span class="stat-label">Lines: </span>
-                        <select id="log-tail-select" class="cyber-input" style="width: 100px; padding: 2px 5px;"
-                            onchange="LogsManager.refreshLogs()">
-                            <option value="100">100</option>
-                            <option value="500">500</option>
-                            <option value="1000">1000</option>
-                        </select>
-                    </div>
-                    <button class="cyber-btn" style="padding: 5px 15px;" onclick="LogsManager.refreshLogs()">🔄
-                        Refresh</button>
-                </div>
-                <pre id="log-content"
-                    style="height: 50vh; overflow-y: auto; color: #fff; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 0; white-space: pre-wrap;"></pre>
-            </div>
-        </div>
-    </div>
-    <!-- Documentation Section -->
-    <section class="argocd-section tab-content" data-tab="docs" style="display: none;">
-        <h2 class="section-title">📖 Kusanagi Documentation</h2>
 
-        <div class="stats-grid" style="margin-bottom: 2rem;">
-            <div class="stat-box info" style="grid-column: span 3; padding: 2rem;">
-                <h3 style="color: var(--neon-cyan); margin-top: 0;">🎯 Notre Vision</h3>
-                <div style="text-align: center; margin-bottom: 2rem;">
-                    <img src="https://minio-170-api.zacharie.org/kusanagi-docs/vision.png" alt="Vision Kusanagi"
-                        style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 255, 249, 0.3);">
-                </div>
-                <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.9;">
-                    Kusanagi est une plateforme d'observabilité et d'auto-remédiation pour Kubernetes,
-                    inspirée par l'univers de <em>Ghost in the Shell</em>.
-                    Notre mission est de fournir une interface cybernétique unifiée pour surveiller et
-                    gérer votre infrastructure K8s avec une efficacité et une élégance totales.
-                </p>
-            </div>
-        </div>
-
-        <div class="issues-table-container" style="border-color: var(--neon-magenta);">
-            <div class="issues-table-header"
-                style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-                <span class="issues-table-title" style="color: var(--neon-magenta);">📚 Améliorations &
-                    Ressources</span>
-            </div>
-            <div style="padding: 1.5rem;">
-                <p style="margin-bottom: 1.5rem;">Découvrez comment Kusanagi améliore la gestion de vos systèmes grâce à
-                    ces documents :</p>
-                <div class="grid"
-                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
-                    <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
-                        <h4 style="color: var(--neon-blue);">🚀 GitOps Progressive Delivery</h4>
-                        <p style="font-size: 0.9rem; opacity: 0.7;">Stratégies pour un déploiement continu et une
-                            résilience accrue.</p>
-                        <a href="https://minio-170-api.zacharie.org/kusanagi-docs/GitOps_Progressive_Delivery.pdf"
-                            target="_blank" class="cyber-btn" style="margin-top: 1rem; display: inline-block;">Ouvrir le
-                            PDF</a>
-                    </div>
-                    <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
-                        <h4 style="color: var(--neon-green);">🔄 GitOps DevOps: Next Evolution</h4>
-                        <p style="font-size: 0.9rem; opacity: 0.7;">L'évolution vers l'automatisation totale du cycle de
-                            vie du cluster.</p>
-                        <a href="https://minio-170-api.zacharie.org/kusanagi-docs/GitOps_DevOps_Next_Evolution.pdf"
-                            target="_blank" class="cyber-btn" style="margin-top: 1rem; display: inline-block;">Ouvrir le
-                            PDF</a>
-                    </div>
-                    <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
-                        <h4 style="color: var(--neon-yellow);">🎬 Ghost Machine Cinema</h4>
-                        <p style="font-size: 0.9rem; opacity: 0.7;">L'inspiration esthétique et philosophique derrière
-                            l'interface.</p>
-                        <a href="https://minio-170-api.zacharie.org/kusanagi-docs/Ghost_Machine_Cinema.pdf"
-                            target="_blank" class="cyber-btn" style="margin-top: 1rem; display: inline-block;">Ouvrir le
-                            PDF</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-    <!-- Evolution Section -->
-    <section class="argocd-section tab-content" data-tab="evolution" style="display: none;">
-        <h2 class="section-title">🚀 Kusanagi Evolution</h2>
-
-        <div class="stats-grid" style="margin-bottom: 2rem;">
-            <div class="stat-box info"
-                style="grid-column: span 3; padding: 2rem; border-color: var(--neon-blue); background: rgba(0, 255, 249, 0.05);">
-                <h3 style="color: var(--neon-cyan); margin-top: 0; display: flex; align-items: center; gap: 0.75rem;">
-                    <span class="mdi mdi-github" style="font-size: 1.5rem;"></span>
-                    Continuous Integration & Deployment
-                </h3>
-                <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.9; margin-bottom: 2rem;">
-                    Suivez en temps réel l'évolution technique de Kusanagi. Chaque modification du code source déclenche
-                    un cycle complet de vérification, de build et de déploiement automatique.
-                </p>
-                <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
-                    <div
-                        style="flex: 1; min-width: 250px; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
-                        <h4 style="color: var(--neon-green); margin-top: 0;">🛠️ Build & Analysis</h4>
-                        <p style="font-size: 0.9rem; opacity: 0.7;">Compilation du backend Rust, validation du frontend
-                            et analyse de la qualité du code.</p>
-                    </div>
-                    <div
-                        style="flex: 1; min-width: 250px; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
-                        <h4 style="color: var(--neon-magenta); margin-top: 0;">📦 Containerization</h4>
-                        <p style="font-size: 0.9rem; opacity: 0.7;">Création et publication automatique des images
-                            Docker sur le registre Kusanagi.</p>
-                    </div>
-                </div>
-                <div style="text-align: center; margin-top: 2.5rem;">
-                    <a href="https://github.com/JZacharie/Kusanagi/actions" target="_blank" class="cyber-btn"
-                        style="padding: 1rem 3rem; font-size: 1.2rem;">
-                        <span class="mdi mdi-open-in-new"></span> VOIR SUR GITHUB ACTIONS
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- MQTT Logs Modal -->
-    <div id="mqtt-logs-modal" class="cyber-modal" style="display: none;">
-        <div class="cyber-modal-content" style="max-width: 90%; width: 1000px; max-height: 80vh;">
-            <div class="cyber-modal-header">
-                <h3>📡 MQTT Real-time Logs (Last 30)</h3>
-                <span class="cyber-modal-close" onclick="MqttManager.closeLogsModal()">&times;</span>
-            </div>
-            <div class="cyber-modal-body"
-                style="background: rgba(0, 0, 0, 0.8); padding: 1rem; border: 1px solid var(--neon-magenta);">
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                    <button class="cyber-btn" style="padding: 5px 15px;"
-                        onclick="MqttManager.renderLogsModalContent()">🔄
-                        Refresh</button>
-                </div>
-                <div id="mqtt-modal-log-content"
-                    style="height: 50vh; overflow-y: auto; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; margin: 0;">
-                    <!-- MQTT log lines go here -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Home Assistant Detail Modal -->
-    <div id="ha-detail-modal">
-        <div class="ha-modal-content">
-            <button class="ha-modal-close" onclick="HomeAssistantDashboard.closeDetail()">&times;</button>
-            <div id="ha-modal-body"></div>
-        </div>
-    </div>
 </body>
 
 </html>
