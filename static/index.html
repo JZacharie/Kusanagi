@@ -215,8 +215,6 @@
                 style="display: flex; gap: 1rem; margin-right: auto; padding-left: 1rem; font-family: monospace; font-size: 0.8rem; opacity: 0.8;">
                 <div class="clock" title="Lyon (Local)"><span style="color: var(--neon-cyan);">LYO</span> <span
                         id="clock-lyon">00:00</span></div>
-                <div class="clock" title="Mexico City"><span style="color: var(--neon-cyan);">MEX</span> <span
-                        id="clock-mexico">00:00</span></div>
                 <div class="clock" title="New York"><span style="color: var(--neon-cyan);">NYC</span> <span
                         id="clock-nyc">00:00</span></div>
             </div>
@@ -238,6 +236,23 @@
         <div class="layout-flex">
             <aside class="sidebar" id="sidebar" aria-label="Main Navigation">
                 <div class="sidebar-content">
+
+                    <div class="sidebar-group-label" data-i18n="group_management">MANAGEMENT</div>
+                    <button class="tab-btn active" data-tab="argocd" onclick="switchTab('argocd')">
+                        <span class="tab-icon">🚀</span> <span data-i18n="tab_argocd">ArgoCD</span>
+                    </button>
+                    <button class="tab-btn" data-tab="backups" onclick="switchTab('backups')">
+                        <span class="tab-icon">📦</span> <span data-i18n="tab_backups">Backups</span>
+                    </button>
+                    <button class="tab-btn" data-tab="security" onclick="switchTab('security')">
+                        <span class="tab-icon">🛡️</span> <span data-i18n="tab_security">Security</span>
+                    </button>
+                    <button class="tab-btn" data-tab="setup" onclick="switchTab('setup'); KusanagiSetup.init();">
+                        <span class="tab-icon">🛠️</span> <span data-i18n="tab_setup">Setup</span>
+                    </button>
+
+                    <div class="sidebar-separator"></div>
+
                     <div class="sidebar-group-label" data-i18n="group_infrastructure">INFRASTRUCTURE</div>
                     <button class="tab-btn" data-tab="alerts" onclick="switchTab('alerts')">
                         <span class="tab-icon">⚠️</span> <span data-i18n="tab_alerts">Alerts</span> <span class="badge"
@@ -263,21 +278,6 @@
                     </button>
                     <button class="tab-btn" data-tab="storage" onclick="switchTab('storage')">
                         <span class="tab-icon">💾</span> <span data-i18n="tab_storage">Storage</span>
-                    </button>
-
-                    <div class="sidebar-separator"></div>
-                    <div class="sidebar-group-label" data-i18n="group_management">MANAGEMENT</div>
-                    <button class="tab-btn active" data-tab="argocd" onclick="switchTab('argocd')">
-                        <span class="tab-icon">🚀</span> <span data-i18n="tab_argocd">ArgoCD</span>
-                    </button>
-                    <button class="tab-btn" data-tab="backups" onclick="switchTab('backups')">
-                        <span class="tab-icon">📦</span> <span data-i18n="tab_backups">Backups</span>
-                    </button>
-                    <button class="tab-btn" data-tab="security" onclick="switchTab('security')">
-                        <span class="tab-icon">🛡️</span> <span data-i18n="tab_security">Security</span>
-                    </button>
-                    <button class="tab-btn" data-tab="setup" onclick="switchTab('setup'); KusanagiSetup.init();">
-                        <span class="tab-icon">🛠️</span> <span data-i18n="tab_setup">Setup</span>
                     </button>
 
                     <div class="sidebar-separator"></div>
@@ -328,9 +328,6 @@
             </aside>
 
             <div class="main-content" id="main-content">
-
-
-
 
                 <!-- ArgoCD Status Section -->
                 <section class="argocd-section tab-content active" data-tab="argocd">
@@ -978,69 +975,66 @@
 
             <!-- MQTT Section -->
             <section class="argocd-section tab-content" data-tab="mqtt" style="display: none;">
-            <h2 class="section-title">📡 MQTT Device Hub & Message Flux</h2>
-                +
-            <div class="stats-grid" style="margin-bottom: 1.5rem;">
-            <div class="stat-box info">
-            <div class="stat-value" id="mqtt-device-count">-</div>
-            <div class="stat-label">Detected Devices</div>
-            </div>
-            <div class="stat-box healthy">
-            <div class="stat-value" id="mqtt-msg-rate">-</div>
-            <div class="stat-label">Messages/min</div>
-            </div>
-            <div class="stat-box warning">
-            <div class="stat-value" id="mqtt-total-msg">-</div>
-            <div class="stat-label">Total Buffered</div>
-            </div>
-            </div>
-                +
-            <div class="mqtt-layout" style="display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem;">
-            <!-- Device List Card -->
-            <div class="issues-table-container" style="border-color: var(--neon-cyan);">
-            <div class="issues-table-header"
+                <h2 class="section-title">📡 MQTT Device Hub & Message Flux</h2>
+                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                    <div class="stat-box info">
+                        <div class="stat-value" id="mqtt-device-count">-</div>
+                        <div class="stat-label">Detected Devices</div>
+                    </div>
+                    <div class="stat-box healthy">
+                        <div class="stat-value" id="mqtt-msg-rate">-</div>
+                        <div class="stat-label">Messages/min</div>
+                    </div>
+                    <div class="stat-box warning">
+                        <div class="stat-value" id="mqtt-total-msg">-</div>
+                        <div class="stat-label">Total Buffered</div>
+                    </div>
+                </div>
+                <div class="mqtt-layout" style="display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem;">
+                    <!-- Device List Card -->
+                    <div class="issues-table-container" style="border-color: var(--neon-cyan);">
+                        <div class="issues-table-header"
                             style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-            <span class="issues-table-title" style="color: var(--neon-cyan);">📱 Devices</span>
-            <span class="issues-count" id="mqtt-device-table-count"
+                            <span class="issues-table-title" style="color: var(--neon-cyan);">📱 Devices</span>
+                            <span class="issues-count" id="mqtt-device-table-count"
                                 style="background: var(--neon-cyan);">0</span>
-            </div>
-            <div id="mqtt-devices-content" style="max-height: 600px; overflow-y: auto; padding: 1rem;">
-            <div class="loading">Waiting for discovery...</div>
-            </div>
-            </div>
-                    +
-            <!-- Message Flux Card -->
-            <div class="issues-table-container" style="border-color: var(--neon-magenta);">
-            <div class="issues-table-header"
+                        </div>
+                        <div id="mqtt-devices-content" style="max-height: 600px; overflow-y: auto; padding: 1rem;">
+                            <div class="loading">Waiting for discovery...</div>
+                        </div>
+                    </div>
+                    <!-- Message Flux Card -->
+                    <div class="issues-table-container" style="border-color: var(--neon-magenta);">
+                        <div class="issues-table-header"
                             style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-            <span class="issues-table-title" style="color: var(--neon-magenta);">🌊 Message
+                            <span class="issues-table-title" style="color: var(--neon-magenta);">🌊 Message
                                 Flux</span>
-            <div class="filter-controls" style="margin-left: auto; display: flex; gap: 0.5rem;">
-            <input type="text" id="mqtt-filter-input" class="chat-input"
+                            <div class="filter-controls" style="margin-left: auto; display: flex; gap: 0.5rem;">
+                                <input type="text" id="mqtt-filter-input" class="chat-input"
                                     placeholder="Filter topic/payload..." +
                                     style="font-size: 0.8rem; padding: 0.2rem 0.5rem; width: 200px;"
                                     oninput="MqttManager.applyFilter()">
-            <button class="cyber-btn" onclick="MqttManager.openLogsModal()"
+                                <button class="cyber-btn" onclick="MqttManager.openLogsModal()"
                                     style="font-size: 0.7rem; border-color: var(--neon-cyan); color: var(--neon-cyan);">Logs</button>
-            <button class="cyber-btn" onclick="MqttManager.clearFlux()"
+                                <button class="cyber-btn" onclick="MqttManager.clearFlux()"
                                     style="font-size: 0.7rem;">Clear</button>
-            </div>
-            </div>
-            <div id="mqtt-flux-content"
+                            </div>
+                        </div>
+                        <div id="mqtt-flux-content"
                             style="max-height: 600px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 0.5rem;">
-            <div class="loading">Listening for messages...</div>
-            </div>
-            </div>
-            </div>
+                            <div class="loading">Listening for messages...</div>
+                        </div>
+                    </div>
+                </div>
             </section>
-            +
+
             <!-- Proxmox Section -->
 
-            <section class="argocd-section tab-content" data-tab="proxmox" style="display: none;">
+            <section class="argocd-section tab-content" data-tab="proxmox">
                 <h2 class="section-title">🖥️ Proxmox Infrastructure</h2>
 
                 <!-- Proxmox Stats -->
-                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stats-grid">
                     <div class="stat-box">
                         <div class="stat-value" id="proxmox-nodes">-</div>
                         <div class="stat-label">Nodes</div>

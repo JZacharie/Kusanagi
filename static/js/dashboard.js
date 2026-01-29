@@ -408,7 +408,7 @@ const MetricsManager = {
 
         container.innerHTML = `
             <h3 style="${sectionHeaderStyle}">🖥️ Cluster Infrastructure</h3>
-            <div class="metrics-grid">
+            <div class="argocd-stats">
                 <div class="metric-card">
                     <div class="metric-icon">🔥</div>
                     <div class="metric-value">${metrics.cpu_usage_percent?.toFixed(1) || 0}%</div>
@@ -448,7 +448,7 @@ const MetricsManager = {
             </div>
 
             <h3 style="${sectionHeaderStyle}">🏎️ GPU Hardware Telemetry</h3>
-            <div class="metrics-grid">
+            <div class="argocd-stats">
                 <div class="metric-card">
                     <div class="metric-icon">🏎️</div>
                     <div class="metric-value">${metrics.gpu_utilization?.toFixed(1) || 0}%</div>
@@ -476,7 +476,7 @@ const MetricsManager = {
             </div>
 
             <h3 style="${sectionHeaderStyle}">☀️ Enphase Energy Monitoring</h3>
-            <div class="metrics-grid">
+            <div class="argocd-stats">
                 <div class="metric-card" style="grid-column: span 2; display: flex; flex-direction: column; align-items: stretch; height: auto;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
@@ -510,7 +510,7 @@ const MetricsManager = {
             </div>
 
             <h3 style="${sectionHeaderStyle}">🚀 VPS Infrastructure</h3>
-            <div class="metrics-grid">
+            <div class="argocd-stats">
                 <div class="metric-card">
                     <div class="metric-icon">🖥️</div>
                     <div class="metric-value">${metrics.vps_cpu_usage?.toFixed(1) || 0}%</div>
@@ -538,7 +538,7 @@ const MetricsManager = {
             </div>
 
             <h3 style="${sectionHeaderStyle}">🛡️ Security Vulnerabilities (Trivy Scan)</h3>
-            <div class="metrics-grid">
+            <div class="argocd-stats">
                 <div class="metric-card alert-critical">
                     <div class="metric-icon">🔴</div>
                     <div class="metric-value">${metrics.trivy_critical_count || 0}</div>
