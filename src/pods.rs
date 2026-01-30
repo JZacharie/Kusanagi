@@ -474,3 +474,64 @@ pub async fn force_delete_pod(client: &Client, namespace: &str, pod_name: &str) 
         }
     }
 }
+
+/// Response for bulk delete operation
+#[derive(Clone, Debug, Serialize)]
+pub struct BulkDeleteResponse {
+    pub success: bool,
+    pub message: String,
+    pub deleted_count: usize,
+    pub failed_count: usize,
+}
+
+#[post("/api/pods/delete-error-pods")]
+pub async fn delete_error_pods_handler(
+    data: web::Data<AppState>,
+) -> impl Responder {
+    match delete_error_pods(&data.client).await {
+        Ok(res) => HttpResponse::Ok().json(res),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e})),
+    }
+}
+
+/// Delete all pods in Error/Failed state with a 4s delay between each
+pub async fn delete_error_pods(client: &Client) -> Result<BulkDeleteResponse, String> {
+    info!("Starting bulk deletion of error pods");
+    
+    // Get current status to find error pods
+    let status = get_pods_status(client).await?;
+    
+    let total_error_pods = status.pods_in_error.len();
+    info!("Found {} pods in error state", total_error_pods);
+    
+    let mut deleted_count = 0;
+    let mut failed_count = 0;
+    
+    for (index, pod) in status.pods_in_error.iter().enumerate() {
+        info!("Processing pod {}/{} ({}/{})", index + 1, total_error_pods, pod.namespace, pod.name);
+        
+        match force_delete_pod(client, &pod.namespace, &pod.name).await {
+            Ok(res) => {
+                if res.success {
+                    deleted_count += 1;
+                } else {
+                    failed_count += 1;
+                }
+            },
+            Err(_) => failed_count += 1,
+        }
+        
+        // Wait 4 seconds between deletions, but not after the last one
+        if index < total_error_pods - 1 {
+            info!("Waiting 4s before next deletion...");
+            tokio::time::sleep(std::time::Duration::from_secs(4)).await;
+        }
+    }
+    
+    Ok(BulkDeleteResponse {
+        success: true,
+        message: format!("Processed {} error pods. Deleted: {}, Failed: {}", total_error_pods, deleted_count, failed_count),
+        deleted_count,
+        failed_count,
+    })
+}

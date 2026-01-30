@@ -647,6 +647,7 @@ async fn main() -> std::io::Result<()> {
             .service(pods_status)
             .service(pods::get_pod_logs_handler)
             .service(pods::scale_resource_handler)
+            .service(pods::delete_error_pods_handler)
             .service(force_delete_pod)
             .service(ws_route)
             .service(cilium_namespaces)
