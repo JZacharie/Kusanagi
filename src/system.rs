@@ -136,6 +136,20 @@ async fn trigger_rollout(client: &Client) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
+#[get("/api/system/logs")]
+pub async fn system_logs_handler(data: web::Data<crate::AppState>) -> impl Responder {
+    let hostname = std::env::var("HOSTNAME").unwrap_or_else(|_| "kusanagi".to_string());
+    // Assuming we are in the same namespace as we are deployed, usually 'kusanagi' or 'default'
+    // But we can try to find ourselves. Best bet is env var POD_NAMESPACE or just try 'kusanagi'
+    let namespace = std::env::var("POD_NAMESPACE").unwrap_or_else(|_| "kusanagi".to_string());
+
+    match crate::pods::get_pod_logs(&data.client, &namespace, &hostname, None, 1000).await {
+        Ok(logs) => HttpResponse::Ok().body(logs),
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({"error": e})),
+    }
+}
+
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(system_status_handler);
+    cfg.service(system_status_handler)
+       .service(system_logs_handler);
 }

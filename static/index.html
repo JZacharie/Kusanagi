@@ -41,6 +41,7 @@
     <script src="/static/js/network.js"></script>
     <script src="/static/js/mqtt.js"></script>
     <script src="/static/js/setup.js"></script>
+    <script src="/static/js/system.js"></script>
 
     <!-- Main Orchestrator -->
     <script src="/static/js/dashboard.js"></script>
@@ -222,6 +223,9 @@
             </button>
             <button class="tab-btn" data-tab="setup" onclick="switchTab('setup'); KusanagiSetup.init();">
                 <span class="tab-icon">🛠️</span> <span data-i18n="tab_setup">Setup</span>
+            </button>
+            <button class="tab-btn" data-tab="system" onclick="switchTab('system'); KusanagiSystem.init();">
+                <span class="tab-icon">🔮</span> <span data-i18n="tab_system">System</span>
             </button>
 
             <div class="tab-separator"></div>
@@ -799,9 +803,12 @@
             </a>
             <a href="https://grafana.p.zacharie.org/d/cloudnative-pg/cloudnativepg?orgId=1&from=now-24h&to=now&timezone=browser&var-DS_PROMETHEUS=d8b8f45f-bf2a-4a3f-922b-e75698dc9413&var-operatorNamespace=&var-namespace=pg-prd&var-cluster=cluster-pg&var-instances=$__all&refresh=30s"
                 target="_blank" class="cyber-btn"
-                style="border-color: #336791; color: #336791; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                style="border-color: var(--neon-cyan); color: var(--neon-cyan); text-decoration: none; display: flex; align-items: center; gap: 8px;">
                 <span>🐘</span> CloudNativePG
             </a>
+
+
+
             <a href="https://gpu-hot.p.zacharie.org/" target="_blank" class="cyber-btn"
                 style="border-color: var(--neon-magenta, #ff00ff); color: var(--neon-magenta, #ff00ff); text-decoration: none; display: flex; align-items: center; gap: 8px;">
                 <span>🔥</span> GPU-Hot
@@ -819,6 +826,54 @@
 
         <div id="metrics-content">
             <div class="loading">Loading metrics from Prometheus...</div>
+        </div>
+    </section>
+
+    <!-- System Section -->
+    <section class="argocd-section tab-content" data-tab="system" style="display: none;">
+        <h2 class="section-title">🔮 System Status</h2>
+
+        <div class="header" style="margin-bottom: 20px;">
+            <div class="actions">
+                <a href="/metrics" target="_blank" class="cyber-btn"><i class="fas fa-chart-line"></i> Prometheus
+                    Metrics</a>
+            </div>
+        </div>
+
+        <div class="argocd-stats" style="margin-bottom: 20px;">
+            <div class="stat-box info">
+                <div class="stat-value" id="sys-tab-uptime">-</div>
+                <div class="stat-label">Uptime</div>
+            </div>
+            <div class="stat-box info">
+                <div class="stat-value" id="sys-tab-cpu">-</div>
+                <div class="stat-label">CPU Usage</div>
+            </div>
+            <div class="stat-box info">
+                <div class="stat-value" id="sys-tab-memory">-</div>
+                <div class="stat-label">Memory</div>
+            </div>
+            <div class="stat-box info">
+                <div class="stat-value" id="sys-tab-version">-</div>
+                <div class="stat-label">Version</div>
+            </div>
+        </div>
+
+        <div class="glass-panel"
+            style="margin-top: 20px; background: rgba(0,0,0,0.3); border: 1px solid var(--neon-cyan); padding: 15px; border-radius: 4px;">
+            <div class="panel-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="margin: 0; color: var(--neon-cyan);"><i class="fas fa-terminal"></i> System Logs</h3>
+                <div class="panel-actions">
+                    <button class="cyber-btn icon-btn" onclick="KusanagiSystem.manualRefresh()"><i
+                            class="fas fa-sync"></i> Refresh</button>
+                </div>
+            </div>
+            <div class="logs-container" id="system-logs-container"
+                style="background: rgba(0,0,0,0.8); height: 500px; overflow-y: auto; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.8rem; color: #ccc; border: 1px solid #333;">
+                <pre id="system-logs-content"
+                    style="margin: 0; white-space: pre-wrap; word-break: break-all;">Loading logs...</pre>
+            </div>
         </div>
     </section>
 

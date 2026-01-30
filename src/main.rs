@@ -34,6 +34,7 @@ mod system;
 mod translation;
 mod mqtt;
 mod security;
+mod metrics;
 
 /// Shared application state
 pub struct AppState {
@@ -618,6 +619,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(app_state.clone())
             .app_data(news_cache.clone())
             .app_data(system_manager.clone())
+            .service(metrics::metrics_handler)
             .configure(proxmox::configure_routes)
             .configure(homeassistant::configure_routes)
             .configure(weather::configure_routes)
