@@ -222,6 +222,8 @@ const K8sManager = {
             }
         } catch (error) {
             console.error('Failed to fetch pods status:', error);
+            const el = document.getElementById('pods-content');
+            if (el) el.innerHTML = `<div class="loading" style="color: #ff4444;">Error: Failed to fetch pods status. Check if Kusanagi agent is reachable.</div>`;
         }
     },
 
@@ -330,6 +332,10 @@ const K8sManager = {
             this.renderNodes(data.nodes);
         } catch (error) {
             console.error('Nodes error:', error);
+            const el = document.getElementById('nodes-container');
+            if (el) el.innerHTML = `<div class="loading" style="color: #ff4444;">Error: Failed to fetch nodes status.</div>`;
+            const diagnosticTool = document.getElementById('nodes-diagnostic-tool');
+            if (diagnosticTool) diagnosticTool.style.display = 'block';
         }
     },
 
@@ -418,7 +424,10 @@ const K8sManager = {
                     if (el) el.textContent = value;
                 }
             }
-        } catch (error) { console.error('Failed to fetch cluster overview:', error); }
+        } catch (error) {
+            console.error('Failed to fetch cluster overview:', error);
+            // Non-critical background update, no need to show error in main UI unless pods/nodes are failing
+        }
     },
 
     // === STORAGE ===
@@ -432,7 +441,11 @@ const K8sManager = {
                 if (countEl) countEl.textContent = this.storageData.length;
                 this.renderStorageTable();
             }
-        } catch (error) { console.error('Failed to fetch storage status:', error); }
+        } catch (error) {
+            console.error('Failed to fetch storage status:', error);
+            const container = document.getElementById('pvc-content');
+            if (container) container.innerHTML = `<div class="loading" style="color: #ff4444;">Error: Failed to fetch storage data.</div>`;
+        }
     },
 
     renderStorageTable() {
@@ -517,7 +530,11 @@ const K8sManager = {
                 for (const [id, value] of Object.entries(stats)) { const el = document.getElementById(id); if (el) el.textContent = value; }
                 this.renderEventsTable(data);
             }
-        } catch (error) { console.error('Failed to fetch events:', error); }
+        } catch (error) {
+            console.error('Failed to fetch events:', error);
+            const container = document.getElementById('events-content');
+            if (container) container.innerHTML = `<div class="loading" style="color: #ff4444;">Error: Failed to fetch events.</div>`;
+        }
     },
 
     filterEvents(type) {
@@ -562,7 +579,11 @@ const K8sManager = {
                 for (const [id, value] of Object.entries(stats)) { const el = document.getElementById(id); if (el) el.textContent = value; }
                 this.renderBackupsTable(data.cronjobs || []);
             }
-        } catch (error) { console.error('Failed to fetch backups:', error); }
+        } catch (error) {
+            console.error('Failed to fetch backups:', error);
+            const container = document.getElementById('backups-content');
+            if (container) container.innerHTML = `<div class="loading" style="color: #ff4444;">Error: Failed to fetch backup status.</div>`;
+        }
     },
 
     renderBackupsTable(cronjobs) {
