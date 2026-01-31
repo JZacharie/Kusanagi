@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Prometheus metrics response
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PrometheusMetrics {
     pub cpu_usage_percent: f64,
     pub memory_usage_percent: f64,
@@ -39,6 +39,73 @@ lazy_static::lazy_static! {
             .unwrap_or_else(|_| PROMETHEUS_URL.clone())
     };
 }
+
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use std::time::{Instant, Duration};
+
+/// Cache for Prometheus metrics
+pub struct MetricsCache {
+    pub metrics: RwLock<Option<(PrometheusMetrics, Instant)>>,
+}
+
+impl MetricsCache {
+    pub fn new() -> Self {
+        Self {
+            metrics: RwLock::new(None),
+        }
+    }
+}
+
+lazy_static::lazy_static! {
+    pub static ref METRICS_CACHE: Arc<MetricsCache> = Arc::new(MetricsCache::new());
+}
+
+/// Get cached cluster metrics
+pub async fn get_cached_metrics() -> Result<PrometheusMetrics, String> {
+    // 1. Try to get from cache
+    {
+        let cache = METRICS_CACHE.metrics.read().await;
+        if let Some((ref metrics, timestamp)) = *cache {
+            if timestamp.elapsed() < Duration::from_secs(60) {
+                return Ok(metrics.clone());
+            }
+        }
+    }
+
+    // 2. If cache miss or expired, fetch live
+    let metrics = get_cluster_metrics().await?;
+    
+    // 3. Update cache
+    let mut cache = METRICS_CACHE.metrics.write().await;
+    *cache = Some((metrics.clone(), Instant::now()));
+    
+    Ok(metrics)
+}
+
+/// Background task to refresh Prometheus cache
+pub async fn start_background_refresh() {
+    tracing::info!("🚀 Starting Prometheus background refresh task");
+    
+    let mut interval = tokio::time::interval(Duration::from_secs(60));
+    
+    loop {
+        interval.tick().await;
+        tracing::debug!("🔄 Refreshing Prometheus metrics cache...");
+        
+        match get_cluster_metrics().await {
+            Ok(metrics) => {
+                let mut cache = METRICS_CACHE.metrics.write().await;
+                *cache = Some((metrics, Instant::now()));
+                tracing::debug!("✅ Updated Prometheus metrics cache");
+            }
+            Err(e) => {
+                tracing::error!("❌ Failed to refresh Prometheus metrics: {}", e);
+            }
+        }
+    }
+}
+
 
 /// Prometheus query result
 #[derive(Debug, Serialize, Deserialize)]

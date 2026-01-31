@@ -16,7 +16,7 @@ pub struct Alert {
 }
 
 /// Grouped alerts response
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlertsResponse {
     pub critical: Vec<Alert>,
     pub warning: Vec<Alert>,
@@ -43,7 +43,6 @@ struct AmAlert {
 struct AmAlertStatus {
     state: String,
 }
-
 fn get_alertmanager_url() -> String {
     std::env::var("ALERTMANAGER_URL")
         .unwrap_or_else(|_| {
@@ -51,6 +50,73 @@ fn get_alertmanager_url() -> String {
             "http://kube-prometheus-stack-alertmanager.kube-prometheus-stack.svc:9093".to_string()
         })
 }
+
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use std::time::{Instant, Duration};
+
+/// Cache for alert data
+pub struct AlertsCache {
+    pub alerts: RwLock<Option<(AlertsResponse, Instant)>>,
+}
+
+impl AlertsCache {
+    pub fn new() -> Self {
+        Self {
+            alerts: RwLock::new(None),
+        }
+    }
+}
+
+lazy_static::lazy_static! {
+    pub static ref ALERTS_CACHE: Arc<AlertsCache> = Arc::new(AlertsCache::new());
+}
+
+/// Get cached active alerts
+pub async fn get_cached_active_alerts() -> Result<AlertsResponse, String> {
+    // 1. Try to get from cache
+    {
+        let cache = ALERTS_CACHE.alerts.read().await;
+        if let Some((ref alerts, timestamp)) = *cache {
+            if timestamp.elapsed() < Duration::from_secs(60) {
+                return Ok(alerts.clone());
+            }
+        }
+    }
+
+    // 2. If cache miss or expired, fetch live
+    let alerts = get_active_alerts().await?;
+    
+    // 3. Update cache
+    let mut cache = ALERTS_CACHE.alerts.write().await;
+    *cache = Some((alerts.clone(), Instant::now()));
+    
+    Ok(alerts)
+}
+
+/// Background task to refresh Alertmanager cache
+pub async fn start_background_refresh() {
+    tracing::info!("🚀 Starting Alertmanager background refresh task");
+    
+    let mut interval = tokio::time::interval(Duration::from_secs(60));
+    
+    loop {
+        interval.tick().await;
+        tracing::debug!("🔄 Refreshing Alertmanager cache...");
+        
+        match get_active_alerts().await {
+            Ok(alerts) => {
+                let mut cache = ALERTS_CACHE.alerts.write().await;
+                *cache = Some((alerts, Instant::now()));
+                tracing::debug!("✅ Updated Alertmanager cache");
+            }
+            Err(e) => {
+                tracing::error!("❌ Failed to refresh alerts: {}", e);
+            }
+        }
+    }
+}
+
 
 /// Get all active alerts from Alertmanager
 pub async fn get_active_alerts() -> Result<AlertsResponse, String> {

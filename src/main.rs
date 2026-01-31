@@ -435,7 +435,7 @@ struct PrometheusQuery {
 
 #[get("/api/prometheus/metrics")]
 async fn prometheus_metrics() -> impl Responder {
-    match prometheus::get_cluster_metrics().await {
+    match prometheus::get_cached_metrics().await {
         Ok(metrics) => HttpResponse::Ok().json(metrics),
         Err(e) => {
             tracing::error!("Failed to get Prometheus metrics: {}", e);
@@ -461,7 +461,7 @@ async fn prometheus_query(query: web::Query<PrometheusQuery>) -> impl Responder 
 
 #[get("/api/alerts")]
 async fn alerts_status() -> impl Responder {
-    match alertmanager::get_active_alerts().await {
+    match alertmanager::get_cached_active_alerts().await {
         Ok(alerts) => HttpResponse::Ok().json(alerts),
         Err(e) => {
             tracing::error!("Failed to get alerts: {}", e);
@@ -613,6 +613,12 @@ async fn main() -> std::io::Result<()> {
 
     // Start Security enrichment worker
     tokio::spawn(security::start_security_worker());
+
+    // Start Prometheus background refresh task
+    tokio::spawn(prometheus::start_background_refresh());
+
+    // Start Alertmanager background refresh task
+    tokio::spawn(alertmanager::start_background_refresh());
 
     HttpServer::new(move || {
         App::new()
