@@ -229,6 +229,10 @@ const K8sManager = {
             if (window.TableManager) {
                 TableManager.init('pods', data.pods_in_error, (pods) => this.renderPodsTableContent(pods), podsColumns);
                 this.renderPodsTable(data.pods_in_error);
+            } else {
+                // Fallback rendering if TableManager is missing
+                console.warn('TableManager not found, using fallback rendering');
+                this.renderPodsTable(data.pods_in_error);
             }
             console.log('Pods status fetched successfully');
         } catch (error) {
@@ -265,8 +269,9 @@ const K8sManager = {
             { key: 'node', label: 'Node' },
             { key: 'actions', label: 'Actions' }
         ];
-        const searchHtml = window.TableManager ? TableManager.createSearchInput('pods', 'Search pods...') : '';
-        const headerHtml = window.TableManager ? TableManager.createSortableHeader('pods', podsColumns) : '';
+        const searchHtml = (window.TableManager && TableManager.createSearchInput) ? TableManager.createSearchInput('pods', 'Search pods...') : '';
+        const headerHtml = (window.TableManager && TableManager.createSortableHeader) ? TableManager.createSortableHeader('pods', podsColumns) :
+            podsColumns.map(col => `<th>${col.label}</th>`).join('');
         container.innerHTML = `
             ${searchHtml}
             <table class="issues-table" id="pods-table">
