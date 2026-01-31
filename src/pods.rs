@@ -8,7 +8,8 @@ use kube::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tracing::info;
+use tracing::{info, error, warn};
+use tokio::time::{timeout, Duration};
 use crate::AppState;
 
 /// Request for logs
@@ -189,10 +190,22 @@ pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, Stri
     let pods_api: Api<Pod> = Api::all(client.clone());
 
     let start = std::time::Instant::now();
-    let pods = pods_api
-        .list(&ListParams::default())
-        .await
-        .map_err(|e| format!("Failed to list pods: {}", e))?;
+    info!("Starting to list pods (timeout: 10s)...");
+
+    let result = timeout(Duration::from_secs(10), pods_api.list(&ListParams::default())).await;
+
+    let pods = match result {
+        Ok(Ok(p)) => p,
+        Ok(Err(e)) => {
+            error!("Failed to list pods: {}", e);
+            return Err(format!("Failed to list pods: {}", e));
+        }
+        Err(_) => {
+            error!("K8s API list pods timed out after 10s");
+            return Err("K8s API list pods timed out".to_string());
+        }
+    };
+
     let duration = start.elapsed();
     info!("K8s API list pods took: {:?}", duration);
 

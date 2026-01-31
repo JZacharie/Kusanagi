@@ -188,8 +188,17 @@ const K8sManager = {
     // === PODS MONITORING ===
     async fetchPodsStatus() {
         console.log('Fetching pods status...');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
         try {
-            const response = await fetch('/api/pods/status');
+            const response = await fetch('/api/pods/status', { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const data = await response.json();
             if (data.error) {
                 const el = document.getElementById('pods-content');
@@ -225,7 +234,17 @@ const K8sManager = {
         } catch (error) {
             console.error('Failed to fetch pods status:', error);
             const el = document.getElementById('pods-content');
-            if (el) el.innerHTML = `<div class="loading" style="color: #ff4444;">Error: Failed to fetch pods status. Check if Kusanagi agent is reachable.</div>`;
+
+            let errorMessage = 'Failed to fetch pods status.';
+            if (error.name === 'AbortError') {
+                errorMessage = 'Request timed out (backend too slow).';
+            } else if (error.message.includes('HTTP error')) {
+                errorMessage = `Server Error: ${error.message}`;
+            }
+
+            if (el) el.innerHTML = `<div class="loading" style="color: #ff4444;">Error: ${errorMessage} <br> <button class="cyber-btn" onclick="K8sManager.fetchPodsStatus()">Retry</button></div>`;
+        } finally {
+            clearTimeout(timeoutId);
         }
     },
 
