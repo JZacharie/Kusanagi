@@ -187,6 +187,7 @@ const K8sManager = {
 
     // === PODS MONITORING ===
     async fetchPodsStatus() {
+        console.log('Fetching pods status...');
         try {
             const response = await fetch('/api/pods/status');
             const data = await response.json();
@@ -220,6 +221,7 @@ const K8sManager = {
                 TableManager.init('pods', data.pods_in_error, (pods) => this.renderPodsTableContent(pods), podsColumns);
                 this.renderPodsTable(data.pods_in_error);
             }
+            console.log('Pods status fetched successfully');
         } catch (error) {
             console.error('Failed to fetch pods status:', error);
             const el = document.getElementById('pods-content');

@@ -185,13 +185,16 @@ const ERROR_REASONS: &[&str] = &[
 /// Get pods status with focus on error pods
 pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, String> {
 
-    let _services: Api<Service> = Api::all(client.clone());
+    // let _services: Api<Service> = Api::all(client.clone());
     let pods_api: Api<Pod> = Api::all(client.clone());
 
+    let start = std::time::Instant::now();
     let pods = pods_api
         .list(&ListParams::default())
         .await
         .map_err(|e| format!("Failed to list pods: {}", e))?;
+    let duration = start.elapsed();
+    info!("K8s API list pods took: {:?}", duration);
 
     let now = Utc::now();
     let mut response = PodsStatusResponse {
