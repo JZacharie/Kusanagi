@@ -88,7 +88,13 @@ const KusanagiSystem = {
             const response = await fetch('/api/system/logs');
             if (response.ok) {
                 const logs = await response.text();
-                container.textContent = logs || "No logs available.";
+                
+                // Parse ANSI codes if present
+                if (window.AnsiParser) {
+                    container.innerHTML = AnsiParser.parseToHtml(logs);
+                } else {
+                    container.textContent = logs || "No logs available.";
+                }
                 // Auto-scroll to bottom
                 const logsContainer = document.getElementById('system-logs-container');
                 if (logsContainer) {

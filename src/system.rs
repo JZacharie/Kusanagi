@@ -142,20 +142,25 @@ async fn trigger_rollout(client: &Client) -> Result<(), Box<dyn std::error::Erro
 pub async fn system_logs_handler(data: web::Data<crate::AppState>) -> impl Responder {
     let hostname = std::env::var("HOSTNAME").unwrap_or_else(|_| "kusanagi".to_string());
     let namespace = std::env::var("POD_NAMESPACE").unwrap_or_else(|_| "kusanagi".to_string());
+    let dev_mode = std::env::var("DEV_MODE").unwrap_or_default() == "true";
 
     // 1. Try to get logs using hostname as pod name
     match crate::pods::get_pod_logs(&data.client, &namespace, &hostname, None, 1000).await {
-        Ok(logs) => HttpResponse::Ok().body(logs),
+        Ok(logs) => {
+            if logs.is_empty() {
+                return HttpResponse::Ok().body("No logs available (empty response from Kubernetes)");
+            }
+            HttpResponse::Ok().body(logs)
+        },
         Err(e) => {
-             // 2. If valid K8s client but failed (maybe hostname != pod name), try to find pod by label
-             // This is a simple fallback if the app is labeled app=kusanagi
-             warn!("Failed to fetch logs for pod {}: {}. Trying to find by label...", hostname, e);
-             
-             let pods_api: Api<k8s_openapi::api::core::v1::Pod> = Api::namespaced(data.client.clone(), &namespace);
-             
-             // Strategy 2a: Try by label
-             let lp = kube::api::ListParams::default().labels("app=kusanagi"); 
-             if let Ok(pod_list) = pods_api.list(&lp).await {
+            warn!("Failed to fetch logs for pod {}: {}. Trying fallbacks...", hostname, e);
+            
+            // 2. Try to find pod by label
+            let pods_api: Api<k8s_openapi::api::core::v1::Pod> = Api::namespaced(data.client.clone(), &namespace);
+            
+            // Strategy 2a: Try by label
+            let lp = kube::api::ListParams::default().labels("app=kusanagi"); 
+            if let Ok(pod_list) = pods_api.list(&lp).await {
                 if let Some(pod) = pod_list.items.first() {
                     let pod_name = pod.metadata.name.clone().unwrap_or_default();
                     match crate::pods::get_pod_logs(&data.client, &namespace, &pod_name, None, 1000).await {
@@ -163,24 +168,57 @@ pub async fn system_logs_handler(data: web::Data<crate::AppState>) -> impl Respo
                         Err(inner_e) => warn!("Found pod {} by label but failed to fetch logs: {}", pod_name, inner_e),
                     }
                 }
-             }
+            }
 
-             // Strategy 2b: Try by finding any pod with "kusanagi" in the name
-             let lp_all = kube::api::ListParams::default();
-             if let Ok(pod_list) = pods_api.list(&lp_all).await {
-                 if let Some(pod) = pod_list.items.iter().find(|p| p.metadata.name.as_deref().unwrap_or_default().contains("kusanagi")) {
+            // Strategy 2b: Try by finding any pod with "kusanagi" in the name
+            let lp_all = kube::api::ListParams::default();
+            if let Ok(pod_list) = pods_api.list(&lp_all).await {
+                if let Some(pod) = pod_list.items.iter().find(|p| p.metadata.name.as_deref().unwrap_or_default().contains("kusanagi")) {
                     let pod_name = pod.metadata.name.clone().unwrap_or_default();
                     info!("Found potential kusanagi pod: {}", pod_name);
                     match crate::pods::get_pod_logs(&data.client, &namespace, &pod_name, None, 1000).await {
                         Ok(logs) => return HttpResponse::Ok().body(logs),
                         Err(inner_e) => warn!("Found pod {} by name search but failed to fetch logs: {}", pod_name, inner_e),
                     }
-                 }
-             }
+                }
+            }
 
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("Failed to fetch logs. Checked pod '{}', label 'app=kusanagi', and name constraint 'kusanagi'. Error: {}", hostname, e)
-            }))
+            // Strategy 3: Try default namespace if different
+            if namespace != "default" {
+                if let Ok(logs) = crate::pods::get_pod_logs(&data.client, "default", &hostname, None, 1000).await {
+                    return HttpResponse::Ok().body(logs);
+                }
+            }
+
+            // Strategy 4: In dev mode or when K8s logs fail, return a friendly message
+            let error_msg = if dev_mode {
+                format!(
+                    "=== Kusanagi Logs (Development Mode) ===\n\n\
+                    Pod logs are not available in development mode.\n\
+                    To see logs, run: cargo run 2>&1 | tee kusanagi.log\n\n\
+                    Hostname: {}\n\
+                    Namespace: {}\n\
+                    Original error: {}",
+                    hostname, namespace, e
+                )
+            } else {
+                format!(
+                    "=== Kusanagi Logs Unavailable ===\n\n\
+                    Could not fetch logs from Kubernetes.\n\n\
+                    Tried:\n\
+                    - Pod: {} in namespace {}\n\
+                    - Pods with label 'app=kusanagi'\n\
+                    - Pods with name containing 'kusanagi'\n\n\
+                    Error: {}\n\n\
+                    Please check:\n\
+                    1. The pod is running: kubectl get pods -n {}\n\
+                    2. The pod has logs: kubectl logs -n {} {}\n\
+                    3. K8s API is accessible",
+                    hostname, namespace, e, namespace, namespace, hostname
+                )
+            };
+            
+            HttpResponse::Ok().content_type("text/plain").body(error_msg)
         }
     }
 }

@@ -456,7 +456,14 @@ const K8sManager = {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const logs = await response.text();
-            content.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; max-height: 70vh; overflow-y: auto; font-family: monospace; font-size: 12px; line-height: 1.5;">${this.escapeHtml(logs)}</pre>`;
+            
+            // Parse ANSI codes if parser is available
+            if (window.AnsiParser) {
+                const parsedLogs = AnsiParser.parse(logs);
+                content.innerHTML = `<div class="ansi-log" style="max-height: 70vh; overflow-y: auto;">${parsedLogs}</div>`;
+            } else {
+                content.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; max-height: 70vh; overflow-y: auto; font-family: monospace; font-size: 12px; line-height: 1.5;">${this.escapeHtml(logs)}</pre>`;
+            }
         } catch (error) {
             console.error('Failed to fetch logs:', error);
             content.innerHTML = `<div style="color: #ff4444;">Error loading logs: ${error.message}</div>`;

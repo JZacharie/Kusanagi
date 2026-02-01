@@ -312,3 +312,106 @@ body.theme-modern .footer-quote {
     font-style: italic;
     font-family: serif;
 }
+/* ============================================
+   ANSI Log Display Styles
+   ============================================ */
+
+/* Log container */
+.ansi-log {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: #0a0a0f;
+    color: #e0e0e0;
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+/* ANSI Color Classes */
+.ansi-black { color: #2e3436; }
+.ansi-red { color: #ff6b6b; }
+.ansi-green { color: #69db7c; }
+.ansi-yellow { color: #ffd93d; }
+.ansi-blue { color: #4dabf7; }
+.ansi-magenta { color: #da77f2; }
+.ansi-cyan { color: #22d3ee; }
+.ansi-white { color: #f8f9fa; }
+
+/* Bright colors */
+.ansi-bright-black { color: #555555; }
+.ansi-bright-red { color: #ff8787; }
+.ansi-bright-green { color: #8ce99a; }
+.ansi-bright-yellow { color: #ffe066; }
+.ansi-bright-blue { color: #74c0fc; }
+.ansi-bright-magenta { color: #e599f7; }
+.ansi-bright-cyan { color: #67e8f9; }
+.ansi-bright-white { color: #ffffff; }
+
+/* Styles */
+.ansi-bold { font-weight: bold; }
+.ansi-dim { opacity: 0.7; }
+.ansi-italic { font-style: italic; }
+.ansi-underline { text-decoration: underline; }
+
+/* Log level highlighting */
+.log-level-error {
+    color: #ff6b6b;
+    font-weight: bold;
+    background: rgba(255, 107, 107, 0.1);
+    padding: 0 4px;
+    border-radius: 3px;
+}
+
+.log-level-warn {
+    color: #ffd93d;
+    font-weight: bold;
+    background: rgba(255, 217, 61, 0.1);
+    padding: 0 4px;
+    border-radius: 3px;
+}
+
+.log-level-info {
+    color: #4dabf7;
+    font-weight: bold;
+    background: rgba(77, 171, 247, 0.1);
+    padding: 0 4px;
+    border-radius: 3px;
+}
+
+.log-level-debug {
+    color: #adb5bd;
+    padding: 0 4px;
+    border-radius: 3px;
+}
+
+/* Timestamp */
+.log-timestamp {
+    color: #868e96;
+    font-size: 12px;
+}
+
+/* Module name */
+.log-module {
+    color: #da77f2;
+    font-weight: 500;
+}
+
+/* Dark theme adjustments for cyberpunk */
+body.theme-cyberpunk .ansi-log {
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 0, 255, 0.2);
+    font-family: 'Courier New', monospace;
+}
+
+/* System logs container specific */
+#system-logs-content {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+#system-logs-content .ansi-log {
+    margin: 0;
+}
