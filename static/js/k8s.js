@@ -272,13 +272,68 @@ const K8sManager = {
         const searchHtml = (window.TableManager && TableManager.createSearchInput) ? TableManager.createSearchInput('pods', 'Search pods...') : '';
         const headerHtml = (window.TableManager && TableManager.createSortableHeader) ? TableManager.createSortableHeader('pods', podsColumns) :
             podsColumns.map(col => `<th>${col.label}</th>`).join('');
+
+        // Check if we have error pods to enable the bulk action
+        const hasErrorPods = pods && pods.length > 0;
+        const restartBtnHtml = hasErrorPods ?
+            `<button class="cyber-btn" onclick="K8sManager.restartAllErrorPods()" style="margin-left: 10px; border-color: #ff4444; color: #ff4444;">
+                🔥 Restart All Issues
+            </button>` : '';
+
         container.innerHTML = `
-            ${searchHtml}
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                ${searchHtml}
+                ${restartBtnHtml}
+            </div>
             <table class="issues-table" id="pods-table">
                 <thead><tr>${headerHtml}</tr></thead>
                 <tbody id="pods-table-body">${this.renderPodsRows(pods)}</tbody>
             </table>
         `;
+    },
+
+    async restartAllErrorPods() {
+        const confirmed = confirm(`⚠️ RESTART ALL ERROR PODS\n\nAre you sure you want to force delete ALL pods currently in error state?\n\nThis will trigger a bulk delete operation.`);
+        if (!confirmed) return;
+
+        const btn = document.querySelector('button[onclick="K8sManager.restartAllErrorPods()"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = '⏳ Processing...';
+        }
+
+        try {
+            if (window.showNotification) showNotification({ title: 'Processing', message: 'Starting bulk restart of error pods...', severity: 'info' });
+
+            const response = await fetch('/api/pods/delete-error-pods', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                if (window.showNotification) showNotification({
+                    title: 'Batch Operation Complete',
+                    message: data.message || `Successfully processed ${data.deleted_count} pods`,
+                    severity: 'success'
+                });
+                // Refresh list after a short delay
+                setTimeout(() => this.fetchPodsStatus(), 2000);
+            } else {
+                if (window.showNotification) showNotification({ title: 'Operation Failed', message: data.message || 'Unknown error', severity: 'error' });
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '🔥 Restart All Issues';
+                }
+            }
+        } catch (error) {
+            console.error('Failed to mass delete pods:', error);
+            if (window.showNotification) showNotification({ title: 'Error', message: 'Failed to communicate with server', severity: 'error' });
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '🔥 Restart All Issues';
+            }
+        }
     },
 
     renderPodsTableContent(pods) {
