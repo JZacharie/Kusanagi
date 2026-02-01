@@ -104,19 +104,30 @@ const KusanagiNetwork = {
                 ? `${this.config.flowsEndpoint}?namespace=${encodeURIComponent(namespace)}`
                 : this.config.flowsEndpoint;
 
+            console.log(`🌐 Fetching flows from: ${url}`);
+            
             // Fetch phase
             const fetchStart = performance.now();
             const response = await fetch(url);
             const fetchDuration = performance.now() - fetchStart;
             performance.mark(`${markName}_fetch_end`);
 
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            if (!response.ok) {
+                console.error(`Flows API error: HTTP ${response.status}`);
+                throw new Error(`HTTP ${response.status}`);
+            }
 
             // Parse phase
             const parseStart = performance.now();
             const data = await response.json();
             const parseDuration = performance.now() - parseStart;
             performance.mark(`${markName}_parse_end`);
+
+            // Debug logging
+            if (window.KusanagiDebug) {
+                KusanagiDebug.logApiResponse('/api/cilium/flows', data, fetchDuration + parseDuration);
+                KusanagiDebug.validateNetworkData(data);
+            }
 
             this.state.flows = data;
 
@@ -322,9 +333,24 @@ const KusanagiNetwork = {
      * Render network graph using D3.js-style SVG
      */
     renderGraph() {
-        if (!this.state.flows || !this.state.flows.flows) return;
+        // Debug logging
+        if (window.KusanagiDebug) {
+            console.log('🌐 Rendering network graph, flows:', this.state.flows);
+        }
+        
+        if (!this.state.flows || !this.state.flows.flows) {
+            console.warn('No flows data available to render');
+            this.renderError('No network flow data available');
+            return;
+        }
 
         const flows = this.state.flows.flows;
+        
+        if (!Array.isArray(flows) || flows.length === 0) {
+            console.warn('Flows array is empty');
+            this.renderError('No network flows to display');
+            return;
+        }
         const width = this.container.clientWidth || this.config.width;
         const height = this.config.height;
 
@@ -472,9 +498,22 @@ const KusanagiNetwork = {
      */
     renderMatrix() {
         const matrixContainer = document.getElementById('network-matrix');
-        if (!matrixContainer || !this.state.matrix) return;
+        if (!matrixContainer) {
+            console.warn('Network matrix container not found');
+            return;
+        }
+        
+        if (!this.state.matrix || !Array.isArray(this.state.matrix)) {
+            matrixContainer.innerHTML = '<div class="loading">No matrix data available</div>';
+            return;
+        }
 
         const matrix = this.state.matrix;
+        
+        if (matrix.length === 0) {
+            matrixContainer.innerHTML = '<div class="no-data">No flow matrix entries to display</div>';
+            return;
+        }
 
         let html = `
             <table class="data-table network-matrix-table">
@@ -516,12 +555,17 @@ const KusanagiNetwork = {
      */
     renderStats() {
         const statsContainer = document.getElementById('network-stats');
-        if (!statsContainer || !this.state.flows) return;
+        if (!statsContainer || !this.state.flows) {
+            console.warn('Cannot render stats: container or flows data missing');
+            return;
+        }
 
         const flows = this.state.flows;
-        const totalBytes = flows.flows.reduce((sum, f) => sum + f.bytes_sent + f.bytes_received, 0);
-        const forwarded = flows.flows.filter(f => f.verdict === 'FORWARDED').length;
-        const dropped = flows.flows.filter(f => f.verdict === 'DROPPED').length;
+        const flowsArray = Array.isArray(flows.flows) ? flows.flows : [];
+        
+        const totalBytes = flowsArray.reduce((sum, f) => sum + (f.bytes_sent || 0) + (f.bytes_received || 0), 0);
+        const forwarded = flowsArray.filter(f => f.verdict === 'FORWARDED').length;
+        const dropped = flowsArray.filter(f => f.verdict === 'DROPPED').length;
 
         statsContainer.innerHTML = `
             <div class="network-stats-grid">

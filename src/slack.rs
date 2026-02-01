@@ -89,6 +89,7 @@ impl SlackClient {
         let emoji = match severity.to_lowercase().as_str() {
             "critical" | "error" => "🔴",
             "warning" => "🟠",
+            "success" | "good" | "green" => "🟢",
             _ => "🔵",
         };
 
@@ -206,12 +207,30 @@ pub async fn start_alert_monitoring_task(client: kube::Client) {
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(60)).await;
 
+            let prev_error_pods = last_error_pods;
+            let prev_unhealthy_apps = last_unhealthy_apps;
+            
+            let mut pods_checked = false;
+            let mut apps_checked = false;
+
             // Check Pods
             if let Ok(pods_status) = crate::pods::get_pods_status(&client).await {
+                pods_checked = true;
                 if pods_status.error_pods > last_error_pods {
+                    let mut message = format!("Detected {} pods in error state:\n", pods_status.error_pods);
+                    
+                    for pod in pods_status.pods_in_error.iter().take(10) {
+                        let reason = pod.reason.as_deref().unwrap_or("Unknown");
+                        message.push_str(&format!("• *{}/{}*: {} ({})\n", pod.namespace, pod.name, pod.status, reason));
+                    }
+                    
+                    if pods_status.error_pods > 10 {
+                        message.push_str(&format!("...and {} more.", pods_status.error_pods - 10));
+                    }
+
                     let _ = slack_client.notify_alert(
                         "Infrastructure Issue",
-                        &format!("Detected {} pods in error state.", pods_status.error_pods),
+                        &message,
                         "error"
                     ).await;
                 }
@@ -220,14 +239,39 @@ pub async fn start_alert_monitoring_task(client: kube::Client) {
 
             // Check ArgoCD
             if let Ok(argocd_status) = crate::argocd::get_argocd_status(&client).await {
+                apps_checked = true;
                 if argocd_status.unhealthy > last_unhealthy_apps {
+                    let mut message = format!("Detected {} unhealthy applications:\n", argocd_status.unhealthy);
+                    
+                    for app in argocd_status.apps_with_issues.iter().take(10) {
+                        message.push_str(&format!("• *{}*: {} ({})\n", app.name, app.health_status, app.sync_status));
+                    }
+
+                    if argocd_status.unhealthy > 10 {
+                        message.push_str(&format!("...and {} more.", argocd_status.unhealthy - 10));
+                    }
+
                     let _ = slack_client.notify_alert(
                         "ArgoCD Sync Alert",
-                        &format!("Detected {} unhealthy applications.", argocd_status.unhealthy),
+                        &message,
                         "warning"
                     ).await;
                 }
                 last_unhealthy_apps = argocd_status.unhealthy;
+            }
+
+            // Check for recovery
+            if pods_checked && apps_checked {
+                let was_unhealthy = prev_error_pods > 0 || prev_unhealthy_apps > 0;
+                let is_now_healthy = last_error_pods == 0 && last_unhealthy_apps == 0;
+
+                if was_unhealthy && is_now_healthy {
+                    let _ = slack_client.notify_alert(
+                        "System Recovered",
+                        "All your base are belong to us",
+                        "success"
+                    ).await;
+                }
             }
         }
     });

@@ -161,16 +161,16 @@ pub async fn get_hubble_flows(namespace: Option<&str>, limit: usize) -> Result<H
         }
     }
 
-    // 2. If cache miss or expired, fetch live (or simulate)
-    debug!(namespace = ?namespace, limit = limit, "🔍 Fetching live Hubble flows");
+    // 2. If cache miss or expired, generate mock data
+    debug!(namespace = ?namespace, limit = limit, "🔍 Generating network flows data");
     
-    // Background refresh will handle the main update, but we can do a sync one if needed
-    // For now, we return mock but we'll implement the background task to make it feel real and fast
+    // Generate mock data for demonstration
     let result = get_mock_flows(namespace, limit);
     
     if let Ok(ref flows) = result {
         span.record("success", Some(flows.flows.len() as u64));
         
+        // Update cache with new data
         if namespace.is_none() {
             let mut cache = NETWORK_CACHE.flows.write().await;
             *cache = Some((flows.clone(), Instant::now()));
@@ -451,5 +451,152 @@ pub fn export_flows_csv(flows: &HubbleFlowsResponse) -> String {
     }
     
     csv
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hubble_flows_response_serialization() {
+        let response = HubbleFlowsResponse {
+            total_flows: 2,
+            flows: vec![
+                NetworkFlow {
+                    source_namespace: "default".to_string(),
+                    source_pod: "pod-1".to_string(),
+                    source_labels: vec!["app=test".to_string()],
+                    destination_namespace: "kube-system".to_string(),
+                    destination_pod: "dns".to_string(),
+                    destination_labels: vec!["app=dns".to_string()],
+                    destination_port: 53,
+                    protocol: "UDP".to_string(),
+                    verdict: "FORWARDED".to_string(),
+                    bytes_sent: 1024,
+                    bytes_received: 512,
+                    last_seen: "2024-01-01T00:00:00Z".to_string(),
+                },
+            ],
+            matrix: vec![
+                FlowMatrixEntry {
+                    source: "default/pod-1".to_string(),
+                    destination: "kube-system/dns".to_string(),
+                    protocol: "UDP".to_string(),
+                    port: 53,
+                    flow_count: 100,
+                    bytes_total: 102400,
+                    verdict: "FORWARDED".to_string(),
+                },
+            ],
+            namespaces: vec!["default".to_string(), "kube-system".to_string()],
+            timestamp: "2024-01-01T00:00:00Z".to_string(),
+        };
+
+        // Test serialization
+        let json = serde_json::to_string(&response).expect("Failed to serialize");
+        println!("HubbleFlowsResponse JSON: {}", json);
+        
+        // Verify JSON contains expected fields
+        assert!(json.contains("\"total_flows\":2"));
+        assert!(json.contains("\"flows\""));
+        assert!(json.contains("\"matrix\""));
+        assert!(json.contains("\"namespaces\""));
+        assert!(json.contains("\"source_namespace\""));
+        assert!(json.contains("\"bytes_sent\":1024"));
+        
+        // Test deserialization
+        let deserialized: HubbleFlowsResponse = serde_json::from_str(&json).expect("Failed to deserialize");
+        assert_eq!(deserialized.total_flows, 2);
+        assert_eq!(deserialized.flows.len(), 1);
+        assert_eq!(deserialized.matrix.len(), 1);
+        
+        let flow = &deserialized.flows[0];
+        assert_eq!(flow.source_namespace, "default");
+        assert_eq!(flow.source_pod, "pod-1");
+        assert_eq!(flow.bytes_sent, 1024);
+    }
+
+    #[test]
+    fn test_network_flow_structure() {
+        let flow = NetworkFlow {
+            source_namespace: "test-ns".to_string(),
+            source_pod: "test-pod".to_string(),
+            source_labels: vec!["env=prod".to_string(), "app=web".to_string()],
+            destination_namespace: "default".to_string(),
+            destination_pod: "backend".to_string(),
+            destination_labels: vec!["app=api".to_string()],
+            destination_port: 8080,
+            protocol: "TCP".to_string(),
+            verdict: "DROPPED".to_string(),
+            bytes_sent: 2048,
+            bytes_received: 1024,
+            last_seen: chrono::Utc::now().to_rfc3339(),
+        };
+
+        let json = serde_json::to_string(&flow).expect("Failed to serialize");
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        
+        assert_eq!(value["source_namespace"], "test-ns");
+        assert_eq!(value["destination_port"], 8080);
+        assert_eq!(value["protocol"], "TCP");
+        assert_eq!(value["verdict"], "DROPPED");
+    }
+
+    #[test]
+    fn test_export_flows_json() {
+        let response = HubbleFlowsResponse {
+            total_flows: 1,
+            flows: vec![NetworkFlow {
+                source_namespace: "default".to_string(),
+                source_pod: "app".to_string(),
+                source_labels: vec![],
+                destination_namespace: "db".to_string(),
+                destination_pod: "postgres".to_string(),
+                destination_labels: vec![],
+                destination_port: 5432,
+                protocol: "TCP".to_string(),
+                verdict: "FORWARDED".to_string(),
+                bytes_sent: 1000,
+                bytes_received: 500,
+                last_seen: "2024-01-01T00:00:00Z".to_string(),
+            }],
+            matrix: vec![],
+            namespaces: vec!["default".to_string()],
+            timestamp: "2024-01-01T00:00:00Z".to_string(),
+        };
+
+        let json = export_flows_json(&response);
+        assert!(json.contains("default"));
+        assert!(json.contains("postgres"));
+        assert!(json.contains("5432"));
+    }
+
+    #[test]
+    fn test_export_flows_csv() {
+        let response = HubbleFlowsResponse {
+            total_flows: 1,
+            flows: vec![NetworkFlow {
+                source_namespace: "ns1".to_string(),
+                source_pod: "pod1".to_string(),
+                source_labels: vec![],
+                destination_namespace: "ns2".to_string(),
+                destination_pod: "pod2".to_string(),
+                destination_labels: vec![],
+                destination_port: 80,
+                protocol: "TCP".to_string(),
+                verdict: "FORWARDED".to_string(),
+                bytes_sent: 100,
+                bytes_received: 50,
+                last_seen: "".to_string(),
+            }],
+            matrix: vec![],
+            namespaces: vec![],
+            timestamp: "".to_string(),
+        };
+
+        let csv = export_flows_csv(&response);
+        assert!(csv.contains("source_namespace,source_pod"));
+        assert!(csv.contains("ns1,pod1,ns2,pod2,80,TCP,FORWARDED,100,50"));
+    }
 }
 

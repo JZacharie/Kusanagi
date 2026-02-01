@@ -130,7 +130,7 @@ pub async fn force_delete_pod_handler(
 }
 
 /// Pods status response
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PodsStatusResponse {
     pub total_pods: usize,
     pub running_pods: usize,
@@ -142,7 +142,7 @@ pub struct PodsStatusResponse {
 }
 
 /// Individual pod information  
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PodInfo {
     pub name: String,
     pub namespace: String,
@@ -165,7 +165,7 @@ pub struct PodInfo {
 }
 
 /// Container status information
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ContainerInfo {
     pub name: String,
     pub ready: bool,
@@ -648,4 +648,118 @@ fn get_pod_resource_sum(spec: Option<&k8s_openapi::api::core::v1::PodSpec>, req_
     }
     
     if sum > 0.0 { Some(sum) } else { None }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pods_status_response_serialization() {
+        let response = PodsStatusResponse {
+            total_pods: 10,
+            running_pods: 8,
+            pending_pods: 1,
+            succeeded_pods: 0,
+            failed_pods: 1,
+            error_pods: 1,
+            pods_in_error: vec![PodInfo {
+                name: "test-pod".to_string(),
+                namespace: "default".to_string(),
+                status: "Failed".to_string(),
+                reason: Some("CrashLoopBackOff".to_string()),
+                message: Some("Container crashed".to_string()),
+                node: Some("node-1".to_string()),
+                restart_count: 5,
+                age: "5m".to_string(),
+                age_seconds: 300,
+                containers: vec![],
+                cpu_usage: Some(0.1),
+                memory_usage: Some(104857600),
+                cpu_limit: Some(0.5),
+                memory_limit: Some(536870912),
+                cpu_request: Some(0.1),
+                memory_request: Some(104857600),
+            }],
+        };
+
+        // Test serialization
+        let json = serde_json::to_string(&response).expect("Failed to serialize");
+        println!("PodsStatusResponse JSON: {}", json);
+        
+        // Verify JSON contains expected fields
+        assert!(json.contains("\"total_pods\":10"));
+        assert!(json.contains("\"error_pods\":1"));
+        assert!(json.contains("\"pods_in_error\""));
+        assert!(json.contains("\"test-pod\""));
+        assert!(json.contains("\"CrashLoopBackOff\""));
+        assert!(json.contains("\"cpu_usage\":0.1"));
+        
+        // Test deserialization
+        let deserialized: PodsStatusResponse = serde_json::from_str(&json).expect("Failed to deserialize");
+        assert_eq!(deserialized.total_pods, 10);
+        assert_eq!(deserialized.running_pods, 8);
+        assert_eq!(deserialized.pods_in_error.len(), 1);
+        
+        let pod = &deserialized.pods_in_error[0];
+        assert_eq!(pod.name, "test-pod");
+        assert_eq!(pod.restart_count, 5);
+        assert!(pod.cpu_usage.is_some());
+    }
+
+    #[test]
+    fn test_pod_info_with_null_values() {
+        // Test pod with optional fields as None
+        let pod = PodInfo {
+            name: "minimal-pod".to_string(),
+            namespace: "default".to_string(),
+            status: "Running".to_string(),
+            reason: None,
+            message: None,
+            node: None,
+            restart_count: 0,
+            age: "1h".to_string(),
+            age_seconds: 3600,
+            containers: vec![],
+            cpu_usage: None,
+            memory_usage: None,
+            cpu_limit: None,
+            memory_limit: None,
+            cpu_request: None,
+            memory_request: None,
+        };
+
+        let json = serde_json::to_string(&pod).expect("Failed to serialize");
+        println!("Minimal PodInfo JSON: {}", json);
+        
+        // Verify null values are handled correctly
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert!(value["reason"].is_null());
+        assert!(value["cpu_usage"].is_null());
+        assert_eq!(value["name"], "minimal-pod");
+    }
+
+    #[test]
+    fn test_parse_cpu() {
+        assert_eq!(parse_cpu("100m"), 0.1);
+        assert_eq!(parse_cpu("1"), 1.0);
+        assert_eq!(parse_cpu("500m"), 0.5);
+        assert_eq!(parse_cpu("2.5"), 2.5);
+    }
+
+    #[test]
+    fn test_parse_memory() {
+        assert_eq!(parse_memory("100Mi"), 100 * 1024 * 1024);
+        assert_eq!(parse_memory("1Gi"), 1024 * 1024 * 1024);
+        assert_eq!(parse_memory("512Ki"), 512 * 1024);
+        assert_eq!(parse_memory("1G"), 1_000_000_000);
+    }
+
+    #[test]
+    fn test_format_age() {
+        assert_eq!(format_age(30), "30s");
+        assert_eq!(format_age(300), "5m");
+        assert_eq!(format_age(3600), "1h0m");
+        assert_eq!(format_age(90000), "1d1h");
+    }
 }

@@ -187,31 +187,43 @@ const K8sManager = {
 
     // === PODS MONITORING ===
     async fetchPodsStatus() {
-        console.log('Fetching pods status...');
+        console.log('📦 Fetching pods status...');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const startTime = performance.now();
 
         try {
             const response = await fetch('/api/pods/status', { signal: controller.signal });
             clearTimeout(timeoutId);
+            const duration = performance.now() - startTime;
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
+            
+            // Debug logging
+            if (window.KusanagiDebug) {
+                KusanagiDebug.logApiResponse('/api/pods/status', data, duration);
+                KusanagiDebug.validatePodsData(data);
+            }
+            
             if (data.error) {
                 const el = document.getElementById('pods-content');
                 if (el) el.innerHTML = `<div class="loading" style="color: #ff4444;">Error: ${data.error}</div>`;
                 return;
             }
+            
+            // Safely access data with defaults
             const stats = {
-                'pods-total': data.total_pods,
-                'pods-running': data.running_pods,
-                'pods-pending': data.pending_pods,
-                'pods-error': data.error_pods,
-                'pods-error-count': data.pods_in_error.length
+                'pods-total': data.total_pods ?? 0,
+                'pods-running': data.running_pods ?? 0,
+                'pods-pending': data.pending_pods ?? 0,
+                'pods-error': data.error_pods ?? 0,
+                'pods-error-count': data.pods_in_error?.length ?? 0
             };
+            
             for (const [id, value] of Object.entries(stats)) {
                 const el = document.getElementById(id);
                 if (el) el.textContent = value;
@@ -344,10 +356,14 @@ const K8sManager = {
     },
 
     renderPodsRows(pods) {
-        if (!pods || pods.length === 0) return '<tr><td colspan="10" style="text-align:center;">No pods found</td></tr>';
+        if (!pods || pods.length === 0) return '<tr><td colspan="10" style="text-align:center;">No pods in error state</td></tr>';
 
         return pods.map(pod => {
-            const statusClass = this.getStatusClass(pod.status);
+            // Safely access pod properties with defaults
+            const name = pod.name || 'Unknown';
+            const namespace = pod.namespace || 'default';
+            const status = pod.status || 'Unknown';
+            const statusClass = this.getK8sStatusClass(status);
 
             // Format CPU Usage / Limit
             const cpuUsage = this.formatCpu(pod.cpu_usage);
@@ -363,23 +379,30 @@ const K8sManager = {
 
             return `
             <tr>
-                <td class="col-name" style="font-weight: bold;">${pod.name}</td>
-                <td>${pod.namespace}</td>
-                <td><span class="status-badge ${statusClass}">${pod.status}</span></td>
+                <td class="col-name" style="font-weight: bold;">${this.escapeHtml(name)}</td>
+                <td>${this.escapeHtml(namespace)}</td>
+                <td><span class="status-badge ${statusClass}">${status}</span></td>
                 <td style="font-family: monospace; font-size: 0.85em;">${cpuDisplay}</td>
                 <td style="font-family: monospace; font-size: 0.85em;">${memDisplay}</td>
-                <td style="color: #ff4444;">${pod.reason || '-'}</td>
-                <td style="text-align: center;">${pod.restart_count}</td>
-                <td>${pod.age}</td>
-                <td style="font-size: 0.8em; opacity: 0.8;">${pod.node || '-'}</td>
+                <td style="color: #ff4444;">${pod.reason ? this.escapeHtml(pod.reason) : '-'}</td>
+                <td style="text-align: center;">${pod.restart_count ?? 0}</td>
+                <td>${pod.age || '-'}</td>
+                <td style="font-size: 0.8em; opacity: 0.8;">${pod.node ? this.escapeHtml(pod.node) : '-'}</td>
                 <td>
                     <div style="display: flex; gap: 5px;">
-                        <button class="cyber-btn sm" onclick="K8sManager.viewPodLogs('${pod.namespace}', '${pod.name}')" title="View Logs">📄</button>
-                        <button class="cyber-btn sm" onclick="K8sManager.deletePod('${pod.namespace}', '${pod.name}')" title="Delete Pod" style="border-color: #ff4444; color: #ff4444;">🗑️</button>
+                        <button class="cyber-btn sm" onclick="K8sManager.viewPodLogs('${this.escapeHtml(namespace)}', '${this.escapeHtml(name)}')" title="View Logs">📄</button>
+                        <button class="cyber-btn sm" onclick="K8sManager.forceDeletePod('${this.escapeHtml(namespace)}', '${this.escapeHtml(name)}')" title="Delete Pod" style="border-color: #ff4444; color: #ff4444;">🗑️</button>
                     </div>
                 </td>
             </tr>
         `}).join('');
+    },
+
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     },
 
     formatCpu(cores) {
@@ -402,6 +425,7 @@ const K8sManager = {
     },
 
     getK8sStatusClass(status) {
+        if (!status) return 'unknown';
         switch (status.toLowerCase()) {
             case 'running':
             case 'succeeded': return 'healthy';
@@ -409,6 +433,39 @@ const K8sManager = {
             case 'failed': return 'unhealthy';
             default: return 'unknown';
         }
+    },
+
+    // === POD LOGS ===
+    async viewPodLogs(namespace, podName) {
+        console.log(`📄 Fetching logs for ${namespace}/${podName}`);
+        const modal = document.getElementById('logs-modal');
+        const title = document.getElementById('logs-modal-title');
+        const content = document.getElementById('logs-modal-content');
+        
+        if (!modal || !title || !content) {
+            console.error('Logs modal elements not found');
+            return;
+        }
+        
+        title.textContent = `📄 Pod Logs: ${namespace}/${podName}`;
+        content.innerHTML = '<div class="loading">Loading logs...</div>';
+        modal.style.display = 'flex';
+        
+        try {
+            const response = await fetch(`/api/pods/${namespace}/${podName}/logs?tail=500`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const logs = await response.text();
+            content.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; max-height: 70vh; overflow-y: auto; font-family: monospace; font-size: 12px; line-height: 1.5;">${this.escapeHtml(logs)}</pre>`;
+        } catch (error) {
+            console.error('Failed to fetch logs:', error);
+            content.innerHTML = `<div style="color: #ff4444;">Error loading logs: ${error.message}</div>`;
+        }
+    },
+    
+    closeLogsModal() {
+        const modal = document.getElementById('logs-modal');
+        if (modal) modal.style.display = 'none';
     },
 
     async forceDeletePod(namespace, podName) {
