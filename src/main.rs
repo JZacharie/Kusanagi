@@ -6,6 +6,8 @@ use tracing::info;
 pub mod error;
 pub use error::{KusanagiError, Result};
 
+pub mod config;
+
 mod apps;
 mod argocd;
 mod backups;
@@ -557,18 +559,30 @@ async fn export_alerts_endpoint(data: web::Data<AppState>, query: web::Query<Exp
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
     
-    // Configure logging with a default level of 'warn' if RUST_LOG is not set
+    // Load configuration
+    if let Err(e) = config::init() {
+        eprintln!("Failed to load configuration: {}", e);
+        std::process::exit(1);
+    }
+    let cfg = config::get();
+    
+    // Configure logging based on config
+    let log_level = &cfg.log.level;
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn"));
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(log_level));
         
     tracing_subscriber::fmt()
         .with_env_filter(filter)
         .init();
 
-    info!("Starting Kusanagi server on port 8080");
-    info!("Access the cyberpunk interface at http://localhost:8080");
+    info!("Starting Kusanagi server on port {}", cfg.server.port);
+    info!("Access the cyberpunk interface at http://localhost:{}", cfg.server.port);
+    
+    if cfg.is_dev_mode() {
+        info!("Running in development mode");
+    }
 
-    let client = if std::env::var("KUSANAGI_DEV_MODE").is_ok() {
+    let client = if cfg.is_dev_mode() {
         tracing::warn!("Running in development mode - Kubernetes features disabled");
         match kube::Client::try_default().await {
             Ok(client) => {
@@ -687,7 +701,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/news", web::get().to(newsfeed::get_news))
             .service(Files::new("/static", "./static").show_files_listing())
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind(cfg.server_addr())?
     .run()
     .await
 }

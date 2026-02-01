@@ -11,8 +11,8 @@ use tokio::sync::Mutex;
 #[derive(Serialize, Clone)]
 pub struct SystemStatus {
     pub uptime_secs: u64,
-    pub cpu_usage_percent: f32,
-    pub memory_usage_bytes: u64,
+    pub cpu_usage: f32,          // Changed from cpu_usage_percent
+    pub memory_usage_mb: u64,    // Changed from memory_usage_bytes
     pub version: String,
     pub start_time: String,
 }
@@ -21,6 +21,7 @@ pub struct SystemManager {
     pub start_time: Instant,
     pub start_time_rfc3339: String,
     pub last_image_digest: Arc<Mutex<Option<String>>>,
+    sys: Arc<std::sync::Mutex<System>>, // Using std::sync::Mutex for synchronous sysinfo
 }
 
 impl SystemManager {
@@ -29,11 +30,12 @@ impl SystemManager {
             start_time: Instant::now(),
             start_time_rfc3339: chrono::Utc::now().to_rfc3339(),
             last_image_digest: Arc::new(Mutex::new(None)),
+            sys: Arc::new(std::sync::Mutex::new(System::new_all())),
         }
     }
 
     pub fn get_status(&self) -> SystemStatus {
-        let mut sys = System::new_all();
+        let mut sys = self.sys.lock().unwrap();
         sys.refresh_all();
         
         // Get current process metrics
@@ -43,8 +45,8 @@ impl SystemManager {
 
         SystemStatus {
             uptime_secs: self.start_time.elapsed().as_secs(),
-            cpu_usage_percent: cpu_usage,
-            memory_usage_bytes: memory_usage,
+            cpu_usage,
+            memory_usage_mb: memory_usage / 1024 / 1024,
             version: env!("CARGO_PKG_VERSION").to_string(),
             start_time: self.start_time_rfc3339.clone(),
         }
@@ -139,13 +141,33 @@ async fn trigger_rollout(client: &Client) -> Result<(), Box<dyn std::error::Erro
 #[get("/api/system/logs")]
 pub async fn system_logs_handler(data: web::Data<crate::AppState>) -> impl Responder {
     let hostname = std::env::var("HOSTNAME").unwrap_or_else(|_| "kusanagi".to_string());
-    // Assuming we are in the same namespace as we are deployed, usually 'kusanagi' or 'default'
-    // But we can try to find ourselves. Best bet is env var POD_NAMESPACE or just try 'kusanagi'
     let namespace = std::env::var("POD_NAMESPACE").unwrap_or_else(|_| "kusanagi".to_string());
 
+    // 1. Try to get logs using hostname as pod name
     match crate::pods::get_pod_logs(&data.client, &namespace, &hostname, None, 1000).await {
         Ok(logs) => HttpResponse::Ok().body(logs),
-        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({"error": e})),
+        Err(e) => {
+             // 2. If valid K8s client but failed (maybe hostname != pod name), try to find pod by label
+             // This is a simple fallback if the app is labeled app=kusanagi
+             warn!("Failed to fetch logs for pod {}: {}. Trying to find by label...", hostname, e);
+             
+             let pods_api: Api<k8s_openapi::api::core::v1::Pod> = Api::namespaced(data.client.clone(), &namespace);
+             let lp = kube::api::ListParams::default().labels("app=kusanagi"); // Common label
+             
+             if let Ok(pod_list) = pods_api.list(&lp).await {
+                if let Some(pod) = pod_list.items.first() {
+                    let pod_name = pod.metadata.name.clone().unwrap_or_default();
+                    match crate::pods::get_pod_logs(&data.client, &namespace, &pod_name, None, 1000).await {
+                        Ok(logs) => return HttpResponse::Ok().body(logs),
+                        Err(inner_e) => return HttpResponse::InternalServerError().json(serde_json::json!({"error": format!("Found pod {} but failed to fetch logs: {}", pod_name, inner_e)})),
+                    }
+                }
+             }
+
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("Failed to fetch logs. Checked pod '{}' and label 'app=kusanagi'. Error: {}", hostname, e)
+            }))
+        }
     }
 }
 

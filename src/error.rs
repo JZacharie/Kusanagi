@@ -495,6 +495,15 @@ impl From<rumqttc::ClientError> for KusanagiError {
     }
 }
 
+/// Convert from config::ConfigError
+impl From<config::ConfigError> for KusanagiError {
+    fn from(err: config::ConfigError) -> Self {
+        Self::Config {
+            message: err.to_string(),
+        }
+    }
+}
+
 // ==================== String Conversions (for gradual migration) ====================
 
 impl From<String> for KusanagiError {

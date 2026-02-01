@@ -8,6 +8,26 @@ Inspiré par le Major Motoko Kusanagi (*Ghost in the Shell*), ce projet ne se co
 
 ---
 
+## 🚀 Quick Start
+
+### Configuration
+
+Kusanagi uses a structured configuration system supporting environment variables and TOML files:
+
+```bash
+# Using environment variables
+export KUSANAGI_SERVER_PORT=8080
+export KUSANAGI_PROMETHEUS_URL=http://prometheus:9090
+export KUSANAGI_DEV_MODE=true
+
+# Or create kusanagi.toml
+# See kusanagi.example.toml for full example
+```
+
+See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for complete configuration reference.
+
+---
+
 ## 🏛️ High-Level Design (HLD)
 
 L'architecture de **Kusanagi** est conçue pour être à la fois légère, réactive et sécurisée :
