@@ -9,6 +9,7 @@ pub use error::{KusanagiError, Result};
 pub mod config;
 pub mod cache;
 pub mod resilience;
+pub mod event_bus;
 
 // Hexagonal Architecture layers
 pub mod domain;
