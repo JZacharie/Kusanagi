@@ -12,10 +12,19 @@ lazy_static! {
         "kusanagi_http_request_duration_seconds",
         "HTTP request duration in seconds"
     ).unwrap();
+
+    pub static ref UPTIME: prometheus::Gauge = prometheus::register_gauge!(
+        "kusanagi_uptime_seconds",
+        "Kusanagi uptime in seconds"
+    ).unwrap();
 }
 
 #[get("/metrics")]
-pub async fn metrics_handler() -> impl Responder {
+pub async fn metrics_handler(sys: actix_web::web::Data<crate::system::SystemManager>) -> impl Responder {
+    // Update uptime metric
+    let uptime = sys.get_status().uptime_secs;
+    UPTIME.set(uptime as f64);
+
     let encoder = TextEncoder::new();
     let metric_families = prometheus::gather();
     let mut buffer = vec![];
