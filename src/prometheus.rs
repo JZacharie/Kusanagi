@@ -393,4 +393,65 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
         trivy_low_count,
     })
 }
+    })
+}
 
+/// Fetch CPU and Memory usage for all pods from Prometheus
+/// Returns a map of (namespace, pod_name) -> (cpu_usage_cores, memory_usage_bytes)
+pub async fn get_pods_resource_usage() -> Result<std::collections::HashMap<(String, String), (f64, i64)>, String> {
+    let mut usage_map = std::collections::HashMap::new();
+    let prometheus_url = get_prometheus_url();
+
+    // 1. Fetch CPU Usage (sum of all containers in pod)
+    // Query: sum(rate(container_cpu_usage_seconds_total{container!="", image!=""}[5m])) by (namespace, pod)
+    let cpu_query = r#"sum(rate(container_cpu_usage_seconds_total{container!="", image!=""}[5m])) by (namespace, pod)"#;
+    
+    match query_raw_at(cpu_query, &prometheus_url).await {
+        Ok(result) => {
+             if let Some(results) = result.data.get("result").and_then(|r| r.as_array()) {
+                for r in results {
+                    if let (Some(metric), Some(value)) = (r.get("metric"), r.get("value")) {
+                        let namespace = metric.get("namespace").and_then(|s| s.as_str()).unwrap_or_default().to_string();
+                        let pod = metric.get("pod").and_then(|s| s.as_str()).unwrap_or_default().to_string();
+                        
+                        if let Some(val_str) = value.as_array().and_then(|a| a.get(1)).and_then(|v| v.as_str()) {
+                            if let Ok(val) = val_str.parse::<f64>() {
+                                usage_map.insert((namespace, pod), (val, 0));
+                            }
+                        }
+                    }
+                }
+             }
+        },
+        Err(e) => tracing::warn!("Failed to fetch pod CPU usage: {}", e),
+    }
+
+    // 2. Fetch Memory Usage (sum of all containers in pod)
+    // Query: sum(container_memory_usage_bytes{container!="", image!=""}) by (namespace, pod)
+    let mem_query = r#"sum(container_memory_usage_bytes{container!="", image!=""}) by (namespace, pod)"#;
+
+    match query_raw_at(mem_query, &prometheus_url).await {
+        Ok(result) => {
+             if let Some(results) = result.data.get("result").and_then(|r| r.as_array()) {
+                for r in results {
+                    if let (Some(metric), Some(value)) = (r.get("metric"), r.get("value")) {
+                        let namespace = metric.get("namespace").and_then(|s| s.as_str()).unwrap_or_default().to_string();
+                        let pod = metric.get("pod").and_then(|s| s.as_str()).unwrap_or_default().to_string();
+                        
+                        if let Some(val_str) = value.as_array().and_then(|a| a.get(1)).and_then(|v| v.as_str()) {
+                            if let Ok(val) = val_str.parse::<f64>() { // Prometheus returns strings
+                                let mem_bytes = val as i64;
+                                usage_map.entry((namespace, pod))
+                                    .and_modify(|e| e.1 = mem_bytes)
+                                    .or_insert((0.0, mem_bytes));
+                            }
+                        }
+                    }
+                }
+             }
+        },
+        Err(e) => tracing::warn!("Failed to fetch pod Memory usage: {}", e),
+    }
+
+    Ok(usage_map)
+}

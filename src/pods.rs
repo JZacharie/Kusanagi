@@ -154,6 +154,14 @@ pub struct PodInfo {
     pub age: String,
     pub age_seconds: i64,
     pub containers: Vec<ContainerInfo>,
+    // Resource usage from Prometheus
+    pub cpu_usage: Option<f64>,      // in cores
+    pub memory_usage: Option<i64>,   // in bytes
+    // Resource limits from Pod Spec (Sum of containers)
+    pub cpu_limit: Option<f64>,      // in cores
+    pub memory_limit: Option<i64>,   // in bytes
+    pub cpu_request: Option<f64>,    // in cores
+    pub memory_request: Option<i64>, // in bytes
 }
 
 /// Container status information
@@ -208,6 +216,10 @@ pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, Stri
 
     let duration = start.elapsed();
     info!("K8s API list pods took: {:?}", duration);
+
+    // Fetch resource usage from Prometheus (best effort)
+    let usage_map = crate::prometheus::get_pods_resource_usage().await.unwrap_or_else(|_| std::collections::HashMap::new());
+
 
     let now = Utc::now();
     let mut response = PodsStatusResponse {
@@ -353,6 +365,12 @@ pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, Stri
                 age,
                 age_seconds,
                 containers,
+                cpu_usage: usage_map.get(&(namespace.clone(), name.clone())).map(|u| u.0),
+                memory_usage: usage_map.get(&(namespace.clone(), name.clone())).map(|u| u.1),
+                cpu_limit: get_pod_resource_sum(spec, "limits", "cpu"),
+                memory_limit: get_pod_resource_sum(spec, "limits", "memory"),
+                cpu_request: get_pod_resource_sum(spec, "requests", "cpu"),
+                memory_request: get_pod_resource_sum(spec, "requests", "memory"),
             });
         }
     }
@@ -550,4 +568,79 @@ pub async fn delete_error_pods(client: &Client) -> Result<BulkDeleteResponse, St
         deleted_count,
         failed_count,
     })
+}
+}
+
+/// Parse k8s CPU quantity to cores (f64)
+/// 100m -> 0.1
+/// 1 -> 1.0
+fn parse_cpu(s: &str) -> f64 {
+    if let Some(stripped) = s.strip_suffix('m') {
+        stripped.parse::<f64>().unwrap_or(0.0) / 1000.0
+    } else {
+        s.parse::<f64>().unwrap_or(0.0)
+    }
+}
+
+/// Parse k8s memory quantity to bytes (i64)
+/// 128Mi -> 128 * 1024 * 1024
+/// 1G -> 1 * 1000 * 1000 * 1000
+fn parse_memory(s: &str) -> i64 {
+    let s = s.trim();
+    if let Some(stripped) = s.strip_suffix("Ki") {
+        stripped.parse::<f64>().unwrap_or(0.0) as i64 * 1024
+    } else if let Some(stripped) = s.strip_suffix("Mi") {
+        stripped.parse::<f64>().unwrap_or(0.0) as i64 * 1024 * 1024
+    } else if let Some(stripped) = s.strip_suffix("Gi") {
+        stripped.parse::<f64>().unwrap_or(0.0) as i64 * 1024 * 1024 * 1024
+    } else if let Some(stripped) = s.strip_suffix("Ti") {
+        stripped.parse::<f64>().unwrap_or(0.0) as i64 * 1024 * 1024 * 1024 * 1024
+    } else if let Some(stripped) = s.strip_suffix("m") {
+        // e.g. 100m bytes? Rare but possible in some generic resource contexts, usually invalid for memory
+        (stripped.parse::<f64>().unwrap_or(0.0) / 1000.0) as i64
+    } else if let Some(stripped) = s.strip_suffix("K") {
+        stripped.parse::<f64>().unwrap_or(0.0) as i64 * 1000
+    } else if let Some(stripped) = s.strip_suffix("M") {
+        stripped.parse::<f64>().unwrap_or(0.0) as i64 * 1000 * 1000
+    } else if let Some(stripped) = s.strip_suffix("G") {
+        stripped.parse::<f64>().unwrap_or(0.0) as i64 * 1000 * 1000 * 1000
+    } else if let Some(stripped) = s.strip_suffix("T") {
+        stripped.parse::<f64>().unwrap_or(0.0) as i64 * 1000 * 1000 * 1000 * 1000
+    } else {
+        s.parse::<i64>().unwrap_or(0)
+    }
+}
+
+
+fn get_pod_resource_sum(spec: Option<&k8s_openapi::api::core::v1::PodSpec>, req_type: &str, resource_name: &str) -> Option<f64> {
+    let spec = spec?;
+    let mut sum: f64 = 0.0;
+    
+    // Sum containers
+    for container in &spec.containers {
+         if let Some(resources) = &container.resources {
+            let map = if req_type == "limits" { &resources.limits } else { &resources.requests };
+             if let Some(map) = map {
+                if let Some(qty) = map.get(resource_name) {
+                    if resource_name == "cpu" {
+                        sum += parse_cpu(&qty.0);
+                    } else {
+                         sum += parse_memory(&qty.0) as f64;
+                    }
+                }
+             }
+         }
+    }
+    
+    // Sum init containers
+    if let Some(init_containers) = &spec.init_containers {
+        // Init containers run sequentially, so the requirement is the MAX of any init container
+        // But for "limits" usually we care about the max spike. 
+        // For sizing, it's complex (max(init) + sum(app)).
+        // Simplified: just taking the app containers sum for now as that's the steady state.
+        // User asked for "resources limits", which usually implies what the pod is reserving/capped at during runtime.
+        // I will ignore init containers for the sum to show the "App" limits.
+    }
+    
+    if sum > 0.0 { Some(sum) } else { None }
 }

@@ -220,6 +220,8 @@ const K8sManager = {
                 { key: 'name', label: 'Pod Name' },
                 { key: 'namespace', label: 'Namespace' },
                 { key: 'status', label: 'Status' },
+                { key: 'usage', label: 'Usage (CPU / Mem)' },
+                { key: 'limits', label: 'Limits (CPU / Mem)' },
                 { key: 'reason', label: 'Reason' },
                 { key: 'restart_count', label: 'Restarts' },
                 { key: 'age', label: 'Age' },
@@ -342,26 +344,61 @@ const K8sManager = {
     },
 
     renderPodsRows(pods) {
-        if (!pods || pods.length === 0) {
-            return '<tr><td colspan="8" style="text-align: center; color: var(--neon-green);">✓ No matching pods</td></tr>';
-        }
-        return pods.map(pod => `
+        if (!pods || pods.length === 0) return '<tr><td colspan="10" style="text-align:center;">No pods found</td></tr>';
+
+        return pods.map(pod => {
+            const statusClass = this.getStatusClass(pod.status);
+
+            // Format CPU Usage / Limit
+            const cpuUsage = this.formatCpu(pod.cpu_usage);
+            const cpuLimit = this.formatCpu(pod.cpu_limit);
+            const cpuDisplay = (cpuUsage !== '-' || cpuLimit !== '-') ?
+                `${cpuUsage} / <span style="opacity:0.6">${cpuLimit}</span>` : '-';
+
+            // Format Memory Usage / Limit
+            const memUsage = this.formatMemory(pod.memory_usage);
+            const memLimit = this.formatMemory(pod.memory_limit);
+            const memDisplay = (memUsage !== '-' || memLimit !== '-') ?
+                `${memUsage} / <span style="opacity:0.6">${memLimit}</span>` : '-';
+
+            return `
             <tr>
-                <td class="app-name" title="${pod.message || ''}">${pod.name}</td>
+                <td class="col-name" style="font-weight: bold;">${pod.name}</td>
                 <td>${pod.namespace}</td>
-                <td><span class="status-badge ${this.getK8sStatusClass(pod.status)}">${pod.status}</span></td>
-                <td class="error-message" title="${pod.message || ''}">${pod.reason || '-'}</td>
-                <td style="color: ${pod.restart_count > 5 ? '#ff4444' : 'inherit'}; font-weight: ${pod.restart_count > 5 ? 'bold' : 'normal'};">${pod.restart_count}</td>
+                <td><span class="status-badge ${statusClass}">${pod.status}</span></td>
+                <td style="font-family: monospace; font-size: 0.85em;">${cpuDisplay}</td>
+                <td style="font-family: monospace; font-size: 0.85em;">${memDisplay}</td>
+                <td style="color: #ff4444;">${pod.reason || '-'}</td>
+                <td style="text-align: center;">${pod.restart_count}</td>
                 <td>${pod.age}</td>
-                <td>${pod.node || '-'}</td>
+                <td style="font-size: 0.8em; opacity: 0.8;">${pod.node || '-'}</td>
                 <td>
                     <div style="display: flex; gap: 5px;">
-                        <button class="action-btn" onclick="LogsManager.openModal('${pod.namespace}', '${pod.name}')" title="View Pod Logs" style="background: var(--neon-blue); color: #fff;">📄 Logs</button>
-                        <button class="delete-btn" onclick="K8sManager.forceDeletePod('${pod.namespace}', '${pod.name}')" title="Force delete this pod">🗑️ Delete</button>
+                        <button class="cyber-btn sm" onclick="K8sManager.viewPodLogs('${pod.namespace}', '${pod.name}')" title="View Logs">📄</button>
+                        <button class="cyber-btn sm" onclick="K8sManager.deletePod('${pod.namespace}', '${pod.name}')" title="Delete Pod" style="border-color: #ff4444; color: #ff4444;">🗑️</button>
                     </div>
                 </td>
             </tr>
-        `).join('');
+        `}).join('');
+    },
+
+    formatCpu(cores) {
+        if (cores === undefined || cores === null) return '-';
+        if (cores < 0.001) return '0';
+        if (cores < 1) return Math.round(cores * 1000) + 'm';
+        return cores.toFixed(2);
+    },
+
+    formatMemory(bytes) {
+        if (bytes === undefined || bytes === null) return '-';
+        if (bytes === 0) return '0';
+        const units = ['B', 'Ki', 'Mi', 'Gi', 'Ti'];
+        let i = 0;
+        while (bytes >= 1024 && i < units.length - 1) {
+            bytes /= 1024;
+            i++;
+        }
+        return bytes.toFixed(1) + units[i];
     },
 
     getK8sStatusClass(status) {
