@@ -204,9 +204,10 @@ Alerts     →                  → Browser notifications
 ### Backend Patterns
 1. **Module-per-Feature**: Each feature in separate `.rs` file
 2. **Async/Await**: All I/O operations are async
-3. **Error Handling**: Result types with String errors
+3. **Error Handling**: `KusanagiError` with `thiserror` (see `src/error.rs`)
 4. **Caching**: Arc<RwLock<>> for thread-safe caching
 5. **Background Tasks**: tokio::spawn for periodic jobs
+6. **Structured Errors**: Each error variant has specific HTTP status mapping
 
 ### Frontend Patterns
 1. **Manager Objects**: Encapsulated state management
@@ -255,7 +256,7 @@ Alerts     →                  → Browser notifications
 
 ### High Priority
 1. **Authentication**: No auth mechanism
-2. **Error Handling**: String errors (should use thiserror)
+2. **Error Handling**: 🔄 In Progress - `thiserror` implemented, migrating modules
 3. **Testing**: No unit/integration tests
 4. **Logging**: Basic tracing, needs structured logging
 

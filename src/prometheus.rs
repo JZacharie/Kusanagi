@@ -1,4 +1,9 @@
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use std::time::{Instant, Duration};
+
+use crate::error::{KusanagiError, Result};
 
 /// Prometheus metrics response
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,10 +45,6 @@ lazy_static::lazy_static! {
     };
 }
 
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use std::time::{Instant, Duration};
-
 /// Cache for Prometheus metrics
 pub struct MetricsCache {
     pub metrics: RwLock<Option<(PrometheusMetrics, Instant)>>,
@@ -62,7 +63,7 @@ lazy_static::lazy_static! {
 }
 
 /// Get cached cluster metrics
-pub async fn get_cached_metrics() -> Result<PrometheusMetrics, String> {
+pub async fn get_cached_metrics() -> Result<PrometheusMetrics> {
     // 1. Try to get from cache
     {
         let cache = METRICS_CACHE.metrics.read().await;
@@ -145,66 +146,66 @@ fn get_prometheus_url_ha() -> String {
 }
 
 /// Execute a PromQL instant query at a specific Prometheus URL
-pub async fn query_instant_at(query: &str, url: &str) -> Result<f64, String> {
+pub async fn query_instant_at(query: &str, url: &str) -> Result<f64> {
     let client = reqwest::Client::new();
-    let url = format!("{}/api/v1/query", url);
+    let request_url = format!("{}/api/v1/query", url);
     
     let response = client
-        .get(&url)
+        .get(&request_url)
         .query(&[("query", query)])
         .timeout(std::time::Duration::from_secs(10))
         .send()
-        .await
-        .map_err(|e| format!("Prometheus request failed: {}", e))?;
+        .await?; // reqwest::Error automatically converted
     
     if !response.status().is_success() {
-        return Err(format!("Prometheus returned status: {}", response.status()));
+        return Err(KusanagiError::prometheus(
+            format!("Prometheus returned status: {}", response.status())
+        ));
     }
     
     let prom_response: PromResponse = response
         .json()
-        .await
-        .map_err(|e| format!("Failed to parse Prometheus response: {}", e))?;
+        .await?; // serde_json::Error automatically converted
     
     if prom_response.status != "success" {
-        return Err("Prometheus query failed".to_string());
+        return Err(KusanagiError::prometheus("Prometheus query failed"));
     }
     
     // Get first result value
     if let Some(result) = prom_response.data.result.first() {
         result.value.1.parse::<f64>()
-            .map_err(|e| format!("Failed to parse metric value: {}", e))
+            .map_err(|e| KusanagiError::prometheus(format!("Failed to parse metric value: {}", e)))
     } else {
         Ok(0.0)
     }
 }
 
 /// Execute a PromQL instant query (default URL)
-pub async fn query_instant(query: &str) -> Result<f64, String> {
+pub async fn query_instant(query: &str) -> Result<f64> {
     query_instant_at(query, &get_prometheus_url()).await
 }
 
 /// Execute a raw PromQL query at a specific URL
-pub async fn query_raw_at(query: &str, url: &str) -> Result<PrometheusQueryResult, String> {
+pub async fn query_raw_at(query: &str, url: &str) -> Result<PrometheusQueryResult> {
     let client = reqwest::Client::new();
-    let url = format!("{}/api/v1/query", url);
+    let request_url = format!("{}/api/v1/query", url);
     
     let response = client
-        .get(&url)
+        .get(&request_url)
         .query(&[("query", query)])
         .timeout(std::time::Duration::from_secs(10))
         .send()
-        .await
-        .map_err(|e| format!("Prometheus request failed: {}", e))?;
+        .await?;
     
     if !response.status().is_success() {
-        return Err(format!("Prometheus returned status: {}", response.status()));
+        return Err(KusanagiError::prometheus(
+            format!("Prometheus returned status: {}", response.status())
+        ));
     }
     
     let result: serde_json::Value = response
         .json()
-        .await
-        .map_err(|e| format!("Failed to parse Prometheus response: {}", e))?;
+        .await?;
     
     Ok(PrometheusQueryResult {
         status: result["status"].as_str().unwrap_or("unknown").to_string(),
@@ -213,17 +214,17 @@ pub async fn query_raw_at(query: &str, url: &str) -> Result<PrometheusQueryResul
 }
 
 /// Execute a raw PromQL query (default URL)
-pub async fn query_raw(query: &str) -> Result<PrometheusQueryResult, String> {
+pub async fn query_raw(query: &str) -> Result<PrometheusQueryResult> {
     query_raw_at(query, &get_prometheus_url()).await
 }
 
 /// Execute a PromQL range query at a specific URL
-pub async fn query_range_at(query: &str, start: i64, end: i64, step: &str, url: &str) -> Result<serde_json::Value, String> {
+pub async fn query_range_at(query: &str, start: i64, end: i64, step: &str, url: &str) -> Result<serde_json::Value> {
     let client = reqwest::Client::new();
-    let url = format!("{}/api/v1/query_range", url);
+    let request_url = format!("{}/api/v1/query_range", url);
     
     let response = client
-        .get(&url)
+        .get(&request_url)
         .query(&[
             ("query", query),
             ("start", &start.to_string()),
@@ -232,91 +233,67 @@ pub async fn query_range_at(query: &str, start: i64, end: i64, step: &str, url: 
         ])
         .timeout(std::time::Duration::from_secs(10))
         .send()
-        .await
-        .map_err(|e| format!("Prometheus request failed: {}", e))?;
+        .await?;
     
     if !response.status().is_success() {
-        return Err(format!("Prometheus returned status: {}", response.status()));
+        return Err(KusanagiError::prometheus(
+            format!("Prometheus returned status: {}", response.status())
+        ));
     }
     
     let result: serde_json::Value = response
         .json()
-        .await
-        .map_err(|e| format!("Failed to parse Prometheus response: {}", e))?;
+        .await?;
     
     Ok(result)
 }
 
 /// Execute a PromQL range query (default URL)
-pub async fn query_range(query: &str, start: i64, end: i64, step: &str) -> Result<serde_json::Value, String> {
+pub async fn query_range(query: &str, start: i64, end: i64, step: &str) -> Result<serde_json::Value> {
     query_range_at(query, start, end, step, &get_prometheus_url()).await
 }
 
 /// Get comprehensive cluster metrics from Prometheus
-pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
+pub async fn get_cluster_metrics() -> Result<PrometheusMetrics> {
     let mut errors = Vec::new();
+
+    // Helper macro to query with error tracking
+    macro_rules! try_query {
+        ($name:expr, $query:expr, $default:expr) => {
+            match query_instant($query).await {
+                Ok(v) => v,
+                Err(e) => {
+                    tracing::error!("Failed to query {}: {}", $name, e);
+                    errors.push(format!("{}: {}", $name, e));
+                    $default
+                }
+            }
+        };
+    }
 
     // CPU usage across all nodes (percentage)
     let cpu_query = r#"100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)"#;
-    let cpu_usage = match query_instant(cpu_query).await {
-        Ok(v) => v,
-        Err(e) => {
-            tracing::error!("Failed to query CPU usage: {}", e);
-            errors.push(format!("CPU: {}", e));
-            0.0
-        }
-    };
+    let cpu_usage = try_query!("CPU usage", cpu_query, 0.0);
     
     // Memory usage percentage
     let mem_percent_query = r#"(1 - (sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes))) * 100"#;
-    let memory_usage_percent = match query_instant(mem_percent_query).await {
-        Ok(v) => v,
-        Err(e) => {
-            tracing::error!("Failed to query memory percentage: {}", e);
-            errors.push(format!("Memory %: {}", e));
-            0.0
-        }
-    };
+    let memory_usage_percent = try_query!("memory percentage", mem_percent_query, 0.0);
     
     // Memory usage in bytes
     let mem_bytes_query = r#"sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)"#;
-    let memory_usage_bytes = match query_instant(mem_bytes_query).await {
-        Ok(v) => v as i64,
-        Err(e) => {
-            tracing::error!("Failed to query memory bytes: {}", e);
-            0.0 as i64
-        }
-    };
+    let memory_usage_bytes = try_query!("memory bytes", mem_bytes_query, 0.0) as i64;
     
     // Pod count
     let pod_query = r#"count(kube_pod_info) or vector(0)"#;
-    let pod_count = match query_instant(pod_query).await {
-        Ok(v) => v as i32,
-        Err(e) => {
-            tracing::error!("Failed to query pod count: {}", e);
-            0
-        }
-    };
+    let pod_count = try_query!("pod count", pod_query, 0.0) as i32;
     
     // Node count
     let node_query = r#"count(kube_node_info) or vector(0)"#;
-    let node_count = match query_instant(node_query).await {
-        Ok(v) => v as i32,
-        Err(e) => {
-            tracing::error!("Failed to query node count: {}", e);
-            0
-        }
-    };
+    let node_count = try_query!("node count", node_query, 0.0) as i32;
     
     // Container count
     let container_query = r#"count(kube_pod_container_info) or vector(0)"#;
-    let container_count = match query_instant(container_query).await {
-        Ok(v) => v as i32,
-        Err(e) => {
-            tracing::error!("Failed to query container count: {}", e);
-            0
-        }
-    };
+    let container_count = try_query!("container count", container_query, 0.0) as i32;
     
     // Firing alerts
     let alerts_firing_query = r#"count(ALERTS{alertstate="firing"}) or vector(0)"#;
@@ -397,12 +374,11 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
 
 /// Fetch CPU and Memory usage for all pods from Prometheus
 /// Returns a map of (namespace, pod_name) -> (cpu_usage_cores, memory_usage_bytes)
-pub async fn get_pods_resource_usage() -> Result<std::collections::HashMap<(String, String), (f64, i64)>, String> {
+pub async fn get_pods_resource_usage() -> Result<std::collections::HashMap<(String, String), (f64, i64)>> {
     let mut usage_map = std::collections::HashMap::new();
     let prometheus_url = get_prometheus_url();
 
     // 1. Fetch CPU Usage (sum of all containers in pod)
-    // Query: sum(rate(container_cpu_usage_seconds_total{container!="", image!=""}[5m])) by (namespace, pod)
     let cpu_query = r#"sum(rate(container_cpu_usage_seconds_total{container!="", image!=""}[5m])) by (namespace, pod)"#;
     
     match query_raw_at(cpu_query, &prometheus_url).await {
@@ -426,7 +402,6 @@ pub async fn get_pods_resource_usage() -> Result<std::collections::HashMap<(Stri
     }
 
     // 2. Fetch Memory Usage (sum of all containers in pod)
-    // Query: sum(container_memory_usage_bytes{container!="", image!=""}) by (namespace, pod)
     let mem_query = r#"sum(container_memory_usage_bytes{container!="", image!=""}) by (namespace, pod)"#;
 
     match query_raw_at(mem_query, &prometheus_url).await {
@@ -438,7 +413,7 @@ pub async fn get_pods_resource_usage() -> Result<std::collections::HashMap<(Stri
                         let pod = metric.get("pod").and_then(|s| s.as_str()).unwrap_or_default().to_string();
                         
                         if let Some(val_str) = value.as_array().and_then(|a| a.get(1)).and_then(|v| v.as_str()) {
-                            if let Ok(val) = val_str.parse::<f64>() { // Prometheus returns strings
+                            if let Ok(val) = val_str.parse::<f64>() {
                                 let mem_bytes = val as i64;
                                 usage_map.entry((namespace, pod))
                                     .and_modify(|e| e.1 = mem_bytes)
@@ -453,4 +428,38 @@ pub async fn get_pods_resource_usage() -> Result<std::collections::HashMap<(Stri
     }
 
     Ok(usage_map)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_metrics_default_values() {
+        let metrics = PrometheusMetrics {
+            cpu_usage_percent: 0.0,
+            memory_usage_percent: 0.0,
+            memory_usage_bytes: 0,
+            pod_count: 0,
+            node_count: 0,
+            container_count: 0,
+            alerts_firing: 0,
+            alerts_pending: 0,
+            gpu_utilization: 0.0,
+            gpu_temperature: 0.0,
+            gpu_power_usage: 0.0,
+            energy_solar_production: 0.0,
+            energy_house_consumption: 0.0,
+            vps_cpu_usage: 0.0,
+            vps_disk_usage: 0.0,
+            vps_net_receive: 0.0,
+            trivy_critical_count: 0,
+            trivy_high_count: 0,
+            trivy_medium_count: 0,
+            trivy_low_count: 0,
+        };
+
+        assert_eq!(metrics.cpu_usage_percent, 0.0);
+        assert_eq!(metrics.pod_count, 0);
+    }
 }

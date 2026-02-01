@@ -7,6 +7,8 @@ use kube::{
 use serde::Serialize;
 use tracing::info;
 
+use crate::error::Result;
+
 /// Events response
 #[derive(Clone, Debug, Serialize)]
 pub struct EventsResponse {
@@ -41,13 +43,13 @@ pub async fn get_events(
     event_type_filter: Option<String>,
     page: Option<usize>,
     per_page: Option<usize>,
-) -> Result<EventsResponse, String> {
+) -> Result<EventsResponse> {
     let events_api: Api<Event> = Api::all(client.clone());
 
+    // kube::Error is automatically converted to KusanagiError::K8s
     let events = events_api
         .list(&ListParams::default())
-        .await
-        .map_err(|e| format!("Failed to list events: {}", e))?;
+        .await?;
 
     let now = Utc::now();
     let one_hour_ago = now - chrono::Duration::hours(1);
@@ -197,5 +199,18 @@ fn format_duration(duration: chrono::Duration) -> String {
         format!("{}m ago", minutes)
     } else {
         format!("{}s ago", seconds)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_duration() {
+        assert_eq!(format_duration(chrono::Duration::seconds(30)), "30s ago");
+        assert_eq!(format_duration(chrono::Duration::minutes(5)), "5m ago");
+        assert_eq!(format_duration(chrono::Duration::minutes(90)), "1h 30m ago");
+        assert_eq!(format_duration(chrono::Duration::seconds(-5)), "just now");
     }
 }

@@ -1,7 +1,10 @@
-use actix_web::{get, post, web, App, HttpServer, Responder, HttpResponse, HttpRequest, Error};
+use actix_web::{get, post, web, App, HttpServer, Responder, HttpResponse, HttpRequest, ResponseError};
 use actix_files::Files;
 use serde::Deserialize;
 use tracing::info;
+
+pub mod error;
+pub use error::{KusanagiError, Result};
 
 mod apps;
 mod argocd;
@@ -179,15 +182,31 @@ async fn empty_namespaces_list(data: web::Data<AppState>) -> impl Responder {
     }
 }
 
+/// Helper trait for converting module results to HTTP responses
+/// This bridges the gap between old String-based errors and new KusanagiError
+async fn handle_result<T>(result: std::result::Result<T, String>) -> HttpResponse 
+where
+    T: serde::Serialize,
+{
+    match result {
+        Ok(data) => HttpResponse::Ok().json(data),
+        Err(e) => {
+            tracing::error!("Request failed: {}", e);
+            // Convert String error to KusanagiError for consistent response format
+            let error = KusanagiError::from(e);
+            error.error_response()
+        }
+    }
+}
+
 #[get("/api/events")]
 async fn k8s_events(data: web::Data<AppState>, query: web::Query<EventsQuery>) -> impl Responder {
+    // events module now uses KusanagiError directly
     match events::get_events(&data.client, query.event_type.clone(), query.page, query.per_page).await {
         Ok(events) => HttpResponse::Ok().json(events),
         Err(e) => {
             tracing::error!("Failed to get events: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
-            }))
+            e.error_response()
         }
     }
 }
@@ -307,15 +326,13 @@ async fn prometheus_range(data: web::Data<AppState>, query: web::Query<RangeQuer
         Ok(result) => HttpResponse::Ok().json(result),
         Err(e) => {
             tracing::error!("Failed to query Prometheus range: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
-            }))
+            e.error_response()
         }
     }
 }
 
 #[get("/api/ws/notifications")]
-async fn ws_route(req: HttpRequest, stream: web::Payload, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
+async fn ws_route(req: HttpRequest, stream: web::Payload, data: web::Data<AppState>) -> std::result::Result<HttpResponse, actix_web::Error> {
     ws::ws_notifications(req, stream, data.get_ref().client.clone()).await
 }
 
@@ -422,7 +439,7 @@ async fn cilium_export(query: web::Query<CiliumQuery>) -> impl Responder {
         Err(e) => {
             tracing::error!("Failed to export flows: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
+                "error": e.to_string()
             }))
         }
     }
@@ -435,13 +452,12 @@ struct PrometheusQuery {
 
 #[get("/api/prometheus/metrics")]
 async fn prometheus_metrics() -> impl Responder {
+    // prometheus module now uses KusanagiError directly
     match prometheus::get_cached_metrics().await {
         Ok(metrics) => HttpResponse::Ok().json(metrics),
         Err(e) => {
             tracing::error!("Failed to get Prometheus metrics: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
-            }))
+            e.error_response()
         }
     }
 }
@@ -452,9 +468,7 @@ async fn prometheus_query(query: web::Query<PrometheusQuery>) -> impl Responder 
         Ok(result) => HttpResponse::Ok().json(result),
         Err(e) => {
             tracing::error!("Failed to execute Prometheus query: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
-            }))
+            e.error_response()
         }
     }
 }
