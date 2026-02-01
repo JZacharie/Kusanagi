@@ -202,13 +202,14 @@ Alerts     →                  → Browser notifications
 ## 🎨 Design Patterns
 
 ### Backend Patterns
-1. **Module-per-Feature**: Each feature in separate `.rs` file
-2. **Async/Await**: All I/O operations are async
-3. **Error Handling**: `KusanagiError` with `thiserror` (see `src/error.rs`)
-4. **Caching**: ✅ Unified cache system with TTL (`src/cache.rs`)
-5. **Background Tasks**: tokio::spawn for periodic jobs
-6. **Structured Errors**: Each error variant has specific HTTP status mapping
-7. **Configuration**: Structured config with validation (`src/config.rs`)
+1. **Hexagonal Architecture**: ✅ Domain/Application/Infrastructure/Interface layers (see `docs/HEXAGONAL_ARCHITECTURE.md`)
+2. **Module-per-Feature**: Each feature in separate `.rs` file
+3. **Async/Await**: All I/O operations are async
+4. **Error Handling**: ✅ `KusanagiError` with `thiserror` (see `src/error.rs`)
+5. **Caching**: ✅ Unified cache system with TTL (`src/cache.rs`)
+6. **Background Tasks**: tokio::spawn for periodic jobs
+7. **Structured Errors**: Each error variant has specific HTTP status mapping
+8. **Configuration**: ✅ Structured config with validation (`src/config.rs`)
 
 ### Frontend Patterns
 1. **Manager Objects**: Encapsulated state management
@@ -263,10 +264,11 @@ Alerts     →                  → Browser notifications
 
 ### Medium Priority
 1. **Code Duplication**: ✅ Completed - Unified cache system reduces duplication
-2. **Type Safety**: Some serde_json::Value usage
+2. **Type Safety**: ✅ Completed - Domain entities with strong types
 3. **Configuration**: ✅ Completed - Structured config with `config` crate + 16 tests
 4. **Caching**: ✅ Completed - Unified cache system with TTL + 22 tests
-5. **Documentation**: Missing inline docs
+5. **Architecture**: ✅ Completed - Hexagonal Architecture implemented
+6. **Documentation**: 🔄 In Progress - Added architecture docs
 
 ### Low Priority
 1. **Unused Code**: Dead code warnings

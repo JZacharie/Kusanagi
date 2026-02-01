@@ -1,0 +1,266 @@
+//! Domain ports (interfaces)
+//!
+//! Ports define the interfaces through which the domain layer interacts with
+//! the outside world. They are the boundaries of the hexagon.
+//!
+//! # Types of Ports
+//!
+//! - **Driven ports**: Interfaces that the domain requires from external systems
+//!   (e.g., Repository, Cache, External APIs)
+//! - **Driving ports**: Interfaces that external systems use to interact with the domain
+//!   (e.g., Use case interfaces)
+
+use async_trait::async_trait;
+use crate::domain::entities::*;
+use crate::error::Result;
+use std::collections::HashMap;
+
+/// Port for Kubernetes operations
+///
+/// This is a driven port that defines what the domain needs from a Kubernetes client.
+#[async_trait]
+pub trait KubernetesRepository: Send + Sync {
+    /// Get cluster overview
+    async fn get_cluster_overview(&self) -> Result<ClusterOverview>;
+
+    /// Get all nodes
+    async fn list_nodes(&self) -> Result<Vec<Node>>;
+
+    /// Get a specific node
+    async fn get_node(&self, name: &str) -> Result<Node>;
+
+    /// Get all pods
+    async fn list_pods(&self, namespace: Option<&str>) -> Result<Vec<Pod>>;
+
+    /// Get a specific pod
+    async fn get_pod(&self, namespace: &str, name: &str) -> Result<Pod>;
+
+    /// Get pod logs
+    async fn get_pod_logs(&self, namespace: &str, name: &str, container: Option<&str>, tail: i64) -> Result<String>;
+
+    /// Delete a pod
+    async fn delete_pod(&self, namespace: &str, name: &str) -> Result<()>;
+
+    /// Get all events
+    async fn list_events(&self, namespace: Option<&str>, event_type: Option<&str>) -> Result<Vec<ClusterEvent>>;
+
+    /// Get all services
+    async fn list_services(&self, namespace: Option<&str>) -> Result<Vec<Service>>;
+
+    /// Get all ingresses
+    async fn list_ingresses(&self, namespace: Option<&str>) -> Result<Vec<Ingress>>;
+
+    /// Get all namespaces
+    async fn list_namespaces(&self) -> Result<Vec<Namespace>>;
+
+    /// Get storage information
+    async fn get_storage_info(&self) -> Result<StorageInfo>;
+}
+
+/// Port for metrics collection
+///
+/// This is a driven port for Prometheus metrics.
+#[async_trait]
+pub trait MetricsRepository: Send + Sync {
+    /// Query a metric
+    async fn query(&self, query: &str) -> Result<f64>;
+
+    /// Query raw metrics
+    async fn query_raw(&self, query: &str) -> Result<serde_json::Value>;
+
+    /// Query metrics over a time range
+    async fn query_range(&self, query: &str, start: i64, end: i64, step: &str) -> Result<serde_json::Value>;
+
+    /// Get cluster metrics
+    async fn get_cluster_metrics(&self) -> Result<ClusterResources>;
+
+    /// Get pod resource usage
+    async fn get_pod_resource_usage(&self) -> Result<HashMap<(String, String), (f64, i64)>>;
+}
+
+/// Port for alerts
+///
+/// This is a driven port for Alertmanager.
+#[async_trait]
+pub trait AlertRepository: Send + Sync {
+    /// Get active alerts
+    async fn get_active_alerts(&self) -> Result<Vec<Alert>>;
+
+    /// Get silenced alerts
+    async fn get_silenced_alerts(&self) -> Result<Vec<Alert>>;
+
+    /// Silence an alert
+    async fn silence_alert(&self, matchers: HashMap<String, String>, duration_secs: u64) -> Result<String>;
+}
+
+/// Port for caching
+///
+/// This is a driven port for cache operations.
+#[async_trait]
+pub trait CachePort: Send + Sync {
+    type Key: Clone + Send + Sync;
+    type Value: Clone + Send + Sync;
+
+    /// Get a value from cache
+    async fn get(&self, key: &Self::Key) -> Option<Self::Value>;
+
+    /// Set a value in cache with TTL
+    async fn set(&self, key: Self::Key, value: Self::Value, ttl_secs: u64);
+
+    /// Remove a value from cache
+    async fn remove(&self, key: &Self::Key);
+
+    /// Clear all values
+    async fn clear(&self);
+}
+
+/// Port for external integrations
+///
+/// This is a driven port for external APIs like Slack, Home Assistant, etc.
+#[async_trait]
+pub trait IntegrationPort: Send + Sync {
+    /// Get the integration name
+    fn name(&self) -> &str;
+
+    /// Check if the integration is healthy
+    async fn health_check(&self) -> Result<bool>;
+
+    /// Send a notification/message
+    async fn send_notification(&self, message: &str) -> Result<()>;
+}
+
+/// Port for ArgoCD operations
+#[async_trait]
+pub trait ArgoCdPort: Send + Sync {
+    /// Get application status
+    async fn get_application_status(&self, name: &str) -> Result<ApplicationStatus>;
+
+    /// Sync an application
+    async fn sync_application(&self, name: &str) -> Result<()>;
+
+    /// List all applications
+    async fn list_applications(&self) -> Result<Vec<ApplicationInfo>>;
+}
+
+/// Application status for ArgoCD
+#[derive(Debug, Clone)]
+pub struct ApplicationStatus {
+    pub name: String,
+    pub sync_status: String,
+    pub health_status: String,
+    pub revision: String,
+}
+
+/// Application information
+#[derive(Debug, Clone)]
+pub struct ApplicationInfo {
+    pub name: String,
+    pub namespace: String,
+    pub project: String,
+    pub repo_url: String,
+    pub path: String,
+}
+
+/// Port for Cilium network operations
+#[async_trait]
+pub trait CiliumPort: Send + Sync {
+    /// Get network flows
+    async fn get_flows(&self, namespace: Option<&str>, limit: usize) -> Result<Vec<NetworkFlow>>;
+
+    /// Get network policies
+    async fn get_policies(&self, namespace: Option<&str>) -> Result<Vec<NetworkPolicy>>;
+}
+
+/// Network flow information
+#[derive(Debug, Clone)]
+pub struct NetworkFlow {
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub source_ip: String,
+    pub destination_ip: String,
+    pub source_port: u16,
+    pub destination_port: u16,
+    pub protocol: String,
+    pub verdict: String,
+}
+
+/// Network policy information
+#[derive(Debug, Clone)]
+pub struct NetworkPolicy {
+    pub name: String,
+    pub namespace: String,
+    pub action: String,
+    pub rules: Vec<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Mock implementation for testing
+    struct MockKubernetesRepository;
+
+    #[async_trait]
+    impl KubernetesRepository for MockKubernetesRepository {
+        async fn get_cluster_overview(&self) -> Result<ClusterOverview> {
+            Ok(ClusterOverview::default())
+        }
+
+        async fn list_nodes(&self) -> Result<Vec<Node>> {
+            Ok(vec![])
+        }
+
+        async fn get_node(&self, _name: &str) -> Result<Node> {
+            Err(crate::error::KusanagiError::not_found("Node", "test"))
+        }
+
+        async fn list_pods(&self, _namespace: Option<&str>) -> Result<Vec<Pod>> {
+            Ok(vec![])
+        }
+
+        async fn get_pod(&self, _namespace: &str, _name: &str) -> Result<Pod> {
+            Err(crate::error::KusanagiError::not_found("Pod", "test"))
+        }
+
+        async fn get_pod_logs(&self, _namespace: &str, _name: &str, _container: Option<&str>, _tail: i64) -> Result<String> {
+            Ok("log output".to_string())
+        }
+
+        async fn delete_pod(&self, _namespace: &str, _name: &str) -> Result<()> {
+            Ok(())
+        }
+
+        async fn list_events(&self, _namespace: Option<&str>, _event_type: Option<&str>) -> Result<Vec<ClusterEvent>> {
+            Ok(vec![])
+        }
+
+        async fn list_services(&self, _namespace: Option<&str>) -> Result<Vec<Service>> {
+            Ok(vec![])
+        }
+
+        async fn list_ingresses(&self, _namespace: Option<&str>) -> Result<Vec<Ingress>> {
+            Ok(vec![])
+        }
+
+        async fn list_namespaces(&self) -> Result<Vec<Namespace>> {
+            Ok(vec![])
+        }
+
+        async fn get_storage_info(&self) -> Result<StorageInfo> {
+            Ok(StorageInfo::default())
+        }
+    }
+
+    #[tokio::test]
+    async fn test_mock_kubernetes_repository() {
+        let repo = MockKubernetesRepository;
+        
+        let overview = repo.get_cluster_overview().await.unwrap();
+        assert_eq!(overview.node_count, 0);
+        
+        let nodes = repo.list_nodes().await.unwrap();
+        assert!(nodes.is_empty());
+        
+        let result = repo.get_node("nonexistent").await;
+        assert!(result.is_err());
+    }
+}

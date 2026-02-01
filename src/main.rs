@@ -9,6 +9,12 @@ pub use error::{KusanagiError, Result};
 pub mod config;
 pub mod cache;
 
+// Hexagonal Architecture layers
+pub mod domain;
+pub mod application;
+pub mod infrastructure;
+pub mod interfaces;
+
 mod apps;
 mod argocd;
 mod backups;
