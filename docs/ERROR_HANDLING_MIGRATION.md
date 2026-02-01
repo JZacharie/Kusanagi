@@ -174,11 +174,36 @@ pub async fn get_events(client: &Client) -> Result<EventsResponse> {
 
 | Module | Status | Notes |
 |--------|--------|-------|
-| `error` | ✅ Migrated | New error types |
-| `events` | ✅ Migrated | Uses `KusanagiError` |
-| `prometheus` | ✅ Migrated | Uses `KusanagiError` |
+| `error` | ✅ Migrated | New error types + **52 tests** |
+| `events` | ✅ Migrated | Uses `KusanagiError` + tests |
+| `prometheus` | ✅ Migrated | Uses `KusanagiError` + tests |
 | `main` | 🔄 Partial | Handlers updated |
 | Other 30 modules | ⏳ Pending | See guide above |
+
+## Test Coverage
+
+Le module `error` dispose de **52 tests unitaires** couvrant :
+
+### Types de tests
+- **Création d'erreurs** (15+ tests) - Toutes les variantes d'erreurs
+- **Classification** - `is_transient()`, `is_client_error()`
+- **HTTP Status** - Mapping vers codes HTTP appropriés
+- **Messages utilisateur** - Conversion en messages friendly
+- **Conversions** - `From<String>`, `From<&str>`, `serde_json::Error`
+- **Traits** - `ResponseError` pour Actix-web
+- **Edge cases** - Strings vides, caractères spéciaux, Unicode
+
+### Exécution des tests
+```bash
+# Tous les tests
+cargo test
+
+# Tests du module error uniquement
+cargo test error::
+
+# Avec affichage des sorties
+cargo test error:: -- --nocapture
+```
 
 ## Benefits
 

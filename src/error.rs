@@ -562,3 +562,469 @@ macro_rules! ensure {
 
 // Re-export for convenience
 pub use crate::{bail, ensure};
+
+// ==================== Tests ====================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use actix_web::http::StatusCode;
+
+    // ==================== Error Creation Tests ====================
+
+    #[test]
+    fn test_k8s_error_creation() {
+        let err = KusanagiError::k8s("connection refused");
+        assert_eq!(err.to_string(), "Kubernetes API error: connection refused");
+    }
+
+    #[test]
+    fn test_config_error_creation() {
+        let err = KusanagiError::config("MISSING_VAR not set");
+        assert!(matches!(err, KusanagiError::Config { ref message } if message == "MISSING_VAR not set"));
+        assert_eq!(err.to_string(), "Configuration error: MISSING_VAR not set");
+    }
+
+    #[test]
+    fn test_prometheus_error_creation() {
+        let err = KusanagiError::prometheus("query timeout");
+        assert!(matches!(err, KusanagiError::Prometheus { message } if message == "query timeout"));
+    }
+
+    #[test]
+    fn test_mcp_error_creation() {
+        let err = KusanagiError::mcp("kubernetes", "connection failed");
+        assert!(matches!(err, KusanagiError::Mcp { ref server, ref message } 
+            if server == "kubernetes" && message == "connection failed"
+        ));
+        assert_eq!(err.to_string(), "MCP server error (kubernetes): connection failed");
+    }
+
+    #[test]
+    fn test_storage_error_creation() {
+        let err = KusanagiError::storage("S3 bucket not found");
+        assert!(matches!(err, KusanagiError::Storage { message } if message == "S3 bucket not found"));
+    }
+
+    #[test]
+    fn test_external_api_error_creation() {
+        let err = KusanagiError::external_api("Proxmox", "API rate limit exceeded");
+        assert!(matches!(err, KusanagiError::ExternalApi { provider, message } 
+            if provider == "Proxmox" && message == "API rate limit exceeded"
+        ));
+    }
+
+    #[test]
+    fn test_not_found_error_creation() {
+        let err = KusanagiError::not_found("Pod", "nginx-abc123");
+        assert!(matches!(err, KusanagiError::NotFound { ref resource_type, ref name } 
+            if resource_type == "Pod" && name == "nginx-abc123"
+        ));
+        assert_eq!(err.to_string(), "Resource not found: Pod/nginx-abc123");
+    }
+
+    #[test]
+    fn test_already_exists_error_creation() {
+        let err = KusanagiError::already_exists("Namespace", "production");
+        assert!(matches!(err, KusanagiError::AlreadyExists { resource_type, name } 
+            if resource_type == "Namespace" && name == "production"
+        ));
+    }
+
+    #[test]
+    fn test_permission_denied_error_creation() {
+        let err = KusanagiError::permission_denied("delete", "Pod/nginx");
+        assert!(matches!(err, KusanagiError::PermissionDenied { ref action, ref resource } 
+            if action == "delete" && resource == "Pod/nginx"
+        ));
+        assert_eq!(err.to_string(), "Permission denied: delete on Pod/nginx");
+    }
+
+    #[test]
+    fn test_timeout_error_creation() {
+        let err = KusanagiError::timeout(30, "Prometheus query");
+        assert!(matches!(err, KusanagiError::Timeout { duration_secs, ref operation } 
+            if duration_secs == 30 && operation == "Prometheus query"
+        ));
+        assert_eq!(err.to_string(), "Timeout after 30s: Prometheus query");
+    }
+
+    #[test]
+    fn test_validation_error_creation() {
+        let err = KusanagiError::validation("field 'name' is required");
+        assert!(matches!(err, KusanagiError::Validation { message } 
+            if message == "field 'name' is required"
+        ));
+    }
+
+    #[test]
+    fn test_not_implemented_error_creation() {
+        let err = KusanagiError::not_implemented("multi-cluster support");
+        assert!(matches!(err, KusanagiError::NotImplemented { ref feature } 
+            if feature == "multi-cluster support"
+        ));
+        assert_eq!(err.to_string(), "Not implemented: multi-cluster support");
+    }
+
+    #[test]
+    fn test_internal_error_creation() {
+        let err = KusanagiError::internal("unexpected panic");
+        assert!(matches!(err, KusanagiError::Internal { message } 
+            if message == "unexpected panic"
+        ));
+    }
+
+    // ==================== Classification Tests ====================
+
+    #[test]
+    fn test_is_transient_true() {
+        // Timeout should be transient
+        let err = KusanagiError::timeout(30, "test");
+        assert!(err.is_transient());
+
+        // Network errors should be transient
+        let err = KusanagiError::network("connection refused");
+        assert!(err.is_transient());
+
+        // K8s errors should be transient
+        let err = KusanagiError::k8s("server unavailable");
+        assert!(err.is_transient());
+
+        // Prometheus errors should be transient
+        let err = KusanagiError::prometheus("service unavailable");
+        assert!(err.is_transient());
+
+        // MCP errors should be transient
+        let err = KusanagiError::mcp("test", "error");
+        assert!(err.is_transient());
+    }
+
+    #[test]
+    fn test_is_transient_false() {
+        // Not found should NOT be transient
+        let err = KusanagiError::not_found("Pod", "test");
+        assert!(!err.is_transient());
+
+        // Validation errors should NOT be transient
+        let err = KusanagiError::validation("invalid input");
+        assert!(!err.is_transient());
+
+        // Permission denied should NOT be transient
+        let err = KusanagiError::permission_denied("delete", "resource");
+        assert!(!err.is_transient());
+
+        // Config errors should NOT be transient
+        let err = KusanagiError::config("missing");
+        assert!(!err.is_transient());
+    }
+
+    #[test]
+    fn test_is_client_error_true() {
+        assert!(KusanagiError::not_found("Pod", "test").is_client_error());
+        assert!(KusanagiError::already_exists("Pod", "test").is_client_error());
+        assert!(KusanagiError::permission_denied("get", "secret").is_client_error());
+        assert!(KusanagiError::validation("invalid").is_client_error());
+        assert!(KusanagiError::config("missing").is_client_error());
+    }
+
+    #[test]
+    fn test_is_client_error_false() {
+        assert!(!KusanagiError::k8s("error").is_client_error());
+        assert!(!KusanagiError::prometheus("error").is_client_error());
+        assert!(!KusanagiError::timeout(30, "test").is_client_error());
+        assert!(!KusanagiError::internal("error").is_client_error());
+    }
+
+    // ==================== HTTP Status Tests ====================
+
+    #[test]
+    fn test_http_status_not_found() {
+        let err = KusanagiError::not_found("Pod", "nginx");
+        assert_eq!(err.http_status(), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn test_http_status_already_exists() {
+        let err = KusanagiError::already_exists("Namespace", "prod");
+        assert_eq!(err.http_status(), StatusCode::CONFLICT);
+    }
+
+    #[test]
+    fn test_http_status_permission_denied() {
+        let err = KusanagiError::permission_denied("delete", "secret");
+        assert_eq!(err.http_status(), StatusCode::FORBIDDEN);
+    }
+
+    #[test]
+    fn test_http_status_validation() {
+        let err = KusanagiError::validation("invalid");
+        assert_eq!(err.http_status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn test_http_status_config() {
+        let err = KusanagiError::config("missing");
+        assert_eq!(err.http_status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn test_http_status_timeout() {
+        let err = KusanagiError::timeout(30, "test");
+        assert_eq!(err.http_status(), StatusCode::REQUEST_TIMEOUT);
+    }
+
+    #[test]
+    fn test_http_status_not_implemented() {
+        let err = KusanagiError::not_implemented("feature");
+        assert_eq!(err.http_status(), StatusCode::NOT_IMPLEMENTED);
+    }
+
+    #[test]
+    fn test_http_status_internal_server_error() {
+        assert_eq!(KusanagiError::k8s("error").http_status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(KusanagiError::prometheus("error").http_status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(KusanagiError::internal("error").http_status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    // ==================== User Message Tests ====================
+
+    #[test]
+    fn test_user_message_not_found() {
+        let err = KusanagiError::not_found("Pod", "nginx-123");
+        assert_eq!(err.user_message(), "Pod 'nginx-123' not found");
+    }
+
+    #[test]
+    fn test_user_message_permission_denied() {
+        let err = KusanagiError::permission_denied("delete pods", "default namespace");
+        assert_eq!(err.user_message(), "You don't have permission to delete pods");
+    }
+
+    #[test]
+    fn test_user_message_timeout() {
+        let err = KusanagiError::timeout(30, "test");
+        assert_eq!(err.user_message(), "The operation timed out. Please try again.");
+    }
+
+    #[test]
+    fn test_user_message_validation() {
+        let err = KusanagiError::validation("name is required");
+        assert_eq!(err.user_message(), "Invalid input: name is required");
+    }
+
+    #[test]
+    fn test_user_message_config() {
+        let err = KusanagiError::config("API_KEY missing");
+        assert_eq!(err.user_message(), "Server configuration error. Contact administrator.");
+    }
+
+    #[test]
+    fn test_user_message_generic() {
+        let err = KusanagiError::k8s("connection refused");
+        assert_eq!(err.user_message(), "An unexpected error occurred. Please try again later.");
+    }
+
+    // ==================== String Conversion Tests ====================
+
+    #[test]
+    fn test_from_string() {
+        let err: KusanagiError = "some error message".to_string().into();
+        assert!(matches!(err, KusanagiError::Internal { message } 
+            if message == "some error message"
+        ));
+    }
+
+    #[test]
+    fn test_from_str() {
+        let err: KusanagiError = "some error message".into();
+        assert!(matches!(err, KusanagiError::Internal { message } 
+            if message == "some error message"
+        ));
+    }
+
+    // ==================== Serde Tests ====================
+
+    #[test]
+    fn test_serde_json_conversion() {
+        // Create a JSON parsing error
+        let json_err: std::result::Result<serde_json::Value, _> = serde_json::from_str("invalid json");
+        let err: KusanagiError = json_err.unwrap_err().into();
+        
+        assert!(matches!(err, KusanagiError::Json { ref message } 
+            if message.contains("expected value")
+        ));
+    }
+
+    // ==================== Helper Function Tests ====================
+
+    #[test]
+    fn test_cache_error_creation() {
+        let err = KusanagiError::cache("lock poisoned");
+        assert!(matches!(err, KusanagiError::Cache { message } 
+            if message == "lock poisoned"
+        ));
+    }
+
+    #[test]
+    fn test_http_error_creation() {
+        let err = KusanagiError::http("404 Not Found");
+        assert!(matches!(err, KusanagiError::Http { message } 
+            if message == "404 Not Found"
+        ));
+    }
+
+    #[test]
+    fn test_network_error_creation() {
+        let err = KusanagiError::network("DNS resolution failed");
+        assert!(matches!(err, KusanagiError::Network { message } 
+            if message == "DNS resolution failed"
+        ));
+    }
+
+    #[test]
+    fn test_json_error_creation() {
+        let err = KusanagiError::json("unexpected token");
+        assert!(matches!(err, KusanagiError::Json { message } 
+            if message == "unexpected token"
+        ));
+    }
+
+    #[test]
+    fn test_csv_error_creation() {
+        let err = KusanagiError::csv("invalid column");
+        assert!(matches!(err, KusanagiError::Csv { message } 
+            if message == "invalid column"
+        ));
+    }
+
+    #[test]
+    fn test_slack_error_creation() {
+        let err = KusanagiError::slack("rate limited");
+        assert!(matches!(err, KusanagiError::Slack { message } 
+            if message == "rate limited"
+        ));
+    }
+
+    #[test]
+    fn test_mqtt_error_creation() {
+        let err = KusanagiError::mqtt("broker unreachable");
+        assert!(matches!(err, KusanagiError::Mqtt { message } 
+            if message == "broker unreachable"
+        ));
+    }
+
+    #[test]
+    fn test_proxmox_error_creation() {
+        let err = KusanagiError::proxmox("API error");
+        assert!(matches!(err, KusanagiError::Proxmox { message } 
+            if message == "API error"
+        ));
+    }
+
+    #[test]
+    fn test_home_assistant_error_creation() {
+        let err = KusanagiError::home_assistant("token expired");
+        assert!(matches!(err, KusanagiError::HomeAssistant { message } 
+            if message == "token expired"
+        ));
+    }
+
+    #[test]
+    fn test_not_supported_error_creation() {
+        let err = KusanagiError::not_supported("websocket compression");
+        assert!(matches!(err, KusanagiError::NotSupported { ref operation } 
+            if operation == "websocket compression"
+        ));
+        assert_eq!(err.to_string(), "Operation not supported: websocket compression");
+    }
+
+    // ==================== Integration Tests ====================
+
+    #[test]
+    fn test_error_chain_compatibility() {
+        // Test that errors work well with the ? operator
+        fn inner_function() -> Result<String> {
+            Err(KusanagiError::not_found("ConfigMap", "settings"))
+        }
+
+        fn outer_function() -> Result<String> {
+            let result = inner_function()?;
+            Ok(result)
+        }
+
+        let result = outer_function();
+        assert!(result.is_err());
+        
+        if let Err(e) = result {
+            assert!(matches!(e, KusanagiError::NotFound { resource_type, name } 
+                if resource_type == "ConfigMap" && name == "settings"
+            ));
+        }
+    }
+
+    #[test]
+    fn test_result_type_alias() {
+        fn returns_result() -> Result<i32> {
+            Ok(42)
+        }
+
+        fn returns_error() -> Result<i32> {
+            Err(KusanagiError::validation("test"))
+        }
+
+        assert!(returns_result().is_ok());
+        assert!(returns_error().is_err());
+    }
+
+    // ==================== ResponseError Trait Tests ====================
+
+    #[test]
+    fn test_response_error_status_code() {
+        let err = KusanagiError::not_found("Pod", "test");
+        assert_eq!(err.status_code(), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn test_response_error_error_response() {
+        let err = KusanagiError::not_found("Pod", "nginx-123");
+        let response = err.error_response();
+        
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    // ==================== Edge Cases ====================
+
+    #[test]
+    fn test_empty_strings() {
+        let err = KusanagiError::internal("");
+        assert_eq!(err.to_string(), "Internal error: ");
+        
+        let err = KusanagiError::k8s("");
+        assert_eq!(err.to_string(), "Kubernetes API error: ");
+    }
+
+    #[test]
+    fn test_special_characters_in_messages() {
+        let msg = "Error: <script>alert('xss')</script>";
+        let err = KusanagiError::validation(msg);
+        assert_eq!(err.user_message(), format!("Invalid input: {}", msg));
+    }
+
+    #[test]
+    fn test_unicode_in_messages() {
+        let msg = "配置错误 🚨";
+        let err = KusanagiError::config(msg);
+        assert!(matches!(err, KusanagiError::Config { message } 
+            if message == msg
+        ));
+    }
+
+    #[test]
+    fn test_long_messages() {
+        let long_msg = "a".repeat(10000);
+        let err = KusanagiError::internal(&long_msg);
+        assert!(matches!(err, KusanagiError::Internal { message } 
+            if message == long_msg
+        ));
+    }
+}
