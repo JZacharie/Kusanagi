@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use std::time::{Instant, Duration};
+use std::time::Duration;
 
+use crate::cache::{Cache, InMemoryCache};
+use crate::config;
 use crate::error::{KusanagiError, Result};
 
 /// Prometheus metrics response
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct PrometheusMetrics {
     pub cpu_usage_percent: f64,
     pub memory_usage_percent: f64,
@@ -31,64 +31,46 @@ pub struct PrometheusMetrics {
 }
 
 lazy_static::lazy_static! {
-    static ref PROMETHEUS_URL: String = {
-        std::env::var("PROMETHEUS_URL")
-            .unwrap_or_else(|_| {
-                tracing::warn!("PROMETHEUS_URL not set, using default local K8s service URL");
-                "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
-            })
+    /// Global metrics cache instance
+    pub static ref METRICS_CACHE: InMemoryCache<String, PrometheusMetrics> = {
+        let ttl = config::get().cache.prometheus_ttl_secs;
+        InMemoryCache::from_config("prometheus_metrics", ttl)
     };
-
-    static ref PROMETHEUS_URL_HA: String = {
-        std::env::var("PROMETHEUS_URL_HA")
-            .unwrap_or_else(|_| PROMETHEUS_URL.clone())
-    };
-}
-
-/// Cache for Prometheus metrics
-pub struct MetricsCache {
-    pub metrics: RwLock<Option<(PrometheusMetrics, Instant)>>,
-}
-
-impl MetricsCache {
-    pub fn new() -> Self {
-        Self {
-            metrics: RwLock::new(None),
-        }
-    }
-}
-
-lazy_static::lazy_static! {
-    pub static ref METRICS_CACHE: Arc<MetricsCache> = Arc::new(MetricsCache::new());
 }
 
 /// Get cached cluster metrics
+///
+/// Returns cached metrics if available and not expired,
+/// otherwise fetches fresh metrics from Prometheus.
 pub async fn get_cached_metrics() -> Result<PrometheusMetrics> {
-    // 1. Try to get from cache
-    {
-        let cache = METRICS_CACHE.metrics.read().await;
-        if let Some((ref metrics, timestamp)) = *cache {
-            if timestamp.elapsed() < Duration::from_secs(60) {
-                return Ok(metrics.clone());
-            }
-        }
+    let cache_key = "cluster_metrics".to_string();
+    
+    // Try to get from cache first
+    if let Some(metrics) = METRICS_CACHE.get(&cache_key).await {
+        tracing::debug!("Using cached Prometheus metrics");
+        return Ok(metrics);
     }
 
-    // 2. If cache miss or expired, fetch live
+    // Cache miss - fetch from Prometheus
+    tracing::debug!("Fetching fresh Prometheus metrics");
     let metrics = get_cluster_metrics().await?;
     
-    // 3. Update cache
-    let mut cache = METRICS_CACHE.metrics.write().await;
-    *cache = Some((metrics.clone(), Instant::now()));
+    // Update cache with configured TTL
+    let ttl = Duration::from_secs(config::get().cache.prometheus_ttl_secs);
+    METRICS_CACHE.set(cache_key, metrics.clone(), ttl).await;
     
     Ok(metrics)
 }
 
 /// Background task to refresh Prometheus cache
+///
+/// This task runs continuously, refreshing the metrics cache
+/// at the configured interval.
 pub async fn start_background_refresh() {
     tracing::info!("🚀 Starting Prometheus background refresh task");
     
-    let mut interval = tokio::time::interval(Duration::from_secs(60));
+    let interval_secs = config::get().cache.prometheus_ttl_secs;
+    let mut interval = tokio::time::interval(Duration::from_secs(interval_secs));
     
     loop {
         interval.tick().await;
@@ -96,8 +78,8 @@ pub async fn start_background_refresh() {
         
         match get_cluster_metrics().await {
             Ok(metrics) => {
-                let mut cache = METRICS_CACHE.metrics.write().await;
-                *cache = Some((metrics, Instant::now()));
+                let ttl = Duration::from_secs(config::get().cache.prometheus_ttl_secs);
+                METRICS_CACHE.set("cluster_metrics".to_string(), metrics, ttl).await;
                 tracing::debug!("✅ Updated Prometheus metrics cache");
             }
             Err(e) => {
@@ -137,12 +119,14 @@ struct PromResult {
     value: (f64, String),
 }
 
+/// Get Prometheus URL from config
 fn get_prometheus_url() -> String {
-    PROMETHEUS_URL.clone()
+    config::get().prometheus.url.clone()
 }
 
+/// Get Home Assistant Prometheus URL from config
 fn get_prometheus_url_ha() -> String {
-    PROMETHEUS_URL_HA.clone()
+    config::get().prometheus_url_ha().to_string()
 }
 
 /// Execute a PromQL instant query at a specific Prometheus URL
@@ -461,5 +445,42 @@ mod tests {
 
         assert_eq!(metrics.cpu_usage_percent, 0.0);
         assert_eq!(metrics.pod_count, 0);
+    }
+
+    #[test]
+    fn test_prometheus_url_from_config() {
+        // Initialize config for this test
+        let _ = config::init();
+        
+        // Test that we can get the URL without panicking
+        let url = get_prometheus_url();
+        assert!(url.starts_with("http"));
+    }
+
+    #[tokio::test]
+    async fn test_metrics_cache_operations() {
+        // Initialize config for this test
+        let _ = config::init();
+        
+        let cache: InMemoryCache<String, PrometheusMetrics> = 
+            InMemoryCache::from_config("test_metrics", 60);
+
+        let metrics = PrometheusMetrics {
+            cpu_usage_percent: 50.0,
+            memory_usage_percent: 60.0,
+            pod_count: 10,
+            ..Default::default()
+        };
+
+        // Set metrics in cache
+        cache.set("test_key".to_string(), metrics.clone(), Duration::from_secs(60)).await;
+
+        // Retrieve from cache
+        let cached = cache.get(&"test_key".to_string()).await;
+        assert!(cached.is_some());
+        
+        let cached = cached.unwrap();
+        assert_eq!(cached.cpu_usage_percent, 50.0);
+        assert_eq!(cached.pod_count, 10);
     }
 }

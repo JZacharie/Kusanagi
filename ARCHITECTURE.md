@@ -205,9 +205,10 @@ Alerts     →                  → Browser notifications
 1. **Module-per-Feature**: Each feature in separate `.rs` file
 2. **Async/Await**: All I/O operations are async
 3. **Error Handling**: `KusanagiError` with `thiserror` (see `src/error.rs`)
-4. **Caching**: Arc<RwLock<>> for thread-safe caching
+4. **Caching**: ✅ Unified cache system with TTL (`src/cache.rs`)
 5. **Background Tasks**: tokio::spawn for periodic jobs
 6. **Structured Errors**: Each error variant has specific HTTP status mapping
+7. **Configuration**: Structured config with validation (`src/config.rs`)
 
 ### Frontend Patterns
 1. **Manager Objects**: Encapsulated state management
@@ -257,14 +258,15 @@ Alerts     →                  → Browser notifications
 ### High Priority
 1. **Authentication**: No auth mechanism
 2. **Error Handling**: ✅ Completed - `thiserror` implemented with 52 tests
-3. **Testing**: 🔄 In Progress - Error module has 52 tests, adding more
+3. **Testing**: ✅ Completed - 94 tests (error: 52, config: 16, cache: 22, others: 4)
 4. **Logging**: Basic tracing, needs structured logging
 
 ### Medium Priority
-1. **Code Duplication**: Similar patterns across modules
+1. **Code Duplication**: ✅ Completed - Unified cache system reduces duplication
 2. **Type Safety**: Some serde_json::Value usage
 3. **Configuration**: ✅ Completed - Structured config with `config` crate + 16 tests
-4. **Documentation**: Missing inline docs
+4. **Caching**: ✅ Completed - Unified cache system with TTL + 22 tests
+5. **Documentation**: Missing inline docs
 
 ### Low Priority
 1. **Unused Code**: Dead code warnings

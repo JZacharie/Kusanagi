@@ -1,0 +1,101 @@
+    Checking kusanagi v0.2.0 (/home/joseph/git/Kusanagi)
+error: set `DATABASE_URL` to use query macros online, or run `cargo sqlx prepare` to update the query cache
+  --> src/database.rs:93:11
+   |
+93 |     match sqlx::query!("SELECT version()").fetch_one(&pool).await {
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused import: `KusanagiError`
+  --> src/cache.rs:30:20
+   |
+30 | use crate::error::{KusanagiError, Result};
+   |                    ^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `warn`
+  --> src/cache.rs:39:29
+   |
+39 | use tracing::{debug, trace, warn};
+   |                             ^^^^
+
+warning: unused import: `Service`
+ --> src/pods.rs:3:39
+  |
+3 | use k8s_openapi::api::core::v1::{Pod, Service};
+  |                                       ^^^^^^^
+
+warning: unused import: `warn`
+  --> src/pods.rs:11:28
+   |
+11 | use tracing::{info, error, warn};
+   |                            ^^^^
+
+warning: unused import: `debug`
+ --> src/mqtt.rs:8:15
+  |
+8 | use tracing::{debug, error, info};
+  |               ^^^^^
+
+warning: unused imports: `error`, `info`, and `warn`
+ --> src/database.rs:9:15
+  |
+9 | use tracing::{info, error, warn};
+  |               ^^^^  ^^^^^  ^^^^
+
+error[E0599]: no method named `get_or_insert` found for struct `Arc<(dyn Cache<std::string::String, T> + std::marker::Send + Sync + 'static)>` in the current scope
+   --> src/cache.rs:483:20
+    |
+483 |         self.inner.get_or_insert(key, f).await
+    |                    ^^^^^^^^^^^^^ method not found in `Arc<(dyn Cache<std::string::String, T> + std::marker::Send + Sync + 'static)>`
+
+warning: unused variable: `data`
+   --> src/main.rs:328:27
+    |
+328 | async fn prometheus_range(data: web::Data<AppState>, query: web::Query<RangeQuery>) -> impl Responder {
+    |                           ^^^^ help: if this is intentional, prefix it with an underscore: `_data`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error[E0382]: use of moved value: `name`
+   --> src/cache.rs:451:19
+    |
+447 |     pub fn in_memory(name: impl Into<String>, ttl_secs: u64) -> Self {
+    |                      ---- move occurs because `name` has type `impl Into<String>`, which does not implement the `Copy` trait
+448 |         let cache = InMemoryCache::from_config(name, ttl_secs);
+    |                                                ---- value moved here
+...
+451 |             name: name.into(),
+    |                   ^^^^ value used here after move
+    |
+note: consider changing this parameter type in method `from_config` to borrow instead if owning the value isn't necessary
+   --> src/cache.rs:220:30
+    |
+220 |     pub fn from_config(name: impl Into<String>, ttl_secs: u64) -> Self {
+    |            -----------       ^^^^^^^^^^^^^^^^^ this parameter takes ownership of the value
+    |            |
+    |            in this method
+help: if `impl Into<String>` implemented `Clone`, you could clone the value
+   --> src/cache.rs:447:28
+    |
+447 |     pub fn in_memory(name: impl Into<String>, ttl_secs: u64) -> Self {
+    |                            ^^^^^^^^^^^^^^^^^ consider constraining this type parameter with `Clone`
+448 |         let cache = InMemoryCache::from_config(name, ttl_secs);
+    |                                                ---- you could clone this value
+help: consider restricting opaque type `impl Into<String>` with trait `Copy`
+    |
+447 |     pub fn in_memory(name: impl Into<String> + std::marker::Copy, ttl_secs: u64) -> Self {
+    |                                              +++++++++++++++++++
+
+warning: unused variable: `init_containers`
+   --> src/pods.rs:641:17
+    |
+641 |     if let Some(init_containers) = &spec.init_containers {
+    |                 ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_init_containers`
+
+Some errors have detailed explanations: E0382, E0599.
+For more information about an error, try `rustc --explain E0382`.
+warning: `kusanagi` (bin "kusanagi") generated 8 warnings
+error: could not compile `kusanagi` (bin "kusanagi") due to 3 previous errors; 8 warnings emitted

@@ -9,12 +9,14 @@ const KusanagiSystem = {
         console.log("KusanagiSystem initialized");
         this.fetchSystemStatus();
         this.fetchSystemLogs();
+        this.fetchDatabaseHealth();
 
         // Refresh logs every 10 seconds
         this.refreshInterval = setInterval(() => {
             if (document.querySelector('.tab-content[data-tab="system"]').style.display !== 'none') {
                 this.fetchSystemStatus();
                 this.fetchSystemLogs();
+                this.fetchDatabaseHealth();
             }
         }, 10000);
     },
@@ -41,6 +43,36 @@ const KusanagiSystem = {
         setText('kusanagi-uptime', data.uptime || '--:--:--');
         setText('kusanagi-cpu', data.cpu_usage ? `${data.cpu_usage.toFixed(1)}%` : '--%');
         setText('kusanagi-ram', data.memory_usage_mb ? `${data.memory_usage_mb.toFixed(0)}MB` : '--MB');
+    },
+
+    fetchDatabaseHealth: async function () {
+        try {
+            const response = await fetch('/api/database/health');
+            const el = document.getElementById('kusanagi-db-status');
+            if (response.ok && el) {
+                const data = await response.json();
+                el.textContent = data.latency_ms + 'ms';
+
+                if (data.status === 'Healthy') {
+                    el.style.color = 'var(--neon-green)';
+                    el.title = `Standard: ${data.version || 'Unknown'}`;
+                } else {
+                    el.style.color = '#ff4444';
+                    el.textContent = 'ERR';
+                    el.title = data.error || 'Unknown Error';
+                }
+            } else if (el) {
+                el.textContent = 'ERR';
+                el.style.color = '#ff4444';
+            }
+        } catch (error) {
+            console.error("Failed to fetch DB health:", error);
+            const el = document.getElementById('kusanagi-db-status');
+            if (el) {
+                el.textContent = 'OFF';
+                el.style.color = '#ff4444';
+            }
+        }
     },
 
     fetchSystemLogs: async function () {

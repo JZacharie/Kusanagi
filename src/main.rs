@@ -7,6 +7,7 @@ pub mod error;
 pub use error::{KusanagiError, Result};
 
 pub mod config;
+pub mod cache;
 
 mod apps;
 mod argocd;
@@ -40,6 +41,7 @@ mod translation;
 mod mqtt;
 mod security;
 mod metrics;
+mod database;
 
 /// Shared application state
 pub struct AppState {
@@ -664,6 +666,7 @@ async fn main() -> std::io::Result<()> {
             .configure(mqtt::configure_routes)
             .configure(slack::configure_routes)
             .configure(security::configure_routes)
+            .configure(database::configure_routes)
             .service(health_check)
 
             .service(index)
