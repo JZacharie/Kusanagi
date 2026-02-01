@@ -3,8 +3,9 @@ use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
-use tracing::info;
+use tracing::{debug, info, warn};
 
+use crate::event_bus::integration::subscribe_pod_notifications;
 use crate::{argocd, events, pods};
 
 /// How often heartbeat pings are sent
@@ -42,6 +43,9 @@ pub enum NotificationMessage {
         payload: String,
         timestamp: String,
     },
+    /// Pod lifecycle event notification
+    #[serde(rename = "pod_event")]
+    PodEvent(crate::event_bus::integration::PodNotification),
 }
 
 /// Internal message for sending notifications
@@ -140,6 +144,31 @@ impl Actor for NotificationSession {
                 }));
             }
         });
+
+        // Subscribe to pod event notifications from event bus
+        if let Some(mut pod_rx) = subscribe_pod_notifications() {
+            let addr_pod = ctx.address();
+            actix::spawn(async move {
+                info!("WebSocket subscribed to pod events");
+                loop {
+                    match pod_rx.recv().await {
+                        Ok(notification) => {
+                            debug!(notification = ?notification, "Received pod notification");
+                            addr_pod.do_send(SendNotification(NotificationMessage::PodEvent(notification)));
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                            warn!(dropped = n, "Pod notification lagged");
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                            debug!("Pod notification channel closed");
+                            break;
+                        }
+                    }
+                }
+            });
+        } else {
+            debug!("Pod notifications not initialized, skipping subscription");
+        }
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {

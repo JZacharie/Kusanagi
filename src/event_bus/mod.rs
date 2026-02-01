@@ -32,8 +32,10 @@
 
 pub mod domain_events;
 pub mod handlers;
+pub mod integration;
 
 pub use domain_events::*;
+pub use integration::*;
 
 use crate::error::Result;
 
