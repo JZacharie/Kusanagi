@@ -354,6 +354,12 @@ pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, Stri
         // Add to error list if applicable
         if is_error_pod {
             response.error_pods += 1;
+            
+            let (cpu_val, mem_val) = match usage_map.get(&(namespace.clone(), name.clone())) {
+                Some(u) => (Some(u.0), Some(u.1)),
+                None => (None, None),
+            };
+
             response.pods_in_error.push(PodInfo {
                 name,
                 namespace,
@@ -365,12 +371,12 @@ pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, Stri
                 age,
                 age_seconds,
                 containers,
-                cpu_usage: usage_map.get(&(namespace.clone(), name.clone())).map(|u| u.0),
-                memory_usage: usage_map.get(&(namespace.clone(), name.clone())).map(|u| u.1),
+                cpu_usage: cpu_val,
+                memory_usage: mem_val,
                 cpu_limit: get_pod_resource_sum(spec, "limits", "cpu"),
-                memory_limit: get_pod_resource_sum(spec, "limits", "memory"),
+                memory_limit: get_pod_resource_sum(spec, "limits", "memory").map(|v| v as i64),
                 cpu_request: get_pod_resource_sum(spec, "requests", "cpu"),
-                memory_request: get_pod_resource_sum(spec, "requests", "memory"),
+                memory_request: get_pod_resource_sum(spec, "requests", "memory").map(|v| v as i64),
             });
         }
     }
@@ -568,7 +574,6 @@ pub async fn delete_error_pods(client: &Client) -> Result<BulkDeleteResponse, St
         deleted_count,
         failed_count,
     })
-}
 }
 
 /// Parse k8s CPU quantity to cores (f64)

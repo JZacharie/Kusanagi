@@ -393,8 +393,7 @@ pub async fn get_cluster_metrics() -> Result<PrometheusMetrics, String> {
         trivy_low_count,
     })
 }
-    })
-}
+
 
 /// Fetch CPU and Memory usage for all pods from Prometheus
 /// Returns a map of (namespace, pod_name) -> (cpu_usage_cores, memory_usage_bytes)
