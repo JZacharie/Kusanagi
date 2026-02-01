@@ -119,10 +119,10 @@ const SystemStatusManager = {
         const versionEl = document.getElementById('kusanagi-version');
         const indicator = document.getElementById('kusanagi-refresh-indicator');
 
-        if (uptimeEl) uptimeEl.textContent = this.formatUptime(data.uptime_secs);
-        if (cpuEl) cpuEl.textContent = `${data.cpu_usage_percent.toFixed(1)}%`;
-        if (ramEl) ramEl.textContent = `${(data.memory_usage_bytes / (1024 * 1024)).toFixed(0)} MB`;
-        if (versionEl) versionEl.textContent = data.version;
+        if (uptimeEl) uptimeEl.textContent = this.formatUptime(data.uptime_secs ?? 0);
+        if (cpuEl) cpuEl.textContent = `${(data.cpu_usage_percent ?? 0).toFixed(1)}%`;
+        if (ramEl) ramEl.textContent = `${((data.memory_usage_bytes ?? 0) / (1024 * 1024)).toFixed(0)} MB`;
+        if (versionEl) versionEl.textContent = data.version ?? '0.0.0';
 
         // Visual flash on update
         if (indicator) {

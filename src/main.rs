@@ -705,6 +705,7 @@ async fn main() -> std::io::Result<()> {
             .service(cilium_export)
             .service(prometheus_metrics)
             .service(prometheus_query)
+            .service(prometheus_range)
             .service(alerts_status)
             .service(export_report)
             .service(export_alerts_endpoint)
