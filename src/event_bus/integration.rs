@@ -17,6 +17,7 @@ use crate::cache::{Cache, InMemoryCache};
 use crate::error::Result;
 use crate::event_bus::{
     handlers::{ClusterEventHandler, HandlerBuilder, PodEventHandler},
+    slack_handler::SlackEventHandler,
     AlertEvent, AuditEvent, ClusterEvent, DomainEvent, EventBus, EventHandler, PodEvent,
 };
 use std::sync::Arc;
@@ -265,7 +266,20 @@ impl EventBusIntegration {
         // Start domain event logger (logs all events)
         self.start_domain_event_logger().await;
 
+        // Start Slack notification handler (if configured)
+        self.start_slack_handler().await;
+
         info!("Event bus integration handlers started successfully");
+    }
+
+    /// Start Slack notification handler
+    async fn start_slack_handler(&self) {
+        if let Some(handler) = SlackEventHandler::new().await.ok().flatten() {
+            handler.start(self.bus.clone()).await;
+            info!("Slack notification handler started");
+        } else {
+            debug!("Slack handler not started (disabled or misconfigured)");
+        }
     }
 
     /// Start pod event handler
