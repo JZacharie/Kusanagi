@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use crate::application::use_cases::argocd_use_cases::*;
 use crate::domain::ports::argocd_port::ArgoCdRepository;
-use crate::interfaces::http::AppState;
+use crate::interfaces::http::{AppState, ErrorResponse};
 
 #[derive(Debug, Deserialize)]
 pub struct SyncRequest {

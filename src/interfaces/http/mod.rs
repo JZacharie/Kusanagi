@@ -8,9 +8,18 @@ use serde::Deserialize;
 
 use crate::application::dtos::*;
 use crate::application::use_cases::*;
+use crate::application::mappers::*;
 use crate::domain::ports::*;
 use crate::error::{KusanagiError, Result};
 use std::sync::Arc;
+
+mod event_handlers;
+mod node_handlers;
+mod argocd_handlers;
+
+pub use event_handlers::*;
+pub use node_handlers::*;
+pub use argocd_handlers::*;
 
 /// Application state shared across handlers
 pub struct AppState {
@@ -31,9 +40,14 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(health_check)
         .service(get_cluster_overview)
         .service(list_nodes)
+        .service(get_nodes_status)
+        .service(get_node_details)
+        .service(is_node_ready)
         .service(list_pods)
         .service(get_pod_details)
         .service(list_events)
+        .service(list_warning_events)
+        .service(get_event_stats)
         .service(list_namespaces)
         .service(list_services)
         .service(get_storage_info);

@@ -14,15 +14,17 @@ use crate::error::Result;
 use std::sync::Arc;
 use std::time::Duration;
 
-mod cluster_use_cases;
-mod pod_use_cases;
-mod event_use_cases;
-mod argocd_use_cases;
+pub mod cluster_use_cases;
+pub mod pod_use_cases;
+pub mod event_use_cases;
+pub mod argocd_use_cases;
+pub mod node_use_cases;
 
 pub use cluster_use_cases::*;
 pub use pod_use_cases::*;
 pub use event_use_cases::*;
 pub use argocd_use_cases::*;
+pub use node_use_cases::*;
 
 /// Application service for cluster operations
 pub struct ClusterApplicationService {
