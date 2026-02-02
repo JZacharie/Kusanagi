@@ -13,6 +13,8 @@ pub mod event_bus;
 pub mod response;
 pub mod health;
 pub mod llm;
+pub mod doctor;
+pub mod middleware;
 
 // Hexagonal Architecture layers
 pub mod domain;
@@ -53,6 +55,9 @@ mod mqtt;
 mod security;
 mod metrics;
 mod database;
+
+// Re-export middleware for convenience
+pub use middleware::{StructuredLogging, RateLimiter, CorrelationId, get_correlation_id};
 
 /// Shared application state
 pub struct AppState {
@@ -686,11 +691,19 @@ async fn main() -> std::io::Result<()> {
     // Start Alertmanager background refresh task
     tokio::spawn(alertmanager::start_background_refresh());
 
+    // Initialize rate limiter
+    let rate_limiter = middleware::RateLimiter::per_minute(1000);
+
     let server = HttpServer::new(move || {
         App::new()
+            // Add middleware
+            .wrap(middleware::StructuredLogging::new())
+            .wrap(rate_limiter.clone())
+            // App data
             .app_data(app_state.clone())
             .app_data(news_cache.clone())
             .app_data(system_manager.clone())
+            // Configure routes
             .service(metrics::metrics_handler)
             .configure(proxmox::configure_routes)
             .configure(homeassistant::configure_routes)
@@ -704,6 +717,7 @@ async fn main() -> std::io::Result<()> {
             .configure(security::configure_routes)
             .configure(database::configure_routes)
             .configure(health::configure_routes)
+            .configure(doctor::configure_routes)
             .service(health_check)
 
             .service(index)

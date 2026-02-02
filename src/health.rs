@@ -8,10 +8,10 @@
 //! - AlertManager
 //! - External APIs (ArgoCD, Cilium, etc.)
 
+use actix_web::{get, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use actix_web::HttpResponse;
 use kube::Client;
 
 /// Health status variants
@@ -331,6 +331,7 @@ pub async fn check_health(client: &Client, config: &HealthConfig) -> HealthRepor
 }
 
 /// Simple liveness check - is the application running?
+#[get("/health/live")]
 pub async fn liveness_check() -> HttpResponse {
     HttpResponse::Ok().json(serde_json::json!({
         "status": "alive",
@@ -339,7 +340,8 @@ pub async fn liveness_check() -> HttpResponse {
 }
 
 /// Readiness check - is the application ready to serve traffic?
-pub async fn readiness_check(client: web::Data<crate::AppState>) -> HttpResponse {
+#[get("/health/ready")]
+pub async fn readiness_check(data: web::Data<super::AppState>) -> HttpResponse {
     let config = HealthConfig {
         check_kubernetes: true,
         check_mqtt: false,
@@ -349,7 +351,7 @@ pub async fn readiness_check(client: web::Data<crate::AppState>) -> HttpResponse
         ..Default::default()
     };
 
-    let report = check_health(&client.client, &config).await;
+    let report = check_health(&data.client, &config).await;
 
     match report.status {
         HealthStatus::Healthy => HttpResponse::Ok().json(report),
@@ -358,9 +360,10 @@ pub async fn readiness_check(client: web::Data<crate::AppState>) -> HttpResponse
 }
 
 /// Full health check with all components
-pub async fn full_health_check(client: web::Data<crate::AppState>) -> HttpResponse {
+#[get("/health/full")]
+pub async fn full_health_check(data: web::Data<super::AppState>) -> HttpResponse {
     let config = HealthConfig::default();
-    let report = check_health(&client.client, &config).await;
+    let report = check_health(&data.client, &config).await;
 
     match report.status {
         HealthStatus::Healthy => HttpResponse::Ok().json(report),
@@ -369,13 +372,8 @@ pub async fn full_health_check(client: web::Data<crate::AppState>) -> HttpRespon
     }
 }
 
-use actix_web::web;
-
-pub fn configure_routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/health")
-            .route("/live", web::get().to(liveness_check))
-            .route("/ready", web::get().to(readiness_check))
-            .route("/full", web::get().to(full_health_check)),
-    );
+pub fn configure_routes(cfg: &mut actix_web::web::ServiceConfig) {
+    cfg.service(liveness_check)
+       .service(readiness_check)
+       .service(full_health_check);
 }

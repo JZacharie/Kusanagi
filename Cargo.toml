@@ -43,3 +43,4 @@ thiserror = "1.0"
 config = "0.14"
 async-trait = "0.1"
 sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-rustls", "macros", "chrono"] }
+uuid = { version = "1.7", features = ["v4"] }
