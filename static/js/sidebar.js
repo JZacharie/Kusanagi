@@ -1,12 +1,12 @@
 /**
  * Kusanagi Sidebar Navigation
- * Responsive sidebar with hamburger toggle
+ * Responsive sidebar with hamburger toggle - SPA mode (no page reload)
  */
 
 class Sidebar {
   constructor() {
     this.sidebar = document.querySelector('.sidebar');
-    this.toggle = document.querySelector('.sidebar-toggle');
+    this.toggle = document.querySelector('.header-toggle, .sidebar-toggle');
     this.overlay = document.querySelector('.sidebar-overlay');
     this.isMobile = window.innerWidth <= 768;
     this.isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
@@ -17,9 +17,9 @@ class Sidebar {
   init() {
     if (!this.sidebar) return;
     
-    // Check if we were on a specific page
-    const currentPage = localStorage.getItem('current-page') || 'dashboard';
-    this.setActivePage(currentPage);
+    // Get current tab from URL hash or default to dashboard
+    const currentTab = window.location.hash.slice(1) || 'argocd';
+    this.setActiveTab(currentTab);
     
     // Event listeners
     if (this.toggle) {
@@ -27,10 +27,10 @@ class Sidebar {
     }
     
     if (this.overlay) {
-      this.overlay.addEventListener('click', () => this.close());
+      this.overlay.addEventListener('click', () => this.closeMobile());
     }
     
-    // Navigation links
+    // Navigation links - use switchTab instead of page navigation
     document.querySelectorAll('.nav-link[data-page]').forEach(link => {
       link.addEventListener('click', (e) => this.handleNavClick(e, link.dataset.page));
     });
@@ -54,136 +54,106 @@ class Sidebar {
     
     if (this.isMobile) {
       // Mobile: toggle open/close with overlay
-      this.sidebar.classList.toggle('open');
-      this.toggle.classList.toggle('active');
-      if (this.overlay) {
-        this.overlay.classList.toggle('active');
+      if (this.sidebar.classList.contains('open')) {
+        this.closeMobile();
+      } else {
+        this.openMobile();
       }
-      document.body.style.overflow = this.sidebar.classList.contains('open') ? 'hidden' : '';
     } else {
       // Desktop: toggle collapsed state
       this.isCollapsed = !this.isCollapsed;
       this.sidebar.classList.toggle('collapsed', this.isCollapsed);
-      this.toggle.classList.toggle('active', this.isCollapsed);
       localStorage.setItem('sidebar-collapsed', this.isCollapsed);
-      
-      // Update toggle position
-      const newLeft = this.isCollapsed ? '70px' : `calc(var(--sidebar-width) + 10px)`;
-      this.toggle.style.left = newLeft;
     }
   }
   
-  close() {
-    if (this.isMobile) {
-      this.sidebar.classList.remove('open');
-      this.toggle.classList.remove('active');
-      if (this.overlay) {
-        this.overlay.classList.remove('active');
-      }
-      document.body.style.overflow = '';
+  openMobile() {
+    this.sidebar.classList.add('open');
+    if (this.overlay) {
+      this.overlay.classList.add('active');
     }
+    document.body.style.overflow = 'hidden';
   }
   
-  open() {
-    if (this.isMobile) {
-      this.sidebar.classList.add('open');
-      this.toggle.classList.add('active');
-      if (this.overlay) {
-        this.overlay.classList.add('active');
-      }
-      document.body.style.overflow = 'hidden';
+  closeMobile() {
+    this.sidebar.classList.remove('open');
+    if (this.overlay) {
+      this.overlay.classList.remove('active');
     }
+    document.body.style.overflow = '';
   }
   
-  handleNavClick(e, page) {
+  handleNavClick(e, tabName) {
     e.preventDefault();
     
     // Close mobile sidebar after navigation
     if (this.isMobile) {
-      this.close();
+      this.closeMobile();
     }
     
-    // Load the page content
-    this.loadPage(page);
+    // Use existing switchTab function
+    if (typeof switchTab === 'function') {
+      switchTab(tabName);
+    } else {
+      console.warn('switchTab function not found');
+    }
+    
+    // Update active state
+    this.setActiveTab(tabName);
     
     // Update URL hash without triggering scroll
-    history.pushState(null, null, `#${page}`);
+    history.pushState(null, null, `#${tabName}`);
   }
   
-  loadPage(page) {
-    // Set active state
-    this.setActivePage(page);
+  setActiveTab(tabName) {
+    // Remove active from all links
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.classList.remove('active');
+    });
     
-    // Store current page
-    localStorage.setItem('current-page', page);
-    
-    // Update page title
-    const titles = {
-      'dashboard': 'Dashboard',
-      'pods': 'Pods',
-      'nodes': 'Nodes',
-      'services': 'Services',
-      'ingress': 'Ingress',
-      'events': 'Events',
-      'storage': 'Storage',
-      'backups': 'Backups',
-      'security': 'Security',
-      'alerts': 'Alerts',
-      'chat': 'AI Chat',
-      'settings': 'Settings'
-    };
-    
-    document.title = `Kusanagi - ${titles[page] || 'Dashboard'}`;
+    // Add active to current tab
+    const activeLink = document.querySelector(`.nav-link[data-page="${tabName}"]`);
+    if (activeLink) {
+      activeLink.classList.add('active');
+    }
     
     // Update header title
     const headerTitle = document.querySelector('.header-title');
     if (headerTitle) {
-      headerTitle.textContent = titles[page] || 'Dashboard';
+      const titles = {
+        'argocd': 'ArgoCD',
+        'system': 'System',
+        'proxmox': 'Proxmox',
+        'alerts': 'Alerts',
+        'events': 'Events',
+        'nodes': 'Nodes',
+        'pods': 'Pods',
+        'services': 'Services',
+        'ingress': 'Ingress',
+        'storage': 'Storage',
+        'metrics': 'Metrics',
+        'network': 'Network',
+        'backups': 'Backups',
+        'security': 'Security',
+        'setup': 'Setup',
+        'homeassistant': 'Home Assistant',
+        'mqtt': 'MQTT',
+        'calendar': 'Calendar',
+        'weather': 'Weather',
+        'chat': 'AI Chat',
+        'evolution': 'Evolution',
+        'docs': 'Docs',
+        'news': 'News',
+        'quotas': 'Quotas'
+      };
+      headerTitle.textContent = titles[tabName] || tabName.charAt(0).toUpperCase() + tabName.slice(1);
     }
-    
-    // Load content (placeholder - actual content loading would be here)
-    this.updateContent(page);
-    
-    // Trigger custom event
-    window.dispatchEvent(new CustomEvent('pagechange', { detail: { page } }));
-  }
-  
-  setActivePage(page) {
-    document.querySelectorAll('.nav-link').forEach(link => {
-      link.classList.remove('active');
-      if (link.dataset.page === page) {
-        link.classList.add('active');
-      }
-    });
-  }
-  
-  updateContent(page) {
-    // Show loading state
-    const contentBody = document.querySelector('.content-body');
-    if (!contentBody) return;
-    
-    contentBody.style.opacity = '0.5';
-    
-    // Simulate page load (in real implementation, fetch actual content)
-    setTimeout(() => {
-      // Here you would typically:
-      // 1. Fetch new content via AJAX
-      // 2. Update the DOM
-      // 3. Re-initialize any page-specific JS
-      
-      // For now, we just restore opacity
-      contentBody.style.opacity = '1';
-      
-      // Scroll to top
-      contentBody.scrollTop = 0;
-      window.scrollTo(0, 0);
-    }, 150);
   }
   
   handleKeydown(e) {
     // ESC to close sidebar on mobile
-    if (e.key === 'Escape' && this.isMobile) {
-      this.close();
+    if (e.key === 'Escape' && this.isMobile && this.sidebar.classList.contains('open')) {
+      this.closeMobile();
     }
     
     // Alt+S to toggle sidebar
@@ -208,7 +178,6 @@ class Sidebar {
       // Mobile: sidebar starts closed
       this.sidebar.classList.remove('collapsed');
       this.sidebar.classList.remove('open');
-      this.toggle.classList.remove('active');
       if (this.overlay) {
         this.overlay.classList.remove('active');
       }
@@ -216,10 +185,6 @@ class Sidebar {
     } else {
       // Desktop: use saved collapsed state
       this.sidebar.classList.toggle('collapsed', this.isCollapsed);
-      this.toggle.classList.toggle('active', this.isCollapsed);
-      if (this.overlay) {
-        this.overlay.classList.remove('active');
-      }
     }
   }
   
@@ -240,11 +205,11 @@ class Sidebar {
       if (this.isMobile) {
         // Swipe right from left edge (within 50px) to open
         if (diff > swipeThreshold && touchStartX < 50 && !this.sidebar.classList.contains('open')) {
-          this.open();
+          this.openMobile();
         }
         // Swipe left to close
         else if (diff < -swipeThreshold && this.sidebar.classList.contains('open')) {
-          this.close();
+          this.closeMobile();
         }
       }
     }, { passive: true });
@@ -280,14 +245,21 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Handle initial hash
   const hash = window.location.hash.slice(1);
-  if (hash) {
-    window.sidebar.loadPage(hash);
+  if (hash && typeof switchTab === 'function') {
+    // Wait for dashboard.js to initialize
+    setTimeout(() => {
+      switchTab(hash);
+      window.sidebar.setActiveTab(hash);
+    }, 100);
   }
   
   // Handle back/forward buttons
   window.addEventListener('popstate', () => {
-    const page = window.location.hash.slice(1) || 'dashboard';
-    window.sidebar.loadPage(page);
+    const tab = window.location.hash.slice(1) || 'argocd';
+    if (typeof switchTab === 'function') {
+      switchTab(tab);
+      window.sidebar.setActiveTab(tab);
+    }
   });
 });
 

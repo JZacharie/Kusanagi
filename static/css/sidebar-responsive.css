@@ -94,60 +94,37 @@
   width: 0;
 }
 
-/* Hamburger Toggle Button */
-.sidebar-toggle {
-  position: fixed;
-  left: calc(var(--sidebar-width) + 10px);
-  top: 15px;
-  z-index: 1001;
-  width: 44px;
-  height: 44px;
-  background: rgba(0, 0, 0, 0.8);
+/* Header Toggle Button (Hamburger) - Always stays as sandwich */
+.header-toggle {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.6);
   border: 1px solid var(--neon-cyan);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  transition: left var(--transition-speed), 
-              background 0.2s;
+  margin-right: 1rem;
+  transition: background 0.2s, box-shadow 0.2s;
+  flex-shrink: 0;
 }
 
-.sidebar-toggle:hover {
+.header-toggle:hover {
   background: rgba(0, 255, 249, 0.2);
   box-shadow: 0 0 10px var(--neon-cyan);
 }
 
-.sidebar-toggle span {
+.header-toggle span {
   display: block;
-  width: 24px;
+  width: 22px;
   height: 2px;
   background: var(--neon-cyan);
-  transition: transform 0.3s, opacity 0.3s;
   border-radius: 1px;
-}
-
-.sidebar.collapsed + .sidebar-toggle {
-  left: 70px;
-}
-
-.sidebar.hidden + .sidebar-toggle {
-  left: 10px;
-}
-
-/* Hamburger Animation */
-.sidebar-toggle.active span:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
-}
-
-.sidebar-toggle.active span:nth-child(2) {
-  opacity: 0;
-}
-
-.sidebar-toggle.active span:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
+  /* No transform animation - always stays as sandwich */
+  transition: none;
 }
 
 /* ============================================
@@ -387,21 +364,13 @@
     opacity: 1;
   }
   
-  /* Toggle button toujours visible sur mobile */
-  .sidebar-toggle {
-    left: 10px !important;
-    top: 8px;
-    width: 44px;
-    height: 44px;
-  }
-  
   /* Main content prend toute la largeur */
   .main-content {
     margin-left: 0 !important;
   }
   
   .content-header {
-    padding-left: 60px; /* Espace pour le bouton hamburger */
+    padding: 0 1rem;
   }
   
   .content-body {
@@ -453,8 +422,8 @@
     margin-left: var(--sidebar-collapsed-width);
   }
   
-  .sidebar-toggle {
-    display: none;
+  .header-toggle {
+    display: flex;
   }
 }
 

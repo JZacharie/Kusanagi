@@ -76,21 +76,39 @@
         </div>
         
         <nav class="sidebar-nav">
-            <!-- Overview Section -->
+            <!-- Platform Section -->
             <div class="nav-section">
-                <div class="nav-section-title">Overview</div>
+                <div class="nav-section-title">Platform</div>
                 <ul class="nav-menu">
                     <li class="nav-item">
-                        <a class="nav-link active" data-page="dashboard" href="#dashboard">
-                            <i class="mdi mdi-view-dashboard"></i>
-                            <span class="nav-link-text">Dashboard</span>
+                        <a class="nav-link active" data-page="argocd" href="#argocd">
+                            <i class="mdi mdi-rocket-launch"></i>
+                            <span class="nav-link-text">ArgoCD</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" data-page="cluster" href="#cluster">
+                        <a class="nav-link" data-page="system" href="#system">
                             <i class="mdi mdi-server"></i>
-                            <span class="nav-link-text">Cluster</span>
-                            <span class="nav-badge" id="cluster-alert-count">0</span>
+                            <span class="nav-link-text">System</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="proxmox" href="#proxmox">
+                            <i class="mdi mdi-cube-outline"></i>
+                            <span class="nav-link-text">Proxmox</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="alerts" href="#alerts">
+                            <i class="mdi mdi-bell-alert"></i>
+                            <span class="nav-link-text">Alerts</span>
+                            <span class="nav-badge" id="alerts-count">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="events" href="#events">
+                            <i class="mdi mdi-bell-outline"></i>
+                            <span class="nav-link-text">Events</span>
                         </a>
                     </li>
                 </ul>
@@ -102,7 +120,7 @@
                 <ul class="nav-menu">
                     <li class="nav-item">
                         <a class="nav-link" data-page="nodes" href="#nodes">
-                            <i class="mdi mdi-harddisk"></i>
+                            <i class="mdi mdi-server-network"></i>
                             <span class="nav-link-text">Nodes</span>
                         </a>
                     </li>
@@ -121,7 +139,7 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" data-page="ingress" href="#ingress">
-                            <i class="mdi mdi-router-network"></i>
+                            <i class="mdi mdi-web"></i>
                             <span class="nav-link-text">Ingress</span>
                         </a>
                     </li>
@@ -132,9 +150,15 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" data-page="events" href="#events">
-                            <i class="mdi mdi-bell-outline"></i>
-                            <span class="nav-link-text">Events</span>
+                        <a class="nav-link" data-page="metrics" href="#metrics">
+                            <i class="mdi mdi-chart-line"></i>
+                            <span class="nav-link-text">Metrics</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="network" href="#network">
+                            <i class="mdi mdi-lan"></i>
+                            <span class="nav-link-text">Network</span>
                         </a>
                     </li>
                 </ul>
@@ -157,10 +181,40 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" data-page="alerts" href="#alerts">
-                            <i class="mdi mdi-bell-alert"></i>
-                            <span class="nav-link-text">Alerts</span>
-                            <span class="nav-badge" id="alerts-count">0</span>
+                        <a class="nav-link" data-page="setup" href="#setup">
+                            <i class="mdi mdi-cog"></i>
+                            <span class="nav-link-text">Setup</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Integrations Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Integrations</div>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="homeassistant" href="#homeassistant">
+                            <i class="mdi mdi-home-assistant"></i>
+                            <span class="nav-link-text">Home Assistant</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="mqtt" href="#mqtt">
+                            <i class="mdi mdi-radio-tower"></i>
+                            <span class="nav-link-text">MQTT</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="calendar" href="#calendar">
+                            <i class="mdi mdi-calendar"></i>
+                            <span class="nav-link-text">Calendar</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="weather" href="#weather">
+                            <i class="mdi mdi-weather-partly-cloudy"></i>
+                            <span class="nav-link-text">Weather</span>
                         </a>
                     </li>
                 </ul>
@@ -177,15 +231,27 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" data-page="argocd" href="#argocd">
-                            <i class="mdi mdi-rocket-launch"></i>
-                            <span class="nav-link-text">ArgoCD</span>
+                        <a class="nav-link" data-page="evolution" href="#evolution">
+                            <i class="mdi mdi-git"></i>
+                            <span class="nav-link-text">Evolution</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" data-page="settings" href="#settings">
-                            <i class="mdi mdi-cog"></i>
-                            <span class="nav-link-text">Settings</span>
+                        <a class="nav-link" data-page="docs" href="#docs">
+                            <i class="mdi mdi-book-open-variant"></i>
+                            <span class="nav-link-text">Docs</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="news" href="#news">
+                            <i class="mdi mdi-newspaper"></i>
+                            <span class="nav-link-text">News</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="quotas" href="#quotas">
+                            <i class="mdi mdi-chart-pie"></i>
+                            <span class="nav-link-text">Quotas</span>
                         </a>
                     </li>
                 </ul>
@@ -200,16 +266,14 @@
         </div>
     </aside>
 
-    <!-- Hamburger Toggle Button -->
-    <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation">
-        <span></span>
-        <span></span>
-        <span></span>
-    </button>
-
     <!-- Main Content Area -->
     <div class="main-content">
         <header class="content-header">
+            <button class="header-toggle" id="sidebar-toggle" aria-label="Toggle navigation" title="Toggle sidebar (Alt+S)">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             <h1 class="header-title">Dashboard</h1>
             <div style="display: flex; align-items: center; gap: 1rem; margin-left: auto;">
                 <div id="theme-switcher-container"></div>
@@ -269,116 +333,21 @@
         </div>
 
 
-        <!-- Section Tabs Navigation -->
-        <div class="section-tabs">
-            <!-- Group 1: Cluster Infrastructure -->
-            <button class="tab-btn" data-tab="alerts" onclick="switchTab('alerts')">
-                <span class="tab-icon">⚠️</span> Alerts <span class="badge" id="alerts-badge"
-                    style="display:none;">0</span>
-            </button>
-            <button class="tab-btn" data-tab="events" onclick="switchTab('events')">
-                <span class="tab-icon">🔔</span> Events
-            </button>
-            <button class="tab-btn" data-tab="ingress" onclick="switchTab('ingress')">
-                <span class="tab-icon">🌐</span> Ingress
-            </button>
-            <button class="tab-btn" data-tab="metrics" onclick="switchTab('metrics')">
-                <span class="tab-icon">📊</span> Metrics
-            </button>
-            <button class="tab-btn" data-tab="network" onclick="switchTab('network')">
-                <span class="tab-icon">🌍</span> Network
-            </button>
-            <button class="tab-btn" data-tab="nodes" onclick="switchTab('nodes')">
-                <span class="tab-icon">🖥️</span> Nodes
-            </button>
-            <button class="tab-btn" data-tab="storage" onclick="switchTab('storage')">
-                <span class="tab-icon">💾</span> Storage
-            </button>
-            <button class="tab-btn" data-tab="pods" onclick="switchTab('pods')">
-                <span class="tab-icon">📦</span> Pods
-            </button>
 
-
-            <div class="tab-separator"></div>
-
-            <!-- Group 2: Management & Ops -->
-            <button class="tab-btn active" data-tab="argocd" onclick="switchTab('argocd')">
-                <span class="tab-icon">
-                    <svg viewBox="0 0 128 128" width="1em" height="1em" fill="currentColor">
-                        <path
-                            d="M70.089 26.264c-11.411-6.789-25.108-8.22-37.713-4.746C17.432 25.636 5.38 37.116.079 51.603q-.024.066-.051.002-.009-.025-.021-.048-.011-.024-.005-.05 5.007-19.766 21.5-31.155c18.216-12.576 42.79-12.044 60.643.992a.114.114 0 0 1-.023.2l-11.654 4.748a.428.426-40.7 0 1-.38-.028zM71.325 26.978a.03.03 0 0 1 .004-.053l11.754-4.79a.159.157 53.2 0 1 .157.022q15.7 12.43 19.523 31.957c1.583 8.085.993 16.763-1.342 24.58-6.383 21.37-26.086 36.61-48.391 37.292q-1.702.053-.017-.197 15.939-2.362 27.578-14.218c9.91-10.092 14.767-24.64 13.257-38.754q-1.105-10.342-6.506-19.415-5.976-10.043-16.017-16.424z" />
-                        <path
-                            d="M110.985 10.209h.22Q126.873 27.613 128 51.114v4.793q-1.1 23.145-16.098 40.192c-12.77 14.514-31.675 22.415-51.067 21.64q-1.181-.049-2.343-.21-.007-.002 0-.002 21.11-.9 36.825-14.431c12.675-10.914 20.095-27.247 20.07-44.035-.026-16.352-6.81-31.694-18.68-42.812a.131.131 0 0 1 .207-.087z" />
-                    </svg>
-                </span> <span data-i18n="tab_argocd">ArgoCD</span>
+        <!-- Export Floating Button -->
+        <div class="export-dropdown" style="position: fixed; bottom: 80px; right: 20px; z-index: 100;">
+            <button class="tab-btn export-trigger cyber-btn" onclick="toggleExportMenu()" style="border-radius: 50%; width: 50px; height: 50px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); border: 1px solid var(--neon-cyan);">
+                <span class="tab-icon" style="font-size: 1.5rem;">📥</span>
             </button>
-            <button class="tab-btn" data-tab="backups" onclick="switchTab('backups')">
-                <span class="tab-icon">📦</span> <span data-i18n="tab_backups">Backups</span>
-            </button>
-            <button class="tab-btn" data-tab="security" onclick="switchTab('security')">
-                <span class="tab-icon">🛡️</span> <span data-i18n="tab_security">Security</span>
-            </button>
-            <button class="tab-btn" data-tab="setup" onclick="switchTab('setup'); KusanagiSetup.init();">
-                <span class="tab-icon">🛠️</span> <span data-i18n="tab_setup">Setup</span>
-            </button>
-            <button class="tab-btn" data-tab="system" onclick="switchTab('system'); KusanagiSystem.init();">
-                <span class="tab-icon">🔮</span> <span data-i18n="tab_system">System</span>
-            </button>
-
-            <div class="tab-separator"></div>
-
-            <!-- Group 3: Home Lab & Hardware -->
-            <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar')">
-                <span class="tab-icon">📅</span> <span data-i18n="tab_calendar">Calendar</span>
-            </button>
-            <button class="tab-btn" data-tab="homeassistant" onclick="switchTab('homeassistant')">
-                <span class="tab-icon">🏠</span> <span data-i18n="tab_ha">Home Assistant</span>
-            </button>
-            <button class="tab-btn" data-tab="mqtt" onclick="switchTab('mqtt'); MqttManager.init();">
-                <span class="tab-icon">📡</span> <span data-i18n="tab_mqtt">MQTT</span>
-            </button>
-            <button class="tab-btn" data-tab="proxmox" onclick="switchTab('proxmox')">
-                <span class="tab-icon">🖥️</span> <span data-i18n="tab_proxmox">Proxmox</span>
-            </button>
-            <button class="tab-btn" data-tab="weather" onclick="switchTab('weather')">
-                <span class="tab-icon">🌤️</span> <span data-i18n="tab_weather">Weather</span>
-            </button>
-
-            <div class="tab-separator"></div>
-
-            <!-- Group 4: Information & Help -->
-            <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
-                <span class="tab-icon">💬</span> <span data-i18n="tab_chat">Chat</span>
-            </button>
-            <button class="tab-btn" data-tab="evolution" onclick="switchTab('evolution')">
-                <span class="tab-icon mdi mdi-github"></span> <span data-i18n="tab_evolution">Evolution</span>
-            </button>
-            <button class="tab-btn" data-tab="docs" onclick="switchTab('docs')">
-                <span class="tab-icon">📖</span> <span data-i18n="tab_docs">Docs</span>
-            </button>
-            <button class="tab-btn" data-tab="news" onclick="switchTab('news')">
-                <span class="tab-icon">📰</span> <span data-i18n="tab_news">News</span>
-            </button>
-
-            <div class="tab-separator"></div>
-
-            <!-- Export Dropdown -->
-            <div class="export-dropdown">
-                <button class="tab-btn export-trigger" onclick="toggleExportMenu()">
-                    <span class="tab-icon">📥</span> <span data-i18n="tab_export">Export</span>
-                </button>
-                <div class="export-menu" id="export-menu" style="display:none;">
-                    <button class="export-btn" data-format="json">📄 JSON</button>
-                    <button class="export-btn" data-format="csv">📊 CSV</button>
-                    <button class="export-btn" data-format="markdown">📝 Markdown</button>
-                </div>
+            <div class="export-menu" id="export-menu" style="display:none; position: absolute; bottom: 60px; right: 0; background: rgba(0,0,0,0.95); border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 0.5rem; min-width: 150px; box-shadow: 0 0 20px rgba(0,255,249,0.2);">
+                <button class="export-btn" data-format="json" style="display: block; width: 100%; text-align: left; padding: 0.5rem; background: none; border: none; color: var(--neon-cyan); cursor: pointer; border-radius: 4px;">📄 JSON</button>
+                <button class="export-btn" data-format="csv" style="display: block; width: 100%; text-align: left; padding: 0.5rem; background: none; border: none; color: var(--neon-cyan); cursor: pointer; border-radius: 4px;">📊 CSV</button>
+                <button class="export-btn" data-format="markdown" style="display: block; width: 100%; text-align: left; padding: 0.5rem; background: none; border: none; color: var(--neon-cyan); cursor: pointer; border-radius: 4px;">📝 Markdown</button>
             </div>
         </div>
     </div>
 
     <!-- ArgoCD Status Section -->
-    <section class="argocd-section tab-content active" data-tab="argocd">
-        <h2 class="section-title">ArgoCD Applications Status</h2>
 
         <div class="argocd-stats" id="argocd-stats">
             <div class="stat-box info">
