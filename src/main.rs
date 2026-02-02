@@ -15,6 +15,11 @@ pub mod health;
 pub mod llm;
 pub mod doctor;
 pub mod middleware;
+pub mod metrics;
+pub mod validation;
+pub mod jobs;
+pub mod features;
+pub mod notifications;
 
 // Hexagonal Architecture layers
 pub mod domain;
@@ -53,8 +58,12 @@ mod system;
 mod translation;
 mod mqtt;
 mod security;
-mod metrics;
 mod database;
+
+// Re-export key modules
+pub use metrics::custom as metrics_custom;
+pub use validation::*;
+pub use features::*;
 
 // Re-export middleware for convenience
 pub use middleware::{StructuredLogging, RateLimiter, CorrelationId, get_correlation_id};
