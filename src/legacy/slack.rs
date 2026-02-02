@@ -147,11 +147,11 @@ pub async fn handle_webhook(
         if let Some(text) = &detail.text {
             // Forward Slack message to MQTT
             let topic = "kusanagi/slack/incoming";
-            let _ = crate::mqtt::publish_message(topic, text).await;
+            let _ = crate::legacy::mqtt::publish_message(topic, text).await;
 
             // Process message with AI if it's in a channel we care about
             if let Some(channel) = &detail.channel {
-                let ai_request = crate::chat::ChatRequest {
+                let ai_request = crate::legacy::chat::ChatRequest {
                     message: text.clone(),
                     language: None,
                 };
@@ -169,7 +169,7 @@ pub async fn handle_webhook(
                         }
                     };
 
-                    let response = crate::chat::process_message(&client, ai_request).await;
+                    let response = crate::legacy::chat::process_message(&client, ai_request).await;
                     
                     if let Ok(sc) = SlackClient::new() {
                         let _ = sc.send_response(&response.response, Some(&channel_clone), thread_ts.as_deref()).await;
@@ -214,7 +214,7 @@ pub async fn start_alert_monitoring_task(client: kube::Client) {
             let mut apps_checked = false;
 
             // Check Pods
-            if let Ok(pods_status) = crate::pods::get_pods_status(&client).await {
+            if let Ok(pods_status) = crate::legacy::pods::get_pods_status(&client).await {
                 pods_checked = true;
                 if pods_status.error_pods > last_error_pods {
                     let mut message = format!("Detected {} pods in error state:\n", pods_status.error_pods);
@@ -238,7 +238,7 @@ pub async fn start_alert_monitoring_task(client: kube::Client) {
             }
 
             // Check ArgoCD
-            if let Ok(argocd_status) = crate::argocd::get_argocd_status(&client).await {
+            if let Ok(argocd_status) = crate::legacy::argocd::get_argocd_status(&client).await {
                 apps_checked = true;
                 if argocd_status.unhealthy > last_unhealthy_apps {
                     let mut message = format!("Detected {} unhealthy applications:\n", argocd_status.unhealthy);

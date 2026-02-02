@@ -11,15 +11,11 @@ pub mod cache;
 pub mod resilience;
 pub mod event_bus;
 pub mod response;
-pub mod health;
-pub mod llm;
-pub mod doctor;
 pub mod middleware;
 pub mod metrics;
 pub mod validation;
 pub mod jobs;
 pub mod features;
-pub mod notifications;
 
 // Hexagonal Architecture layers
 pub mod domain;
@@ -27,38 +23,11 @@ pub mod application;
 pub mod infrastructure;
 pub mod interfaces;
 
-mod apps;
-mod argocd;
-mod backups;
-mod chat;
-mod cluster;
-mod events;
-mod nodes;
-mod storage;
-mod chat_storage;
-mod mcp;
-mod services;
-mod ingress;
-mod pods;
-mod cilium;
-mod ws;
-mod prometheus;
-mod alertmanager;
-mod export;
-mod telemetry;
-mod quota;
-mod newsfeed;
-mod proxmox;
-mod homeassistant;
-mod weather;
-mod calendar;
-mod slack;
-mod setup;
-mod system;
-mod translation;
-mod mqtt;
-mod security;
-mod database;
+// Legacy modules - being refactored to hexagonal architecture
+pub mod legacy;
+
+// Re-export legacy modules for backward compatibility
+pub use legacy::notifications;
 
 // Re-export key modules
 pub use metrics::custom as metrics_custom;
@@ -67,6 +36,9 @@ pub use features::*;
 
 // Re-export middleware for convenience
 pub use middleware::{StructuredLogging, RateLimiter, CorrelationId, get_correlation_id};
+
+// Re-export legacy modules for backward compatibility
+pub use legacy::{health, llm, doctor};
 
 /// Shared application state
 pub struct AppState {
@@ -102,7 +74,7 @@ async fn preload_data(client: kube::Client) {
     
     let c = client.clone();
     tokio::spawn(async move {
-        if let Err(e) = argocd::get_argocd_status(&c).await {
+        if let Err(e) = legacy::argocd::get_argocd_status(&c).await {
             tracing::error!("Preload ArgoCD failed: {}", e);
         } else {
             info!("✅ ArgoCD data preloaded");
@@ -111,7 +83,7 @@ async fn preload_data(client: kube::Client) {
 
     let c = client.clone();
     tokio::spawn(async move {
-        if let Err(e) = nodes::get_nodes_status(&c).await {
+        if let Err(e) = legacy::nodes::get_nodes_status(&c).await {
             tracing::error!("Preload Nodes failed: {}", e);
         } else {
             info!("✅ Nodes status preloaded");
@@ -120,7 +92,7 @@ async fn preload_data(client: kube::Client) {
 
     let c = client.clone();
     tokio::spawn(async move {
-        if let Err(e) = cluster::get_cluster_overview(&c).await {
+        if let Err(e) = legacy::cluster::get_cluster_overview(&c).await {
             tracing::error!("Preload Cluster Overview failed: {}", e);
         } else {
             info!("✅ Cluster overview preloaded");
@@ -129,7 +101,7 @@ async fn preload_data(client: kube::Client) {
 
     let c = client.clone();
     tokio::spawn(async move {
-        if let Err(e) = storage::get_storage_status(&c).await {
+        if let Err(e) = legacy::storage::get_storage_status(&c).await {
             tracing::error!("Preload Storage failed: {}", e);
         } else {
             info!("✅ Storage status preloaded");
@@ -139,7 +111,7 @@ async fn preload_data(client: kube::Client) {
 
 #[get("/api/argocd/status")]
 async fn argocd_status(data: web::Data<AppState>) -> impl Responder {
-    match argocd::get_argocd_status(&data.client).await {
+    match legacy::argocd::get_argocd_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
             tracing::error!("Failed to get ArgoCD status: {}", e);
@@ -154,7 +126,7 @@ async fn argocd_status(data: web::Data<AppState>) -> impl Responder {
 async fn argocd_sync(data: web::Data<AppState>, body: web::Json<SyncRequest>) -> impl Responder {
     info!("Sync requested for application: {}", body.app_name);
     
-    match argocd::sync_application(&data.client, &body.app_name).await {
+    match legacy::argocd::sync_application(&data.client, &body.app_name).await {
         Ok(response) => HttpResponse::Ok().json(response),
         Err(e) => {
             tracing::error!("Failed to sync application {}: {}", body.app_name, e);
@@ -168,7 +140,7 @@ async fn argocd_sync(data: web::Data<AppState>, body: web::Json<SyncRequest>) ->
 
 #[get("/api/nodes/status")]
 async fn nodes_status(data: web::Data<AppState>) -> impl Responder {
-    match nodes::get_nodes_status(&data.client).await {
+    match legacy::nodes::get_nodes_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
             tracing::error!("Failed to get nodes status: {}", e);
@@ -181,13 +153,13 @@ async fn nodes_status(data: web::Data<AppState>) -> impl Responder {
 
 #[get("/api/debug/nodes")]
 async fn nodes_debug(data: web::Data<AppState>) -> impl Responder {
-    let diag = nodes::get_nodes_diagnostics(&data.client).await;
+    let diag = legacy::nodes::get_nodes_diagnostics(&data.client).await;
     HttpResponse::Ok().json(diag)
 }
 
 #[get("/api/cluster/overview")]
 async fn cluster_overview(data: web::Data<AppState>) -> impl Responder {
-    match cluster::get_cluster_overview(&data.client).await {
+    match legacy::cluster::get_cluster_overview(&data.client).await {
         Ok(overview) => HttpResponse::Ok().json(overview),
         Err(e) => {
             tracing::error!("Failed to get cluster overview: {}", e);
@@ -200,7 +172,7 @@ async fn cluster_overview(data: web::Data<AppState>) -> impl Responder {
 
 #[get("/api/cluster/empty-namespaces")]
 async fn empty_namespaces_list(data: web::Data<AppState>) -> impl Responder {
-    match cluster::get_empty_namespaces(&data.client).await {
+    match legacy::cluster::get_empty_namespaces(&data.client).await {
         Ok(namespaces) => HttpResponse::Ok().json(namespaces),
         Err(e) => {
             tracing::error!("Failed to get empty namespaces: {}", e);
@@ -231,7 +203,7 @@ where
 #[get("/api/events")]
 async fn k8s_events(data: web::Data<AppState>, query: web::Query<EventsQuery>) -> impl Responder {
     // events module now uses KusanagiError directly
-    match events::get_events(&data.client, query.event_type.clone(), query.page, query.per_page).await {
+    match legacy::events::get_events(&data.client, query.event_type.clone(), query.page, query.per_page).await {
         Ok(events) => HttpResponse::Ok().json(events),
         Err(e) => {
             tracing::error!("Failed to get events: {}", e);
@@ -242,7 +214,7 @@ async fn k8s_events(data: web::Data<AppState>, query: web::Query<EventsQuery>) -
 
 #[get("/api/apps")]
 async fn apps_with_resources(data: web::Data<AppState>) -> impl Responder {
-    match apps::get_apps_with_resources(&data.client).await {
+    match legacy::apps::get_apps_with_resources(&data.client).await {
         Ok(apps) => HttpResponse::Ok().json(apps),
         Err(e) => {
             tracing::error!("Failed to get apps with resources: {}", e);
@@ -254,15 +226,15 @@ async fn apps_with_resources(data: web::Data<AppState>) -> impl Responder {
 }
 
 #[post("/api/chat")]
-async fn chat_endpoint(data: web::Data<AppState>, body: web::Json<chat::ChatRequest>) -> impl Responder {
+async fn chat_endpoint(data: web::Data<AppState>, body: web::Json<legacy::chat::ChatRequest>) -> impl Responder {
     info!("Chat message: {}", body.message);
-    let response = chat::process_message(&data.client, body.into_inner()).await;
+    let response = legacy::chat::process_message(&data.client, body.into_inner()).await;
     HttpResponse::Ok().json(response)
 }
 
 #[get("/api/backups")]
 async fn backups_status(data: web::Data<AppState>) -> impl Responder {
-    match backups::get_backups_status(&data.client).await {
+    match legacy::backups::get_backups_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
             tracing::error!("Failed to get backups status: {}", e);
@@ -275,7 +247,7 @@ async fn backups_status(data: web::Data<AppState>) -> impl Responder {
 
 #[get("/api/storage")]
 async fn storage_status(data: web::Data<AppState>) -> impl Responder {
-    match storage::get_storage_status(&data.client).await {
+    match legacy::storage::get_storage_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
             tracing::error!("Failed to get storage status: {}", e);
@@ -288,7 +260,7 @@ async fn storage_status(data: web::Data<AppState>) -> impl Responder {
 
 #[get("/api/services")]
 async fn services_status(data: web::Data<AppState>) -> impl Responder {
-    match services::get_services(&data.client).await {
+    match legacy::services::get_services(&data.client).await {
         Ok(info) => HttpResponse::Ok().json(info),
         Err(e) => {
             tracing::error!("Failed to get services info: {}", e);
@@ -301,7 +273,7 @@ async fn services_status(data: web::Data<AppState>) -> impl Responder {
 
 #[get("/api/ingress")]
 async fn ingress_status(data: web::Data<AppState>) -> impl Responder {
-    match ingress::get_ingresses(&data.client).await {
+    match legacy::ingress::get_ingresses(&data.client).await {
         Ok(info) => HttpResponse::Ok().json(info),
         Err(e) => {
             tracing::error!("Failed to get ingress info: {}", e);
@@ -314,7 +286,7 @@ async fn ingress_status(data: web::Data<AppState>) -> impl Responder {
 
 #[get("/api/pods/status")]
 async fn pods_status(data: web::Data<AppState>) -> impl Responder {
-    match pods::get_pods_status(&data.client).await {
+    match legacy::pods::get_pods_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
             tracing::error!("Failed to get pods status: {}", e);
@@ -326,10 +298,10 @@ async fn pods_status(data: web::Data<AppState>) -> impl Responder {
 }
 
 #[post("/api/pods/force-delete")]
-async fn force_delete_pod(data: web::Data<AppState>, body: web::Json<pods::ForceDeleteRequest>) -> impl Responder {
+async fn force_delete_pod(data: web::Data<AppState>, body: web::Json<legacy::pods::ForceDeleteRequest>) -> impl Responder {
     info!("Force delete requested for pod: {}/{}", body.namespace, body.pod_name);
     
-    match pods::force_delete_pod(&data.client, &body.namespace, &body.pod_name).await {
+    match legacy::pods::force_delete_pod(&data.client, &body.namespace, &body.pod_name).await {
         Ok(response) => HttpResponse::Ok().json(response),
         Err(e) => {
             tracing::error!("Failed to force delete pod: {}", e);
@@ -351,7 +323,7 @@ struct RangeQuery {
 
 #[get("/api/prometheus/range")]
 async fn prometheus_range(data: web::Data<AppState>, query: web::Query<RangeQuery>) -> impl Responder {
-    match prometheus::query_range(&query.query, query.start, query.end, &query.step).await {
+    match legacy::prometheus::query_range(&query.query, query.start, query.end, &query.step).await {
         Ok(result) => HttpResponse::Ok().json(result),
         Err(e) => {
             tracing::error!("Failed to query Prometheus range: {}", e);
@@ -362,7 +334,7 @@ async fn prometheus_range(data: web::Data<AppState>, query: web::Query<RangeQuer
 
 #[get("/api/ws/notifications")]
 async fn ws_route(req: HttpRequest, stream: web::Payload, data: web::Data<AppState>) -> std::result::Result<HttpResponse, actix_web::Error> {
-    ws::ws_notifications(req, stream, data.get_ref().client.clone()).await
+    legacy::ws::ws_notifications(req, stream, data.get_ref().client.clone()).await
 }
 
 #[derive(Deserialize)]
@@ -374,7 +346,7 @@ struct CiliumQuery {
 
 #[get("/api/cilium/namespaces")]
 async fn cilium_namespaces() -> impl Responder {
-    match cilium::get_namespaces().await {
+    match legacy::cilium::get_namespaces().await {
         Ok(namespaces) => HttpResponse::Ok().json(namespaces),
         Err(e) => {
             tracing::error!("Failed to get namespaces: {}", e);
@@ -390,7 +362,7 @@ async fn cilium_flows(query: web::Query<CiliumQuery>) -> impl Responder {
     let namespace = query.namespace.as_deref();
     let limit = query.limit.unwrap_or(100);
     
-    match cilium::get_hubble_flows(namespace, limit).await {
+    match legacy::cilium::get_hubble_flows(namespace, limit).await {
         Ok(flows) => HttpResponse::Ok().json(flows),
         Err(e) => {
             tracing::error!("Failed to get Cilium flows: {}", e);
@@ -405,7 +377,7 @@ async fn cilium_flows(query: web::Query<CiliumQuery>) -> impl Responder {
 async fn cilium_matrix(query: web::Query<CiliumQuery>) -> impl Responder {
     let namespace = query.namespace.as_deref();
     
-    match cilium::get_flow_matrix(namespace).await {
+    match legacy::cilium::get_flow_matrix(namespace).await {
         Ok(matrix) => HttpResponse::Ok().json(matrix),
         Err(e) => {
             tracing::error!("Failed to get flow matrix: {}", e);
@@ -420,7 +392,7 @@ async fn cilium_matrix(query: web::Query<CiliumQuery>) -> impl Responder {
 async fn cilium_metrics(query: web::Query<CiliumQuery>) -> impl Responder {
     let namespace = query.namespace.as_deref();
     
-    match cilium::get_bandwidth_metrics(namespace).await {
+    match legacy::cilium::get_bandwidth_metrics(namespace).await {
         Ok(metrics) => HttpResponse::Ok().json(metrics),
         Err(e) => {
             tracing::error!("Failed to get bandwidth metrics: {}", e);
@@ -435,7 +407,7 @@ async fn cilium_metrics(query: web::Query<CiliumQuery>) -> impl Responder {
 async fn cilium_anomalies(query: web::Query<CiliumQuery>) -> impl Responder {
     let namespace = query.namespace.as_deref();
     
-    match cilium::detect_anomalies(namespace).await {
+    match legacy::cilium::detect_anomalies(namespace).await {
         Ok(anomalies) => HttpResponse::Ok().json(anomalies),
         Err(e) => {
             tracing::error!("Failed to detect anomalies: {}", e);
@@ -452,17 +424,17 @@ async fn cilium_export(query: web::Query<CiliumQuery>) -> impl Responder {
     let limit = query.limit.unwrap_or(1000);
     let format = query.format.as_deref().unwrap_or("json");
     
-    match cilium::get_hubble_flows(namespace, limit).await {
+    match legacy::cilium::get_hubble_flows(namespace, limit).await {
         Ok(flows) => {
             match format {
                 "csv" => HttpResponse::Ok()
                     .content_type("text/csv")
                     .insert_header(("Content-Disposition", "attachment; filename=flows.csv"))
-                    .body(cilium::export_flows_csv(&flows)),
+                    .body(legacy::cilium::export_flows_csv(&flows)),
                 _ => HttpResponse::Ok()
                     .content_type("application/json")
                     .insert_header(("Content-Disposition", "attachment; filename=flows.json"))
-                    .body(cilium::export_flows_json(&flows)),
+                    .body(legacy::cilium::export_flows_json(&flows)),
             }
         }
         Err(e) => {
@@ -482,7 +454,7 @@ struct PrometheusQuery {
 #[get("/api/prometheus/metrics")]
 async fn prometheus_metrics() -> impl Responder {
     // prometheus module now uses KusanagiError directly
-    match prometheus::get_cached_metrics().await {
+    match legacy::prometheus::get_cached_metrics().await {
         Ok(metrics) => HttpResponse::Ok().json(metrics),
         Err(e) => {
             tracing::error!("Failed to get Prometheus metrics: {}", e);
@@ -493,7 +465,7 @@ async fn prometheus_metrics() -> impl Responder {
 
 #[get("/api/prometheus/query")]
 async fn prometheus_query(query: web::Query<PrometheusQuery>) -> impl Responder {
-    match prometheus::query_raw(&query.query).await {
+    match legacy::prometheus::query_raw(&query.query).await {
         Ok(result) => HttpResponse::Ok().json(result),
         Err(e) => {
             tracing::error!("Failed to execute Prometheus query: {}", e);
@@ -504,7 +476,7 @@ async fn prometheus_query(query: web::Query<PrometheusQuery>) -> impl Responder 
 
 #[get("/api/alerts")]
 async fn alerts_status() -> impl Responder {
-    match alertmanager::get_cached_active_alerts().await {
+    match legacy::alertmanager::get_cached_active_alerts().await {
         Ok(alerts) => HttpResponse::Ok().json(alerts),
         Err(e) => {
             tracing::error!("Failed to get alerts: {}", e);
@@ -523,12 +495,12 @@ struct ExportQuery {
 
 #[get("/api/export/report")]
 async fn export_report(data: web::Data<AppState>, query: web::Query<ExportQuery>) -> impl Responder {
-    match export::generate_report(&data.client).await {
+    match legacy::export::generate_report(&data.client).await {
         Ok(report) => {
             let format = query.format.as_deref().unwrap_or("json");
             match format {
                 "csv" => {
-                    match export::export_csv(&report) {
+                    match legacy::export::export_csv(&report) {
                         Ok(csv) => HttpResponse::Ok()
                             .content_type("text/csv")
                             .insert_header(("Content-Disposition", "attachment; filename=kusanagi-report.csv"))
@@ -537,7 +509,7 @@ async fn export_report(data: web::Data<AppState>, query: web::Query<ExportQuery>
                     }
                 },
                 "markdown" | "md" => {
-                    match export::export_markdown(&report) {
+                    match legacy::export::export_markdown(&report) {
                         Ok(md) => HttpResponse::Ok()
                             .content_type("text/markdown")
                             .insert_header(("Content-Disposition", "attachment; filename=kusanagi-report.md"))
@@ -546,7 +518,7 @@ async fn export_report(data: web::Data<AppState>, query: web::Query<ExportQuery>
                     }
                 },
                 _ => {
-                    match export::export_json(&report) {
+                    match legacy::export::export_json(&report) {
                         Ok(json) => HttpResponse::Ok()
                             .content_type("application/json")
                             .insert_header(("Content-Disposition", "attachment; filename=kusanagi-report.json"))
@@ -567,10 +539,10 @@ async fn export_report(data: web::Data<AppState>, query: web::Query<ExportQuery>
 
 #[get("/api/export/alerts")]
 async fn export_alerts_endpoint(data: web::Data<AppState>, query: web::Query<ExportQuery>) -> impl Responder {
-    match alertmanager::get_active_alerts().await {
+    match legacy::alertmanager::get_active_alerts().await {
         Ok(alerts) => {
             let lang = query.lang.as_deref().unwrap_or("en");
-            match export::export_alerts_for_agent(&data.client, &alerts, lang).await {
+            match legacy::export::export_alerts_for_agent(&data.client, &alerts, lang).await {
                 Ok(md) => HttpResponse::Ok()
                     .content_type("text/markdown")
                     .insert_header(("Content-Disposition", "attachment; filename=agent-remediation-context.md"))
@@ -666,39 +638,39 @@ async fn main() -> std::io::Result<()> {
     let app_state = web::Data::new(AppState { client: client.clone() });
     
     // Initialize news feed cache
-    let news_cache = web::Data::new(newsfeed::NewsCache::new());
-    newsfeed::start_news_refresh_task(news_cache.get_ref().clone()).await;
+    let news_cache = web::Data::new(legacy::newsfeed::NewsCache::new());
+    legacy::newsfeed::start_news_refresh_task(news_cache.get_ref().clone()).await;
 
     // Initialize system manager and auto-update task
-    let system_manager = web::Data::new(system::SystemManager::new());
-    tokio::spawn(system::start_auto_update_task(client.clone(), system_manager.last_image_digest.clone()));
+    let system_manager = web::Data::new(legacy::system::SystemManager::new());
+    tokio::spawn(legacy::system::start_auto_update_task(client.clone(), system_manager.last_image_digest.clone()));
 
     // Start Slack alert monitoring
-    slack::start_alert_monitoring_task(client.clone()).await;
+    legacy::slack::start_alert_monitoring_task(client.clone()).await;
 
     // Initialize database pool
-    if let Err(e) = database::init_pool(&client).await {
+    if let Err(e) = legacy::database::init_pool(&client).await {
         tracing::warn!("Failed to initialize database pool: {}", e);
         tracing::info!("Continuing without database connection");
     }
 
     // Initialize telemetry (OpenObserve)
-    telemetry::init_telemetry(&client).await;
+    legacy::telemetry::init_telemetry(&client).await;
 
     // Initialize MQTT
-    mqtt::init_mqtt().await;
+    legacy::mqtt::init_mqtt().await;
 
     // Start Cilium background refresh task
-    tokio::spawn(cilium::start_background_refresh(client.clone()));
+    tokio::spawn(legacy::cilium::start_background_refresh(client.clone()));
 
     // Start Security enrichment worker
-    tokio::spawn(security::start_security_worker());
+    tokio::spawn(legacy::security::start_security_worker());
 
     // Start Prometheus background refresh task
-    tokio::spawn(prometheus::start_background_refresh());
+    tokio::spawn(legacy::prometheus::start_background_refresh());
 
     // Start Alertmanager background refresh task
-    tokio::spawn(alertmanager::start_background_refresh());
+    tokio::spawn(legacy::alertmanager::start_background_refresh());
 
     // Initialize rate limiter
     let rate_limiter = middleware::RateLimiter::per_minute(1000);
@@ -714,18 +686,18 @@ async fn main() -> std::io::Result<()> {
             .app_data(system_manager.clone())
             // Configure routes
             .service(metrics::metrics_handler)
-            .configure(proxmox::configure_routes)
-            .configure(homeassistant::configure_routes)
-            .configure(weather::configure_routes)
-            .configure(calendar::configure_routes)
-            .configure(mcp::configure_routes)
-            .configure(setup::configure_routes)
-            .configure(system::configure_routes)
-            .configure(mqtt::configure_routes)
-            .configure(slack::configure_routes)
-            .configure(security::configure_routes)
-            .configure(database::configure_routes)
-            .configure(health::configure_routes)
+            .configure(legacy::proxmox::configure_routes)
+            .configure(legacy::homeassistant::configure_routes)
+            .configure(legacy::weather::configure_routes)
+            .configure(legacy::calendar::configure_routes)
+            .configure(legacy::mcp::configure_routes)
+            .configure(legacy::setup::configure_routes)
+            .configure(legacy::system::configure_routes)
+            .configure(legacy::mqtt::configure_routes)
+            .configure(legacy::slack::configure_routes)
+            .configure(legacy::security::configure_routes)
+            .configure(legacy::database::configure_routes)
+            .configure(legacy::health::configure_routes)
             .configure(doctor::configure_routes)
             .service(health_check)
 
@@ -744,9 +716,9 @@ async fn main() -> std::io::Result<()> {
             .service(services_status)
             .service(ingress_status)
             .service(pods_status)
-            .service(pods::get_pod_logs_handler)
-            .service(pods::scale_resource_handler)
-            .service(pods::delete_error_pods_handler)
+            .service(legacy::pods::get_pod_logs_handler)
+            .service(legacy::pods::scale_resource_handler)
+            .service(legacy::pods::delete_error_pods_handler)
             .service(force_delete_pod)
             .service(ws_route)
             .service(cilium_namespaces)
@@ -761,8 +733,8 @@ async fn main() -> std::io::Result<()> {
             .service(alerts_status)
             .service(export_report)
             .service(export_alerts_endpoint)
-            .route("/api/quotas", web::get().to(quota::get_quotas))
-            .route("/api/news", web::get().to(newsfeed::get_news))
+            .route("/api/quotas", web::get().to(legacy::quota::get_quotas))
+            .route("/api/news", web::get().to(legacy::newsfeed::get_news))
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(cfg.server_addr())?

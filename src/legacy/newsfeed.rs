@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::collections::HashMap;
-use crate::translation;
+use crate::legacy::translation;
 
 
 

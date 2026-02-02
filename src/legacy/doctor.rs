@@ -193,7 +193,7 @@ async fn check_kubernetes_permissions(client: &Client) -> CheckResult {
 async fn check_prometheus_connection() -> CheckResult {
     let start = Instant::now();
     
-    match crate::prometheus::query_raw("up").await {
+    match crate::legacy::prometheus::query_raw("up").await {
         Ok(_) => {
             CheckResult {
                 name: "Prometheus Connection".to_string(),
@@ -222,7 +222,7 @@ async fn check_openobserve_config(client: &Client) -> CheckResult {
     
     // Check if telemetry is enabled and configured
     let has_env = std::env::var("OPENOBSERVE_ENDPOINT").is_ok() && std::env::var("OPENOBSERVE_AUTH").is_ok();
-    let is_initialized = crate::telemetry::is_enabled();
+    let is_initialized = crate::legacy::telemetry::is_enabled();
     
     if has_env || is_initialized {
         CheckResult {
@@ -248,7 +248,7 @@ async fn check_openobserve_config(client: &Client) -> CheckResult {
 async fn check_database_connection() -> CheckResult {
     let start = Instant::now();
     
-    if !crate::database::is_initialized() {
+    if !crate::legacy::database::is_initialized() {
         return CheckResult {
             name: "Database Connection".to_string(),
             status: CheckStatus::Warning,
@@ -259,7 +259,7 @@ async fn check_database_connection() -> CheckResult {
         };
     }
     
-    let health = crate::database::check_health_quick().await;
+    let health = crate::legacy::database::check_health_quick().await;
     
     if health.status == "Healthy" {
         CheckResult {
@@ -285,7 +285,7 @@ async fn check_database_connection() -> CheckResult {
 async fn check_mqtt_connection() -> CheckResult {
     let start = Instant::now();
     
-    let state = crate::mqtt::MQTT_STATE.lock().unwrap();
+    let state = crate::legacy::mqtt::MQTT_STATE.lock().unwrap();
     let connected = state.connected;
     drop(state);
     
@@ -341,7 +341,7 @@ async fn check_llm_connection() -> CheckResult {
 async fn check_s3_connection() -> CheckResult {
     let start = Instant::now();
     
-    let client = crate::translation::get_s3_client().await;
+    let client = crate::legacy::translation::get_s3_client().await;
     
     match client.list_buckets().send().await {
         Ok(_) => {

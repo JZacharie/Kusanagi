@@ -27,7 +27,7 @@ use crate::error::Result;
 use crate::event_bus::{
     AlertEvent, AlertSeverity, ClusterEvent, EventBus, PodEvent, SecurityEvent,
 };
-use crate::slack::SlackClient;
+use crate::legacy::slack::SlackClient;
 use std::sync::Arc;
 use tracing::{debug, error, info, warn};
 

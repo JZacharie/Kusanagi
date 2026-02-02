@@ -119,7 +119,7 @@ async fn check_kubernetes(client: &Client) -> ComponentHealth {
 async fn check_mqtt() -> ComponentHealth {
     let start = Instant::now();
     
-    let state = crate::mqtt::MQTT_STATE.lock().unwrap();
+    let state = crate::legacy::mqtt::MQTT_STATE.lock().unwrap();
     let elapsed = start.elapsed().as_millis() as u64;
     
     if state.connected {
@@ -158,7 +158,7 @@ async fn check_database() -> ComponentHealth {
     let start = Instant::now();
     
     // Try to get database pool from database module
-    match crate::database::get_pool().await {
+    match crate::legacy::database::get_pool().await {
         Ok(pool) => {
             match sqlx::query("SELECT 1").fetch_one(&*pool).await {
                 Ok(_) => {
@@ -203,7 +203,7 @@ async fn check_database() -> ComponentHealth {
 async fn check_prometheus() -> ComponentHealth {
     let start = Instant::now();
     
-    match crate::prometheus::query_raw("up").await {
+    match crate::legacy::prometheus::query_raw("up").await {
         Ok(_) => {
             let elapsed = start.elapsed().as_millis() as u64;
             ComponentHealth {
@@ -233,7 +233,7 @@ async fn check_prometheus() -> ComponentHealth {
 async fn check_alertmanager() -> ComponentHealth {
     let start = Instant::now();
     
-    match crate::alertmanager::get_active_alerts().await {
+    match crate::legacy::alertmanager::get_active_alerts().await {
         Ok(_) => {
             let elapsed = start.elapsed().as_millis() as u64;
             ComponentHealth {
@@ -341,7 +341,7 @@ pub async fn liveness_check() -> HttpResponse {
 
 /// Readiness check - is the application ready to serve traffic?
 #[get("/health/ready")]
-pub async fn readiness_check(data: web::Data<super::AppState>) -> HttpResponse {
+pub async fn readiness_check(data: web::Data<crate::AppState>) -> HttpResponse {
     let config = HealthConfig {
         check_kubernetes: true,
         check_mqtt: false,
@@ -361,7 +361,7 @@ pub async fn readiness_check(data: web::Data<super::AppState>) -> HttpResponse {
 
 /// Full health check with all components
 #[get("/health/full")]
-pub async fn full_health_check(data: web::Data<super::AppState>) -> HttpResponse {
+pub async fn full_health_check(data: web::Data<crate::AppState>) -> HttpResponse {
     let config = HealthConfig::default();
     let report = check_health(&data.client, &config).await;
 

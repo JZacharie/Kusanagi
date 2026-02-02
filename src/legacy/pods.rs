@@ -291,7 +291,7 @@ pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, Stri
     info!("K8s API list pods took: {:?}", duration);
 
     // Fetch resource usage from Prometheus (best effort)
-    let usage_map = crate::prometheus::get_pods_resource_usage()
+    let usage_map = crate::legacy::prometheus::get_pods_resource_usage()
         .await
         .unwrap_or_else(|_| std::collections::HashMap::new());
 

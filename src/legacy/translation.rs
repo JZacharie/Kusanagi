@@ -90,7 +90,7 @@ pub async fn get_cached_translation(s3_client: &S3Client, id: &str) -> Option<Tr
 }
 
 
-pub async fn store_news_item(s3_client: &S3Client, item: &crate::newsfeed::NewsItem) -> Result<(), String> {
+pub async fn store_news_item(s3_client: &S3Client, item: &crate::legacy::newsfeed::NewsItem) -> Result<(), String> {
     let key = format!("news/{}.json", item.id);
     let body = serde_json::to_string(item)
         .map_err(|e| format!("Failed to serialize news item: {}", e))?;
@@ -107,7 +107,7 @@ pub async fn store_news_item(s3_client: &S3Client, item: &crate::newsfeed::NewsI
     Ok(())
 }
 
-pub async fn get_news_from_s3(s3_client: &S3Client) -> Result<Vec<crate::newsfeed::NewsItem>, String> {
+pub async fn get_news_from_s3(s3_client: &S3Client) -> Result<Vec<crate::legacy::newsfeed::NewsItem>, String> {
     let bucket = get_s3_bucket();
     let response = s3_client
         .list_objects_v2()
@@ -131,7 +131,7 @@ pub async fn get_news_from_s3(s3_client: &S3Client) -> Result<Vec<crate::newsfee
 
                 if let Ok(output) = result {
                     if let Ok(data) = output.body.collect().await {
-                        if let Ok(item) = serde_json::from_slice::<crate::newsfeed::NewsItem>(&data.into_bytes()) {
+                        if let Ok(item) = serde_json::from_slice::<crate::legacy::newsfeed::NewsItem>(&data.into_bytes()) {
                             items.push(item);
                         }
                     }

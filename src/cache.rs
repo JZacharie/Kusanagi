@@ -503,13 +503,13 @@ impl<T: Clone + Send + Sync + Debug + 'static> TypedCache<T> {
 /// Predefined cache instances for common use cases
 pub struct Caches {
     /// Prometheus metrics cache
-    pub metrics: TypedCache<crate::prometheus::PrometheusMetrics>,
+    pub metrics: TypedCache<crate::legacy::prometheus::PrometheusMetrics>,
     /// Alertmanager alerts cache
-    pub alerts: TypedCache<crate::alertmanager::AlertsResponse>,
+    pub alerts: TypedCache<crate::legacy::alertmanager::AlertsResponse>,
     /// News feed cache
-    pub news: TypedCache<Vec<crate::newsfeed::NewsItem>>,
+    pub news: TypedCache<Vec<crate::legacy::newsfeed::NewsItem>>,
     /// Cilium flows cache
-    pub cilium_flows: TypedCache<crate::cilium::HubbleFlowsResponse>,
+    pub cilium_flows: TypedCache<crate::legacy::cilium::HubbleFlowsResponse>,
     /// Kubernetes resources cache
     pub k8s_resources: TypedCache<serde_json::Value>,
 }

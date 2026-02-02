@@ -2,12 +2,12 @@ use chrono::Utc;
 use serde::Serialize;
 
 use kube::Client;
-use crate::alertmanager::{self, AlertsResponse};
-use crate::argocd::{self, ArgoStatusResponse};
-use crate::events::{self, EventsResponse};
-use crate::nodes::{self, NodesStatusResponse};
-use crate::prometheus::{self, PrometheusMetrics};
-use crate::storage::{self, StorageStatusResponse};
+use crate::legacy::alertmanager::{self, AlertsResponse};
+use crate::legacy::argocd::{self, ArgoStatusResponse};
+use crate::legacy::events::{self, EventsResponse};
+use crate::legacy::nodes::{self, NodesStatusResponse};
+use crate::legacy::prometheus::{self, PrometheusMetrics};
+use crate::legacy::storage::{self, StorageStatusResponse};
 
 /// Complete cluster report structure
 #[derive(Debug, Serialize)]
@@ -50,7 +50,7 @@ pub async fn generate_report(client: &Client) -> Result<ClusterReport, String> {
         events::get_events(client, None, None, None),
         storage::get_storage_status(client),
         prometheus::get_cluster_metrics(),
-        crate::cluster::get_empty_namespaces(client)
+        crate::legacy::cluster::get_empty_namespaces(client)
     );
     
     // Process nodes - required
@@ -282,7 +282,7 @@ pub async fn export_alerts_for_agent(client: &kube::Client, alerts: &AlertsRespo
 
         if let (Some(ns), Some(p)) = (&alert.namespace, &alert.pod) {
             report.push_str(&format!("#### 📝 {} `{}/{}`\n", logs_label, ns, p));
-            match crate::pods::get_pod_logs(client, ns, p, None, 100).await {
+            match crate::legacy::pods::get_pod_logs(client, ns, p, None, 100).await {
                 Ok(logs) => {
                     report.push_str("```text\n");
                     report.push_str(&logs);

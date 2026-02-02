@@ -548,7 +548,7 @@ pub async fn get_policy_violations_handler(client: web::Data<crate::AppState>) -
 
 pub async fn get_fence_status_handler(client: web::Data<crate::AppState>) -> Result<HttpResponse> {
     // Check if fence pods are running in the security namespace
-    match crate::pods::get_pods_status(&client.client).await {
+    match crate::legacy::pods::get_pods_status(&client.client).await {
         Ok(_) => {
             // Simplified: we'll just check if any pods are in the security namespace
             // A better way would be to specifically look for "fence" pods

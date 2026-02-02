@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
 use crate::event_bus::integration::subscribe_pod_notifications;
-use crate::{argocd, events, pods};
+use crate::legacy::{argocd, events, pods};
 
 /// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
@@ -134,7 +134,7 @@ impl Actor for NotificationSession {
 
         // Subscribe to MQTT broadcast
         let addr_mqtt = ctx.address();
-        let mut mqtt_rx = crate::mqtt::MQTT_STATE.lock().unwrap().tx.subscribe();
+        let mut mqtt_rx = crate::legacy::mqtt::MQTT_STATE.lock().unwrap().tx.subscribe();
         actix::spawn(async move {
             while let Ok(msg) = mqtt_rx.recv().await {
                 addr_mqtt.do_send(SendNotification(NotificationMessage::MqttMessage {

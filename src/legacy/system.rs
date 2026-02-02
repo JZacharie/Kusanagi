@@ -145,7 +145,7 @@ pub async fn system_logs_handler(data: web::Data<crate::AppState>) -> impl Respo
     let dev_mode = std::env::var("DEV_MODE").unwrap_or_default() == "true";
 
     // 1. Try to get logs using hostname as pod name
-    match crate::pods::get_pod_logs(&data.client, &namespace, &hostname, None, 1000).await {
+    match crate::legacy::pods::get_pod_logs(&data.client, &namespace, &hostname, None, 1000).await {
         Ok(logs) => {
             if logs.is_empty() {
                 return HttpResponse::Ok().body("No logs available (empty response from Kubernetes)");
@@ -163,7 +163,7 @@ pub async fn system_logs_handler(data: web::Data<crate::AppState>) -> impl Respo
             if let Ok(pod_list) = pods_api.list(&lp).await {
                 if let Some(pod) = pod_list.items.first() {
                     let pod_name = pod.metadata.name.clone().unwrap_or_default();
-                    match crate::pods::get_pod_logs(&data.client, &namespace, &pod_name, None, 1000).await {
+                    match crate::legacy::pods::get_pod_logs(&data.client, &namespace, &pod_name, None, 1000).await {
                         Ok(logs) => return HttpResponse::Ok().body(logs),
                         Err(inner_e) => warn!("Found pod {} by label but failed to fetch logs: {}", pod_name, inner_e),
                     }
@@ -176,7 +176,7 @@ pub async fn system_logs_handler(data: web::Data<crate::AppState>) -> impl Respo
                 if let Some(pod) = pod_list.items.iter().find(|p| p.metadata.name.as_deref().unwrap_or_default().contains("kusanagi")) {
                     let pod_name = pod.metadata.name.clone().unwrap_or_default();
                     info!("Found potential kusanagi pod: {}", pod_name);
-                    match crate::pods::get_pod_logs(&data.client, &namespace, &pod_name, None, 1000).await {
+                    match crate::legacy::pods::get_pod_logs(&data.client, &namespace, &pod_name, None, 1000).await {
                         Ok(logs) => return HttpResponse::Ok().body(logs),
                         Err(inner_e) => warn!("Found pod {} by name search but failed to fetch logs: {}", pod_name, inner_e),
                     }
@@ -185,7 +185,7 @@ pub async fn system_logs_handler(data: web::Data<crate::AppState>) -> impl Respo
 
             // Strategy 3: Try default namespace if different
             if namespace != "default" {
-                if let Ok(logs) = crate::pods::get_pod_logs(&data.client, "default", &hostname, None, 1000).await {
+                if let Ok(logs) = crate::legacy::pods::get_pod_logs(&data.client, "default", &hostname, None, 1000).await {
                     return HttpResponse::Ok().body(logs);
                 }
             }

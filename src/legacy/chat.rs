@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
-use crate::{argocd, cluster, events, nodes, backups, chat_storage, mcp, slack};
+use crate::legacy::{argocd, cluster, events, nodes, backups, chat_storage, mcp, slack};
 use kube::Client;
 
 /// Chat message request
