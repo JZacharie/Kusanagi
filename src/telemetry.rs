@@ -125,14 +125,33 @@ async fn load_credentials_from_secret(
     let endpoint = get_secret_value(&data, "endpoint")
         .or_else(|| get_secret_value(&data, "OPENOBSERVE_ENDPOINT"))
         .or_else(|| get_secret_value(&data, "url"))
+        // Support for o2-openobserve secret format (using internal router URL if implicit)
+        .or_else(|| Some("http://openobserve-router.openobserve.svc:5080/api/default/v1/events".to_string()))
         .ok_or("No endpoint found in secret (checked: endpoint, OPENOBSERVE_ENDPOINT, url)")?;
     
     // Extract token
     let token = get_secret_value(&data, "token")
         .or_else(|| get_secret_value(&data, "auth"))
         .or_else(|| get_secret_value(&data, "OPENOBSERVE_AUTH"))
-        .or_else(|| get_secret_value(&data, "api-key"))
-        .ok_or("No auth token found in secret (checked: token, auth, OPENOBSERVE_AUTH, api-key)")?;
+        .or_else(|| get_secret_value(&data, "api-key"));
+
+    let token = match token {
+        Some(t) => t,
+        None => {
+            // Try to construct from User/Password (ZO_ keys)
+            let user = get_secret_value(&data, "ZO_ROOT_USER_EMAIL")
+                .or_else(|| get_secret_value(&data, "ZO_SMTP_USER_NAME"))
+                .ok_or("No token or user found in secret")?;
+            
+            let pass = get_secret_value(&data, "ZO_ROOT_USER_PASSWORD")
+                .or_else(|| get_secret_value(&data, "ZO_SMTP_PASSWORD"))
+                .ok_or("No token or password found in secret")?;
+
+            use base64::{Engine as _, engine::general_purpose};
+            let auth = format!("{}:{}", user, pass);
+            general_purpose::STANDARD.encode(auth)
+        }
+    };
     
     Ok((endpoint, token))
 }
