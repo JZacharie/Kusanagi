@@ -1,11 +1,21 @@
 //! OpenObserve Telemetry Module
 //! Sends APM metrics and logs to OpenObserve for performance monitoring
+//!
+//! Configuration via environment variables or Kubernetes secrets:
+//! - OPENOBSERVE_ENDPOINT: URL de l'API OpenObserve
+//! - OPENOBSERVE_AUTH: Token d'authentification (base64)
+//! - OPENOBSERVE_SECRET_NAME: Nom du secret K8s (default: openobserve-credentials)
+//! - OPENOBSERVE_SECRET_NAMESPACE: Namespace du secret (default: kusanagi)
+//! - APM_SAMPLE_RATE: Taux d'échantillonnage (default: 1.0)
 
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use tracing::{info, warn, error};
+use kube::{Client, Api};
+use k8s_openapi::api::core::v1::Secret;
+use k8s_openapi::ByteString;
 
 // ============================================================================
 // Configuration
@@ -17,6 +27,7 @@ lazy_static::lazy_static! {
 }
 
 static TELEMETRY_ENABLED: AtomicBool = AtomicBool::new(true);
+static TELEMETRY_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone)]
 pub struct TelemetryConfig {
@@ -24,24 +35,123 @@ pub struct TelemetryConfig {
     pub auth_token: Option<String>,
     pub batch_size: usize,
     pub sample_rate: f64,
+    pub timeout_secs: u64,
 }
 
 impl Default for TelemetryConfig {
     fn default() -> Self {
         Self {
-            endpoint: std::env::var("OPENOBSERVE_ENDPOINT")
-                .unwrap_or_else(|_| {
-                    tracing::warn!("OPENOBSERVE_ENDPOINT not set, telemetry will be disabled until configured");
-                    "".to_string()
-                }),
-            auth_token: std::env::var("OPENOBSERVE_AUTH").ok(),
+            endpoint: String::new(),
+            auth_token: None,
             batch_size: 10,
             sample_rate: std::env::var("APM_SAMPLE_RATE")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(1.0),
+            timeout_secs: std::env::var("APM_TIMEOUT_SECS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(10),
         }
     }
+}
+
+/// Initialize telemetry configuration from environment or K8s secrets
+pub async fn init_telemetry(client: &Client) {
+    if TELEMETRY_INITIALIZED.swap(true, Ordering::SeqCst) {
+        return; // Already initialized
+    }
+
+    let mut config = TelemetryConfig::default();
+    
+    // Try environment variables first
+    config.endpoint = std::env::var("OPENOBSERVE_ENDPOINT").unwrap_or_default();
+    config.auth_token = std::env::var("OPENOBSERVE_AUTH").ok();
+    
+    // If not configured via env, try K8s secrets
+    if config.endpoint.is_empty() || config.auth_token.is_none() {
+        let secret_name = std::env::var("OPENOBSERVE_SECRET_NAME")
+            .unwrap_or_else(|_| "openobserve-credentials".to_string());
+        let secret_namespace = std::env::var("OPENOBSERVE_SECRET_NAMESPACE")
+            .unwrap_or_else(|_| "kusanagi".to_string());
+        
+        match load_credentials_from_secret(client, &secret_namespace, &secret_name).await {
+            Ok((endpoint, token)) => {
+                if config.endpoint.is_empty() {
+                    config.endpoint = endpoint;
+                }
+                if config.auth_token.is_none() {
+                    config.auth_token = Some(token);
+                }
+                info!("✅ OpenObserve credentials loaded from K8s secret '{}/{}'", 
+                    secret_namespace, secret_name);
+            }
+            Err(e) => {
+                warn!("⚠️ Failed to load OpenObserve credentials from secret: {}", e);
+                warn!("⚠️ Telemetry will be disabled. Set OPENOBSERVE_ENDPOINT and OPENOBSERVE_AUTH env vars or create the secret.");
+                TELEMETRY_ENABLED.store(false, Ordering::Relaxed);
+            }
+        }
+    }
+    
+    // Validate configuration
+    if config.endpoint.is_empty() {
+        warn!("⚠️ OPENOBSERVE_ENDPOINT not set, telemetry will be disabled");
+        TELEMETRY_ENABLED.store(false, Ordering::Relaxed);
+    } else {
+        info!("✅ OpenObserve telemetry configured: endpoint={}, sample_rate={}",
+            config.endpoint, config.sample_rate);
+    }
+    
+    if config.auth_token.is_none() {
+        warn!("⚠️ OpenObserve auth token not configured");
+    }
+    
+    *TELEMETRY_CONFIG.lock().unwrap() = config;
+}
+
+/// Load credentials from Kubernetes secret
+async fn load_credentials_from_secret(
+    client: &Client,
+    namespace: &str,
+    secret_name: &str,
+) -> Result<(String, String), Box<dyn std::error::Error>> {
+    let secrets: Api<Secret> = Api::namespaced(client.clone(), namespace);
+    let secret = secrets.get(secret_name).await?;
+    
+    let data = secret.data.ok_or("Secret has no data")?;
+    
+    // Extract endpoint
+    let endpoint = get_secret_value(&data, "endpoint")
+        .or_else(|| get_secret_value(&data, "OPENOBSERVE_ENDPOINT"))
+        .or_else(|| get_secret_value(&data, "url"))
+        .ok_or("No endpoint found in secret (checked: endpoint, OPENOBSERVE_ENDPOINT, url)")?;
+    
+    // Extract token
+    let token = get_secret_value(&data, "token")
+        .or_else(|| get_secret_value(&data, "auth"))
+        .or_else(|| get_secret_value(&data, "OPENOBSERVE_AUTH"))
+        .or_else(|| get_secret_value(&data, "api-key"))
+        .ok_or("No auth token found in secret (checked: token, auth, OPENOBSERVE_AUTH, api-key)")?;
+    
+    Ok((endpoint, token))
+}
+
+fn get_secret_value(data: &std::collections::BTreeMap<String, ByteString>, key: &str) -> Option<String> {
+    data.get(key).and_then(|bs| {
+        String::from_utf8(bs.0.clone()).ok()
+    })
+}
+
+/// Re-initialize telemetry (useful when configuration changes)
+pub async fn reinit_telemetry(client: &Client) {
+    TELEMETRY_INITIALIZED.store(false, Ordering::SeqCst);
+    init_telemetry(client).await;
+}
+
+/// Check if telemetry is enabled and properly configured
+pub fn is_enabled() -> bool {
+    TELEMETRY_ENABLED.load(Ordering::Relaxed)
 }
 
 // ============================================================================
@@ -103,13 +213,10 @@ impl TelemetryEvent {
         self
     }
 
-
-
     pub fn with_items_count(mut self, count: u64) -> Self {
         self.items_count = Some(count);
         self
     }
-
 }
 
 // ============================================================================
@@ -175,7 +282,6 @@ impl SpanTimer {
 
         queue_event(event);
     }
-
 }
 
 impl Drop for SpanTimer {
@@ -242,12 +348,23 @@ async fn flush_events(events: Vec<TelemetryEvent>) {
     let auth_token = match config.auth_token {
         Some(token) => token,
         None => {
-            warn!("⏱️ APM: No auth token configured, skipping OpenObserve send");
+            warn!("⏱️ APM: No auth token configured, skipping OpenObserve send. \
+                   Set OPENOBSERVE_AUTH or create secret '{}/{}'",
+                  std::env::var("OPENOBSERVE_SECRET_NAMESPACE").unwrap_or_else(|_| "kusanagi".to_string()),
+                  std::env::var("OPENOBSERVE_SECRET_NAME").unwrap_or_else(|_| "openobserve-credentials".to_string()));
             return;
         }
     };
 
-    let client = reqwest::Client::new();
+    if config.endpoint.is_empty() {
+        warn!("⏱️ APM: No endpoint configured, skipping OpenObserve send");
+        return;
+    }
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(config.timeout_secs))
+        .build()
+        .unwrap_or_default();
     
     match client
         .post(&config.endpoint)
@@ -273,7 +390,6 @@ async fn flush_events(events: Vec<TelemetryEvent>) {
     }
 }
 
-
 // ============================================================================
 // Convenience Functions
 // ============================================================================
@@ -283,5 +399,14 @@ pub fn start_span(name: &str) -> SpanTimer {
     SpanTimer::new(name)
 }
 
-
-
+/// Force flush all pending events
+pub fn flush() {
+    let mut queue = EVENT_QUEUE.lock().unwrap();
+    if !queue.is_empty() {
+        let events: Vec<_> = queue.drain(..).collect();
+        drop(queue);
+        tokio::spawn(async move {
+            flush_events(events).await;
+        });
+    }
+}

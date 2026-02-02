@@ -12,6 +12,10 @@ use tracing::{info, error, warn};
 use tokio::time::{timeout, Duration};
 use crate::AppState;
 
+/// Configuration for K8s API timeouts
+const K8S_API_TIMEOUT_SECS: u64 = 30; // Increased from 10s
+const K8S_LOG_TIMEOUT_SECS: u64 = 15;
+
 /// Request for logs
 #[derive(Deserialize)]
 pub struct LogsQuery {
@@ -32,7 +36,26 @@ pub async fn get_pod_logs_handler(
 
     match get_pod_logs(&data.client, &namespace, &name, container, tail).await {
         Ok(logs) => HttpResponse::Ok().body(logs),
-        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e})),
+        Err(e) => {
+            // Check if it's an RBAC error
+            if e.contains("Forbidden") || e.contains("cannot get resource") {
+                warn!("RBAC permission denied for pod logs: {}", e);
+                HttpResponse::Forbidden().json(json!({
+                    "error": "Permission denied",
+                    "message": "The service account lacks permission to read pod logs",
+                    "details": e,
+                    "hint": "Add 'pods/log' resource to the ClusterRole"
+                }))
+            } else if e.contains("timed out") {
+                HttpResponse::GatewayTimeout().json(json!({
+                    "error": "Timeout",
+                    "message": "Request to Kubernetes API timed out",
+                    "details": e
+                }))
+            } else {
+                HttpResponse::InternalServerError().json(json!({"error": e}))
+            }
+        }
     }
 }
 
@@ -50,9 +73,24 @@ pub async fn get_pod_logs(
         ..LogParams::default()
     };
 
-    pods.logs(name, &lp)
-        .await
-        .map_err(|e| format!("Failed to fetch logs: {}", e))
+    // Add timeout to log retrieval
+    match timeout(
+        Duration::from_secs(K8S_LOG_TIMEOUT_SECS),
+        pods.logs(name, &lp)
+    ).await {
+        Ok(Ok(logs)) => Ok(logs),
+        Ok(Err(e)) => {
+            let err_msg = format!("Failed to fetch logs: {}", e);
+            
+            // Check for specific RBAC error
+            if err_msg.contains("Forbidden") || err_msg.contains("cannot get resource \"pods/log\"") {
+                warn!("RBAC: Service account cannot get pods/log in namespace {}", namespace);
+            }
+            
+            Err(err_msg)
+        }
+        Err(_) => Err(format!("Timeout after {}s fetching logs", K8S_LOG_TIMEOUT_SECS)),
+    }
 }
 
 #[derive(Deserialize)]
@@ -90,10 +128,15 @@ async fn scale_deployment(client: &Client, namespace: &str, name: &str, replicas
         }
     });
 
-    api.patch(name, &PatchParams::default(), &Patch::Merge(&patch))
-        .await
-        .map(|_| ())
-        .map_err(|e| format!("Failed to scale deployment: {}", e))
+    // Add timeout
+    match timeout(
+        Duration::from_secs(10),
+        api.patch(name, &PatchParams::default(), &Patch::Merge(&patch))
+    ).await {
+        Ok(Ok(_)) => Ok(()),
+        Ok(Err(e)) => Err(format!("Failed to scale deployment: {}", e)),
+        Err(_) => Err("Timeout scaling deployment".to_string()),
+    }
 }
 
 async fn scale_statefulset(client: &Client, namespace: &str, name: &str, replicas: i32) -> Result<(), String> {
@@ -104,17 +147,37 @@ async fn scale_statefulset(client: &Client, namespace: &str, name: &str, replica
         }
     });
 
-    api.patch(name, &PatchParams::default(), &Patch::Merge(&patch))
-        .await
-        .map(|_| ())
-        .map_err(|e| format!("Failed to scale statefulset: {}", e))
+    match timeout(
+        Duration::from_secs(10),
+        api.patch(name, &PatchParams::default(), &Patch::Merge(&patch))
+    ).await {
+        Ok(Ok(_)) => Ok(()),
+        Ok(Err(e)) => Err(format!("Failed to scale statefulset: {}", e)),
+        Err(_) => Err("Timeout scaling statefulset".to_string()),
+    }
 }
 
 #[get("/api/pods/status")]
 pub async fn pods_status(data: web::Data<AppState>) -> impl Responder {
     match get_pods_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
-        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e})),
+        Err(e) => {
+            error!("Failed to get pods status: {}", e);
+            
+            // Determine appropriate status code
+            let status_code = if e.contains("timed out") {
+                actix_web::http::StatusCode::GATEWAY_TIMEOUT
+            } else if e.contains("Forbidden") {
+                actix_web::http::StatusCode::FORBIDDEN
+            } else {
+                actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+            };
+            
+            HttpResponse::build(status_code).json(json!({
+                "error": e,
+                "timestamp": chrono::Utc::now().to_rfc3339()
+            }))
+        }
     }
 }
 
@@ -139,6 +202,8 @@ pub struct PodsStatusResponse {
     pub failed_pods: usize,
     pub error_pods: usize,
     pub pods_in_error: Vec<PodInfo>,
+    pub fetch_duration_ms: u64,
+    pub api_timeout_configured: u64,
 }
 
 /// Individual pod information  
@@ -193,24 +258,32 @@ const ERROR_REASONS: &[&str] = &[
 
 /// Get pods status with focus on error pods
 pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, String> {
-
-    // let _services: Api<Service> = Api::all(client.clone());
     let pods_api: Api<Pod> = Api::all(client.clone());
 
     let start = std::time::Instant::now();
-    info!("Starting to list pods (timeout: 10s)...");
+    info!("Starting to list pods (timeout: {}s)...", K8S_API_TIMEOUT_SECS);
 
-    let result = timeout(Duration::from_secs(10), pods_api.list(&ListParams::default())).await;
+    let result = timeout(
+        Duration::from_secs(K8S_API_TIMEOUT_SECS),
+        pods_api.list(&ListParams::default())
+    ).await;
 
     let pods = match result {
         Ok(Ok(p)) => p,
         Ok(Err(e)) => {
-            error!("Failed to list pods: {}", e);
-            return Err(format!("Failed to list pods: {}", e));
+            let err_msg = format!("Failed to list pods: {}", e);
+            error!("{}", err_msg);
+            
+            // Check for specific errors
+            if err_msg.contains("Forbidden") {
+                return Err(format!("{} (RBAC permission denied)", err_msg));
+            }
+            return Err(err_msg);
         }
         Err(_) => {
-            error!("K8s API list pods timed out after 10s");
-            return Err("K8s API list pods timed out".to_string());
+            let err_msg = format!("K8s API list pods timed out after {}s", K8S_API_TIMEOUT_SECS);
+            error!("{}", err_msg);
+            return Err(err_msg);
         }
     };
 
@@ -218,8 +291,9 @@ pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, Stri
     info!("K8s API list pods took: {:?}", duration);
 
     // Fetch resource usage from Prometheus (best effort)
-    let usage_map = crate::prometheus::get_pods_resource_usage().await.unwrap_or_else(|_| std::collections::HashMap::new());
-
+    let usage_map = crate::prometheus::get_pods_resource_usage()
+        .await
+        .unwrap_or_else(|_| std::collections::HashMap::new());
 
     let now = Utc::now();
     let mut response = PodsStatusResponse {
@@ -230,6 +304,8 @@ pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, Stri
         failed_pods: 0,
         error_pods: 0,
         pods_in_error: Vec::new(),
+        fetch_duration_ms: duration.as_millis() as u64,
+        api_timeout_configured: K8S_API_TIMEOUT_SECS,
     };
 
     for pod in pods.items {
@@ -388,8 +464,8 @@ pub async fn get_pods_status(client: &Client) -> Result<PodsStatusResponse, Stri
     });
 
     info!(
-        "Pods status: {} total, {} running, {} error",
-        response.total_pods, response.running_pods, response.error_pods
+        "Pods status: {} total, {} running, {} error (fetched in {:?})",
+        response.total_pods, response.running_pods, response.error_pods, duration
     );
 
     Ok(response)
@@ -492,8 +568,11 @@ pub async fn force_delete_pod(client: &Client, namespace: &str, pod_name: &str) 
         ..Default::default()
     };
 
-    match pods_api.delete(pod_name, &delete_params).await {
-        Ok(_) => {
+    match timeout(
+        Duration::from_secs(10),
+        pods_api.delete(pod_name, &delete_params)
+    ).await {
+        Ok(Ok(_)) => {
             info!("Successfully force deleted pod {}/{}", namespace, pod_name);
             Ok(ForceDeleteResponse {
                 success: true,
@@ -502,9 +581,19 @@ pub async fn force_delete_pod(client: &Client, namespace: &str, pod_name: &str) 
                 namespace: namespace.to_string(),
             })
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             let error_msg = format!("Failed to delete pod {}/{}: {}", namespace, pod_name, e);
             tracing::error!("{}", error_msg);
+            Ok(ForceDeleteResponse {
+                success: false,
+                message: error_msg,
+                pod_name: pod_name.to_string(),
+                namespace: namespace.to_string(),
+            })
+        }
+        Err(_) => {
+            let error_msg = format!("Timeout force deleting pod {}/{}", namespace, pod_name);
+            error!("{}", error_msg);
             Ok(ForceDeleteResponse {
                 success: false,
                 message: error_msg,
@@ -681,6 +770,8 @@ mod tests {
                 cpu_request: Some(0.1),
                 memory_request: Some(104857600),
             }],
+            fetch_duration_ms: 150,
+            api_timeout_configured: 30,
         };
 
         // Test serialization
@@ -694,12 +785,14 @@ mod tests {
         assert!(json.contains("\"test-pod\""));
         assert!(json.contains("\"CrashLoopBackOff\""));
         assert!(json.contains("\"cpu_usage\":0.1"));
+        assert!(json.contains("\"fetch_duration_ms\":150"));
         
         // Test deserialization
         let deserialized: PodsStatusResponse = serde_json::from_str(&json).expect("Failed to deserialize");
         assert_eq!(deserialized.total_pods, 10);
         assert_eq!(deserialized.running_pods, 8);
         assert_eq!(deserialized.pods_in_error.len(), 1);
+        assert_eq!(deserialized.api_timeout_configured, 30);
         
         let pod = &deserialized.pods_in_error[0];
         assert_eq!(pod.name, "test-pod");

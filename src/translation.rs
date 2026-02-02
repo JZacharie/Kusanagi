@@ -1,8 +1,7 @@
 use aws_sdk_s3::{Client as S3Client, config::Region};
 use aws_config::BehaviorVersion;
 use serde::{Deserialize, Serialize};
-use tracing::info;
-use reqwest::Client as HttpClient;
+use tracing::{info, warn};
 
 fn get_s3_endpoint() -> String {
     std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170:9010".to_string())
@@ -12,10 +11,14 @@ fn get_s3_bucket() -> String {
     std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string())
 }
 
+/// Legacy Ollama URL (deprecated, use LLM module instead)
+#[deprecated(since = "0.3.0", note = "Use crate::llm module instead")]
 fn get_ollama_url() -> String {
     std::env::var("OLLAMA_URL").unwrap_or_else(|_| "http://192.168.0.52:11434/api/generate".to_string())
 }
 
+/// Legacy Ollama model (deprecated, use LLM module instead)
+#[deprecated(since = "0.3.0", note = "Use crate::llm module instead")]
 fn get_ollama_model() -> String {
     std::env::var("OLLAMA_MODEL").unwrap_or_else(|_| "ministral-3:14b".to_string())
 }
@@ -140,7 +143,42 @@ pub async fn get_news_from_s3(s3_client: &S3Client) -> Result<Vec<crate::newsfee
     Ok(items)
 }
 
+/// Translate text using the LLM module (multi-provider support)
 pub async fn translate_with_ollama(text: &str, target_lang: &str) -> Result<String, String> {
+    // Use the new LLM module with multi-provider support
+    let client = crate::llm::LlmClient::new();
+    
+    let lang_full = if target_lang == "fr" { "French" } else { "English" };
+    let prompt = format!(
+        "Translate the following technical news text to {}. Output ONLY the translated text. Do not include introductory phrases like 'Here is the translation', explanations, or any other additional content.\n\nText: {}",
+        lang_full, text
+    );
+
+    match client.complete(&prompt).await {
+        Ok(translated) => {
+            if translated.trim().is_empty() {
+                Err("LLM returned empty translation".to_string())
+            } else {
+                Ok(translated.trim().to_string())
+            }
+        }
+        Err(e) => {
+            warn!("LLM translation failed: {}", e);
+            
+            // Fallback to legacy Ollama direct call if LLM module fails
+            #[allow(deprecated)]
+            fallback_translate_with_ollama(text, target_lang).await
+        }
+    }
+}
+
+/// Fallback to direct Ollama call (legacy method)
+#[allow(deprecated)]
+async fn fallback_translate_with_ollama(text: &str, target_lang: &str) -> Result<String, String> {
+    use reqwest::Client as HttpClient;
+    
+    warn!("Falling back to legacy Ollama direct call");
+    
     let client = HttpClient::builder()
         .timeout(std::time::Duration::from_secs(300))
         .build()
@@ -185,7 +223,48 @@ pub async fn translate_with_ollama(text: &str, target_lang: &str) -> Result<Stri
     Ok(translated)
 }
 
+/// Generate tags using the LLM module (multi-provider support)
 pub async fn generate_tags_with_ollama(text: &str) -> Result<Vec<String>, String> {
+    // Use the new LLM module with multi-provider support
+    let client = crate::llm::LlmClient::new();
+    
+    let prompt = format!(
+        "Analyze the following technical news and generate descriptive tags in 'key:value' format (e.g., 'category:devops', 'language:rust', 'tool:kubernetes'). Output ONLY the tags, separated by commas. Do not include any other text.\n\nNews: {}",
+        text
+    );
+
+    match client.complete(&prompt).await {
+        Ok(tags_str) => {
+            let tags_str = tags_str.trim();
+            if tags_str.is_empty() {
+                return Ok(Vec::new());
+            }
+            
+            let tags = tags_str
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty() && s.contains(':'))
+                .collect();
+            
+            Ok(tags)
+        }
+        Err(e) => {
+            warn!("LLM tag generation failed: {}", e);
+            
+            // Fallback to legacy Ollama direct call
+            #[allow(deprecated)]
+            fallback_generate_tags_with_ollama(text).await
+        }
+    }
+}
+
+/// Fallback to direct Ollama call for tags (legacy method)
+#[allow(deprecated)]
+async fn fallback_generate_tags_with_ollama(text: &str) -> Result<Vec<String>, String> {
+    use reqwest::Client as HttpClient;
+    
+    warn!("Falling back to legacy Ollama direct call for tags");
+    
     let client = HttpClient::builder()
         .timeout(std::time::Duration::from_secs(60))
         .build()
@@ -232,4 +311,9 @@ pub async fn generate_tags_with_ollama(text: &str) -> Result<Vec<String>, String
         .collect();
     
     Ok(tags)
+}
+
+/// Get LLM configuration info for debugging
+pub fn get_llm_config_info() -> serde_json::Value {
+    crate::llm::get_config_info()
 }

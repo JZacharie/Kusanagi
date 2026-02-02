@@ -1,7 +1,7 @@
 use actix_web::{get, post, web, App, HttpServer, Responder, HttpResponse, HttpRequest, ResponseError};
 use actix_files::Files;
 use serde::Deserialize;
-use tracing::info;
+use tracing::{info, error};
 
 pub mod error;
 pub use error::{KusanagiError, Result};
@@ -10,6 +10,9 @@ pub mod config;
 pub mod cache;
 pub mod resilience;
 pub mod event_bus;
+pub mod response;
+pub mod health;
+pub mod llm;
 
 // Hexagonal Architecture layers
 pub mod domain;
@@ -576,6 +579,22 @@ async fn main() -> std::io::Result<()> {
     }
     let cfg = config::get();
     
+    // Setup graceful shutdown handler
+    let (shutdown_tx, mut shutdown_rx) = tokio::sync::mpsc::channel::<()>(1);
+    let shutdown_tx_ctrlc = shutdown_tx.clone();
+    
+    tokio::spawn(async move {
+        match tokio::signal::ctrl_c().await {
+            Ok(()) => {
+                info!("Received Ctrl+C, initiating graceful shutdown...");
+                let _ = shutdown_tx_ctrlc.send(()).await;
+            }
+            Err(err) => {
+                error!("Unable to listen for shutdown signal: {}", err);
+            }
+        }
+    });
+    
     // Configure logging based on config
     let log_level = &cfg.log.level;
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
@@ -643,6 +662,15 @@ async fn main() -> std::io::Result<()> {
     // Start Slack alert monitoring
     slack::start_alert_monitoring_task(client.clone()).await;
 
+    // Initialize database pool
+    if let Err(e) = database::init_pool(&client).await {
+        tracing::warn!("Failed to initialize database pool: {}", e);
+        tracing::info!("Continuing without database connection");
+    }
+
+    // Initialize telemetry (OpenObserve)
+    telemetry::init_telemetry(&client).await;
+
     // Initialize MQTT
     mqtt::init_mqtt().await;
 
@@ -658,7 +686,7 @@ async fn main() -> std::io::Result<()> {
     // Start Alertmanager background refresh task
     tokio::spawn(alertmanager::start_background_refresh());
 
-    HttpServer::new(move || {
+    let server = HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
             .app_data(news_cache.clone())
@@ -675,6 +703,7 @@ async fn main() -> std::io::Result<()> {
             .configure(slack::configure_routes)
             .configure(security::configure_routes)
             .configure(database::configure_routes)
+            .configure(health::configure_routes)
             .service(health_check)
 
             .service(index)
@@ -714,6 +743,22 @@ async fn main() -> std::io::Result<()> {
             .service(Files::new("/static", "./static").show_files_listing())
     })
     .bind(cfg.server_addr())?
-    .run()
-    .await
+    .run();
+
+    info!("🚀 Kusanagi server started successfully");
+    
+    // Wait for either the server to complete or shutdown signal
+    tokio::select! {
+        result = server => {
+            info!("Server stopped");
+            result
+        }
+        _ = shutdown_rx.recv() => {
+            info!("🛑 Graceful shutdown initiated...");
+            // Give ongoing requests time to complete
+            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            info!("👋 Kusanagi shutdown complete");
+            Ok(())
+        }
+    }
 }

@@ -1,0 +1,166 @@
+# ============================================================================
+# Kusanagi RBAC Fix
+# Ajoute les permissions manquantes pour:
+# - Lire les logs des pods (pods/log)
+# - Améliore les permissions de lecture
+# ============================================================================
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kusanagi
+  labels:
+    app: kusanagi
+rules:
+  # Pods et logs (ajout de pods/log)
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/status"]
+    verbs: ["get", "list", "watch"]
+  
+  # Accès complet aux pods pour les opérations de gestion
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["delete", "patch"]
+  
+  # Nodes
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/status", "nodes/metrics"]
+    verbs: ["get", "list", "watch"]
+  
+  # Namespaces
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+  
+  # Services et Endpoints
+  - apiGroups: [""]
+    resources: ["services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  
+  # ConfigMaps et Secrets (pour la configuration)
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  
+  # Persistent Volumes
+  - apiGroups: [""]
+    resources: ["persistentvolumes", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  
+  # Events
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+  
+  # Ingress
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "ingressclasses"]
+    verbs: ["get", "list", "watch"]
+  
+  # Deployments, StatefulSets, DaemonSets, ReplicaSets
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  
+  - apiGroups: ["apps"]
+    resources: ["statefulsets", "statefulsets/scale", "daemonsets", "replicasets"]
+    verbs: ["get", "list", "watch", "patch"]
+  
+  # Jobs et CronJobs
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  
+  # ServiceAccounts
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get", "list", "watch"]
+  
+  # RBAC (lecture seule)
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+    verbs: ["get", "list", "watch"]
+  
+  # Storage
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  
+  # Metrics (pour kubectl top)
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  
+  # ArgoCD (si utilisé)
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications", "applicationsets", "appprojects"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  
+  # Velero (si utilisé pour les backups)
+  - apiGroups: ["velero.io"]
+    resources: ["backups", "restores", "backupstoragelocations", "volumesnapshotlocations"]
+    verbs: ["get", "list", "watch"]
+  
+  # Cilium (si utilisé)
+  - apiGroups: ["cilium.io"]
+    resources: ["ciliumclusterwidenetworkpolicies", "ciliumnetworkpolicies", "ciliumendpoints", "ciliumidentities"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kusanagi
+  labels:
+    app: kusanagi
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kusanagi
+subjects:
+  - kind: ServiceAccount
+    name: kusanagi
+    namespace: kusanagi
+
+---
+# Secret pour OpenObserve credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openobserve-credentials
+  namespace: kusanagi
+  labels:
+    app: kusanagi
+type: Opaque
+stringData:
+  # Remplacez ces valeurs par vos vraies credentials
+  # ou utilisez: kubectl create secret generic openobserve-credentials \
+  #   --from-literal=endpoint=https://api.openobserve.ai/api/yourorg/yourstream/_json \
+  #   --from-literal=token=your-auth-token \
+  #   -n kusanagi
+  endpoint: "https://api.openobserve.ai/api/default/default/_json"
+  token: ""
+
+---
+# ConfigMap pour la configuration LLM
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kusanagi-llm-config
+  namespace: kusanagi
+  labels:
+    app: kusanagi
+data:
+  # Configuration du provider LLM
+  LLM_PROVIDER: "litellm"  # Options: litellm, ollama, openai, anthropic
+  LLM_BASE_URL: "http://litellm.default.svc.cluster.local:4000"
+  LLM_MODEL: "gpt-3.5-turbo"
+  LLM_TIMEOUT_SECS: "60"
+  LLM_MAX_RETRIES: "3"
+  LLM_TEMPERATURE: "0.7"
+  LLM_MAX_TOKENS: "2048"
+  
+  # Configuration alternative pour Ollama direct:
+  # LLM_PROVIDER: "ollama"
+  # LLM_BASE_URL: "http://ollama.default.svc.cluster.local:11434"
+  # LLM_MODEL: "llama2"

@@ -170,8 +170,11 @@ pub struct IntegrationsConfig {
     /// Slack integration
     pub slack: SlackConfig,
 
-    /// Ollama AI
+    /// Ollama AI (deprecated, use llm instead)
     pub ollama: OllamaConfig,
+    
+    /// LLM configuration (multi-provider)
+    pub llm: LlmConfig,
 }
 
 /// MCP servers configuration
@@ -304,7 +307,7 @@ pub struct SlackConfig {
     pub signing_secret: Option<String>,
 }
 
-/// Ollama AI configuration
+/// Ollama AI configuration (deprecated)
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct OllamaConfig {
@@ -313,6 +316,38 @@ pub struct OllamaConfig {
 
     /// Default model to use
     pub model: String,
+}
+
+/// LLM Configuration (multi-provider)
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct LlmConfig {
+    /// Provider type: litellm, ollama, openai, anthropic
+    pub provider: String,
+    
+    /// Base URL for the API
+    pub base_url: String,
+    
+    /// API key (for cloud providers)
+    pub api_key: Option<String>,
+    
+    /// Model name
+    pub model: String,
+    
+    /// Request timeout in seconds
+    pub timeout_secs: u64,
+    
+    /// Maximum retries
+    pub max_retries: u32,
+    
+    /// Temperature for generation
+    pub temperature: f32,
+    
+    /// Maximum tokens to generate
+    pub max_tokens: u32,
+    
+    /// Enable fallback on failure
+    pub enable_fallback: bool,
 }
 
 /// S3/MinIO storage configuration
@@ -460,6 +495,7 @@ impl Default for IntegrationsConfig {
             calendar: CalendarConfig::default(),
             slack: SlackConfig::default(),
             ollama: OllamaConfig::default(),
+            llm: LlmConfig::default(),
         }
     }
 }
@@ -555,6 +591,22 @@ impl Default for OllamaConfig {
         Self {
             url: "http://192.168.0.52:11434/api/generate".to_string(),
             model: "ministral-3:14b".to_string(),
+        }
+    }
+}
+
+impl Default for LlmConfig {
+    fn default() -> Self {
+        Self {
+            provider: "litellm".to_string(),
+            base_url: "http://litellm.default.svc.cluster.local:4000".to_string(),
+            api_key: None,
+            model: "gpt-3.5-turbo".to_string(),
+            timeout_secs: 60,
+            max_retries: 3,
+            temperature: 0.7,
+            max_tokens: 2048,
+            enable_fallback: true,
         }
     }
 }
