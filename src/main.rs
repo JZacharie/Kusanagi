@@ -157,32 +157,6 @@ async fn nodes_debug(data: web::Data<AppState>) -> impl Responder {
     HttpResponse::Ok().json(diag)
 }
 
-#[get("/api/cluster/overview")]
-async fn cluster_overview(data: web::Data<AppState>) -> impl Responder {
-    match legacy::cluster::get_cluster_overview(&data.client).await {
-        Ok(overview) => HttpResponse::Ok().json(overview),
-        Err(e) => {
-            tracing::error!("Failed to get cluster overview: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
-            }))
-        }
-    }
-}
-
-#[get("/api/cluster/empty-namespaces")]
-async fn empty_namespaces_list(data: web::Data<AppState>) -> impl Responder {
-    match legacy::cluster::get_empty_namespaces(&data.client).await {
-        Ok(namespaces) => HttpResponse::Ok().json(namespaces),
-        Err(e) => {
-            tracing::error!("Failed to get empty namespaces: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
-            }))
-        }
-    }
-}
-
 /// Helper trait for converting module results to HTTP responses
 /// This bridges the gap between old String-based errors and new KusanagiError
 async fn handle_result<T>(result: std::result::Result<T, String>) -> HttpResponse 
@@ -698,6 +672,7 @@ async fn main() -> std::io::Result<()> {
             .configure(legacy::security::configure_routes)
             .configure(legacy::database::configure_routes)
             .configure(legacy::health::configure_routes)
+            .configure(interfaces::http::configure_routes)
             .configure(doctor::configure_routes)
             .service(health_check)
 
@@ -706,8 +681,6 @@ async fn main() -> std::io::Result<()> {
             .service(argocd_sync)
             .service(nodes_status)
             .service(nodes_debug)
-            .service(cluster_overview)
-            .service(empty_namespaces_list)
             .service(k8s_events)
             .service(apps_with_resources)
             .service(chat_endpoint)

@@ -1,0 +1,39 @@
+//! Security Port
+//!
+//! Port defining the interface for security operations.
+
+use async_trait::async_trait;
+use crate::domain::entities::{SecurityReport, ReportMetadata, SecurityScanSummary};
+
+/// Port for security report operations
+#[async_trait]
+pub trait SecurityRepository: Send + Sync {
+    /// List available reports
+    async fn list_reports(&self) -> Result<Vec<ReportMetadata>, String>;
+    
+    /// Get a specific report
+    async fn get_report(&self, category: &str, name: &str) -> Result<SecurityReport, String>;
+    
+    /// Store a report
+    async fn store_report(&self, report: &SecurityReport) -> Result<(), String>;
+    
+    /// Get security scan summary
+    async fn get_scan_summary(&self) -> Result<SecurityScanSummary, String>;
+}
+
+/// Port for AI enrichment operations
+#[async_trait]
+pub trait AiEnrichmentService: Send + Sync {
+    /// Enrich a security report with AI analysis
+    async fn enrich_report(&self, report: &serde_json::Value, language: &str) -> Result<crate::domain::entities::EnrichmentData, String>;
+}
+
+/// Port for vulnerability scanner
+#[async_trait]
+pub trait VulnerabilityScanner: Send + Sync {
+    /// Fetch raw reports from scanner
+    async fn fetch_reports(&self) -> Result<Vec<(String, String, serde_json::Value)>, String>;
+    
+    /// Fetch a specific report
+    async fn fetch_report(&self, category: &str, name: &str) -> Result<serde_json::Value, String>;
+}

@@ -1,189 +1,310 @@
-# Kusanagi - Product Roadmap 2026
+# Kusanagi - Product Roadmap 2026-2027
 
 > **Product Vision**: Kusanagi est la plateforme d'observabilité ultime pour Kubernetes - combinant monitoring en temps réel, auto-remédiation intelligente, et intégration personnelle dans une interface cyberpunk.
 
 ---
 
-## 🎯 Product Strategy
+## 🎯 Product Strategy 2.0
 
-### Core Pillars
-1. **Observability First**: Vue complète de l'infrastructure K8s
-2. **Action-Oriented**: Capacités de remédiation et contrôle
-3. **Intelligence**: Insights automatisés via MCP et AI
-4. **Personal Integration**: Hub centralisé pour infrastructure ET vie personnelle
-5. **Robust Architecture**: Codebase propre, testée et maintenable (Domain-Driven Design)
+### Core Pillars (Updated)
+1. **🎯 Observability First**: Vue 360° de l'infrastructure (métriques, logs, traces, cost)
+2. **🤖 Intelligence Augmentée**: AI/ML pour la corrélation d'incidents et prédiction
+3. **⚡ Action-Oriented**: Auto-remédiation et runbooks automatisés
+4. **🏠 Personal Integration**: Hub centralisé infrastructure + vie personnelle
+5. **🏗️ Robust Architecture**: Architecture Hexagonale complète, >80% test coverage
+6. **💰 Cost Intelligence**: Optimisation des coûts cloud et resource right-sizing
 
-### Success Metrics
-- **Adoption**: Utilisation quotidienne par l'équipe
-- **MTTR**: Réduction du temps de résolution des incidents
-- **Coverage**: 100% des composants critiques monitorés
-- **Code Quality**: Clippy zero-warnings & >80% test coverage
-- **UX**: Score Lighthouse > 95
-
-## 🚨 Immediate Remediation Tasks (Urgent)
-
-Les alertes suivantes ont été détectées et doivent être traitées en priorité :
-
-### 🔴 Critical Alerts
-- [ ] **KubeClientCertificateExpiration**: Renouveler les certificats clients expirant dans moins de 24h.
-- [ ] **KubeControllerManagerDown**: Diagnostiquer et redémarrer le Controller Manager (disparu de Prometheus).
-- [ ] **KubeProxyDown**: Rétablir le service KubeProxy sur les nœuds affectés.
-- [ ] **KubeSchedulerDown**: Restaurer le Scheduler du plan de contrôle.
-
-### 🟠 Warning Alerts
-- [ ] **HPA Scaling**: Investiguer les limites HPA atteintes dans `devsecops`, `turbot`, `argocd`.
-- [ ] **Job Failures**: Analyser les échecs de jobs dans `vault`, `vault-sbx`, `sim`.
-- [ ] **TargetDown**: Identifier les targets inaccessibles pour Prometheus.
+### Success Metrics 2026
+| Metric | Target | Current |
+|--------|--------|---------|
+| **Refactoring Progress** | 100% modules hexagonaux | 13/35 (37%) |
+| **Test Coverage** | >80% | ~15% |
+| **MTTR** | <15 min | ~45 min |
+| **Alert Fatigue** | <5 faux positifs/jour | ~20/jour |
+| **Code Quality** | Clippy zero warnings | 96 warnings |
+| **User Adoption** | Daily active users | Intermittent |
 
 ---
 
-## 📅 Release Timeline
+## 📅 Release Timeline 2026-2027
 
 ```
-Q1 2026          Q2 2026          Q3 2026          Q4 2026
-───────────────────────────────────────────────────────────
-v0.8 ✅          v1.0 ✅          v1.2 🔄          v1.3 📋          v2.0
-News Feed       Personal Hub     Refactor & Setup  AI Safety       Enterprise
-v0.9 ✅          v1.1 🔄
-Infra Monitor    Data & Msg
+Q1 2026          Q2 2026          Q3 2026          Q4 2026         Q1 2027
+────────────────────────────────────────────────────────────────────────
+v0.8 ✅          v1.0 ✅          v1.2 🔄          v1.3 📋          v2.0-alpha
+News Feed       Personal Hub     Refactor &        AI Intelligence  Enterprise
+v0.9 ✅          v1.1 🔄                           Cost Mgmt        GA
+Infra Monitor    Data & Msg       v1.2.5 ✅
+                                  Disk Monitor
+                                  
+Légende: ✅ SHIPPED | 🔄 ACTIVE | 📋 PLANNED | 💭 IDEATION
 ```
 
 ---
 
-## 🚀 Completed Releases
+## ✅ Completed Achievements
 
-### v0.8.0 - News Feed (SHIPPED ✅)
-- Tech News Aggregation (Hacker News, RSS)
-- Cyberpunk UI
+### 🏗️ Architecture Milestone (Février 2026)
+**The Great Refactoring** - 13 modules migrés vers Architecture Hexagonale :
+- ✅ Pods, Nodes, Events, ArgoCD, Storage
+- ✅ Services, Ingress, Cluster, Prometheus
+- ✅ Backups, Security, Alertmanager, Chat
+- ✅ Node Disk Monitoring (nouveau!)
 
-### v0.9.0 - Infrastructure Monitoring (SHIPPED ✅)
-- Proxmox Integration (VMs/CTs)
-- Home Assistant Sensors
-- Resource Tracking
-
-### v1.0.0 - Personal Dashboard Hub (SHIPPED/MVP ✅)
-**Theme**: Personal Productivity Integration
-- ✅ Google Calendar Widget
-- ✅ Weather Widget & Multi-City
-- ✅ Slack Notifications & Sync
-- [ ] Event Creation (deferred)
+**Structure du projet**:
+```
+src/
+├── domain/          # 11 entités, 6 ports
+├── application/     # 13 use cases modules, 48+ use cases
+├── infrastructure/  # 2 repositories
+├── interfaces/      # 13 handlers, 50+ endpoints
+└── legacy/          # 22 modules restants
+```
 
 ---
 
-## 🔨 Current Cycle: v1.1.0 - Data & Messaging Monitoring
+## 🔨 Current Cycle: v1.1.x - Data, Messaging & Observabilité
 
-**Target Date**: Late Q1 2026
+**Target Date**: Q1 2026 (Mars)
 **Status**: 🔄 Active
-**Theme**: Persistence, Messaging & Health Verification
+**Theme**: Infrastructure Data & Health Monitoring
 
-### Priority Features
+### P0 - Must Have
+| Feature | Status | Effort | Owner |
+|---------|--------|--------|-------|
+| ✅ **Node Disk Monitoring** | ✅ SHIPPED | M | Backend |
+| ✅ **PostgreSQL Health Check** | ✅ SHIPPED | M | Backend |
+| **MQTT Broker Health** | 🔄 70% | M | Backend |
+| **Topic Explorer Dashboard** | 📋 | L | Frontend |
+| **Database Performance Metrics** | 📋 | M | Backend |
 
-#### P0 - Must Have
-| Feature | Effort | Dependencies | Owner |
-|---------|--------|--------------|-------|
-| ✅ **PostgreSQL Health Check** | M | PG Connection | Backend |
-| **MQTT Broker Health** | M | MQTT Connection | Backend |
-| Topic Explorer Dashboard (MQTT) | L | MQTT Broker Health | Frontend |
-| Database Latency & Version | S | Health Check | Frontend |
-
-#### P1 - Should Have
-| Feature | Effort | Dependencies | Owner |
-|---------|--------|--------------|-------|
-| Database Verification (Cache Hit, Conn) | M | PG Connection | Backend |
-| Schema Integrity Scan | L | DB Verification | Backend |
-| Size Tracking & Bloat | M | DB Verification | Backend |
-
----
-
-## 🔧 Strategic Initiative: v1.2.0 - The Great Refactoring & Onboarding
-
-**Target Date**: Q2 2026
-**Status**: 📋 Planned (Critical)
-**Theme**: Technical Debt Paydown & User Experience
-
-### Priority Features
-
-#### P0 - Architecture Refactoring (Critical)
-| Feature | Effort | Dependencies | Owner |
-|---------|--------|--------------|-------|
-| **Domain Layer Migration** | L | - | Backend |
-| **Infrastructure Layer Isolation** | L | - | Backend |
-| **Interface Layer Separation** | M | - | Backend |
-| **Clean Architecture Enforcement** | M | - | Backend |
-
-#### P1 - Onboarding Experience
-| Feature | Effort | Dependencies | Owner |
-|---------|--------|--------------|-------|
-| **Interactive Setup Wizard** | L | - | Frontend |
-| Environment Interview API | M | Setup Wizard | Backend |
-| "Doctor" Self-Diagnostic Tool | M | - | Backend |
-
-### Technical Goals
-- Move logic from `src/*.rs` flat files to `domain/`, `infrastructure/`, `interfaces/`.
-- Decouple business logic from Actix/Kube-rs.
-- Implement Repository pattern for all external data sources.
+### P1 - Should Have
+| Feature | Status | Effort | Owner |
+|---------|--------|--------|-------|
+| Connection Pool Monitoring | 📋 | S | Backend |
+| Query Performance Analysis | 📋 | M | Backend |
+| Schema Drift Detection | 📋 | L | Backend |
 
 ---
 
-## 🛡️ Future Release: v1.3.0 - AI Safety & Security
+## 🚀 v1.2.0 - The Great Refactoring (Strategic)
 
-**Target Date**: Q3 2026
+**Target Date**: Q2 2026 (Avril-Mai)
+**Status**: 🔄 Active (33% complete)
+**Theme**: Technical Excellence & Architecture
+
+### 🎯 Objectifs de Refactoring
+
+#### Phase 1: Core Domain (En cours)
+| Module | Status | Priority |
+|--------|--------|----------|
+| ✅ Cilium (Network) | 🔄 | P0 |
+| ✅ Database (PostgreSQL) | 🔄 | P0 |
+| ✅ Health System | 📋 | P0 |
+| ✅ Configuration | 📋 | P1 |
+
+#### Phase 2: Infrastructure & Integration
+| Module | Status | Priority |
+|--------|--------|----------|
+| Doctor (Diagnostic) | 📋 | P1 |
+| Export (Reports) | 📋 | P2 |
+| System (Auto-update) | 📋 | P2 |
+| Translation (i18n) | 📋 | P3 |
+
+#### Phase 3: External Integrations
+| Module | Status | Priority |
+|--------|--------|----------|
+| Proxmox | 📋 | P2 |
+| Home Assistant | 📋 | P2 |
+| Weather | 📋 | P3 |
+| Calendar | 📋 | P3 |
+| Newsfeed | 📋 | P3 |
+
+### 🧪 Quality Gates
+- [ ] 100% modules dans architecture hexagonale
+- [ ] >80% test coverage (unit + integration)
+- [ ] Zero clippy warnings
+- [ ] Documentation API complète (OpenAPI)
+- [ ] Migration guide pour breaking changes
+
+---
+
+## 🔮 v1.3.0 - Intelligent Observability
+
+**Target Date**: Q3 2026 (Juillet-Septembre)
 **Status**: 📋 Planned
-**Theme**: Robustness Against Adversarial Attacks
+**Theme**: AI-Powered Insights & Cost Optimization
 
-### Priority Features
+### 🤖 AI/ML Features (New)
 
-#### P0 - Must Have
-| Feature | Effort | Dependencies | Owner |
-|---------|--------|--------------|-------|
-| **Spotlighting (Data Provenance)** | S | chat.rs | Backend |
-| **Harmlessness Screens** | M | - | Backend |
-| **Canary Tokens Implementation** | S | chat.rs | Backend |
+#### Anomaly Detection
+| Feature | Description | Effort |
+|---------|-------------|--------|
+| **Smart Alerting** | Réduction du bruit par ML (clustering des alertes) | L |
+| **Predictive Capacity** | Prédiction de saturation (disk, memory) | L |
+| **Error Correlation** | Corrélation automatique erreurs ↔ causes | M |
+| **Seasonal Baselines** | Détection d'anomalies basée sur saisonnalité | M |
 
-#### P1 - Should Have
-| Feature | Effort | Dependencies | Owner |
-|---------|--------|--------------|-------|
-| Output Validation Engine | M | MCP Integration | Backend |
-| **Input Paraphrasing** | M | - | Backend |
+#### Intelligent Assistant
+| Feature | Description | Effort |
+|---------|-------------|--------|
+| **Kusanagi Copilot** | Assistant conversationnel pour troubleshooting | L |
+| **Auto-Runbooks** | Génération automatique de runbooks | M |
+| **Root Cause Analysis** | Analyse automatique des causes racines | L |
+| **Remediation Suggestions** | Suggestions de remédiation basées sur l'historique | M |
+
+### 💰 Cost Management (New Track)
+
+| Feature | Description | Effort |
+|---------|-------------|--------|
+| **Resource Right-Sizing** | Recommandations CPU/Memory requests/limits | M |
+| ** orphaned Resources** | Détection des ressources orphelines (PVCs, LB, IPs) | M |
+| **Namespace Cost Allocation** | Attribution des coûts par namespace/projet | L |
+| **Spot Instance Advisor** | Recommandations pour utilisation de spots | M |
+
+### 📊 Enhanced Observability
+
+| Feature | Description | Effort |
+|---------|-------------|--------|
+| **Distributed Tracing** | Intégration Jaeger/Tempo | L |
+| **Log Aggregation** | Centralisation Loki/ELK | L |
+| **Service Mesh Metrics** | Istio/Linkerd observability | M |
+| **eBPF Deep Dive** | Cilium Hubble flows avancés | M |
 
 ---
 
-## 🏢 Long-term Vision: v2.0.0 - Enterprise Features
+## 🛡️ v1.4.0 - Security & Compliance
 
-**Target Date**: Q4 2026
+**Target Date**: Q4 2026 (Octobre-Décembre)
 **Status**: 💭 Ideation
-**Theme**: Security, Scale, Intelligence
+**Theme**: Security Posture & Compliance
 
-### Strategic Initiatives
-- [ ] RBAC & Keycloak Auth
-- [ ] Multi-cluster support
-- [ ] AI-powered auto-remediation (Agentic Loops)
-- [ ] Distributed tracing
+### Security Features
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| **RBAC Visualization** | Graphe des permissions RBAC | P0 |
+| **CVE Scanning** | Intégration Trivy/Snyk continue | P0 |
+| **Network Policies Audit** | Vérification des policies Cilium | P1 |
+| **Pod Security Standards** | Enforcement et monitoringPSS | P1 |
+| **Secret Rotation** | Alertes et automation rotation secrets | P2 |
+| **Compliance Reports** | CIS Kubernetes Benchmark | P2 |
 
----
-
-## 📊 Feature Prioritization Framework
-
-### Priority Levels
-- **P0 (Must Have)**: Core functionality, blocks release
-- **P1 (Should Have)**: Important but can be deferred
-- **P2 (Nice to Have)**: Enhancement, low impact if missing
-
----
-
-## 🔄 Continuous Improvements
-
-### Code Quality
-- [ ] **Rust Architecture Audit** (Merged into v1.2)
-- [ ] Add unit tests (>80% coverage)
-- [ ] Reduce technical debt
-
-### DevOps
-- [ ] CI/CD pipeline optimization
-- [ ] Security scanning (Trivy)
+### AI Safety (from v1.3.0)
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Prompt Injection Detection** | Protection contre attaques prompt | 📋 |
+| **Output Validation** | Validation des réponses IA | 📋 |
+| **Data Provenance** | Traçabilité des données IA | 📋 |
 
 ---
 
-**Last Updated**: 2026-02-01
+## 🏢 v2.0.0 - Enterprise Platform
+
+**Target Date**: Q1-Q2 2027
+**Status**: 💭 Ideation
+**Theme**: Scale, Multi-tenancy, Ecosystem
+
+### Core Enterprise Features
+| Feature | Description | Effort |
+|---------|-------------|--------|
+| **Multi-Cluster** | Gestion centralisée de N clusters | XL |
+| **SSO/Keycloak** | Authentification enterprise | L |
+| **GitOps Integration** | Flux/ArgoCD deep integration | L |
+| **Custom Dashboards** | Builder de dashboards personnalisés | XL |
+| **API Gateway** | Rate limiting, API keys, versioning | M |
+| **Multi-tenancy** | Isolation namespace hard | XL |
+
+### Ecosystem
+| Feature | Description | Effort |
+|---------|-------------|--------|
+| **Plugin System** | Architecture plugins WASM | XL |
+| **Public API** | API externe documentée | L |
+| **Mobile App** | Application iOS/Android | XL |
+| **CLI Tool** | kubectl plugin pour Kusanagi | M |
+
+---
+
+## 🔄 Continuous Improvement Backlog
+
+### Technical Debt
+| Item | Priority | Effort |
+|------|----------|--------|
+| Migration legacy → hexagonal | P0 | XL |
+| Tests unitaires (>80%) | P0 | XL |
+| Tests E2E (Playwright) | P1 | L |
+| Documentation technique | P1 | M |
+| Benchmarks performances | P2 | M |
+
+### Observability Enhancements
+| Item | Priority | Effort |
+|------|----------|--------|
+| SLO/SLI Tracking | P1 | M |
+| Error Budgets | P1 | M |
+| Custom Metrics DSL | P2 | L |
+| Alert Routing Rules | P1 | M |
+
+### Developer Experience
+| Item | Priority | Effort |
+|------|----------|--------|
+| Local Development (Kind) | P1 | M |
+| Hot Reload | P2 | S |
+| Debug Mode Verbose | P2 | S |
+| Makefile Commands | P2 | S |
+
+---
+
+## 📊 Prioritization Framework
+
+### Priority Matrix
+```
+Impact
+  ↑
+  │ P0: Multi-cluster      P0: Refactoring
+  │ P1: Cost Mgmt          P0: Disk Monitor ✅
+  │ P1: RBAC               P1: AI Assistant
+  │ P2: Mobile             P2: Calendar
+  │
+  └────────────────────────────────→ Effort
+       S        M        L        XL
+```
+
+### Decision Criteria
+1. **User Impact** : Combien d'utilisateurs sont affectés?
+2. **Technical Debt** : Réduit-il la dette technique?
+3. **Strategic Alignment** : Soutient-il la vision produit?
+4. **Effort/Reward** : Le ROI est-il positif?
+
+---
+
+## 🎯 2026 OKRs (Objectives & Key Results)
+
+### O1: Architecture Excellence
+- KR1: 100% modules en architecture hexagonale (Q2)
+- KR2: >80% test coverage (Q3)
+- KR3: Zero clippy warnings (Q2)
+
+### O2: Intelligent Observability
+- KR1: Déploiement Anomaly Detection (Q3)
+- KR2: Réduction de 50% des faux positifs d'alertes (Q3)
+- KR3: Prédiction de saturation avec 85% accuracy (Q4)
+
+### O3: Cost Optimization
+- KR1: Identification de 20% de ressources sous-utilisées (Q3)
+- KR2: Recommandations right-sizing pour 100% des workloads (Q4)
+- KR3: Dashboard cost allocation par équipe (Q4)
+
+### O4: Developer Experience
+- KR1: Setup local < 5 minutes (Q2)
+- KR2: Documentation API 100% OpenAPI (Q2)
+- KR3: CLI tool pour opérations courantes (Q4)
+
+---
+
+**Last Updated**: 2026-02-02
+**Version**: 2.0
 **Product Manager**: AI Assistant
 **Engineering Lead**: Joseph Zacharie
+
+**Changelog**:
+- 2026-02-02: Ajout v1.2.5 (Disk Monitoring), roadmap étendue 2027, OKRs 2026
+- 2026-02-01: Version initiale

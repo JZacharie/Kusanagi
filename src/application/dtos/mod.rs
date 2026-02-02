@@ -34,6 +34,9 @@ pub struct NodeDto {
     pub cpu_capacity: String,
     pub memory_capacity: String,
     pub pod_count: usize,
+    pub disk_usage_percent: Option<f64>,
+    pub disk_capacity: Option<String>,
+    pub ephemeral_storage_capacity: Option<String>,
 }
 
 /// DTO for pod information

@@ -100,6 +100,11 @@ pub struct NodeResources {
     pub memory_allocatable: String,
     pub pod_capacity: i32,
     pub pod_count: i32,
+    pub disk_capacity: Option<String>,
+    pub disk_allocatable: Option<String>,
+    pub disk_usage_percent: Option<f64>,
+    pub ephemeral_storage_capacity: Option<String>,
+    pub ephemeral_storage_allocatable: Option<String>,
 }
 
 /// Node system information
@@ -293,37 +298,6 @@ pub struct Metric {
     pub timestamp: DateTime<Utc>,
 }
 
-/// Alert information
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Alert {
-    pub name: String,
-    pub status: AlertStatus,
-    pub severity: AlertSeverity,
-    pub summary: String,
-    pub description: String,
-    pub labels: HashMap<String, String>,
-    pub starts_at: DateTime<Utc>,
-    pub ends_at: Option<DateTime<Utc>>,
-}
-
-/// Alert status
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub enum AlertStatus {
-    #[default]
-    Firing,
-    Pending,
-    Resolved,
-}
-
-/// Alert severity
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub enum AlertSeverity {
-    #[default]
-    Info,
-    Warning,
-    Critical,
-}
-
 /// Namespace information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Namespace {
@@ -371,6 +345,22 @@ impl<T> Paginated<T> {
         }
     }
 }
+
+/// Backup entities
+pub mod backup;
+pub use backup::*;
+
+/// Security entities
+pub mod security;
+pub use security::*;
+
+/// Alert entities
+pub mod alert;
+pub use alert::*;
+
+/// Chat entities
+pub mod chat;
+pub use chat::*;
 
 #[cfg(test)]
 mod tests {

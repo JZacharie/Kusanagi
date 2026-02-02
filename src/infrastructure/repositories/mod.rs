@@ -99,6 +99,10 @@ impl KubernetesRepository for K8sRepository {
                 let capacity = status.and_then(|s| s.capacity.clone()).unwrap_or_default();
                 let node_info = status.and_then(|s| s.node_info.clone());
 
+                // Extract disk info
+                let ephemeral_storage_capacity = capacity.get("ephemeral-storage").map(|q| q.0.clone());
+                let ephemeral_storage_allocatable = allocatable.get("ephemeral-storage").map(|q| q.0.clone());
+                
                 Node {
                     name: n.metadata.name.unwrap_or_default(),
                     status: node_status,
@@ -110,6 +114,11 @@ impl KubernetesRepository for K8sRepository {
                         memory_allocatable: allocatable.get("memory").map_or("0".to_string(), |q| q.0.clone()),
                         pod_capacity: capacity.get("pods").and_then(|q| q.0.parse().ok()).unwrap_or(0),
                         pod_count: 0, // Would need to count from pods
+                        disk_capacity: ephemeral_storage_capacity.clone(),
+                        disk_allocatable: ephemeral_storage_allocatable.clone(),
+                        disk_usage_percent: None, // Will be populated from Prometheus metrics
+                        ephemeral_storage_capacity,
+                        ephemeral_storage_allocatable,
                     },
                     info: NodeInfo {
                         architecture: node_info.as_ref().map_or("unknown".to_string(), |i| i.architecture.clone()),

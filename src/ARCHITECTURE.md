@@ -47,7 +47,14 @@ src/
 │       ├── argocd_use_cases.rs
 │       ├── storage_use_cases.rs
 │       ├── service_use_cases.rs
-│       └── ingress_use_cases.rs
+│       ├── ingress_use_cases.rs
+│       ├── cluster_use_cases.rs
+│       ├── prometheus_use_cases.rs
+│       ├── backup_use_cases.rs
+│       ├── security_use_cases.rs
+│       ├── alert_use_cases.rs
+│       ├── chat_use_cases.rs
+│       └── node_metrics_use_cases.rs
 │
 ├── infrastructure/        # Infrastructure layer
 │   ├── repositories/      # Repository implementations
@@ -65,7 +72,14 @@ src/
 │   │   ├── argocd_handlers.rs
 │   │   ├── storage_handlers.rs
 │   │   ├── service_handlers.rs
-│   │   └── ingress_handlers.rs
+│   │   ├── ingress_handlers.rs
+│   │   ├── cluster_handlers.rs
+│   │   ├── prometheus_handlers.rs
+│   │   ├── backup_handlers.rs
+│   │   ├── security_handlers.rs
+│   │   ├── alert_handlers.rs
+│   │   ├── chat_handlers.rs
+│   │   └── node_metrics_handlers.rs
 │   ├── middleware/        # HTTP middleware
 │   └── websocket/         # WebSocket handlers
 │
@@ -110,28 +124,94 @@ Dependencies point inward:
 | Storage | ✅ Refactored | Hexagonal |
 | Services | ✅ Refactored | Hexagonal |
 | Ingress | ✅ Refactored | Hexagonal |
-| Cluster | 🔄 Pending | Legacy |
-| Backups | 🔄 Pending | Legacy |
-| Chat | 🔄 Pending | Legacy |
-| Prometheus | 🔄 Pending | Legacy |
-| Alertmanager | 🔄 Pending | Legacy |
+| Cluster | ✅ Refactored | Hexagonal |
+| Prometheus | ✅ Refactored | Hexagonal |
+| Backups | ✅ Refactored | Hexagonal |
+| Security | ✅ Refactored | Hexagonal |
+| Alertmanager | ✅ Refactored | Hexagonal |
+| Chat | ✅ Refactored | Hexagonal |
 | ... | 🔄 Pending | Legacy |
 
 ### 3. API Endpoints
 
 #### Refactored Endpoints (using hexagonal architecture)
 ```
+# Pods
 GET  /api/pods                    -> ListPodsUseCase
 GET  /api/pods/{ns}/{name}        -> GetPodDetailsUseCase
+
+# Nodes
 GET  /api/nodes                   -> GetNodesUseCase
 GET  /api/nodes/status            -> GetNodesStatusUseCase
 GET  /api/nodes/{name}            -> GetNodeDetailsUseCase
+GET  /api/nodes/{name}/ready      -> IsNodeReadyUseCase
+
+# Events
 GET  /api/events                  -> GetRecentEventsUseCase
 GET  /api/events/warnings         -> GetWarningEventsUseCase
+GET  /api/events/stats            -> GetEventStatsUseCase
+
+# Cluster
+GET  /api/cluster/overview        -> GetClusterOverviewUseCase
+GET  /api/cluster/empty-namespaces -> GetEmptyNamespacesUseCase
+GET  /api/cluster/stats           -> GetClusterStatsUseCase
+
+# Storage
 GET  /api/storage                 -> GetStorageInfoUseCase
+GET  /api/storage/stats           -> GetStorageStatsUseCase
+
+# Services
 GET  /api/services                -> ListServicesUseCase
+GET  /api/services/stats          -> GetServiceStatsUseCase
+GET  /api/services/{ns}/{name}    -> GetServiceDetailsUseCase
+
+# Ingresses
 GET  /api/ingresses               -> ListIngressesUseCase
+GET  /api/ingresses/stats         -> GetIngressStatsUseCase
+GET  /api/ingresses/{ns}/{name}   -> GetIngressDetailsUseCase
+
+# ArgoCD
 GET  /api/argocd/applications     -> GetArgoCdApplicationsUseCase
+GET  /api/argocd/applications/{name}/status -> GetApplicationStatusUseCase
+POST /api/argocd/applications/{name}/sync  -> SyncApplicationUseCase
+
+# Prometheus
+GET  /api/metrics                 -> GetClusterMetricsUseCase
+GET  /api/prometheus/query        -> QueryMetricUseCase
+GET  /api/prometheus/query_raw    -> QueryRawUseCase
+GET  /api/prometheus/range        -> QueryRangeUseCase
+
+# Backups
+GET  /api/backups                 -> GetBackupStatusUseCase
+GET  /api/backups/stats           -> GetBackupStatsUseCase
+GET  /api/backups/cronjobs        -> ListCronJobsUseCase
+POST /api/backups/{ns}/{name}/trigger -> TriggerBackupUseCase
+
+# Security
+GET  /api/security/reports        -> ListSecurityReportsUseCase
+GET  /api/security/summary        -> GetSecuritySummaryUseCase
+GET  /api/security/enriched/{cat}/{name} -> GetSecurityReportUseCase
+POST /api/security/enrich/{cat}/{name}   -> EnrichSecurityReportUseCase
+POST /api/security/enrich-all     -> RunSecurityEnrichmentUseCase
+
+# Alerts
+GET  /api/alerts                  -> GetActiveAlertsUseCase
+GET  /api/alerts/cached           -> GetCachedAlertsUseCase
+GET  /api/alerts/stats            -> GetAlertStatsUseCase
+GET  /api/alerts/{fingerprint}    -> GetAlertUseCase
+POST /api/alerts/silence          -> SilenceAlertUseCase
+
+# Chat
+POST /api/chat                    -> ProcessChatMessageUseCase
+POST /api/chat/command            -> HandleChatCommandUseCase
+POST /api/chat/query              -> QueryAiUseCase
+GET  /api/chat/history            -> GetChatHistoryUseCase
+POST /api/chat/clear              -> ClearChatHistoryUseCase
+
+# Node Metrics (with Disk Usage)
+GET  /api/nodes/with-metrics      -> GetNodesWithDiskMetricsUseCase
+GET  /api/nodes/{name}/disk       -> GetNodeDiskUsageUseCase
+GET  /api/nodes/disk-summary      -> GetClusterDiskSummaryUseCase
 ```
 
 ## Adding New Modules

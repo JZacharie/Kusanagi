@@ -93,21 +93,6 @@ pub trait MetricsRepository: Send + Sync {
     async fn get_pod_resource_usage(&self) -> Result<HashMap<(String, String), (f64, i64)>>;
 }
 
-/// Port for alerts
-///
-/// This is a driven port for Alertmanager.
-#[async_trait]
-pub trait AlertRepository: Send + Sync {
-    /// Get active alerts
-    async fn get_active_alerts(&self) -> Result<Vec<Alert>>;
-
-    /// Get silenced alerts
-    async fn get_silenced_alerts(&self) -> Result<Vec<Alert>>;
-
-    /// Silence an alert
-    async fn silence_alert(&self, matchers: HashMap<String, String>, duration_secs: u64) -> Result<String>;
-}
-
 /// Port for caching
 ///
 /// This is a driven port for cache operations.
@@ -147,6 +132,26 @@ pub trait IntegrationPort: Send + Sync {
 /// Port for ArgoCD repository operations
 pub mod argocd_port;
 pub use argocd_port::{ArgoCdRepository, ApplicationStatus, ApplicationInfo, SyncStatus, HealthStatus, ApplicationDetails, ResourceStatus, RevisionHistory};
+
+/// Port for Prometheus operations
+pub mod prometheus_port;
+pub use prometheus_port::{PrometheusRepository, PrometheusMetrics};
+
+/// Port for Backup operations
+pub mod backup_port;
+pub use backup_port::BackupRepository;
+
+/// Port for Security operations
+pub mod security_port;
+pub use security_port::{SecurityRepository, AiEnrichmentService, VulnerabilityScanner};
+
+/// Port for Alert operations
+pub mod alert_port;
+pub use alert_port::AlertRepository;
+
+/// Port for Chat operations
+pub mod chat_port;
+pub use chat_port::{ChatService, ChatHistoryRepository, AiProvider};
 
 /// Port for Cilium network operations
 #[async_trait]

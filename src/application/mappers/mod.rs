@@ -54,6 +54,9 @@ impl NodeMapper {
             cpu_capacity: entity.resources.cpu_capacity,
             memory_capacity: entity.resources.memory_capacity,
             pod_count: entity.resources.pod_count as usize,
+            disk_usage_percent: entity.resources.disk_usage_percent,
+            disk_capacity: entity.resources.disk_capacity,
+            ephemeral_storage_capacity: entity.resources.ephemeral_storage_capacity,
         }
     }
 
@@ -126,19 +129,19 @@ pub struct AlertMapper;
 
 impl AlertMapper {
     /// Convert domain entity to DTO
-    pub fn to_dto(entity: Alert) -> AlertDto {
+    pub fn to_dto(entity: crate::domain::entities::Alert) -> AlertDto {
         AlertDto {
             name: entity.name,
-            status: format!("{:?}", entity.status),
+            status: format!("{:?}", entity.state),
             severity: format!("{:?}", entity.severity),
             summary: entity.summary,
-            description: entity.description,
-            starts_at: entity.starts_at.to_rfc3339(),
+            description: entity.description.unwrap_or_default(),
+            starts_at: entity.started_at.to_rfc3339(),
         }
     }
 
     /// Convert multiple entities to DTOs
-    pub fn to_dto_list(entities: Vec<Alert>) -> Vec<AlertDto> {
+    pub fn to_dto_list(entities: Vec<crate::domain::entities::Alert>) -> Vec<AlertDto> {
         entities.into_iter().map(Self::to_dto).collect()
     }
 }

@@ -1,68 +1,42 @@
-//! Cluster-specific use cases
+//! Cluster Use Cases
+//!
+//! Application layer use cases for cluster operations.
 
-use crate::application::dtos::*;
-use crate::application::mappers::*;
-use crate::domain::entities::*;
-use crate::domain::ports::*;
-use crate::error::Result;
+use crate::domain::entities::{ClusterOverview, Namespace};
+use crate::domain::ports::KubernetesRepository;
+use crate::error::{KusanagiError, Result};
 use std::sync::Arc;
 
-/// Use case: Get cluster health summary
-pub struct GetClusterHealthUseCase {
-    k8s_repo: Arc<dyn KubernetesRepository>,
-    metrics_repo: Arc<dyn MetricsRepository>,
+/// Get cluster overview use case
+pub struct GetClusterOverviewUseCase {
+    repository: Arc<dyn KubernetesRepository>,
 }
 
-impl GetClusterHealthUseCase {
-    pub fn new(
-        k8s_repo: Arc<dyn KubernetesRepository>,
-        metrics_repo: Arc<dyn MetricsRepository>,
-    ) -> Self {
-        Self {
-            k8s_repo,
-            metrics_repo,
-        }
+impl GetClusterOverviewUseCase {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
     }
 
-    pub async fn execute(&self) -> Result<ClusterHealthDto> {
-        let overview = self.k8s_repo.get_cluster_overview().await?;
-        let metrics = self.metrics_repo.get_cluster_metrics().await?;
-        
-        Ok(ClusterHealthDto {
-            status: format!("{:?}", overview.status),
-            node_count: overview.node_count,
-            pod_count: overview.pod_count,
-            cpu_percent: metrics.cpu_percent,
-            memory_percent: metrics.memory_percent,
-            issues: vec![], // Would be populated from health checks
-        })
+    pub async fn execute(&self) -> Result<ClusterOverview> {
+        self.repository.get_cluster_overview().await
     }
 }
 
-/// DTO for cluster health
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct ClusterHealthDto {
-    pub status: String,
-    pub node_count: usize,
-    pub pod_count: usize,
-    pub cpu_percent: f64,
-    pub memory_percent: f64,
-    pub issues: Vec<String>,
-}
-
-/// Use case: Get empty namespaces
+/// Get empty namespaces use case
 pub struct GetEmptyNamespacesUseCase {
-    k8s_repo: Arc<dyn KubernetesRepository>,
+    repository: Arc<dyn KubernetesRepository>,
 }
 
 impl GetEmptyNamespacesUseCase {
-    pub fn new(k8s_repo: Arc<dyn KubernetesRepository>) -> Self {
-        Self { k8s_repo }
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
     }
 
     pub async fn execute(&self) -> Result<Vec<String>> {
-        let namespaces = self.k8s_repo.list_namespaces().await?;
+        let namespaces = self.repository.list_namespaces().await?;
         
+        // For now, return all namespaces as potentially empty
+        // In a real implementation, we would check for workloads in each namespace
         let empty: Vec<String> = namespaces
             .into_iter()
             .filter(|ns| ns.pod_count == 0)
@@ -73,38 +47,52 @@ impl GetEmptyNamespacesUseCase {
     }
 }
 
-/// Use case: Get resource quota status
-pub struct GetResourceQuotaUseCase {
-    k8s_repo: Arc<dyn KubernetesRepository>,
+/// Get cluster statistics use case
+pub struct GetClusterStatsUseCase {
+    repository: Arc<dyn KubernetesRepository>,
 }
 
-impl GetResourceQuotaUseCase {
-    pub fn new(k8s_repo: Arc<dyn KubernetesRepository>) -> Self {
-        Self { k8s_repo }
+impl GetClusterStatsUseCase {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
     }
 
-    pub async fn execute(&self) -> Result<Vec<ResourceQuotaDto>> {
-        let namespaces = self.k8s_repo.list_namespaces().await?;
+    pub async fn execute(&self) -> Result<ClusterStats> {
+        let overview = self.repository.get_cluster_overview().await?;
+        let namespaces = self.repository.list_namespaces().await?;
+        let nodes = self.repository.list_nodes().await?;
         
-        let quotas: Vec<ResourceQuotaDto> = namespaces
-            .into_iter()
-            .filter_map(|ns| {
-                ns.resource_quota.map(|rq| ResourceQuotaDto {
-                    namespace: ns.name,
-                    hard: rq.hard,
-                    used: rq.used,
-                })
-            })
-            .collect();
-        
-        Ok(quotas)
+        Ok(ClusterStats {
+            namespace_count: namespaces.len(),
+            node_count: nodes.len(),
+            pod_count: overview.pod_count,
+            healthy: overview.status == crate::domain::entities::ClusterStatus::Healthy,
+        })
     }
 }
 
-/// DTO for resource quota
+/// Cluster statistics DTO
 #[derive(Debug, Clone, serde::Serialize)]
-pub struct ResourceQuotaDto {
-    pub namespace: String,
-    pub hard: std::collections::HashMap<String, String>,
-    pub used: std::collections::HashMap<String, String>,
+pub struct ClusterStats {
+    pub namespace_count: usize,
+    pub node_count: usize,
+    pub pod_count: usize,
+    pub healthy: bool,
+}
+
+/// Cluster use case service - aggregates all cluster use cases
+pub struct ClusterUseCaseService {
+    pub get_overview: GetClusterOverviewUseCase,
+    pub get_empty_namespaces: GetEmptyNamespacesUseCase,
+    pub get_stats: GetClusterStatsUseCase,
+}
+
+impl ClusterUseCaseService {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self {
+            get_overview: GetClusterOverviewUseCase::new(repository.clone()),
+            get_empty_namespaces: GetEmptyNamespacesUseCase::new(repository.clone()),
+            get_stats: GetClusterStatsUseCase::new(repository),
+        }
+    }
 }
