@@ -33,7 +33,8 @@ pub enum LlmProvider {
 
 impl Default for LlmProvider {
     fn default() -> Self {
-        LlmProvider::Ollama
+        // Default to LiteLLM for Kubernetes deployments
+        LlmProvider::Litellm
     }
 }
 
@@ -61,11 +62,11 @@ pub struct LlmConfig {
 impl Default for LlmConfig {
     fn default() -> Self {
         Self {
-            provider: LlmProvider::Ollama,
-            base_url: "http://localhost:11434".to_string(),
+            provider: LlmProvider::default(),
+            base_url: "http://litellm.litellm.svc.cluster.local:4000".to_string(),
             api_key: None,
-            model: "llama2".to_string(),
-            timeout_secs: 30,
+            model: "gpt-3.5-turbo".to_string(),
+            timeout_secs: 60,
             max_retries: 3,
             temperature: 0.7,
             max_tokens: 2048,

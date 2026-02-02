@@ -1,173 +1,181 @@
-//! Pod-specific use cases
+//! Pod Use Cases
+//!
+//! Application layer use cases for pod operations.
 
-use crate::application::dtos::*;
-use crate::application::mappers::*;
-use crate::domain::entities::*;
-use crate::domain::ports::*;
-use crate::error::Result;
+use crate::domain::entities::{Pod, PodsStatus};
+use crate::domain::ports::KubernetesRepository;
+use crate::error::{KusanagiError, Result};
 use std::sync::Arc;
 
-/// Use case: List pods with filtering
+/// List pods use case
 pub struct ListPodsUseCase {
-    k8s_repo: Arc<dyn KubernetesRepository>,
+    repository: Arc<dyn KubernetesRepository>,
 }
 
 impl ListPodsUseCase {
-    pub fn new(k8s_repo: Arc<dyn KubernetesRepository>) -> Self {
-        Self { k8s_repo }
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
     }
 
-    pub async fn execute(&self, namespace: Option<&str>) -> Result<Vec<PodDto>> {
-        let pods = self.k8s_repo.list_pods(namespace).await?;
-        Ok(PodMapper::to_dto_list(pods))
+    pub async fn execute(&self, namespace: Option<&str>) -> Result<Vec<Pod>> {
+        self.repository.list_pods(namespace).await
     }
 }
 
-/// Use case: Get pod details with diagnostics
+/// Get pod details use case
 pub struct GetPodDetailsUseCase {
-    k8s_repo: Arc<dyn KubernetesRepository>,
+    repository: Arc<dyn KubernetesRepository>,
 }
 
 impl GetPodDetailsUseCase {
-    pub fn new(k8s_repo: Arc<dyn KubernetesRepository>) -> Self {
-        Self { k8s_repo }
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
     }
 
-    pub async fn execute(&self, namespace: &str, name: &str) -> Result<PodDetailsDto> {
-        let pod = self.k8s_repo.get_pod(namespace, name).await?;
-        let logs = self.k8s_repo.get_pod_logs(namespace, name, None, 100).await.ok();
-        
-        let age = pod.age.clone().unwrap_or_default();
-        let containers = PodMapper::to_dto(pod.clone()).containers;
-        
-        Ok(PodDetailsDto {
-            name: pod.name,
-            namespace: pod.namespace,
-            status: format!("{:?}", pod.status),
-            node_name: pod.node_name,
-            restart_count: pod.restart_count,
-            age,
-            containers,
-            logs,
-            events: vec![], // Would fetch from event repo
-        })
+    pub async fn execute(&self, namespace: &str, name: &str) -> Result<Pod> {
+        self.repository.get_pod(namespace, name).await
     }
 }
 
-/// DTO for pod details
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct PodDetailsDto {
-    pub name: String,
-    pub namespace: String,
-    pub status: String,
-    pub node_name: Option<String>,
-    pub restart_count: i32,
-    pub age: String,
-    pub containers: Vec<ContainerDto>,
-    pub logs: Option<String>,
-    pub events: Vec<String>,
+/// Get pods status use case
+pub struct GetPodsStatusUseCase {
+    repository: Arc<dyn KubernetesRepository>,
 }
 
-/// Use case: Restart pod (delete and let it recreate)
-pub struct RestartPodUseCase {
-    k8s_repo: Arc<dyn KubernetesRepository>,
-}
-
-impl RestartPodUseCase {
-    pub fn new(k8s_repo: Arc<dyn KubernetesRepository>) -> Self {
-        Self { k8s_repo }
+impl GetPodsStatusUseCase {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
     }
 
-    pub async fn execute(&self, namespace: &str, name: &str) -> Result<RestartResultDto> {
-        // Verify pod exists
-        let _pod = self.k8s_repo.get_pod(namespace, name).await?;
-        
-        // Delete the pod
-        self.k8s_repo.delete_pod(namespace, name).await?;
-        
-        Ok(RestartResultDto {
-            success: true,
-            message: format!("Pod {}/{} scheduled for restart", namespace, name),
-        })
+    pub async fn execute(&self) -> Result<PodsStatus> {
+        self.repository.get_pods_status().await
+            .map_err(|e| KusanagiError::internal(format!("Failed to get pods status: {}", e)))
     }
 }
 
-/// DTO for restart result
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct RestartResultDto {
-    pub success: bool,
-    pub message: String,
+/// Get pod logs use case
+pub struct GetPodLogsUseCase {
+    repository: Arc<dyn KubernetesRepository>,
 }
 
-/// Use case: Get pods with errors
-pub struct GetErrorPodsUseCase {
-    k8s_repo: Arc<dyn KubernetesRepository>,
-}
-
-impl GetErrorPodsUseCase {
-    pub fn new(k8s_repo: Arc<dyn KubernetesRepository>) -> Self {
-        Self { k8s_repo }
+impl GetPodLogsUseCase {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
     }
 
-    pub async fn execute(&self, namespace: Option<&str>) -> Result<Vec<ErrorPodDto>> {
-        let pods = self.k8s_repo.list_pods(namespace).await?;
-        
-        let error_pods: Vec<ErrorPodDto> = pods
-            .into_iter()
-            .filter(|p| p.status.is_error())
-            .map(|p| ErrorPodDto {
-                name: p.name,
-                namespace: p.namespace,
-                status: format!("{:?}", p.status),
-                restart_count: p.restart_count,
-            })
-            .collect();
-        
-        Ok(error_pods)
+    pub async fn execute(
+        &self,
+        namespace: &str,
+        name: &str,
+        container: Option<String>,
+        tail_lines: i64,
+    ) -> Result<String> {
+        self.repository
+            .get_pod_logs(namespace, name, container.as_deref(), tail_lines)
+            .await
+            .map_err(|e| KusanagiError::internal(format!("Failed to get pod logs: {}", e)))
     }
 }
 
-/// DTO for error pod
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct ErrorPodDto {
-    pub name: String,
-    pub namespace: String,
-    pub status: String,
-    pub restart_count: i32,
+/// Force delete pod use case
+pub struct ForceDeletePodUseCase {
+    repository: Arc<dyn KubernetesRepository>,
 }
 
-/// Use case: Get pod resource usage
-pub struct GetPodResourceUsageUseCase {
-    metrics_repo: Arc<dyn MetricsRepository>,
-}
-
-impl GetPodResourceUsageUseCase {
-    pub fn new(metrics_repo: Arc<dyn MetricsRepository>) -> Self {
-        Self { metrics_repo }
+impl ForceDeletePodUseCase {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
     }
 
-    pub async fn execute(&self) -> Result<Vec<PodResourceUsageDto>> {
-        let usage = self.metrics_repo.get_pod_resource_usage().await?;
-        
-        let dtos: Vec<PodResourceUsageDto> = usage
-            .into_iter()
-            .map(|((namespace, name), (cpu, memory))| PodResourceUsageDto {
-                namespace,
-                name,
-                cpu_cores: cpu,
-                memory_bytes: memory,
-            })
-            .collect();
-        
-        Ok(dtos)
+    pub async fn execute(&self, namespace: &str, name: &str) -> Result<()> {
+        // First check if pod exists
+        let _ = self.repository.get_pod(namespace, name).await
+            .map_err(|_| KusanagiError::not_found("Pod", name))?;
+
+        self.repository.force_delete_pod(namespace, name)
+            .await
+            .map_err(|e| KusanagiError::internal(format!("Failed to force delete pod: {}", e)))
     }
 }
 
-/// DTO for pod resource usage
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct PodResourceUsageDto {
-    pub namespace: String,
-    pub name: String,
-    pub cpu_cores: f64,
-    pub memory_bytes: i64,
+/// Delete error pods use case
+pub struct DeleteErrorPodsUseCase {
+    repository: Arc<dyn KubernetesRepository>,
+}
+
+impl DeleteErrorPodsUseCase {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(&self) -> Result<(usize, usize)> {
+        self.repository.delete_error_pods()
+            .await
+            .map_err(|e| KusanagiError::internal(format!("Failed to delete error pods: {}", e)))
+    }
+}
+
+/// Scale deployment use case
+pub struct ScaleDeploymentUseCase {
+    repository: Arc<dyn KubernetesRepository>,
+}
+
+impl ScaleDeploymentUseCase {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(&self, namespace: &str, name: &str, replicas: i32) -> Result<()> {
+        if replicas < 0 || replicas > 100 {
+            return Err(KusanagiError::validation("Replicas must be between 0 and 100"));
+        }
+
+        self.repository.scale_deployment(namespace, name, replicas)
+            .await
+            .map_err(|e| KusanagiError::internal(format!("Failed to scale deployment: {}", e)))
+    }
+}
+
+/// Scale statefulset use case
+pub struct ScaleStatefulSetUseCase {
+    repository: Arc<dyn KubernetesRepository>,
+}
+
+impl ScaleStatefulSetUseCase {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
+    }
+
+    pub async fn execute(&self, namespace: &str, name: &str, replicas: i32) -> Result<()> {
+        if replicas < 0 || replicas > 100 {
+            return Err(KusanagiError::validation("Replicas must be between 0 and 100"));
+        }
+
+        self.repository.scale_statefulset(namespace, name, replicas)
+            .await
+            .map_err(|e| KusanagiError::internal(format!("Failed to scale statefulset: {}", e)))
+    }
+}
+
+/// Pod service - aggregates all pod use cases
+pub struct PodService {
+    pub get_status: GetPodsStatusUseCase,
+    pub get_logs: GetPodLogsUseCase,
+    pub force_delete: ForceDeletePodUseCase,
+    pub delete_error_pods: DeleteErrorPodsUseCase,
+    pub scale_deployment: ScaleDeploymentUseCase,
+    pub scale_statefulset: ScaleStatefulSetUseCase,
+}
+
+impl PodService {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self {
+            get_status: GetPodsStatusUseCase::new(repository.clone()),
+            get_logs: GetPodLogsUseCase::new(repository.clone()),
+            force_delete: ForceDeletePodUseCase::new(repository.clone()),
+            delete_error_pods: DeleteErrorPodsUseCase::new(repository.clone()),
+            scale_deployment: ScaleDeploymentUseCase::new(repository.clone()),
+            scale_statefulset: ScaleStatefulSetUseCase::new(repository),
+        }
+    }
 }

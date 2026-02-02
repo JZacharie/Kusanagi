@@ -40,6 +40,21 @@ pub trait KubernetesRepository: Send + Sync {
 
     /// Delete a pod
     async fn delete_pod(&self, namespace: &str, name: &str) -> Result<()>;
+    
+    /// Force delete a pod (remove finalizers)
+    async fn force_delete_pod(&self, namespace: &str, name: &str) -> Result<()>;
+    
+    /// Get pods status overview
+    async fn get_pods_status(&self) -> Result<crate::domain::entities::PodsStatus>;
+    
+    /// Delete all pods in error state
+    async fn delete_error_pods(&self) -> Result<(usize, usize)>;
+    
+    /// Scale a deployment
+    async fn scale_deployment(&self, namespace: &str, name: &str, replicas: i32) -> Result<()>;
+    
+    /// Scale a statefulset
+    async fn scale_statefulset(&self, namespace: &str, name: &str, replicas: i32) -> Result<()>;
 
     /// Get all events
     async fn list_events(&self, namespace: Option<&str>, event_type: Option<&str>) -> Result<Vec<ClusterEvent>>;
@@ -129,37 +144,9 @@ pub trait IntegrationPort: Send + Sync {
     async fn send_notification(&self, message: &str) -> Result<()>;
 }
 
-/// Port for ArgoCD operations
-#[async_trait]
-pub trait ArgoCdPort: Send + Sync {
-    /// Get application status
-    async fn get_application_status(&self, name: &str) -> Result<ApplicationStatus>;
-
-    /// Sync an application
-    async fn sync_application(&self, name: &str) -> Result<()>;
-
-    /// List all applications
-    async fn list_applications(&self) -> Result<Vec<ApplicationInfo>>;
-}
-
-/// Application status for ArgoCD
-#[derive(Debug, Clone)]
-pub struct ApplicationStatus {
-    pub name: String,
-    pub sync_status: String,
-    pub health_status: String,
-    pub revision: String,
-}
-
-/// Application information
-#[derive(Debug, Clone)]
-pub struct ApplicationInfo {
-    pub name: String,
-    pub namespace: String,
-    pub project: String,
-    pub repo_url: String,
-    pub path: String,
-}
+/// Port for ArgoCD repository operations
+pub mod argocd_port;
+pub use argocd_port::{ArgoCdRepository, ApplicationStatus, ApplicationInfo, SyncStatus, HealthStatus, ApplicationDetails, ResourceStatus, RevisionHistory};
 
 /// Port for Cilium network operations
 #[async_trait]

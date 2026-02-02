@@ -16,6 +16,14 @@ use std::sync::Arc;
 pub struct AppState {
     pub k8s_repo: Arc<dyn KubernetesRepository>,
     pub metrics_repo: Arc<dyn MetricsRepository>,
+    pub argocd_repo: Option<Arc<dyn crate::domain::ports::argocd_port::ArgoCdRepository>>,
+}
+
+impl AppState {
+    /// Get ArgoCD repository if available
+    pub fn get_argocd_repo(&self) -> Option<Arc<dyn crate::domain::ports::argocd_port::ArgoCdRepository>> {
+        self.argocd_repo.clone()
+    }
 }
 
 /// Configure HTTP routes
@@ -101,6 +109,7 @@ async fn get_pod_details(
 
 #[derive(Deserialize)]
 struct ListEventsQuery {
+    namespace: Option<String>,
     event_type: Option<String>,
     page: Option<usize>,
     per_page: Option<usize>,
@@ -114,6 +123,7 @@ async fn list_events(
     let use_case = GetRecentEventsUseCase::new(Arc::clone(&data.k8s_repo));
 
     match use_case.execute(
+        query.namespace.as_deref(),
         query.event_type.as_deref(),
         query.page.unwrap_or(1),
         query.per_page.unwrap_or(20),

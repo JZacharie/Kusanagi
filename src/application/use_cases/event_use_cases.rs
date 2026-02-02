@@ -1,166 +1,116 @@
-//! Event-specific use cases
+//! Event Use Cases
+//!
+//! Application layer use cases for Kubernetes events.
 
-use crate::application::dtos::*;
-use crate::application::mappers::*;
-use crate::domain::entities::*;
-use crate::domain::ports::*;
-use crate::error::Result;
+use crate::domain::entities::{ClusterEvent, EventType, Paginated};
+use crate::domain::ports::KubernetesRepository;
+use crate::error::{KusanagiError, Result};
 use std::sync::Arc;
 
-/// Use case: Get recent events with pagination
+/// Get recent events use case
 pub struct GetRecentEventsUseCase {
-    k8s_repo: Arc<dyn KubernetesRepository>,
+    repository: Arc<dyn KubernetesRepository>,
 }
 
 impl GetRecentEventsUseCase {
-    pub fn new(k8s_repo: Arc<dyn KubernetesRepository>) -> Self {
-        Self { k8s_repo }
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
     }
 
     pub async fn execute(
         &self,
+        namespace: Option<&str>,
         event_type: Option<&str>,
         page: usize,
         per_page: usize,
-    ) -> Result<PaginatedResponse<EventDto>> {
-        let events = self.k8s_repo.list_events(None, event_type).await?;
+    ) -> Result<Paginated<ClusterEvent>> {
+        let events = self.repository.list_events(namespace, event_type).await?;
         
         let total = events.len();
-        let total_pages = if total == 0 { 1 } else { (total + per_page - 1) / per_page };
+        let start = (page - 1) * per_page;
+        let end = (start + per_page).min(total);
         
-        // Paginate
-        let start = (page.saturating_sub(1)) * per_page;
-        let paginated_events: Vec<ClusterEvent> = events
-            .into_iter()
-            .skip(start)
-            .take(per_page)
-            .collect();
+        let items = if start < total {
+            events[start..end].to_vec()
+        } else {
+            vec![]
+        };
         
-        let dtos = EventMapper::to_dto_list(paginated_events);
-        
-        Ok(PaginatedResponse {
-            items: dtos,
-            page,
-            per_page,
-            total,
-            total_pages,
-        })
+        Ok(Paginated::new(items, page, per_page, total))
     }
 }
 
-/// Use case: Get warning events summary
-pub struct GetWarningSummaryUseCase {
-    k8s_repo: Arc<dyn KubernetesRepository>,
+/// Get warning events use case (prioritized)
+pub struct GetWarningEventsUseCase {
+    repository: Arc<dyn KubernetesRepository>,
 }
 
-impl GetWarningSummaryUseCase {
-    pub fn new(k8s_repo: Arc<dyn KubernetesRepository>) -> Self {
-        Self { k8s_repo }
-    }
-
-    pub async fn execute(&self) -> Result<WarningSummaryDto> {
-        let events = self.k8s_repo.list_events(None, Some("Warning")).await?;
-        
-        // Group by reason
-        let mut reason_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
-        for event in &events {
-            *reason_counts.entry(event.reason.clone()).or_insert(0) += 1;
-        }
-        
-        // Get top reasons
-        let mut top_reasons: Vec<(String, usize)> = reason_counts.into_iter().collect();
-        top_reasons.sort_by(|a, b| b.1.cmp(&a.1));
-        top_reasons.truncate(5);
-        
-        let top_issues: Vec<String> = top_reasons
-            .into_iter()
-            .map(|(reason, count)| format!("{} ({} occurrences)", reason, count))
-            .collect();
-        
-        Ok(WarningSummaryDto {
-            total_warnings: events.len(),
-            top_issues,
-            severity: if events.len() > 50 {
-                "High".to_string()
-            } else if events.len() > 10 {
-                "Medium".to_string()
-            } else {
-                "Low".to_string()
-            },
-        })
-    }
-}
-
-/// DTO for warning summary
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct WarningSummaryDto {
-    pub total_warnings: usize,
-    pub top_issues: Vec<String>,
-    pub severity: String,
-}
-
-/// Use case: Get events for a specific resource
-pub struct GetResourceEventsUseCase {
-    k8s_repo: Arc<dyn KubernetesRepository>,
-}
-
-impl GetResourceEventsUseCase {
-    pub fn new(k8s_repo: Arc<dyn KubernetesRepository>) -> Self {
-        Self { k8s_repo }
+impl GetWarningEventsUseCase {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
     }
 
     pub async fn execute(
         &self,
-        kind: &str,
-        name: &str,
         namespace: Option<&str>,
-    ) -> Result<Vec<EventDto>> {
-        let events = self.k8s_repo.list_events(namespace, None).await?;
+        limit: usize,
+    ) -> Result<Vec<ClusterEvent>> {
+        let events = self.repository.list_events(namespace, Some("Warning")).await?;
         
-        let filtered: Vec<ClusterEvent> = events
-            .into_iter()
-            .filter(|e| {
-                e.involved_object.kind == kind && e.involved_object.name == name
-            })
-            .collect();
+        // Sort by last timestamp (most recent first)
+        let mut sorted_events = events;
+        sorted_events.sort_by(|a, b| b.last_timestamp.cmp(&a.last_timestamp));
         
-        Ok(EventMapper::to_dto_list(filtered))
+        Ok(sorted_events.into_iter().take(limit).collect())
     }
 }
 
-/// Use case: Export events for remediation
-pub struct ExportEventsUseCase {
-    k8s_repo: Arc<dyn KubernetesRepository>,
+/// Event statistics use case
+pub struct GetEventStatsUseCase {
+    repository: Arc<dyn KubernetesRepository>,
 }
 
-impl ExportEventsUseCase {
-    pub fn new(k8s_repo: Arc<dyn KubernetesRepository>) -> Self {
-        Self { k8s_repo }
+impl GetEventStatsUseCase {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self { repository }
     }
 
-    pub async fn execute(&self, language: &str) -> Result<String> {
-        let events = self.k8s_repo.list_events(None, Some("Warning")).await?;
+    pub async fn execute(&self, namespace: Option<&str>) -> Result<EventStats> {
+        let events = self.repository.list_events(namespace, None).await?;
         
-        // Generate markdown report
-        let mut report = format!(
-            "# {}\n\n",
-            if language == "fr" { "Rapport d'Événements" } else { "Events Report" }
-        );
+        let total = events.len();
+        let warnings = events.iter().filter(|e| e.event_type == EventType::Warning).count();
+        let normals = events.iter().filter(|e| e.event_type == EventType::Normal).count();
         
-        report.push_str(&format!("Generated: {}\n\n", chrono::Utc::now().to_rfc3339()));
-        report.push_str(&format!("Total Warnings: {}\n\n", events.len()));
-        
-        report.push_str("## Recent Events\n\n");
-        for event in events.iter().take(20) {
-            report.push_str(&format!(
-                "- **{}** ({}) - {}\n  - {}\n\n",
-                event.reason,
-                event.namespace,
-                event.involved_object.name,
-                event.message
-            ));
+        Ok(EventStats {
+            total,
+            warnings,
+            normals,
+        })
+    }
+}
+
+/// Event statistics DTO
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct EventStats {
+    pub total: usize,
+    pub warnings: usize,
+    pub normals: usize,
+}
+
+/// Event service - aggregates all event use cases
+pub struct EventService {
+    pub get_recent: GetRecentEventsUseCase,
+    pub get_warnings: GetWarningEventsUseCase,
+    pub get_stats: GetEventStatsUseCase,
+}
+
+impl EventService {
+    pub fn new(repository: Arc<dyn KubernetesRepository>) -> Self {
+        Self {
+            get_recent: GetRecentEventsUseCase::new(repository.clone()),
+            get_warnings: GetWarningEventsUseCase::new(repository.clone()),
+            get_stats: GetEventStatsUseCase::new(repository),
         }
-        
-        Ok(report)
     }
 }

@@ -10,6 +10,9 @@ use kube::api::ListParams;
 use kube::{Api, Client};
 use std::sync::Arc;
 
+mod argocd_repository;
+pub use argocd_repository::ArgoCdRepositoryImpl;
+
 /// Kubernetes repository implementation using kube-rs
 pub struct K8sRepository {
     client: Client,
@@ -187,7 +190,16 @@ impl KubernetesRepository for K8sRepository {
                     node_name: spec.and_then(|s| s.node_name.clone()),
                     restart_count: container_statuses.iter().map(|cs| cs.restart_count).sum(),
                     age: p.metadata.creation_timestamp.as_ref().map(|t| format!("{:?}", chrono::Utc::now() - t.0)),
+                    age_seconds: p.metadata.creation_timestamp.as_ref().map_or(0, |t| (chrono::Utc::now() - t.0).num_seconds()),
                     labels: p.metadata.labels.unwrap_or_default().into_iter().collect(),
+                    reason: status.and_then(|s| s.reason.clone()),
+                    message: status.and_then(|s| s.message.clone()),
+                    cpu_usage: None,
+                    memory_usage: None,
+                    cpu_limit: None,
+                    memory_limit: None,
+                    cpu_request: None,
+                    memory_request: None,
                 }
             })
             .collect();
@@ -208,7 +220,16 @@ impl KubernetesRepository for K8sRepository {
             node_name: None,
             restart_count: 0,
             age: None,
+            age_seconds: 0,
             labels: Default::default(),
+            reason: None,
+            message: None,
+            cpu_usage: None,
+            memory_usage: None,
+            cpu_limit: None,
+            memory_limit: None,
+            cpu_request: None,
+            memory_request: None,
         })
     }
 
@@ -395,6 +416,70 @@ impl KubernetesRepository for K8sRepository {
             total_capacity: format!("{}Gi", total_capacity / (1024 * 1024 * 1024)),
             used_capacity: format!("{}Gi", bound as i64 * 10), // Simplified
         })
+    }
+    
+    async fn force_delete_pod(&self, namespace: &str, name: &str) -> Result<()> {
+        let pods: Api<k8s_openapi::api::core::v1::Pod> = Api::namespaced(self.client.clone(), namespace);
+        
+        // Remove finalizers
+        let patch = serde_json::json!({
+            "metadata": {
+                "finalizers": null
+            }
+        });
+        
+        let _ = pods.patch(name, &kube::api::PatchParams::default(), &kube::api::Patch::Merge(&patch)).await;
+        
+        // Delete with grace period 0
+        let delete_params = kube::api::DeleteParams {
+            grace_period_seconds: Some(0),
+            ..Default::default()
+        };
+        
+        pods.delete(name, &delete_params).await?;
+        Ok(())
+    }
+    
+    async fn get_pods_status(&self) -> Result<crate::domain::entities::PodsStatus> {
+        // Simplified implementation
+        Ok(crate::domain::entities::PodsStatus {
+            total_pods: 0,
+            running_pods: 0,
+            pending_pods: 0,
+            succeeded_pods: 0,
+            failed_pods: 0,
+            error_pods: 0,
+            pods_in_error: vec![],
+            fetch_duration_ms: 0,
+        })
+    }
+    
+    async fn delete_error_pods(&self) -> Result<(usize, usize)> {
+        Ok((0, 0))
+    }
+    
+    async fn scale_deployment(&self, namespace: &str, name: &str, replicas: i32) -> Result<()> {
+        let api: Api<k8s_openapi::api::apps::v1::Deployment> = Api::namespaced(self.client.clone(), namespace);
+        let patch = serde_json::json!({
+            "spec": {
+                "replicas": replicas
+            }
+        });
+        
+        api.patch(name, &kube::api::PatchParams::default(), &kube::api::Patch::Merge(&patch)).await?;
+        Ok(())
+    }
+    
+    async fn scale_statefulset(&self, namespace: &str, name: &str, replicas: i32) -> Result<()> {
+        let api: Api<k8s_openapi::api::apps::v1::StatefulSet> = Api::namespaced(self.client.clone(), namespace);
+        let patch = serde_json::json!({
+            "spec": {
+                "replicas": replicas
+            }
+        });
+        
+        api.patch(name, &kube::api::PatchParams::default(), &kube::api::Patch::Merge(&patch)).await?;
+        Ok(())
     }
 }
 

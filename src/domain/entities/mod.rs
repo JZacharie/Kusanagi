@@ -132,7 +132,31 @@ pub struct Pod {
     pub node_name: Option<String>,
     pub restart_count: i32,
     pub age: Option<String>,
+    pub age_seconds: i64,
     pub labels: HashMap<String, String>,
+    pub reason: Option<String>,
+    pub message: Option<String>,
+    /// Resource usage from Prometheus
+    pub cpu_usage: Option<f64>,
+    pub memory_usage: Option<i64>,
+    /// Resource limits
+    pub cpu_limit: Option<f64>,
+    pub memory_limit: Option<i64>,
+    pub cpu_request: Option<f64>,
+    pub memory_request: Option<i64>,
+}
+
+/// Pods status response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PodsStatus {
+    pub total_pods: usize,
+    pub running_pods: usize,
+    pub pending_pods: usize,
+    pub succeeded_pods: usize,
+    pub failed_pods: usize,
+    pub error_pods: usize,
+    pub pods_in_error: Vec<Pod>,
+    pub fetch_duration_ms: u64,
 }
 
 /// Pod status

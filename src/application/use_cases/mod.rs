@@ -7,7 +7,7 @@ use crate::application::dtos::*;
 use crate::application::mappers::*;
 use crate::cache::{Cache, InMemoryCache};
 use crate::config;
-use crate::domain::entities::*;
+use crate::domain::entities::{*, self};
 use crate::domain::ports::*;
 use crate::domain::services::*;
 use crate::error::Result;
@@ -17,10 +17,12 @@ use std::time::Duration;
 mod cluster_use_cases;
 mod pod_use_cases;
 mod event_use_cases;
+mod argocd_use_cases;
 
 pub use cluster_use_cases::*;
 pub use pod_use_cases::*;
 pub use event_use_cases::*;
+pub use argocd_use_cases::*;
 
 /// Application service for cluster operations
 pub struct ClusterApplicationService {
@@ -306,13 +308,38 @@ mod tests {
                 node_name: None,
                 restart_count: 0,
                 age: None,
+                age_seconds: 0,
                 labels: Default::default(),
+                reason: None,
+                message: None,
+                cpu_usage: None,
+                memory_usage: None,
+                cpu_limit: None,
+                memory_limit: None,
+                cpu_request: None,
+                memory_request: None,
             })
         }
         async fn get_pod_logs(&self, _ns: &str, _name: &str, _c: Option<&str>, _t: i64) -> Result<String> {
             Ok("".to_string())
         }
         async fn delete_pod(&self, _ns: &str, _name: &str) -> Result<()> { Ok(()) }
+        async fn force_delete_pod(&self, _ns: &str, _name: &str) -> Result<()> { Ok(()) }
+        async fn get_pods_status(&self) -> Result<PodsStatus> {
+            Ok(PodsStatus {
+                total_pods: 0,
+                running_pods: 0,
+                pending_pods: 0,
+                succeeded_pods: 0,
+                failed_pods: 0,
+                error_pods: 0,
+                pods_in_error: vec![],
+                fetch_duration_ms: 0,
+            })
+        }
+        async fn delete_error_pods(&self) -> Result<(usize, usize)> { Ok((0, 0)) }
+        async fn scale_deployment(&self, _ns: &str, _name: &str, _replicas: i32) -> Result<()> { Ok(()) }
+        async fn scale_statefulset(&self, _ns: &str, _name: &str, _replicas: i32) -> Result<()> { Ok(()) }
         async fn list_events(&self, _ns: Option<&str>, _t: Option<&str>) -> Result<Vec<ClusterEvent>> { Ok(vec![]) }
         async fn list_services(&self, _ns: Option<&str>) -> Result<Vec<Service>> { Ok(vec![]) }
         async fn list_ingresses(&self, _ns: Option<&str>) -> Result<Vec<Ingress>> { Ok(vec![]) }
