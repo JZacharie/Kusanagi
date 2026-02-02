@@ -3,8 +3,32 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Kusanagi - Agent Controller for K3s Infrastructure">
+    
+    <!-- PWA / Android Fullscreen -->
+    <meta name="theme-color" content="#0a0f1e">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kusanagi">
+    <meta name="application-name" content="Kusanagi">
+    <meta name="msapplication-TileColor" content="#0a0f1e">
+    <meta name="msapplication-config" content="/static/browserconfig.xml">
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/images/favicon-16x16.png">
+    <link rel="shortcut icon" href="/static/images/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <link rel="mask-icon" href="/static/images/safari-pinned-tab.svg" color="#00fff9">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- Fallback favicon -->
+    <link rel="icon" href="/static/images/favicon.png">
+    
     <link rel="stylesheet" href="/static/css/cyberpunk.css">
     <link rel="stylesheet" href="/static/css/modern-2026.css">
     <link rel="stylesheet" href="/static/css/loot-drop.css">
@@ -15,7 +39,6 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&family=Rajdhani:wght@500;700&display=swap"
         rel="stylesheet">
-    <link rel="icon" href="/static/images/logo.png">
 
     <!-- Core UI & Utilities -->
     <script src="/static/js/theme.js"></script>
@@ -49,6 +72,7 @@
     <!-- Main Orchestrator -->
     <script src="/static/js/dashboard.js"></script>
     <script src="/static/js/sidebar.js"></script>
+    <script src="/static/js/pwa.js"></script>
 </head>
 
 
@@ -283,12 +307,6 @@
                         <option value="en">EN</option>
                         <option value="fr" selected>FR</option>
                     </select>
-                </div>
-                <div class="world-clocks" id="world-clocks"
-                    style="display: flex; gap: 1rem; font-family: monospace; font-size: 0.8rem; opacity: 0.8;">
-                    <div class="clock" title="Lyon (Local)"><span style="color: var(--neon-cyan);">LYO</span> <span id="clock-lyon">00:00</span></div>
-                    <div class="clock" title="Mexico City"><span style="color: var(--neon-cyan);">MEX</span> <span id="clock-mexico">00:00</span></div>
-                    <div class="clock" title="New York"><span style="color: var(--neon-cyan);">NYC</span> <span id="clock-nyc">00:00</span></div>
                 </div>
             </div>
         </header>

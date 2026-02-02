@@ -3,26 +3,6 @@
  * Handles Chat, World Clocks, Notifications, and general helpers
  */
 
-// === WORLD CLOCKS ===
-function updateWorldClocks() {
-    const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
-
-    const clocks = [
-        { id: 'clock-lyon', zone: 'Europe/Paris' },
-        { id: 'clock-mexico', zone: 'America/Mexico_City' },
-        { id: 'clock-nyc', zone: 'America/New_York' }
-    ];
-
-    clocks.forEach(clock => {
-        const el = document.getElementById(clock.id);
-        if (el) {
-            el.textContent = new Intl.DateTimeFormat('en-GB', { ...timeOptions, timeZone: clock.zone }).format(new Date());
-        }
-    });
-}
-setInterval(updateWorldClocks, 60000);
-updateWorldClocks();
-
 // === CHAT FUNCTIONS ===
 async function sendChatMessage() {
     const input = document.getElementById('chat-input');
