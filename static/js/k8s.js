@@ -770,7 +770,13 @@ const K8sManager = {
 
     renderBackupsTable(cronjobs) {
         const container = document.getElementById('backups-content');
-        if (!container || !cronjobs || cronjobs.length === 0) return;
+        if (!container) return;
+        
+        if (!cronjobs || cronjobs.length === 0) {
+            container.innerHTML = '<div class="no-issues">No backup cronjobs found</div>';
+            return;
+        }
+        
         container.innerHTML = `
             <table class="issues-table">
                 <thead><tr><th>CronJob</th><th>Namespace</th><th>Schedule</th><th>Last Run</th><th>Status</th><th>Recent Jobs</th></tr></thead>

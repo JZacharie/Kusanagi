@@ -318,14 +318,16 @@ function refreshAllKusanagiData() {
     }
 
     // Core Kubernetes & ArgoCD Status
-    if (typeof fetchArgoStatus === 'function') fetchArgoStatus();
-    if (typeof fetchNodesStatus === 'function') fetchNodesStatus();
-    if (typeof fetchClusterOverview === 'function') fetchClusterOverview();
-    if (typeof fetchEvents === 'function') fetchEvents(window.currentEventFilter || 'all', 1);
-    if (typeof fetchBackupsStatus === 'function') fetchBackupsStatus();
-    if (typeof fetchStorageStatus === 'function') fetchStorageStatus();
-    if (typeof fetchServices === 'function') fetchServices();
-    if (typeof fetchIngress === 'function') fetchIngress();
+    if (window.K8sManager) {
+        if (K8sManager.fetchArgoStatus) K8sManager.fetchArgoStatus();
+        if (K8sManager.fetchNodesStatus) K8sManager.fetchNodesStatus();
+        if (K8sManager.fetchClusterOverview) K8sManager.fetchClusterOverview();
+        if (K8sManager.fetchEvents) K8sManager.fetchEvents(window.currentEventFilter || 'all', 1);
+        if (K8sManager.fetchBackupsStatus) K8sManager.fetchBackupsStatus();
+        if (K8sManager.fetchStorageStatus) K8sManager.fetchStorageStatus();
+        if (K8sManager.fetchServices) K8sManager.fetchServices();
+        if (K8sManager.fetchIngress) K8sManager.fetchIngress();
+    }
     if (typeof fetchAppsWithResources === 'function') fetchAppsWithResources();
 
     // Component Managers
