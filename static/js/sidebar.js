@@ -243,8 +243,15 @@ class Sidebar {
 document.addEventListener('DOMContentLoaded', () => {
   window.sidebar = new Sidebar();
   
-  // Handle initial hash
+  // Initialize dashboard header elements visibility
+  const dashboardHeader = document.getElementById("dashboard-header-elements");
   const hash = window.location.hash.slice(1);
+  if (dashboardHeader) {
+    // Show only on ArgoCD page (default if no hash)
+    dashboardHeader.style.display = (hash === "" || hash === "argocd") ? "block" : "none";
+  }
+  
+  // Handle initial hash
   if (hash && typeof switchTab === 'function') {
     // Wait for dashboard.js to initialize
     setTimeout(() => {

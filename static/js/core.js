@@ -271,6 +271,12 @@ function switchTab(tabName) {
         }
     });
 
+    // Show/hide dashboard header elements (only on ArgoCD page)
+    const dashboardHeader = document.getElementById("dashboard-header-elements");
+    if (dashboardHeader) {
+        dashboardHeader.style.display = (tabName === "argocd") ? "block" : "none";
+    }
+
     // Update active tab tracking
     if (window.KusanagiDashboard) {
         window.KusanagiDashboard.activeTab = tabName;

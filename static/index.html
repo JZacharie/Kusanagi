@@ -308,28 +308,30 @@
 
         <div class="content-body">
 
-        <!-- Kusanagi System Status -->
-        <div class="system-status-bar" id="kusanagi-system-status"
-            style="display: flex; gap: 1rem; align-items: center; justify-content: flex-end; padding: 0.5rem 1rem; background: rgba(0, 255, 249, 0.05); border-bottom: 1px solid rgba(0, 255, 249, 0.2); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--neon-cyan);">
-            <div class="system-item">
-                <span style="opacity: 0.7;" data-i18n="uptime">UPTIME:</span> <span id="kusanagi-uptime">--:--:--</span>
+        <!-- Dashboard Header Elements (only visible on ArgoCD page) -->
+        <div class="dashboard-header-elements" id="dashboard-header-elements">
+            <!-- Kusanagi System Status -->
+            <div class="system-status-bar" id="kusanagi-system-status"
+                style="display: flex; gap: 1rem; align-items: center; justify-content: flex-end; padding: 0.5rem 1rem; background: rgba(0, 255, 249, 0.05); border-bottom: 1px solid rgba(0, 255, 249, 0.2); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--neon-cyan);">
+                <div class="system-item">
+                    <span style="opacity: 0.7;" data-i18n="uptime">UPTIME:</span> <span id="kusanagi-uptime">--:--:--</span>
+                </div>
+                <div class="system-item">
+                    <span style="opacity: 0.7;" data-i18n="cpu">CPU:</span> <span id="kusanagi-cpu">--%</span>
+                </div>
+                <div class="system-item">
+                    <span style="opacity: 0.7;" data-i18n="ram">RAM:</span> <span id="kusanagi-ram">--MB</span>
+                </div>
+                <div class="system-item">
+                    <span style="opacity: 0.7;" data-i18n="version">VERSION:</span> <span id="kusanagi-version">0.2.0</span>
+                </div>
+                <div class="system-item">
+                    <span style="opacity: 0.7;" data-i18n="db_status">DB:</span> <span id="kusanagi-db-status">--</span>
+                </div>
             </div>
-            <div class="system-item">
-                <span style="opacity: 0.7;" data-i18n="cpu">CPU:</span> <span id="kusanagi-cpu">--%</span>
-            </div>
-            <div class="system-item">
-                <span style="opacity: 0.7;" data-i18n="ram">RAM:</span> <span id="kusanagi-ram">--MB</span>
-            </div>
-            <div class="system-item">
-                <span style="opacity: 0.7;" data-i18n="version">VERSION:</span> <span id="kusanagi-version">0.2.0</span>
-            </div>
-            <div class="system-item">
-                <span style="opacity: 0.7;" data-i18n="db_status">DB:</span> <span id="kusanagi-db-status">--</span>
-            </div>
-        </div>
 
-        <!-- Quick External Links Bar -->
-        <div class="quick-links-bar" style="display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem 1rem; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--sidebar-border); flex-wrap: wrap;">
+            <!-- Quick External Links Bar -->
+            <div class="quick-links-bar" style="display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem 1rem; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--sidebar-border); flex-wrap: wrap;">
             <span style="font-size: 0.75rem; opacity: 0.6; margin-right: 0.5rem;">Links:</span>
             <a href="https://grafana.p.zacharie.org" target="_blank" class="quick-link" style="font-size: 0.8rem; padding: 2px 8px; background: rgba(255,120,50,0.2); border: 1px solid rgba(255,120,50,0.4); border-radius: 4px; color: #ff7832; text-decoration: none; transition: all 0.2s;">
                 <span>📈</span> Grafana
@@ -344,8 +346,7 @@
                 <span>👁️</span> OpenObserve
             </a>
         </div>
-
-
+        </div>
 
         <!-- Export Floating Button -->
         <div class="export-dropdown" style="position: fixed; bottom: 80px; right: 20px; z-index: 100;">
