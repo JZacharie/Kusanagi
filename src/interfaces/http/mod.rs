@@ -16,10 +16,16 @@ use std::sync::Arc;
 mod event_handlers;
 mod node_handlers;
 mod argocd_handlers;
+mod storage_handlers;
+mod service_handlers;
+mod ingress_handlers;
 
 pub use event_handlers::*;
 pub use node_handlers::*;
 pub use argocd_handlers::*;
+pub use storage_handlers::*;
+pub use service_handlers::*;
+pub use ingress_handlers::*;
 
 /// Application state shared across handlers
 pub struct AppState {
@@ -39,18 +45,31 @@ impl AppState {
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(health_check)
         .service(get_cluster_overview)
+        // Nodes
         .service(list_nodes)
         .service(get_nodes_status)
         .service(get_node_details)
         .service(is_node_ready)
+        // Pods
         .service(list_pods)
         .service(get_pod_details)
+        // Events
         .service(list_events)
         .service(list_warning_events)
         .service(get_event_stats)
+        // Namespaces
         .service(list_namespaces)
+        // Services
         .service(list_services)
-        .service(get_storage_info);
+        .service(get_service_stats)
+        .service(get_service_details)
+        // Ingresses
+        .service(list_ingresses)
+        .service(get_ingress_stats)
+        .service(get_ingress_details)
+        // Storage
+        .service(get_storage_info)
+        .service(get_storage_stats);
 }
 
 #[get("/health")]

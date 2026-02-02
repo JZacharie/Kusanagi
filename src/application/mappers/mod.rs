@@ -5,6 +5,7 @@
 
 use crate::application::dtos::*;
 use crate::domain::entities::*;
+use serde::{Deserialize, Serialize};
 
 /// Mapper for cluster-related entities
 pub struct ClusterMapper;
@@ -216,6 +217,39 @@ impl NamespaceMapper {
     pub fn to_dto_list(entities: Vec<Namespace>) -> Vec<NamespaceDto> {
         entities.into_iter().map(Self::to_dto).collect()
     }
+}
+
+/// Mapper for ingress entities
+pub struct IngressMapper;
+
+impl IngressMapper {
+    /// Convert domain entity to DTO
+    pub fn to_dto(entity: Ingress) -> IngressDto {
+        IngressDto {
+            name: entity.name,
+            namespace: entity.namespace,
+            hosts: entity.hosts,
+            paths: entity.paths.len(),
+            tls: !entity.tls.is_empty(),
+            age: entity.age,
+        }
+    }
+
+    /// Convert multiple entities to DTOs
+    pub fn to_dto_list(entities: Vec<Ingress>) -> Vec<IngressDto> {
+        entities.into_iter().map(Self::to_dto).collect()
+    }
+}
+
+/// DTO for ingress information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IngressDto {
+    pub name: String,
+    pub namespace: String,
+    pub hosts: Vec<String>,
+    pub paths: usize,
+    pub tls: bool,
+    pub age: String,
 }
 
 /// Generic paginated mapper
