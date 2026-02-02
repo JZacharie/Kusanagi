@@ -264,8 +264,10 @@ function switchTab(tabName) {
     document.querySelectorAll(".tab-content").forEach(section => {
         if (section.dataset.tab === tabName) {
             section.style.display = "block";
+            section.classList.add("active");
         } else {
             section.style.display = "none";
+            section.classList.remove("active");
         }
     });
 

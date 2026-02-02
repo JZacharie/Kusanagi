@@ -272,12 +272,7 @@
                             <span class="nav-link-text">News</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-page="quotas" href="#quotas">
-                            <i class="mdi mdi-chart-pie"></i>
-                            <span class="nav-link-text">Quotas</span>
-                        </a>
-                    </li>
+                    <!-- Quotas moved to Metrics section -->
                 </ul>
             </div>
         </nav>
@@ -366,6 +361,8 @@
     </div>
 
     <!-- ArgoCD Status Section -->
+    <section class="argocd-section tab-content active" data-tab="argocd">
+        <h2 class="section-title">ArgoCD Applications Status</h2>
 
         <div class="argocd-stats" id="argocd-stats">
             <div class="stat-box info">
@@ -743,68 +740,7 @@
     </section>
 
     <!-- Quotas Section -->
-    <section class="argocd-section tab-content" data-tab="quotas" style="display: none;">
-        <h2 class="section-title">📊 Google Services Quotas</h2>
 
-        <div class="quotas-grid" id="quotas-grid">
-            <!-- Antigravity Quota -->
-            <div class="quota-card">
-                <div class="quota-header">
-                    <span class="quota-icon">⚡</span>
-                    <span class="quota-title">Antigravity (Gemini)</span>
-                </div>
-                <div class="quota-gauge-container">
-                    <div class="quota-gauge" id="antigravity-gauge" data-value="0">
-                        <svg viewBox="0 0 100 100" class="gauge-svg">
-                            <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-bg" />
-                            <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-fill" id="antigravity-fill"
-                                stroke-dasharray="0 251" />
-                        </svg>
-                        <div class="gauge-value" id="antigravity-value">0%</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- NotebookLM Quota -->
-            <div class="quota-card">
-                <div class="quota-header">
-                    <span class="quota-icon">📓</span>
-                    <span class="quota-title">NotebookLM</span>
-                </div>
-                <div class="quota-gauge-container">
-                    <div class="quota-gauge" id="notebooklm-gauge" data-value="0">
-                        <svg viewBox="0 0 100 100" class="gauge-svg">
-                            <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-bg" />
-                            <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-fill" id="notebooklm-fill"
-                                stroke-dasharray="0 251" />
-                        </svg>
-                        <div class="gauge-value" id="notebooklm-value">0%</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Google Storage Quota -->
-            <div class="quota-card full-width">
-                <div class="quota-header">
-                    <span class="quota-icon">💾</span>
-                    <span class="quota-title">Google One Storage</span>
-                </div>
-                <div class="storage-bar-container">
-                    <div class="storage-info">
-                        <span id="storage-used">0 GB</span> used of <span id="storage-total">2 TB</span>
-                    </div>
-                    <div class="storage-progress-bar">
-                        <div class="storage-fill" id="storage-fill" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="quota-footer">
-            <p>Data last updated: <span id="quota-updated-at">-</span></p>
-            <button class="cyber-btn" onclick="fetchQuotas()">🔄 Refresh Data</button>
-        </div>
-    </section>
 
     <!-- Network Visualization Section -->
     <section class="argocd-section tab-content" data-tab="network" style="display: none;">
@@ -910,6 +846,70 @@
 
         <div id="metrics-content">
             <div class="loading">Loading metrics from Prometheus...</div>
+        </div>
+
+        <!-- Google Services Quotas Sub-section -->
+        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid rgba(0,255,249,0.2);">
+            <h3 class="section-title" style="font-size: 1.2rem;">📊 Google Services Quotas</h3>
+            
+            <div class="quotas-grid" id="quotas-grid">
+                <!-- Antigravity Quota -->
+                <div class="quota-card">
+                    <div class="quota-header">
+                        <span class="quota-icon">⚡</span>
+                        <span class="quota-title">Antigravity (Gemini)</span>
+                    </div>
+                    <div class="quota-gauge-container">
+                        <div class="quota-gauge" id="antigravity-gauge" data-value="0">
+                            <svg viewBox="0 0 100 100" class="gauge-svg">
+                                <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-bg" />
+                                <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-fill" id="antigravity-fill"
+                                    stroke-dasharray="0 251" />
+                            </svg>
+                            <div class="gauge-value" id="antigravity-value">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NotebookLM Quota -->
+                <div class="quota-card">
+                    <div class="quota-header">
+                        <span class="quota-icon">📓</span>
+                        <span class="quota-title">NotebookLM</span>
+                    </div>
+                    <div class="quota-gauge-container">
+                        <div class="quota-gauge" id="notebooklm-gauge" data-value="0">
+                            <svg viewBox="0 0 100 100" class="gauge-svg">
+                                <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-bg" />
+                                <path d="M20,90 A40,40 0 1,1 80,90" class="gauge-fill" id="notebooklm-fill"
+                                    stroke-dasharray="0 251" />
+                            </svg>
+                            <div class="gauge-value" id="notebooklm-value">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Storage Quota -->
+                <div class="quota-card full-width">
+                    <div class="quota-header">
+                        <span class="quota-icon">💾</span>
+                        <span class="quota-title">Google One Storage</span>
+                    </div>
+                    <div class="storage-bar-container">
+                        <div class="storage-info">
+                            <span id="storage-used">0 GB</span> used of <span id="storage-total">2 TB</span>
+                        </div>
+                        <div class="storage-progress-bar">
+                            <div class="storage-fill" id="storage-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quota-footer">
+                <p>Data last updated: <span id="quota-updated-at">-</span></p>
+                <button class="cyber-btn" onclick="fetchQuotas()">🔄 Refresh Data</button>
+            </div>
         </div>
     </section>
 
