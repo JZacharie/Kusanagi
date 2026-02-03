@@ -251,7 +251,7 @@ const TableManager = {
 };
 
 // === TAB NAVIGATION ===
-function switchTab(tabName) {
+async function switchTab(tabName) {
     // Update buttons
     document.querySelectorAll(".tab-btn").forEach(btn => {
         btn.classList.remove("active");
@@ -282,6 +282,14 @@ function switchTab(tabName) {
         window.KusanagiDashboard.activeTab = tabName;
     }
 
+    // Load partial if needed (for sections that support it)
+    if (window.PageLoader && PageLoader.partials[tabName]) {
+        const section = document.querySelector(`section[data-tab="${tabName}"]`);
+        if (section && section.dataset.loaded !== 'true') {
+            await PageLoader.loadPartial(tabName);
+        }
+    }
+
     // Load data for specific tabs
     if (tabName === "proxmox" && window.ProxmoxDashboard) {
         ProxmoxDashboard.init();
@@ -293,6 +301,10 @@ function switchTab(tabName) {
         CalendarDashboard.init();
     } else if (tabName === "security" && window.SecurityDashboard) {
         SecurityDashboard.init();
+    } else if (tabName === "alerts" && window.AlertsManager) {
+        AlertsManager.init();
+    } else if (tabName === "system" && window.KusanagiSystem) {
+        KusanagiSystem.init();
     }
 }
 
