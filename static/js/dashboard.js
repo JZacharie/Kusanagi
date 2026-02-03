@@ -315,7 +315,7 @@ const MetricsManager = {
      */
     async loadMetrics() {
         try {
-            const response = await fetch('/api/prometheus/metrics');
+            const response = await fetch('/api/metrics');
             if (!response.ok) {
                 let errorMsg = `Server returned ${response.status}`;
                 try {
