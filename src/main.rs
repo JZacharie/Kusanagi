@@ -453,9 +453,16 @@ async fn alerts_status() -> impl Responder {
     match legacy::alertmanager::get_cached_active_alerts().await {
         Ok(alerts) => HttpResponse::Ok().json(alerts),
         Err(e) => {
-            tracing::error!("Failed to get alerts: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
+            tracing::warn!("Alertmanager not available: {}", e);
+            // Return empty alerts response instead of 500 error
+            HttpResponse::Ok().json(serde_json::json!({
+                "critical": [],
+                "warning": [],
+                "info": [],
+                "total": 0,
+                "firing": 0,
+                "pending": 0,
+                "_warning": format!("Alertmanager unavailable: {}", e)
             }))
         }
     }

@@ -603,7 +603,11 @@ body {
 
 /* ArgoCD Status Section */
 .argocd-section {
-  margin: 3rem 0;
+  margin: 1.5rem 0;
+}
+
+.argocd-section:first-of-type {
+  margin-top: 0;
 }
 
 .section-title {

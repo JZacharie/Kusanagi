@@ -102,6 +102,11 @@ body.theme-loot-drop .news-card {
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 1.5rem 0;
+}
+
+body.theme-loot-drop .argocd-section:first-of-type {
+    margin-top: 0;
 }
 
 body.theme-loot-drop .stat-box::before,

@@ -628,11 +628,15 @@ const AlertsManager = {
         const container = document.getElementById('alerts-content');
         if (!container) return;
 
+        // Check if there's a warning from the backend (e.g., Alertmanager unavailable)
+        const warningMsg = data._warning || data.warning_message;
+
         if (data.total === 0) {
             container.innerHTML = `
                 <div class="no-alerts">
                     <span class="success-icon">✅</span>
                     <p>No active alerts</p>
+                    ${warningMsg ? `<p class="alert-warning-message" style="color: var(--neon-orange); margin-top: 1rem; font-size: 0.9rem;">⚠️ ${warningMsg}</p>` : ''}
                 </div>
             `;
             return;
