@@ -141,8 +141,7 @@ class Sidebar {
         'calendar': 'Calendar',
         'weather': 'Weather',
         'chat': 'AI Chat',
-        'evolution': 'Evolution',
-        'docs': 'Docs',
+        'docs': 'About',
         'news': 'News',
         'quotas': 'Quotas'
       };

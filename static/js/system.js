@@ -27,9 +27,24 @@ const KusanagiSystem = {
             if (response.ok) {
                 const data = await response.json();
                 this.updateStatusUI(data);
+            } else {
+                this.updateStatusUI({
+                    uptime: 'N/A',
+                    cpu_usage: 0,
+                    memory_usage_mb: 0,
+                    version: 'Unknown',
+                    _warning: 'System status unavailable'
+                });
             }
         } catch (error) {
             console.error("Failed to fetch system status:", error);
+            this.updateStatusUI({
+                uptime: 'N/A',
+                cpu_usage: 0,
+                memory_usage_mb: 0,
+                version: 'Unknown',
+                _warning: 'System status unavailable'
+            });
         }
     },
 
@@ -95,18 +110,27 @@ const KusanagiSystem = {
                 } else {
                     container.textContent = logs || "No logs available.";
                 }
-                // Auto-scroll to bottom
-                const logsContainer = document.getElementById('system-logs-container');
-                if (logsContainer) {
-                    logsContainer.scrollTop = logsContainer.scrollHeight;
-                }
             } else {
-                container.textContent = "Failed to load logs.";
+                // Handle non-ok response
+                container.innerHTML = `<div style="color: var(--neon-orange); padding: 1rem;">
+                    ⚠️ Logs unavailable. 
+                    <button onclick="KusanagiSystem.fetchSystemLogs()" class="cyber-btn" style="margin-left: 1rem;">Retry</button>
+                </div>`;
+            }
+            // Auto-scroll to bottom
+            const logsContainer = document.getElementById('system-logs-container');
+            if (logsContainer) {
+                logsContainer.scrollTop = logsContainer.scrollHeight;
             }
         } catch (error) {
             console.error("Failed to fetch logs:", error);
             const container = document.getElementById('system-logs-content');
-            if (container) container.textContent = "Error loading logs.";
+            if (container) {
+                container.innerHTML = `<div style="color: var(--neon-orange); padding: 1rem;">
+                    ⚠️ Error loading logs. 
+                    <button onclick="KusanagiSystem.fetchSystemLogs()" class="cyber-btn" style="margin-left: 1rem;">Retry</button>
+                </div>`;
+            }
         }
     },
 

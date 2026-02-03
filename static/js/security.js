@@ -12,11 +12,23 @@ const SecurityDashboard = {
     async fetchAndRender() {
         try {
             // Fetch all data in parallel
+            const [vulnsRes, policiesRes, fenceRes, violationsRes] = await Promise.all([
+                fetch('/api/security/vulnerabilities'),
+                fetch('/api/security/policies'),
+                fetch('/api/security/fence'),
+                fetch('/api/security/policies/violations')
+            ]);
+
+            // Check if any request failed
+            if (!vulnsRes.ok || !policiesRes.ok || !fenceRes.ok || !violationsRes.ok) {
+                throw new Error('Security service unavailable');
+            }
+
             const [vulns, policies, fence, violations] = await Promise.all([
-                fetch('/api/security/vulnerabilities').then(r => r.json()),
-                fetch('/api/security/policies').then(r => r.json()),
-                fetch('/api/security/fence').then(r => r.json()),
-                fetch('/api/security/policies/violations').then(r => r.json())
+                vulnsRes.json(),
+                policiesRes.json(),
+                fenceRes.json(),
+                violationsRes.json()
             ]);
 
             this.renderStats(vulns, policies, fence, violations);
@@ -25,10 +37,41 @@ const SecurityDashboard = {
             this.renderViolations(violations);
         } catch (error) {
             console.error('Failed to fetch Security data:', error);
-            const container = document.getElementById('security-vulns-content');
-            if (container) {
-                container.innerHTML = `<div class="error">Failed to load Security data: ${error.message}</div>`;
-            }
+            this.renderSecurityError('Security data unavailable. The security service may not be configured.');
+        }
+    },
+
+    renderSecurityError(message) {
+        // Update stats to show N/A
+        document.getElementById('security-critical-vulns').textContent = '-';
+        document.getElementById('security-high-vulns').textContent = '-';
+        document.getElementById('security-total-policies').textContent = '-';
+        document.getElementById('security-violations-count').textContent = '-';
+        document.getElementById('fence-status-text').textContent = 'N/A';
+
+        // Render error in vulnerabilities container
+        const container = document.getElementById('security-vulns-content');
+        if (container) {
+            container.innerHTML = `
+                <div class="no-issues" style="padding: 2rem; text-align: center;">
+                    <span style="font-size: 2rem;">🛡️</span>
+                    <p>Security data unavailable</p>
+                    <p style="color: var(--neon-orange); margin-top: 1rem; font-size: 0.9rem;">⚠️ ${message}</p>
+                    <button onclick="SecurityDashboard.fetchAndRender()" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
+                </div>
+            `;
+        }
+
+        // Render error in policies container
+        const policiesContainer = document.getElementById('security-policies-content');
+        if (policiesContainer) {
+            policiesContainer.innerHTML = '<div class="no-issues">Security policies unavailable</div>';
+        }
+
+        // Render error in violations container
+        const violationsContainer = document.getElementById('security-violations-content');
+        if (violationsContainer) {
+            violationsContainer.innerHTML = '<div class="no-issues">Policy violations unavailable</div>';
         }
     },
 

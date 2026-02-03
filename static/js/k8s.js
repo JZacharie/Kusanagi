@@ -502,30 +502,41 @@ const K8sManager = {
             const response = await fetch('/api/nodes/status');
             const data = await response.json();
             if (data.error) {
-                const el = document.getElementById('nodes-container');
-                if (el) el.innerHTML = `<div class="loading" style="color: #ff4444;">Error: ${data.error}</div>`;
+                this.renderNodesError(data.error);
                 return;
+            }
+            // Check if there's a warning from the backend
+            if (data._warning) {
+                console.warn('Nodes warning:', data._warning);
             }
             const stats = { 'node-total': data.total_nodes, 'node-ready': data.ready_nodes, 'node-notready': data.not_ready_nodes };
             for (const [id, value] of Object.entries(stats)) {
                 const el = document.getElementById(id);
                 if (el) el.textContent = value;
             }
-            this.renderNodes(data.nodes);
+            this.renderNodes(data);
         } catch (error) {
             console.error('Nodes error:', error);
-            const el = document.getElementById('nodes-container');
-            if (el) el.innerHTML = `<div class="loading" style="color: #ff4444;">Error: Failed to fetch nodes status.</div>`;
-            const diagnosticTool = document.getElementById('nodes-diagnostic-tool');
-            if (diagnosticTool) diagnosticTool.style.display = 'block';
+            this.renderNodesError('Failed to fetch nodes status from server');
         }
     },
 
-    renderNodes(nodes) {
+    renderNodes(data) {
         const container = document.getElementById('nodes-container');
         if (!container) return;
+
+        const nodes = data.nodes || [];
+        const warningMsg = data._warning || data.warning_message;
+
         if (!nodes || nodes.length === 0) {
-            container.innerHTML = '<div class="no-issues">No nodes found</div>';
+            container.innerHTML = `
+                <div class="no-issues" style="padding: 2rem; text-align: center;">
+                    <span style="font-size: 2rem;">🖥️</span>
+                    <p>No nodes found</p>
+                    ${warningMsg ? `<p style="color: var(--neon-orange); margin-top: 1rem; font-size: 0.9rem;">⚠️ ${warningMsg}</p>` : ''}
+                    <button onclick="K8sManager.fetchNodesStatus()" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
+                </div>
+            `;
             return;
         }
         nodes.sort((a, b) => a.name.localeCompare(b.name));
@@ -561,6 +572,22 @@ const K8sManager = {
                 </div>
             `;
         }).join('');
+    },
+
+    renderNodesError(message) {
+        const container = document.getElementById('nodes-container');
+        if (!container) return;
+        container.innerHTML = `
+            <div class="error-state" style="padding: 2rem; text-align: center;">
+                <span style="font-size: 2rem;">⚠️</span>
+                <p style="color: #ff4444;">Failed to load nodes</p>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">${message}</p>
+                <button onclick="K8sManager.fetchNodesStatus()" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
+            </div>
+        `;
+        // Show diagnostic tool on error
+        const diagnosticTool = document.getElementById('nodes-diagnostic-tool');
+        if (diagnosticTool) diagnosticTool.style.display = 'block';
     },
 
     async runNodesDiagnostic() {
@@ -711,11 +738,12 @@ const K8sManager = {
                 const stats = { 'events-total': data.total_events, 'events-warnings': data.warning_count, 'events-normal': data.normal_count, 'events-table-count': data.total_events };
                 for (const [id, value] of Object.entries(stats)) { const el = document.getElementById(id); if (el) el.textContent = value; }
                 this.renderEventsTable(data);
+            } else {
+                this.renderEventsError(data.error);
             }
         } catch (error) {
             console.error('Failed to fetch events:', error);
-            const container = document.getElementById('events-content');
-            if (container) container.innerHTML = `<div class="loading" style="color: #ff4444;">Error: Failed to fetch events.</div>`;
+            this.renderEventsError('Failed to fetch events from server');
         }
     },
 
@@ -729,7 +757,23 @@ const K8sManager = {
 
     renderEventsTable(data) {
         const container = document.getElementById('events-content');
-        if (!container || !data.events || data.events.length === 0) return;
+        if (!container) return;
+
+        // Check if there's a warning from the backend (e.g., Kubernetes unavailable)
+        const warningMsg = data._warning || data.warning_message;
+
+        // Handle empty events
+        if (!data.events || data.events.length === 0) {
+            container.innerHTML = `
+                <div class="no-issues" style="padding: 2rem; text-align: center;">
+                    <span style="font-size: 2rem;">📭</span>
+                    <p>No events found</p>
+                    ${warningMsg ? `<p style="color: var(--neon-orange); margin-top: 1rem; font-size: 0.9rem;">⚠️ ${warningMsg}</p>` : ''}
+                </div>
+            `;
+            return;
+        }
+
         container.innerHTML = `
             <table class="issues-table">
                 <thead><tr><th>Type</th><th>Object</th><th>Reason</th><th>Message</th><th>Age</th><th>Count</th></tr></thead>
@@ -747,6 +791,21 @@ const K8sManager = {
                 <button class="cyber-btn" onclick="K8sManager.changeEventsPage(-1)">PREV</button>
                 <span>Page ${data.page} of ${data.total_pages}</span>
                 <button class="cyber-btn" onclick="K8sManager.changeEventsPage(1)">NEXT</button>
+            </div>
+            ${warningMsg ? `<div style="text-align: center; padding: 0.5rem; color: var(--neon-orange); font-size: 0.85rem;">⚠️ ${warningMsg}</div>` : ''}
+        `;
+    },
+
+    renderEventsError(message) {
+        const container = document.getElementById('events-content');
+        if (!container) return;
+        container.innerHTML = `
+            <div class="error-state" style="padding: 2rem; text-align: center;">
+                <span style="font-size: 2rem;">⚠️</span>
+                <p style="color: #ff4444;">Failed to load events</p>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">${message}</p>
+                <button onclick="K8sManager.fetchEvents(K8sManager.currentEventFilter || 'all', K8sManager.currentEventPage || 1)" 
+                    class="cyber-btn" style="margin-top: 1rem;">Retry</button>
             </div>
         `;
     },
