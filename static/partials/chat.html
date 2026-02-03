@@ -1,0 +1,21 @@
+<!-- chat section -->
+<h2 class="section-title">💬 Kusanagi Chat</h2>
+
+<div class="chat-container">
+    <div class="chat-messages" id="chat-messages">
+        <div class="chat-message bot">
+            <div class="message-content">
+                <span class="bot-header"><img src="/static/images/logo.png" class="chat-avatar" alt="Kusanagi">
+                    <strong>Kusanagi</strong></span><br>
+                Welcome! Type <code>/help</code> for available commands, or ask me about your cluster
+                status.
+            </div>
+        </div>
+    </div>
+    <div class="chat-input-container">
+        <input type="text" id="chat-input" class="chat-input"
+            placeholder="Type a command or question... (e.g., /status, /nodes, /events)"
+            onkeypress="handleChatKeypress(event)">
+        <button class="chat-send-btn" onclick="sendChatMessage()">Send ➤</button>
+    </div>
+</div>
