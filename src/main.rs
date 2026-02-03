@@ -226,9 +226,12 @@ async fn backups_status(data: web::Data<AppState>) -> impl Responder {
     match legacy::backups::get_backups_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
-            tracing::error!("Failed to get backups status: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
+            tracing::warn!("Failed to get backups status: {}", e);
+            // Return empty backups response instead of 500 error
+            HttpResponse::Ok().json(serde_json::json!({
+                "total_cronjobs": 0,
+                "cronjobs": [],
+                "_warning": format!("Backups data unavailable: {}", e)
             }))
         }
     }
@@ -239,9 +242,13 @@ async fn storage_status(data: web::Data<AppState>) -> impl Responder {
     match legacy::storage::get_storage_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
-            tracing::error!("Failed to get storage status: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
+            tracing::warn!("Failed to get storage status: {}", e);
+            // Return empty storage response instead of 500 error
+            HttpResponse::Ok().json(serde_json::json!({
+                "pvc_count": 0,
+                "pvcs": [],
+                "pvc_total_capacity": "0 Gi",
+                "_warning": format!("Storage data unavailable: {}", e)
             }))
         }
     }
@@ -252,9 +259,13 @@ async fn services_status(data: web::Data<AppState>) -> impl Responder {
     match legacy::services::get_services(&data.client).await {
         Ok(info) => HttpResponse::Ok().json(info),
         Err(e) => {
-            tracing::error!("Failed to get services info: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
+            tracing::warn!("Failed to get services info: {}", e);
+            // Return empty services response instead of 500 error
+            HttpResponse::Ok().json(serde_json::json!({
+                "services": [],
+                "total": 0,
+                "namespaces": [],
+                "_warning": format!("Services data unavailable: {}", e)
             }))
         }
     }
@@ -265,9 +276,13 @@ async fn ingress_status(data: web::Data<AppState>) -> impl Responder {
     match legacy::ingress::get_ingresses(&data.client).await {
         Ok(info) => HttpResponse::Ok().json(info),
         Err(e) => {
-            tracing::error!("Failed to get ingress info: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
+            tracing::warn!("Failed to get ingress info: {}", e);
+            // Return empty ingress response instead of 500 error
+            HttpResponse::Ok().json(serde_json::json!({
+                "ingresses": [],
+                "total": 0,
+                "namespaces": [],
+                "_warning": format!("Ingress data unavailable: {}", e)
             }))
         }
     }
@@ -278,9 +293,13 @@ async fn pods_status(data: web::Data<AppState>) -> impl Responder {
     match legacy::pods::get_pods_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
-            tracing::error!("Failed to get pods status: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
+            tracing::warn!("Failed to get pods status: {}", e);
+            // Return empty pods response instead of 500 error
+            HttpResponse::Ok().json(serde_json::json!({
+                "pods_in_error": [],
+                "total_pods": 0,
+                "error_count": 0,
+                "_warning": format!("Pods data unavailable: {}", e)
             }))
         }
     }
