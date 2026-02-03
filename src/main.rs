@@ -143,9 +143,14 @@ async fn nodes_status(data: web::Data<AppState>) -> impl Responder {
     match legacy::nodes::get_nodes_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
-            tracing::error!("Failed to get nodes status: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
+            tracing::warn!("Failed to get nodes status: {}", e);
+            // Return empty nodes response instead of 500 error
+            HttpResponse::Ok().json(serde_json::json!({
+                "total_nodes": 0,
+                "ready_nodes": 0,
+                "not_ready_nodes": 0,
+                "nodes": [],
+                "_warning": format!("Kubernetes nodes unavailable: {}", e)
             }))
         }
     }
@@ -180,8 +185,18 @@ async fn k8s_events(data: web::Data<AppState>, query: web::Query<EventsQuery>) -
     match legacy::events::get_events(&data.client, query.event_type.clone(), query.page, query.per_page).await {
         Ok(events) => HttpResponse::Ok().json(events),
         Err(e) => {
-            tracing::error!("Failed to get events: {}", e);
-            e.error_response()
+            tracing::warn!("Failed to get events: {}", e);
+            // Return empty events response instead of 500 error
+            HttpResponse::Ok().json(serde_json::json!({
+                "total_events": 0,
+                "warning_count": 0,
+                "normal_count": 0,
+                "page": query.page.unwrap_or(1),
+                "per_page": query.per_page.unwrap_or(20),
+                "total_pages": 0,
+                "events": [],
+                "_warning": format!("Kubernetes events unavailable: {}", e)
+            }))
         }
     }
 }
