@@ -27,7 +27,7 @@
 //! ```
 
 use crate::config;
-use crate::error::{KusanagiError, Result};
+use crate::error::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -130,8 +130,8 @@ struct CacheEntry<V> {
     created_at: Instant,
     /// Time-to-live (None = permanent)
     ttl: Option<Duration>,
-    /// Number of times this entry was accessed
-    access_count: u64,
+    /// Number of times this entry was accessed (for future analytics)
+    _access_count: u64,
 }
 
 impl<V> CacheEntry<V> {
@@ -141,7 +141,7 @@ impl<V> CacheEntry<V> {
             value,
             created_at: Instant::now(),
             ttl,
-            access_count: 0,
+            _access_count: 0,
         }
     }
 
@@ -153,7 +153,8 @@ impl<V> CacheEntry<V> {
         }
     }
 
-    /// Get the remaining TTL
+    /// Get the remaining TTL (for future use)
+    #[allow(dead_code)]
     fn remaining_ttl(&self) -> Option<Duration> {
         self.ttl.map(|ttl| {
             let elapsed = self.created_at.elapsed();
@@ -165,9 +166,10 @@ impl<V> CacheEntry<V> {
         })
     }
 
-    /// Record an access
+    /// Record an access (for future analytics)
+    #[allow(dead_code)]
     fn record_access(&mut self) {
-        self.access_count += 1;
+        self._access_count += 1;
     }
 }
 

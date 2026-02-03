@@ -46,6 +46,7 @@ pub struct AppState {
 }
 
 #[derive(Deserialize)]
+#[allow(hidden_glob_reexports)]
 struct SyncRequest {
     app_name: String,
 }
@@ -164,6 +165,7 @@ async fn nodes_debug(data: web::Data<AppState>) -> impl Responder {
 
 /// Helper trait for converting module results to HTTP responses
 /// This bridges the gap between old String-based errors and new KusanagiError
+#[allow(dead_code)]
 async fn handle_result<T>(result: std::result::Result<T, String>) -> HttpResponse 
 where
     T: serde::Serialize,

@@ -18,4 +18,5 @@ pub mod services;
 // Re-export common types
 pub use entities::*;
 pub use ports::*;
-pub use services::*;
+// Note: services module is not re-exported to avoid conflicts with ports
+// Import directly from domain::services when needed
