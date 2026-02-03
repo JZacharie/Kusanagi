@@ -643,25 +643,66 @@ const K8sManager = {
     async fetchStorageStatus() {
         try {
             const response = await fetch('/api/storage');
-            const data = await response.json();
-            if (!data.error) {
-                this.storageData = data.pvcs || [];
-                const countEl = document.getElementById('pvc-table-count');
-                if (countEl) countEl.textContent = this.storageData.length;
-                this.renderStorageTable();
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}`);
             }
+            const data = await response.json();
+            
+            // Update stats grid
+            const stats = {
+                'pvc-total-count': data.pvc_count || 0,
+                'pvc-bound-count': (data.pvcs || []).filter(p => p.status === 'Bound').length,
+                'pvc-pending-count': (data.pvcs || []).filter(p => p.status !== 'Bound').length,
+                'pvc-total-storage': data.pvc_total_capacity || '-'
+            };
+            for (const [id, value] of Object.entries(stats)) {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            }
+            
+            if (data.error) {
+                console.warn('Storage API returned error:', data.error);
+                this.renderStorageError(data.error);
+                return;
+            }
+            
+            this.storageData = data.pvcs || [];
+            const countEl = document.getElementById('pvc-table-count');
+            if (countEl) countEl.textContent = this.storageData.length;
+            this.renderStorageTable(data);
         } catch (error) {
             console.error('Failed to fetch storage status:', error);
-            const container = document.getElementById('pvc-content');
-            if (container) container.innerHTML = `<div class="loading" style="color: #ff4444;">Error: Failed to fetch storage data.</div>`;
+            this.renderStorageError('Failed to fetch storage data from server');
         }
     },
 
-    renderStorageTable() {
+    renderStorageError(message) {
         const container = document.getElementById('pvc-content');
         if (!container) return;
+        container.innerHTML = `
+            <div class="error-state" style="padding: 2rem; text-align: center;">
+                <span style="font-size: 2rem;">💾</span>
+                <p style="color: #ff4444;">Storage data unavailable</p>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">${message}</p>
+                <button onclick="K8sManager.fetchStorageStatus()" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
+            </div>
+        `;
+    },
+
+    renderStorageTable(data = null) {
+        const container = document.getElementById('pvc-content');
+        if (!container) return;
+        
+        const warningMsg = data?._warning || data?.warning_message;
+        
         if (!this.storageData || this.storageData.length === 0) {
-            container.innerHTML = '<div class="no-issues" style="color: var(--neon-cyan);">No PVCs found</div>';
+            container.innerHTML = `
+                <div class="no-issues" style="padding: 2rem; text-align: center;">
+                    <span style="font-size: 2rem;">💾</span>
+                    <p>No PVCs found</p>
+                    ${warningMsg ? `<p style="color: var(--neon-orange); margin-top: 1rem; font-size: 0.9rem;">⚠️ ${warningMsg}</p>` : ''}
+                </div>
+            `;
             return;
         }
         const sortedData = [...this.storageData].sort((a, b) => {
