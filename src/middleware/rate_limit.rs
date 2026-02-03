@@ -253,17 +253,17 @@ fn extract_client_key(req: &ServiceRequest, extractor: &KeyExtractor) -> String 
 /// Different rate limits for different endpoints
 #[derive(Debug, Clone)]
 pub struct TieredRateLimiter {
-    default: RateLimiter,
-    api: RateLimiter,
-    strict: RateLimiter,
+    _default: RateLimiter,
+    _api: RateLimiter,
+    _strict: RateLimiter,
 }
 
 impl TieredRateLimiter {
     pub fn new() -> Self {
         Self {
-            default: RateLimiter::per_minute(100),
-            api: RateLimiter::per_minute(1000), // API endpoints allow more
-            strict: RateLimiter::strict(),      // Sensitive endpoints
+            _default: RateLimiter::per_minute(100),
+            _api: RateLimiter::per_minute(1000), // API endpoints allow more
+            _strict: RateLimiter::strict(),      // Sensitive endpoints
         }
     }
 

@@ -238,6 +238,7 @@ async fn get_pod_details(
 }
 
 #[derive(Deserialize)]
+#[allow(hidden_glob_reexports)]
 struct ListEventsQuery {
     namespace: Option<String>,
     event_type: Option<String>,
@@ -293,8 +294,9 @@ async fn get_storage_info(data: web::Data<AppState>) -> impl Responder {
     }
 }
 
-/// Error response structure
+/// Error response structure (for future error handling)
 #[derive(serde::Serialize)]
+#[allow(dead_code)]
 struct ErrorResponse {
     error: String,
     message: String,
