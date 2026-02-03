@@ -21,7 +21,7 @@ pub struct ListNodesQuery {
 #[get("/api/nodes")]
 pub async fn list_nodes(
     data: web::Data<AppState>,
-    query: web::Query<ListNodesQuery>,
+    _query: web::Query<ListNodesQuery>,
 ) -> impl Responder {
     let use_case = GetNodesUseCase::new(Arc::clone(&data.k8s_repo));
 

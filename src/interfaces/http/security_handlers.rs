@@ -2,7 +2,6 @@
 //!
 //! HTTP handlers for security operations.
 
-use std::sync::Arc;
 use actix_web::{get, post, web, HttpResponse, Responder, ResponseError};
 use serde::Deserialize;
 

@@ -181,7 +181,7 @@ where
 
             // Check limit
             if client_state.count >= max_requests {
-                let retry_after = window.as_secs() - now.duration_since(client_state.window_start).as_secs();
+                let _retry_after = window.as_secs() - now.duration_since(client_state.window_start).as_secs();
                 
                 warn!(
                     client_key = %key,

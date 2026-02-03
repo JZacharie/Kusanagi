@@ -330,7 +330,7 @@ struct RangeQuery {
 }
 
 #[get("/api/prometheus/range")]
-async fn prometheus_range(data: web::Data<AppState>, query: web::Query<RangeQuery>) -> impl Responder {
+async fn prometheus_range(_data: web::Data<AppState>, query: web::Query<RangeQuery>) -> impl Responder {
     match legacy::prometheus::query_range(&query.query, query.start, query.end, &query.step).await {
         Ok(result) => HttpResponse::Ok().json(result),
         Err(e) => {

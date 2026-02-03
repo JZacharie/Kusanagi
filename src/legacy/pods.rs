@@ -727,7 +727,7 @@ fn get_pod_resource_sum(spec: Option<&k8s_openapi::api::core::v1::PodSpec>, req_
     }
     
     // Sum init containers
-    if let Some(init_containers) = &spec.init_containers {
+    if let Some(_init_containers) = &spec.init_containers {
         // Init containers run sequentially, so the requirement is the MAX of any init container
         // But for "limits" usually we care about the max spike. 
         // For sizing, it's complex (max(init) + sum(app)).
