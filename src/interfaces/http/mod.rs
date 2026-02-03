@@ -10,7 +10,7 @@ use serde::Deserialize;
 use crate::application::use_cases::*;
 
 use crate::domain::ports::*;
-use crate::error::KusanagiError;
+
 use std::sync::Arc;
 
 mod event_handlers;

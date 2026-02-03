@@ -2,7 +2,6 @@
 //!
 //! HTTP handlers for chat operations.
 
-use std::sync::Arc;
 use actix_web::{get, post, web, HttpResponse, Responder, ResponseError};
 use serde::Deserialize;
 

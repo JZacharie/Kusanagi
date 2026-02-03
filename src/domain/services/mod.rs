@@ -33,7 +33,7 @@ impl ClusterService {
 
     /// Get comprehensive cluster status
     pub async fn get_cluster_status(&self) -> Result<ClusterStatus> {
-        let overview = self.k8s_repo.get_cluster_overview().await?;
+        let _overview = self.k8s_repo.get_cluster_overview().await?;
         let metrics = self.metrics_repo.get_cluster_metrics().await?;
         
         // Business logic: determine cluster status based on multiple factors
@@ -50,7 +50,7 @@ impl ClusterService {
 
     /// Get cluster capacity assessment
     pub async fn assess_capacity(&self) -> Result<CapacityAssessment> {
-        let overview = self.k8s_repo.get_cluster_overview().await?;
+        let _overview = self.k8s_repo.get_cluster_overview().await?;
         let metrics = self.metrics_repo.get_cluster_metrics().await?;
         
         let cpu_utilization = metrics.cpu_percent / 100.0;

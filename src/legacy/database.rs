@@ -219,7 +219,7 @@ pub async fn database_stats_handler() -> impl Responder {
         })),
     };
 
-    let stats = pool.clone();
+    let _stats = pool.clone();
     
     HttpResponse::Ok().json(serde_json::json!({
         "size": 5,

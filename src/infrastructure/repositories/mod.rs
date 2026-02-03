@@ -145,7 +145,7 @@ impl KubernetesRepository for K8sRepository {
 
     async fn get_node(&self, name: &str) -> Result<Node> {
         let nodes: Api<k8s_openapi::api::core::v1::Node> = Api::all(self.client.clone());
-        let node = nodes.get(name).await?;
+        let _node = nodes.get(name).await?;
 
         // Convert to domain entity (simplified)
         Ok(Node {
@@ -218,7 +218,7 @@ impl KubernetesRepository for K8sRepository {
 
     async fn get_pod(&self, namespace: &str, name: &str) -> Result<Pod> {
         let pods: Api<k8s_openapi::api::core::v1::Pod> = Api::namespaced(self.client.clone(), namespace);
-        let pod = pods.get(name).await?;
+        let _pod = pods.get(name).await?;
 
         // Convert to domain entity (simplified)
         Ok(Pod {

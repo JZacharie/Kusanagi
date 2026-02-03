@@ -2,7 +2,6 @@
 //!
 //! HTTP handlers for ArgoCD operations.
 
-use std::sync::Arc;
 use actix_web::{web, HttpResponse, Responder};
 use serde::Deserialize;
 

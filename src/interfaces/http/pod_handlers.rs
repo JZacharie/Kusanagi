@@ -4,10 +4,9 @@
 
 use actix_web::{get, post, web, HttpResponse, Responder};
 use serde::Deserialize;
-use std::sync::Arc;
 
 use crate::application::use_cases::pod_use_cases::PodService;
-use crate::error::KusanagiError;
+
 
 /// Request for logs
 #[derive(Debug, Deserialize)]

@@ -96,7 +96,7 @@ pub mod handlers {
 
     #[async_trait::async_trait]
     impl JobHandler for PodRestartHandler {
-        async fn handle(&self, job: &Job) -> Result<(), String> {
+        async fn handle(&self, _job: &Job) -> Result<(), String> {
             #[derive(serde::Deserialize)]
             struct PodRestartPayload {
                 namespace: String,
@@ -160,7 +160,7 @@ pub mod handlers {
 
     #[async_trait::async_trait]
     impl JobHandler for CacheWarmupHandler {
-        async fn handle(&self, job: &Job) -> Result<(), String> {
+        async fn handle(&self, _job: &Job) -> Result<(), String> {
             info!("Warming up cache");
             
             // Implementation would go here
