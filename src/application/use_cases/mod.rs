@@ -401,7 +401,7 @@ mod tests {
     
     #[async_trait::async_trait]
     impl crate::domain::ports::AlertRepository for MockAlertRepo {
-        async fn get_active_alerts(&self) -> Result<crate::domain::entities::AlertsResponse, String> {
+        async fn get_active_alerts(&self) -> std::result::Result<crate::domain::entities::AlertsResponse, String> {
             Ok(crate::domain::entities::AlertsResponse {
                 critical: vec![],
                 warning: vec![],
@@ -411,13 +411,13 @@ mod tests {
                 pending: 0,
             })
         }
-        async fn get_cached_alerts(&self) -> Result<crate::domain::entities::AlertsResponse, String> {
+        async fn get_cached_alerts(&self) -> std::result::Result<crate::domain::entities::AlertsResponse, String> {
             self.get_active_alerts().await
         }
-        async fn get_alert(&self, _fingerprint: &str) -> Result<crate::domain::entities::Alert, String> {
+        async fn get_alert(&self, _fingerprint: &str) -> std::result::Result<crate::domain::entities::Alert, String> {
             Err("Not found".to_string())
         }
-        async fn silence_alert(&self, _fingerprint: &str, _duration_secs: u64) -> Result<(), String> {
+        async fn silence_alert(&self, _fingerprint: &str, _duration_secs: u64) -> std::result::Result<(), String> {
             Ok(())
         }
     }

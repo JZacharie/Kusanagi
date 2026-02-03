@@ -386,7 +386,16 @@ mod tests {
                 node_name: Some("node-1".to_string()),
                 restart_count: 15,
                 age: Some("10m".to_string()),
+                age_seconds: 600,
                 labels: Default::default(),
+                reason: None,
+                message: None,
+                cpu_usage: None,
+                memory_usage: None,
+                cpu_limit: None,
+                memory_limit: None,
+                cpu_request: None,
+                memory_request: None,
             }])
         }
         async fn get_pod(&self, _namespace: &str, _name: &str) -> Result<Pod> {
@@ -398,13 +407,38 @@ mod tests {
                 node_name: None,
                 restart_count: 0,
                 age: None,
+                age_seconds: 0,
                 labels: Default::default(),
+                reason: None,
+                message: None,
+                cpu_usage: None,
+                memory_usage: None,
+                cpu_limit: None,
+                memory_limit: None,
+                cpu_request: None,
+                memory_request: None,
             })
         }
         async fn get_pod_logs(&self, _ns: &str, _name: &str, _c: Option<&str>, _t: i64) -> Result<String> {
             Ok("logs".to_string())
         }
         async fn delete_pod(&self, _ns: &str, _name: &str) -> Result<()> { Ok(()) }
+        async fn force_delete_pod(&self, _ns: &str, _name: &str) -> Result<()> { Ok(()) }
+        async fn get_pods_status(&self) -> Result< PodsStatus> {
+            Ok(PodsStatus {
+                total_pods: 0,
+                running_pods: 0,
+                pending_pods: 0,
+                succeeded_pods: 0,
+                failed_pods: 0,
+                error_pods: 0,
+                pods_in_error: vec![],
+                fetch_duration_ms: 0,
+            })
+        }
+        async fn delete_error_pods(&self) -> Result<(usize, usize)> { Ok((0, 0)) }
+        async fn scale_deployment(&self, _ns: &str, _name: &str, _replicas: i32) -> Result<()> { Ok(()) }
+        async fn scale_statefulset(&self, _ns: &str, _name: &str, _replicas: i32) -> Result<()> { Ok(()) }
         async fn list_events(&self, _ns: Option<&str>, _t: Option<&str>) -> Result<Vec<ClusterEvent>> {
             Ok(vec![])
         }
@@ -469,13 +503,13 @@ mod tests {
 
     #[test]
     fn test_resource_status() {
-        let healthy = ResourceStatus::Healthy;
-        let warning = ResourceStatus::Warning;
-        let critical = ResourceStatus::Critical;
+        let healthy = super::ResourceStatus::Healthy;
+        let warning = super::ResourceStatus::Warning;
+        let critical = super::ResourceStatus::Critical;
         
         // Just verify they exist and can be compared
-        assert!(matches!(healthy, ResourceStatus::Healthy));
-        assert!(matches!(warning, ResourceStatus::Warning));
-        assert!(matches!(critical, ResourceStatus::Critical));
+        assert!(matches!(healthy, super::ResourceStatus::Healthy));
+        assert!(matches!(warning, super::ResourceStatus::Warning));
+        assert!(matches!(critical, super::ResourceStatus::Critical));
     }
 }
