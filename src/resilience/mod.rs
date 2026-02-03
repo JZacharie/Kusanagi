@@ -27,7 +27,7 @@ pub use circuit_breaker::{CircuitBreaker, CircuitBreakerConfig, CircuitState, Ci
 pub use retry::{RetryPolicy, RetryPolicyBuilder, RetryStrategy};
 pub use timeout::{Timeout, TimeoutFuture, TimeoutExt, with_timeout, with_timeout_result};
 
-use crate::error::{KusanagiError, Result};
+use crate::error::Result;
 use std::future::Future;
 use std::time::Duration;
 

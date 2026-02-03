@@ -6,13 +6,11 @@
 use actix_web::{
     body::MessageBody,
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpResponse,
+    Error,
 };
 use futures::future::{Ready, ready, LocalBoxFuture};
 use std::collections::HashMap;
-use std::future::Future;
-use std::net::IpAddr;
-use std::pin::Pin;
+
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
@@ -183,7 +181,7 @@ where
 
             // Check limit
             if client_state.count >= max_requests {
-                let retry_after = window.as_secs() - now.duration_since(client_state.window_start).as_secs();
+                let _retry_after = window.as_secs() - now.duration_since(client_state.window_start).as_secs();
                 
                 warn!(
                     client_key = %key,
@@ -255,17 +253,17 @@ fn extract_client_key(req: &ServiceRequest, extractor: &KeyExtractor) -> String 
 /// Different rate limits for different endpoints
 #[derive(Debug, Clone)]
 pub struct TieredRateLimiter {
-    default: RateLimiter,
-    api: RateLimiter,
-    strict: RateLimiter,
+    _default: RateLimiter,
+    _api: RateLimiter,
+    _strict: RateLimiter,
 }
 
 impl TieredRateLimiter {
     pub fn new() -> Self {
         Self {
-            default: RateLimiter::per_minute(100),
-            api: RateLimiter::per_minute(1000), // API endpoints allow more
-            strict: RateLimiter::strict(),      // Sensitive endpoints
+            _default: RateLimiter::per_minute(100),
+            _api: RateLimiter::per_minute(1000), // API endpoints allow more
+            _strict: RateLimiter::strict(),      // Sensitive endpoints
         }
     }
 

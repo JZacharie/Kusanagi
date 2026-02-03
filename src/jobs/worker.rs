@@ -21,7 +21,7 @@ impl JobWorker {
     }
 
     /// Start processing jobs
-    pub async fn run(mut self, mut rx: mpsc::Receiver<Job>) {
+    pub async fn run(self, mut rx: mpsc::Receiver<Job>) {
         info!("Job worker started");
 
         while let Some(mut job) = rx.recv().await {
@@ -49,9 +49,8 @@ impl JobWorker {
                     job.status = JobStatus::Completed;
                     job.completed_at = Some(Utc::now());
                     
-                    // Record metric
-                    #[cfg(feature = "metrics")]
-                    crate::metrics::custom::record_background_job(&job.job_type, true);
+                    // Record metric (disabled - no metrics feature)
+                    // crate::metrics::custom::record_background_job(&job.job_type, true);
                 }
                 Err(e) => {
                     error!(job_id = %job.id, error = %e, "Job failed");
@@ -75,9 +74,8 @@ impl JobWorker {
                         job.completed_at = Some(Utc::now());
                         job.error_message = Some(e);
                         
-                        // Record metric
-                        #[cfg(feature = "metrics")]
-                        crate::metrics::custom::record_background_job(&job.job_type, false);
+                        // Record metric (disabled - no metrics feature)
+                        // crate::metrics::custom::record_background_job(&job.job_type, false);
                     }
                 }
             }
@@ -128,6 +126,7 @@ pub mod handlers {
             #[derive(serde::Deserialize)]
             struct NotificationPayload {
                 channel: String,
+                #[allow(dead_code)]
                 message: String,
             }
 
@@ -160,7 +159,7 @@ pub mod handlers {
 
     #[async_trait::async_trait]
     impl JobHandler for CacheWarmupHandler {
-        async fn handle(&self, job: &Job) -> Result<(), String> {
+        async fn handle(&self, _job: &Job) -> Result<(), String> {
             info!("Warming up cache");
             
             // Implementation would go here

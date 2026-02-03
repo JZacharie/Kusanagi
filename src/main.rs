@@ -2,6 +2,7 @@ use actix_web::{get, post, web, App, HttpServer, Responder, HttpResponse, HttpRe
 use actix_files::Files;
 use serde::Deserialize;
 use tracing::{info, error};
+use std::sync::Arc;
 
 pub mod error;
 pub use error::{KusanagiError, Result};
@@ -41,11 +42,68 @@ pub use middleware::{StructuredLogging, RateLimiter, CorrelationId, get_correlat
 pub use legacy::{health, llm, doctor};
 
 /// Shared application state
+/// Combines legacy client access with hexagonal architecture repositories
 pub struct AppState {
     pub client: kube::Client,
+    pub k8s_repo: Arc<dyn domain::ports::KubernetesRepository>,
+    pub metrics_repo: Arc<dyn domain::ports::MetricsRepository>,
+    pub prometheus_repo: Option<Arc<dyn domain::ports::prometheus_port::PrometheusRepository>>,
+}
+
+impl AppState {
+    /// Get ArgoCD repository if available (placeholder for future implementation)
+    pub fn get_argocd_repo(&self) -> Option<Arc<dyn domain::ports::argocd_port::ArgoCdRepository>> {
+        None // TODO: Implement when ArgoCD repository is ready
+    }
+
+    /// Get Prometheus repository if available
+    pub fn get_prometheus_repo(&self) -> Option<Arc<dyn domain::ports::prometheus_port::PrometheusRepository>> {
+        self.prometheus_repo.clone()
+    }
+    
+    /// Get metrics repository
+    pub fn get_metrics_repo(&self) -> Option<Arc<dyn domain::ports::MetricsRepository>> {
+        Some(self.metrics_repo.clone())
+    }
+
+    /// Get Backup repository if available (placeholder)
+    pub fn get_backup_repo(&self) -> Option<Arc<dyn domain::ports::backup_port::BackupRepository>> {
+        None
+    }
+
+    /// Get Security repository if available (placeholder)
+    pub fn get_security_repo(&self) -> Option<Arc<dyn domain::ports::security_port::SecurityRepository>> {
+        None
+    }
+
+    /// Get Vulnerability scanner if available (placeholder)
+    pub fn get_vulnerability_scanner(&self) -> Option<Arc<dyn domain::ports::security_port::VulnerabilityScanner>> {
+        None
+    }
+
+    /// Get AI enrichment service if available (placeholder)
+    pub fn get_ai_enrichment_service(&self) -> Option<Arc<dyn domain::ports::security_port::AiEnrichmentService>> {
+        None
+    }
+
+    /// Get Alert repository if available (placeholder)
+    pub fn get_alert_repo(&self) -> Option<Arc<dyn domain::ports::alert_port::AlertRepository>> {
+        None
+    }
+
+    /// Get Chat service if available (placeholder)
+    pub fn get_chat_service(&self) -> Option<Arc<dyn domain::ports::chat_port::ChatService>> {
+        None
+    }
+
+    /// Get Chat history repository if available (placeholder)
+    pub fn get_chat_history_repo(&self) -> Option<Arc<dyn domain::ports::chat_port::ChatHistoryRepository>> {
+        None
+    }
 }
 
 #[derive(Deserialize)]
+#[allow(hidden_glob_reexports)]
 struct SyncRequest {
     app_name: String,
 }
@@ -164,6 +222,7 @@ async fn nodes_debug(data: web::Data<AppState>) -> impl Responder {
 
 /// Helper trait for converting module results to HTTP responses
 /// This bridges the gap between old String-based errors and new KusanagiError
+#[allow(dead_code)]
 async fn handle_result<T>(result: std::result::Result<T, String>) -> HttpResponse 
 where
     T: serde::Serialize,
@@ -260,13 +319,10 @@ async fn services_status(data: web::Data<AppState>) -> impl Responder {
         Ok(info) => HttpResponse::Ok().json(info),
         Err(e) => {
             tracing::warn!("Failed to get services info: {}", e);
-            // Return empty services response instead of 500 error
-            HttpResponse::Ok().json(serde_json::json!({
-                "services": [],
-                "total": 0,
-                "namespaces": [],
-                "_warning": format!("Services data unavailable: {}", e)
-            }))
+            // Return empty array with warning header instead of 500 error
+            HttpResponse::Ok()
+                .insert_header(("X-Warning", format!("Services data unavailable: {}", e).as_str()))
+                .json(Vec::<legacy::services::ServiceInfo>::new())
         }
     }
 }
@@ -277,13 +333,10 @@ async fn ingress_status(data: web::Data<AppState>) -> impl Responder {
         Ok(info) => HttpResponse::Ok().json(info),
         Err(e) => {
             tracing::warn!("Failed to get ingress info: {}", e);
-            // Return empty ingress response instead of 500 error
-            HttpResponse::Ok().json(serde_json::json!({
-                "ingresses": [],
-                "total": 0,
-                "namespaces": [],
-                "_warning": format!("Ingress data unavailable: {}", e)
-            }))
+            // Return empty array with warning header instead of 500 error
+            HttpResponse::Ok()
+                .insert_header(("X-Warning", format!("Ingress data unavailable: {}", e).as_str()))
+                .json(Vec::<legacy::ingress::IngressInfo>::new())
         }
     }
 }
@@ -330,7 +383,7 @@ struct RangeQuery {
 }
 
 #[get("/api/prometheus/range")]
-async fn prometheus_range(data: web::Data<AppState>, query: web::Query<RangeQuery>) -> impl Responder {
+async fn prometheus_range(_data: web::Data<AppState>, query: web::Query<RangeQuery>) -> impl Responder {
     match legacy::prometheus::query_range(&query.query, query.start, query.end, &query.step).await {
         Ok(result) => HttpResponse::Ok().json(result),
         Err(e) => {
@@ -650,7 +703,17 @@ async fn main() -> std::io::Result<()> {
     // Start data preloading
     preload_data(client.clone()).await;
     
-    let app_state = web::Data::new(AppState { client: client.clone() });
+    // Create repositories for hexagonal architecture
+    let k8s_repo = Arc::new(infrastructure::repositories::K8sRepository::new(client.clone()));
+    let metrics_repo = Arc::new(infrastructure::repositories::PrometheusRepository::from_config());
+    let prometheus_repo: Option<Arc<dyn domain::ports::prometheus_port::PrometheusRepository>> = Some(metrics_repo.clone());
+    
+    let app_state = web::Data::new(AppState { 
+        client: client.clone(),
+        k8s_repo,
+        metrics_repo,
+        prometheus_repo,
+    });
     
     // Initialize news feed cache
     let news_cache = web::Data::new(legacy::newsfeed::NewsCache::new());

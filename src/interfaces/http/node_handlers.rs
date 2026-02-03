@@ -2,14 +2,15 @@
 //!
 //! HTTP handlers for node operations.
 
+use std::sync::Arc;
 use actix_web::{get, web, HttpResponse, Responder, ResponseError};
 use serde::Deserialize;
-use std::sync::Arc;
+
 
 use crate::application::use_cases::node_use_cases::*;
 use crate::application::mappers::NodeMapper;
-use crate::domain::ports::KubernetesRepository;
-use crate::interfaces::http::{AppState, ErrorResponse};
+
+use crate::interfaces::http::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct ListNodesQuery {
@@ -20,7 +21,7 @@ pub struct ListNodesQuery {
 #[get("/api/nodes")]
 pub async fn list_nodes(
     data: web::Data<AppState>,
-    query: web::Query<ListNodesQuery>,
+    _query: web::Query<ListNodesQuery>,
 ) -> impl Responder {
     let use_case = GetNodesUseCase::new(Arc::clone(&data.k8s_repo));
 

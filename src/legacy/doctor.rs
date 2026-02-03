@@ -7,9 +7,9 @@ use actix_web::{get, web, HttpResponse, Responder};
 use kube::{Client, Api};
 use k8s_openapi::api::core::v1::Pod;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+
 use std::time::{Duration, Instant};
-use tracing::{info, warn, error};
+
 
 /// Doctor check result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -75,7 +75,7 @@ impl DiagnosticSummary {
 
 /// Run all diagnostic checks
 pub async fn run_diagnostics(client: &Client) -> DiagnosticReport {
-    let start = Instant::now();
+    let _start = Instant::now();
     let mut checks = Vec::new();
     let mut summary = DiagnosticSummary::new();
 
@@ -217,7 +217,7 @@ async fn check_prometheus_connection() -> CheckResult {
     }
 }
 
-async fn check_openobserve_config(client: &Client) -> CheckResult {
+async fn check_openobserve_config(_client: &Client) -> CheckResult {
     let start = Instant::now();
     
     // Check if telemetry is enabled and configured

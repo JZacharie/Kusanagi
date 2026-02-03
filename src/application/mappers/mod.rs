@@ -341,6 +341,7 @@ mod tests {
             node_name: Some("node-1".to_string()),
             restart_count: 0,
             age: Some("10m".to_string()),
+            age_seconds: 600,
             containers: vec![Container {
                 name: "app".to_string(),
                 image: "nginx:latest".to_string(),
@@ -349,6 +350,14 @@ mod tests {
                 state: ContainerState::Running,
             }],
             labels: Default::default(),
+            reason: None,
+            message: None,
+            cpu_usage: None,
+            memory_usage: None,
+            cpu_limit: None,
+            memory_limit: None,
+            cpu_request: None,
+            memory_request: None,
         };
 
         let dto = PodMapper::to_dto(entity);

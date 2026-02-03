@@ -2,9 +2,9 @@
 //!
 //! Application layer use cases for cluster operations.
 
-use crate::domain::entities::{ClusterOverview, Namespace};
+use crate::domain::entities::ClusterOverview;
 use crate::domain::ports::KubernetesRepository;
-use crate::error::{KusanagiError, Result};
+use crate::error::Result;
 use std::sync::Arc;
 
 /// Get cluster overview use case

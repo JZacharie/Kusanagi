@@ -2,14 +2,15 @@
 //!
 //! HTTP handlers for storage operations.
 
-use actix_web::{get, web, HttpResponse, Responder, ResponseError};
-use serde::Deserialize;
 use std::sync::Arc;
+use actix_web::{get, web, HttpResponse, Responder, ResponseError};
+
+
 
 use crate::application::use_cases::storage_use_cases::*;
 use crate::application::mappers::StorageMapper;
-use crate::domain::ports::KubernetesRepository;
-use crate::interfaces::http::{AppState, ErrorResponse};
+
+use crate::interfaces::http::AppState;
 
 /// Get storage information
 #[get("/api/storage")]

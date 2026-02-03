@@ -7,7 +7,7 @@
 //! - Cache hit/miss rates
 //! - LLM API usage
 
-use prometheus::{Counter, CounterVec, Gauge, GaugeVec, Histogram, HistogramVec, Registry, opts, labels};
+use prometheus::{CounterVec, Gauge, HistogramVec, Registry, opts};
 use std::sync::OnceLock;
 use tracing::{error, info};
 
@@ -199,6 +199,7 @@ use actix_web::{get, HttpResponse, Responder};
 /// Metrics endpoint for Prometheus scraping
 #[get("/metrics")]
 pub async fn metrics_handler() -> impl Responder {
+    #[allow(unused_imports)]
     use prometheus::Encoder;
     
     let encoder = prometheus::TextEncoder::new();

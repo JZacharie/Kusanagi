@@ -856,24 +856,73 @@ const K8sManager = {
         try {
             const response = await fetch('/api/backups');
             const data = await response.json();
-            if (!data.error) {
-                const stats = { 'backup-cronjobs': data.total_cronjobs, 'backup-active': data.active_jobs, 'backup-succeeded': data.succeeded_jobs, 'backup-failed': data.failed_jobs, 'backups-count': data.total_cronjobs };
-                for (const [id, value] of Object.entries(stats)) { const el = document.getElementById(id); if (el) el.textContent = value; }
-                this.renderBackupsTable(data.cronjobs || []);
+            
+            // Handle explicit error
+            if (data.error) {
+                console.error('Backups API error:', data.error);
+                const container = document.getElementById('backups-content');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="error-state" style="padding: 2rem; text-align: center;">
+                            <span style="font-size: 2rem;">⚠️</span>
+                            <p>Failed to load backups</p>
+                            <p style="color: var(--neon-orange); font-size: 0.9rem;">${data.error}</p>
+                            <button onclick="K8sManager.fetchBackupsStatus()" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
+                        </div>
+                    `;
+                }
+                return;
             }
+            
+            // Handle warning (e.g., Kubernetes unavailable)
+            if (data._warning) {
+                console.warn('Backups API warning:', data._warning);
+            }
+            
+            // Update stats (with fallback to 0)
+            const stats = { 
+                'backup-cronjobs': data.total_cronjobs ?? 0, 
+                'backup-active': data.active_jobs ?? 0, 
+                'backup-succeeded': data.succeeded_jobs ?? 0, 
+                'backup-failed': data.failed_jobs ?? 0, 
+                'backups-count': data.total_cronjobs ?? 0 
+            };
+            for (const [id, value] of Object.entries(stats)) { 
+                const el = document.getElementById(id); 
+                if (el) el.textContent = value; 
+            }
+            
+            // Render table with warning message if present
+            this.renderBackupsTable(data.cronjobs || [], data._warning);
         } catch (error) {
             console.error('Failed to fetch backups:', error);
             const container = document.getElementById('backups-content');
-            if (container) container.innerHTML = `<div class="loading" style="color: #ff4444;">Error: Failed to fetch backup status.</div>`;
+            if (container) {
+                container.innerHTML = `
+                    <div class="error-state" style="padding: 2rem; text-align: center;">
+                        <span style="font-size: 2rem;">⚠️</span>
+                        <p>Failed to connect to backups API</p>
+                        <p style="color: var(--neon-orange); font-size: 0.9rem;">${error.message}</p>
+                        <button onclick="K8sManager.fetchBackupsStatus()" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
+                    </div>
+                `;
+            }
         }
     },
 
-    renderBackupsTable(cronjobs) {
+    renderBackupsTable(cronjobs, warningMsg = null) {
         const container = document.getElementById('backups-content');
         if (!container) return;
         
         if (!cronjobs || cronjobs.length === 0) {
-            container.innerHTML = '<div class="no-issues">No backup cronjobs found</div>';
+            container.innerHTML = `
+                <div class="no-issues" style="padding: 2rem; text-align: center;">
+                    <span style="font-size: 2rem;">💾</span>
+                    <p>No backup cronjobs found</p>
+                    ${warningMsg ? `<p style="color: var(--neon-orange); margin-top: 1rem; font-size: 0.9rem;">⚠️ ${warningMsg}</p>` : ''}
+                    <button onclick="K8sManager.fetchBackupsStatus()" class="cyber-btn" style="margin-top: 1rem;">Refresh</button>
+                </div>
+            `;
             return;
         }
         

@@ -4,7 +4,7 @@
 
 use crate::domain::entities::{ClusterEvent, EventType, Paginated};
 use crate::domain::ports::KubernetesRepository;
-use crate::error::{KusanagiError, Result};
+use crate::error::Result;
 use std::sync::Arc;
 
 /// Get recent events use case

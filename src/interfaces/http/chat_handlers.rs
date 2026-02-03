@@ -4,12 +4,12 @@
 
 use actix_web::{get, post, web, HttpResponse, Responder, ResponseError};
 use serde::Deserialize;
-use std::sync::Arc;
+
 
 use crate::application::use_cases::chat_use_cases::*;
 use crate::domain::entities::{ChatRequest, ChatCommand};
-use crate::domain::ports::{ChatService, ChatHistoryRepository};
-use crate::interfaces::http::{AppState, ErrorResponse};
+
+use crate::interfaces::http::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct CommandRequest {

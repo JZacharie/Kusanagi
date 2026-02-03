@@ -49,13 +49,13 @@ const KusanagiSystem = {
     },
 
     updateStatusUI: function (data) {
-        setText('sys-tab-uptime', data.uptime || 'N/A');
+        setText('sys-tab-uptime', this.formatUptime(data.uptime_secs) || 'N/A');
         setText('sys-tab-cpu', data.cpu_usage ? `${data.cpu_usage.toFixed(1)}%` : '0%');
         setText('sys-tab-memory', data.memory_usage_mb ? `${data.memory_usage_mb.toFixed(0)} MB` : '0 MB');
         setText('sys-tab-version', data.version || 'Unknown');
 
         // Also update the header status bar if present
-        setText('kusanagi-uptime', data.uptime || '--:--:--');
+        setText('kusanagi-uptime', this.formatUptime(data.uptime_secs) || '--:--:--');
         setText('kusanagi-cpu', data.cpu_usage ? `${data.cpu_usage.toFixed(1)}%` : '--%');
         setText('kusanagi-ram', data.memory_usage_mb ? `${data.memory_usage_mb.toFixed(0)}MB` : '--MB');
     },
@@ -137,6 +137,14 @@ const KusanagiSystem = {
     manualRefresh: function () {
         this.fetchSystemStatus();
         this.fetchSystemLogs();
+    },
+
+    formatUptime: function(seconds) {
+        if (!seconds) return 'N/A';
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
 };
 

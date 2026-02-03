@@ -2,7 +2,7 @@
 //!
 //! Application layer use cases for security operations.
 
-use crate::domain::entities::{SecurityReport, ReportMetadata, SecurityScanSummary, EnrichmentData};
+use crate::domain::entities::{SecurityReport, ReportMetadata, SecurityScanSummary};
 use crate::domain::ports::{SecurityRepository, AiEnrichmentService, VulnerabilityScanner};
 use crate::error::{KusanagiError, Result};
 use std::sync::Arc;
@@ -35,7 +35,7 @@ impl GetSecurityReportUseCase {
 
     pub async fn execute(&self, category: &str, name: &str) -> Result<SecurityReport> {
         self.repository.get_report(category, name).await
-            .map_err(|e| KusanagiError::not_found("Security report", &format!("{}/{}", category, name)))
+            .map_err(|_e| KusanagiError::not_found("Security report", &format!("{}/{}", category, name)))
     }
 }
 

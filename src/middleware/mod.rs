@@ -12,7 +12,7 @@ pub mod rate_limit;
 pub use logging::{StructuredLogging, CorrelationId, get_correlation_id, CORRELATION_ID_HEADER};
 pub use rate_limit::{RateLimiter, RateLimitConfig, KeyExtractor};
 
-use actix_web::{HttpResponse, Error};
+use actix_web::HttpResponse;
 
 /// Common middleware error response
 pub fn error_response(status: actix_web::http::StatusCode, message: &str) -> HttpResponse {

@@ -51,7 +51,7 @@ impl GetAlertUseCase {
 
     pub async fn execute(&self, fingerprint: &str) -> Result<Alert> {
         self.repository.get_alert(fingerprint).await
-            .map_err(|e| KusanagiError::not_found("Alert", fingerprint))
+            .map_err(|_e| KusanagiError::not_found("Alert", fingerprint))
     }
 }
 

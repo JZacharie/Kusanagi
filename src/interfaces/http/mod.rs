@@ -6,11 +6,11 @@
 use actix_web::{get, web, HttpResponse, Responder, ResponseError};
 use serde::Deserialize;
 
-use crate::application::dtos::*;
+use crate::error::KusanagiError;
 use crate::application::use_cases::*;
-use crate::application::mappers::*;
+
 use crate::domain::ports::*;
-use crate::error::{KusanagiError, Result};
+
 use std::sync::Arc;
 
 mod event_handlers;
@@ -238,6 +238,7 @@ async fn get_pod_details(
 }
 
 #[derive(Deserialize)]
+#[allow(hidden_glob_reexports)]
 struct ListEventsQuery {
     namespace: Option<String>,
     event_type: Option<String>,
@@ -293,8 +294,9 @@ async fn get_storage_info(data: web::Data<AppState>) -> impl Responder {
     }
 }
 
-/// Error response structure
+/// Error response structure (for future error handling)
 #[derive(serde::Serialize)]
+#[allow(dead_code)]
 struct ErrorResponse {
     error: String,
     message: String,

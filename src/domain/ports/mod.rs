@@ -221,6 +221,35 @@ mod tests {
             Ok(())
         }
 
+        async fn force_delete_pod(&self, _namespace: &str, _name: &str) -> Result<()> {
+            Ok(())
+        }
+
+        async fn get_pods_status(&self) -> Result< PodsStatus> {
+            Ok(PodsStatus {
+                total_pods: 0,
+                running_pods: 0,
+                pending_pods: 0,
+                succeeded_pods: 0,
+                failed_pods: 0,
+                error_pods: 0,
+                pods_in_error: vec![],
+                fetch_duration_ms: 0,
+            })
+        }
+
+        async fn delete_error_pods(&self) -> Result<(usize, usize)> {
+            Ok((0, 0))
+        }
+
+        async fn scale_deployment(&self, _ns: &str, _name: &str, _replicas: i32) -> Result<()> {
+            Ok(())
+        }
+
+        async fn scale_statefulset(&self, _ns: &str, _name: &str, _replicas: i32) -> Result<()> {
+            Ok(())
+        }
+
         async fn list_events(&self, _namespace: Option<&str>, _event_type: Option<&str>) -> Result<Vec<ClusterEvent>> {
             Ok(vec![])
         }

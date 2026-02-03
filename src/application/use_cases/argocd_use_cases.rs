@@ -18,7 +18,7 @@ impl GetArgoCdApplicationsUseCase {
 
     pub async fn execute(&self) -> Result<Vec<ApplicationInfo>> {
         self.repository.list_applications().await
-            .map_err(|e| KusanagiError::internal(format!("Failed to list applications: {}", e)))
+            .map_err(|_e| KusanagiError::internal("Failed to list applications".to_string()))
     }
 }
 
@@ -34,7 +34,7 @@ impl GetApplicationStatusUseCase {
 
     pub async fn execute(&self, name: &str) -> Result<ApplicationStatus> {
         self.repository.get_application_status(name).await
-            .map_err(|e| KusanagiError::not_found("Application", name))
+            .map_err(|_e| KusanagiError::not_found("Application", name))
     }
 }
 
@@ -66,7 +66,7 @@ impl GetApplicationDetailsUseCase {
 
     pub async fn execute(&self, name: &str) -> Result<ApplicationDetails> {
         self.repository.get_application_details(name).await
-            .map_err(|e| KusanagiError::not_found("Application", name))
+            .map_err(|_e| KusanagiError::not_found("Application", name))
     }
 }
 

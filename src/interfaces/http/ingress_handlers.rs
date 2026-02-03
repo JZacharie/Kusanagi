@@ -2,14 +2,15 @@
 //!
 //! HTTP handlers for ingress operations.
 
+use std::sync::Arc;
 use actix_web::{get, web, HttpResponse, Responder, ResponseError};
 use serde::Deserialize;
-use std::sync::Arc;
+
 
 use crate::application::use_cases::ingress_use_cases::*;
 use crate::application::mappers::IngressMapper;
-use crate::domain::ports::KubernetesRepository;
-use crate::interfaces::http::{AppState, ErrorResponse};
+
+use crate::interfaces::http::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct ListIngressesQuery {

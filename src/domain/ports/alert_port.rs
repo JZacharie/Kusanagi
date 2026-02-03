@@ -3,7 +3,7 @@
 //! Port defining the interface for alert operations.
 
 use async_trait::async_trait;
-use crate::domain::entities::{Alert, AlertsResponse, AlertStats};
+use crate::domain::entities::{Alert, AlertsResponse};
 
 /// Port for alert operations
 #[async_trait]

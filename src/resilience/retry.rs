@@ -256,10 +256,10 @@ impl RetryPolicy {
             }
         }
 
-        Err(KusanagiError::internal(format!(
+        Err(last_error.unwrap_or_else(|| KusanagiError::internal(format!(
             "{}: Max retries exceeded",
             context
-        )))
+        ))))
     }
 
     /// Get the maximum attempts
