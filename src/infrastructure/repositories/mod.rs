@@ -656,3 +656,66 @@ impl MetricsRepository for PrometheusRepository {
         Ok(usage_map)
     }
 }
+
+// Additional implementation for the prometheus_port::PrometheusRepository trait
+// This allows the repository to be used by hexagonal architecture handlers
+#[async_trait]
+impl crate::domain::ports::prometheus_port::PrometheusRepository for PrometheusRepository {
+    async fn query(&self, query: &str) -> std::result::Result<f64, String> {
+        match MetricsRepository::query(self, query).await {
+            Ok(val) => Ok(val),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    async fn query_raw(&self, query: &str) -> std::result::Result<serde_json::Value, String> {
+        match MetricsRepository::query_raw(self, query).await {
+            Ok(val) => Ok(val),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    async fn query_range(&self, query: &str, start: i64, end: i64, step: &str) -> std::result::Result<serde_json::Value, String> {
+        match MetricsRepository::query_range(self, query, start, end, step).await {
+            Ok(val) => Ok(val),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    async fn get_cluster_metrics(&self) -> std::result::Result<crate::domain::ports::prometheus_port::PrometheusMetrics, String> {
+        // Query CPU usage
+        let cpu_query = r#"100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)"#;
+        let cpu_usage_percent = MetricsRepository::query(self, cpu_query).await.unwrap_or(0.0);
+
+        // Query memory usage
+        let mem_query = r#"(1 - (sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes))) * 100"#;
+        let memory_usage_percent = MetricsRepository::query(self, mem_query).await.unwrap_or(0.0);
+
+        // Query pod count
+        let pod_query = r#"count(kube_pod_info)"#;
+        let pod_count = MetricsRepository::query(self, pod_query).await.unwrap_or(0.0) as i32;
+
+        // Query node count
+        let node_query = r#"count(kube_node_info)"#;
+        let node_count = MetricsRepository::query(self, node_query).await.unwrap_or(0.0) as i32;
+
+        // Query container count
+        let container_query = r#"count(kube_pod_container_info)"#;
+        let container_count = MetricsRepository::query(self, container_query).await.unwrap_or(0.0) as i32;
+
+        // Query firing alerts
+        let alerts_query = r#"count(ALERTS{alertstate="firing"})"#;
+        let alerts_firing = MetricsRepository::query(self, alerts_query).await.unwrap_or(0.0) as i32;
+
+        Ok(crate::domain::ports::prometheus_port::PrometheusMetrics {
+            cpu_usage_percent,
+            memory_usage_percent,
+            memory_usage_bytes: 0, // Would need additional query
+            pod_count,
+            node_count,
+            container_count,
+            alerts_firing,
+            alerts_pending: 0,
+        })
+    }
+}
