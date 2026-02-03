@@ -218,7 +218,7 @@ async fn check_prometheus_connection() -> CheckResult {
 }
 
 async fn check_openobserve_config(_client: &Client) -> CheckResult {
-    let _start = Instant::now();
+    let start = Instant::now();
     
     // Check if telemetry is enabled and configured
     let has_env = std::env::var("OPENOBSERVE_ENDPOINT").is_ok() && std::env::var("OPENOBSERVE_AUTH").is_ok();

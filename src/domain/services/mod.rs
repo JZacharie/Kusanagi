@@ -33,7 +33,7 @@ impl ClusterService {
 
     /// Get comprehensive cluster status
     pub async fn get_cluster_status(&self) -> Result<ClusterStatus> {
-        let _overview = self.k8s_repo.get_cluster_overview().await?;
+        let overview = self.k8s_repo.get_cluster_overview().await?;
         let metrics = self.metrics_repo.get_cluster_metrics().await?;
         
         // Business logic: determine cluster status based on multiple factors

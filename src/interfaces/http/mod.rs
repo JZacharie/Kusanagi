@@ -6,7 +6,7 @@
 use actix_web::{get, web, HttpResponse, Responder, ResponseError};
 use serde::Deserialize;
 
-
+use crate::error::KusanagiError;
 use crate::application::use_cases::*;
 
 use crate::domain::ports::*;
