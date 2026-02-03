@@ -3,7 +3,7 @@
 //! HTTP handlers for storage operations.
 
 use std::sync::Arc;
-use actix_web::{get, web, HttpResponse, Responder, ResponseError};
+use actix_web::{get, web, HttpResponse, Responder};
 
 
 
@@ -21,7 +21,12 @@ pub async fn get_storage_info(
 
     match use_case.execute().await {
         Ok(info) => HttpResponse::Ok().json(StorageMapper::to_dto(info)),
-        Err(e) => e.error_response(),
+        Err(e) => HttpResponse::Ok().json(serde_json::json!({
+            "pvc_count": 0,
+            "pvcs": [],
+            "pvc_total_capacity": "0 Gi",
+            "_warning": format!("Storage error: {}", e)
+        })),
     }
 }
 
@@ -34,6 +39,12 @@ pub async fn get_storage_stats(
 
     match use_case.execute().await {
         Ok(stats) => HttpResponse::Ok().json(stats),
-        Err(e) => e.error_response(),
+        Err(e) => HttpResponse::Ok().json(serde_json::json!({
+            "total_pvcs": 0,
+            "bound_pvcs": 0,
+            "pending_pvcs": 0,
+            "total_capacity_bytes": 0,
+            "_warning": format!("Storage stats error: {}", e)
+        })),
     }
 }

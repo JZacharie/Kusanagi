@@ -43,7 +43,13 @@ pub async fn get_nodes_status(
 
     match use_case.execute().await {
         Ok(status) => HttpResponse::Ok().json(status),
-        Err(e) => e.error_response(),
+        Err(e) => HttpResponse::Ok().json(serde_json::json!({
+            "total_nodes": 0,
+            "ready_nodes": 0,
+            "not_ready_nodes": 0,
+            "nodes": [],
+            "_warning": format!("Nodes error: {}", e)
+        })),
     }
 }
 

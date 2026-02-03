@@ -28,17 +28,28 @@ pub async fn get_backup_status(
 ) -> impl Responder {
     let repo = match data.get_backup_repo() {
         Some(repo) => repo,
-        None => return HttpResponse::ServiceUnavailable()
-            .json(serde_json::json!({
-                "error": "Backup repository not available"
-            })),
+        None => return HttpResponse::Ok().json(serde_json::json!({
+            "total_cronjobs": 0,
+            "cronjobs": [],
+            "active_jobs": 0,
+            "succeeded_jobs": 0,
+            "failed_jobs": 0,
+            "_warning": "Backup repository not available - hexagonal architecture migration in progress"
+        })),
     };
 
     let use_case = GetBackupStatusUseCase::new(repo);
 
     match use_case.execute().await {
         Ok(status) => HttpResponse::Ok().json(status),
-        Err(e) => e.error_response(),
+        Err(e) => HttpResponse::Ok().json(serde_json::json!({
+            "total_cronjobs": 0,
+            "cronjobs": [],
+            "active_jobs": 0,
+            "succeeded_jobs": 0,
+            "failed_jobs": 0,
+            "_warning": format!("Backup error: {}", e)
+        })),
     }
 }
 

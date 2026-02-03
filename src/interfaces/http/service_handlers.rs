@@ -30,7 +30,12 @@ pub async fn list_services(
             let dtos = ServiceMapper::to_dto_list(services);
             HttpResponse::Ok().json(dtos)
         }
-        Err(e) => e.error_response(),
+        Err(e) => HttpResponse::Ok().json(serde_json::json!({
+            "services": [],
+            "total": 0,
+            "namespaces": [],
+            "_warning": format!("Services error: {}", e)
+        })),
     }
 }
 

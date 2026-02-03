@@ -9,8 +9,6 @@ use serde::Deserialize;
 use crate::error::KusanagiError;
 use crate::application::use_cases::*;
 
-use crate::domain::ports::*;
-
 use std::sync::Arc;
 
 mod event_handlers;
@@ -41,69 +39,9 @@ pub use alert_handlers::*;
 pub use chat_handlers::*;
 pub use node_metrics_handlers::*;
 
-/// Application state shared across handlers
-pub struct AppState {
-    pub k8s_repo: Arc<dyn KubernetesRepository>,
-    pub metrics_repo: Arc<dyn MetricsRepository>,
-    pub argocd_repo: Option<Arc<dyn crate::domain::ports::argocd_port::ArgoCdRepository>>,
-    pub prometheus_repo: Option<Arc<dyn crate::domain::ports::prometheus_port::PrometheusRepository>>,
-    pub backup_repo: Option<Arc<dyn crate::domain::ports::backup_port::BackupRepository>>,
-    pub security_repo: Option<Arc<dyn crate::domain::ports::security_port::SecurityRepository>>,
-    pub vulnerability_scanner: Option<Arc<dyn crate::domain::ports::security_port::VulnerabilityScanner>>,
-    pub ai_enrichment: Option<Arc<dyn crate::domain::ports::security_port::AiEnrichmentService>>,
-    pub alert_repo: Option<Arc<dyn crate::domain::ports::alert_port::AlertRepository>>,
-    pub chat_service: Option<Arc<dyn crate::domain::ports::chat_port::ChatService>>,
-    pub chat_history_repo: Option<Arc<dyn crate::domain::ports::chat_port::ChatHistoryRepository>>,
-}
+// Re-export AppState from main crate
+pub use crate::AppState;
 
-impl AppState {
-    /// Get ArgoCD repository if available
-    pub fn get_argocd_repo(&self) -> Option<Arc<dyn crate::domain::ports::argocd_port::ArgoCdRepository>> {
-        self.argocd_repo.clone()
-    }
-
-    /// Get Prometheus repository if available
-    pub fn get_prometheus_repo(&self) -> Option<Arc<dyn crate::domain::ports::prometheus_port::PrometheusRepository>> {
-        self.prometheus_repo.clone()
-    }
-
-    /// Get Backup repository if available
-    pub fn get_backup_repo(&self) -> Option<Arc<dyn crate::domain::ports::backup_port::BackupRepository>> {
-        self.backup_repo.clone()
-    }
-
-    /// Get Security repository if available
-    pub fn get_security_repo(&self) -> Option<Arc<dyn crate::domain::ports::security_port::SecurityRepository>> {
-        self.security_repo.clone()
-    }
-
-    /// Get Vulnerability scanner if available
-    pub fn get_vulnerability_scanner(&self) -> Option<Arc<dyn crate::domain::ports::security_port::VulnerabilityScanner>> {
-        self.vulnerability_scanner.clone()
-    }
-
-    /// Get AI enrichment service if available
-    pub fn get_ai_enrichment_service(&self) -> Option<Arc<dyn crate::domain::ports::security_port::AiEnrichmentService>> {
-        self.ai_enrichment.clone()
-    }
-
-    /// Get Alert repository if available
-    pub fn get_alert_repo(&self) -> Option<Arc<dyn crate::domain::ports::alert_port::AlertRepository>> {
-        self.alert_repo.clone()
-    }
-
-    /// Get Chat service if available
-    pub fn get_chat_service(&self) -> Option<Arc<dyn crate::domain::ports::chat_port::ChatService>> {
-        self.chat_service.clone()
-    }
-
-    /// Get Chat history repository if available
-    pub fn get_chat_history_repo(&self) -> Option<Arc<dyn crate::domain::ports::chat_port::ChatHistoryRepository>> {
-        self.chat_history_repo.clone()
-    }
-}
-
-/// Configure HTTP routes
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(health_check)
         // Cluster

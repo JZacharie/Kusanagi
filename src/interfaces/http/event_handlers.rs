@@ -34,7 +34,16 @@ pub async fn list_events(
         query.per_page.unwrap_or(20),
     ).await {
         Ok(paginated) => HttpResponse::Ok().json(paginated),
-        Err(e) => e.error_response(),
+        Err(e) => HttpResponse::Ok().json(serde_json::json!({
+            "total_events": 0,
+            "warning_count": 0,
+            "normal_count": 0,
+            "page": query.page.unwrap_or(1),
+            "per_page": query.per_page.unwrap_or(20),
+            "total_pages": 0,
+            "events": [],
+            "_warning": format!("Events error: {}", e)
+        })),
     }
 }
 
