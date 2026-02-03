@@ -7,7 +7,7 @@ use crate::application::dtos::*;
 use crate::application::mappers::*;
 use crate::cache::{Cache, InMemoryCache};
 use crate::config;
-use crate::domain::entities::{*, self};
+use crate::domain::entities::*;
 use crate::domain::ports::*;
 use crate::domain::services::*;
 use crate::error::{KusanagiError, Result};
