@@ -6,7 +6,7 @@ use serde::Serialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions, PgPool};
 use sqlx::ConnectOptions;
 use std::time::Duration;
-use tracing::{info, error, warn};
+use tracing::{info, warn};
 use std::sync::Arc;
 use tokio::sync::OnceCell;
 

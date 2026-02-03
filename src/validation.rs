@@ -4,7 +4,7 @@
 //! Ensures data integrity and prevents malformed inputs.
 
 use serde::{Deserialize, Serialize};
-use validator::{Validate, ValidationError};
+use validator::Validate;
 
 /// Validation error response
 #[derive(Debug, Clone, Serialize, Deserialize)]

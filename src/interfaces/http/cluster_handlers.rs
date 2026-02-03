@@ -2,13 +2,14 @@
 //!
 //! HTTP handlers for cluster operations.
 
-use actix_web::{get, web, HttpResponse, Responder, ResponseError};
 use std::sync::Arc;
+use actix_web::{get, web, HttpResponse, Responder, ResponseError};
+
 
 use crate::application::use_cases::cluster_use_cases::*;
 use crate::application::mappers::ClusterMapper;
-use crate::domain::ports::KubernetesRepository;
-use crate::interfaces::http::{AppState, ErrorResponse};
+
+use crate::interfaces::http::AppState;
 
 /// Get cluster overview
 #[get("/api/cluster/overview")]

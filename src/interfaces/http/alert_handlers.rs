@@ -2,13 +2,14 @@
 //!
 //! HTTP handlers for alert operations.
 
+use std::sync::Arc;
 use actix_web::{get, post, web, HttpResponse, Responder, ResponseError};
 use serde::Deserialize;
-use std::sync::Arc;
+
 
 use crate::application::use_cases::alert_use_cases::*;
-use crate::domain::ports::AlertRepository;
-use crate::interfaces::http::{AppState, ErrorResponse};
+
+use crate::interfaces::http::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct SilenceAlertRequest {

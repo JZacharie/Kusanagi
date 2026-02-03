@@ -4,7 +4,7 @@
 
 use crate::domain::entities::StorageInfo;
 use crate::domain::ports::KubernetesRepository;
-use crate::error::{KusanagiError, Result};
+use crate::error::Result;
 use std::sync::Arc;
 
 /// Get storage information use case

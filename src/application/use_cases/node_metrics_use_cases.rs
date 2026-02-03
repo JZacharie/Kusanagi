@@ -2,9 +2,9 @@
 //!
 //! Application layer use cases for node metrics with Prometheus integration.
 
-use crate::domain::entities::{Node, NodeResources};
+use crate::domain::entities::Node;
 use crate::domain::ports::{KubernetesRepository, MetricsRepository};
-use crate::error::{KusanagiError, Result};
+use crate::error::Result;
 use std::sync::Arc;
 
 /// Get nodes with disk metrics use case

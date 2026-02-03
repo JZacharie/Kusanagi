@@ -2,7 +2,7 @@
 //!
 //! Application layer use cases for security operations.
 
-use crate::domain::entities::{SecurityReport, ReportMetadata, SecurityScanSummary, EnrichmentData};
+use crate::domain::entities::{SecurityReport, ReportMetadata, SecurityScanSummary};
 use crate::domain::ports::{SecurityRepository, AiEnrichmentService, VulnerabilityScanner};
 use crate::error::{KusanagiError, Result};
 use std::sync::Arc;

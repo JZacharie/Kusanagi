@@ -22,7 +22,7 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::Duration;
 use tokio::time::{sleep, Sleep};
-use tracing::{debug, warn};
+use tracing::warn;
 
 /// Timeout wrapper for async operations
 pub struct Timeout {

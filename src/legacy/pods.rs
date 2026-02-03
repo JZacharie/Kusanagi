@@ -1,6 +1,6 @@
 use actix_web::{get, post, web, HttpResponse, Responder};
 use chrono::{DateTime, Utc};
-use k8s_openapi::api::core::v1::{Pod, Service};
+use k8s_openapi::api::core::v1::Pod;
 use k8s_openapi::api::apps::v1::{Deployment, StatefulSet};
 use kube::{
     api::{Api, DeleteParams, ListParams, Patch, PatchParams, LogParams},

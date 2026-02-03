@@ -6,13 +6,11 @@
 use actix_web::{
     body::MessageBody,
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpResponse,
+    Error,
 };
 use futures::future::{Ready, ready, LocalBoxFuture};
 use std::collections::HashMap;
-use std::future::Future;
-use std::net::IpAddr;
-use std::pin::Pin;
+
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use std::time::{Duration, Instant};

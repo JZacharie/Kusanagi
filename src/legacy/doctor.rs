@@ -7,9 +7,9 @@ use actix_web::{get, web, HttpResponse, Responder};
 use kube::{Client, Api};
 use k8s_openapi::api::core::v1::Pod;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+
 use std::time::{Duration, Instant};
-use tracing::{info, warn, error};
+
 
 /// Doctor check result
 #[derive(Debug, Clone, Serialize, Deserialize)]

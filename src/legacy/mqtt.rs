@@ -1,12 +1,12 @@
 use rumqttc::{AsyncClient, MqttOptions, QoS, Event, Packet};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, VecDeque, HashSet};
+use std::collections::{HashMap, VecDeque};
 use std::env;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::sync::broadcast;
 use tokio::time::interval;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 use actix_web::{web, HttpResponse, Result};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

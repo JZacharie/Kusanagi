@@ -2,13 +2,14 @@
 //!
 //! HTTP handlers for security operations.
 
+use std::sync::Arc;
 use actix_web::{get, post, web, HttpResponse, Responder, ResponseError};
 use serde::Deserialize;
-use std::sync::Arc;
+
 
 use crate::application::use_cases::security_use_cases::*;
-use crate::domain::ports::{SecurityRepository, AiEnrichmentService, VulnerabilityScanner};
-use crate::interfaces::http::{AppState, ErrorResponse};
+
+use crate::interfaces::http::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct GetReportPath {

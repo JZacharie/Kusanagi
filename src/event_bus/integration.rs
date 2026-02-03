@@ -16,7 +16,7 @@
 use crate::cache::{Cache, InMemoryCache};
 use crate::error::Result;
 use crate::event_bus::{
-    handlers::{ClusterEventHandler, HandlerBuilder, PodEventHandler},
+    handlers::HandlerBuilder,
     slack_handler::SlackEventHandler,
     AlertEvent, AuditEvent, ClusterEvent, DomainEvent, EventBus, EventHandler, PodEvent,
 };

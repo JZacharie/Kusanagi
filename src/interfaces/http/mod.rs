@@ -6,11 +6,11 @@
 use actix_web::{get, web, HttpResponse, Responder, ResponseError};
 use serde::Deserialize;
 
-use crate::application::dtos::*;
+
 use crate::application::use_cases::*;
-use crate::application::mappers::*;
+
 use crate::domain::ports::*;
-use crate::error::{KusanagiError, Result};
+use crate::error::KusanagiError;
 use std::sync::Arc;
 
 mod event_handlers;

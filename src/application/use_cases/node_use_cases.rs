@@ -4,7 +4,7 @@
 
 use crate::domain::entities::{Node, NodeStatus};
 use crate::domain::ports::KubernetesRepository;
-use crate::error::{KusanagiError, Result};
+use crate::error::Result;
 use std::sync::Arc;
 
 /// Get all nodes use case

@@ -2,14 +2,15 @@
 //!
 //! HTTP handlers for node metrics with disk usage.
 
+use std::sync::Arc;
 use actix_web::{get, web, HttpResponse, Responder, ResponseError};
 use serde::Deserialize;
-use std::sync::Arc;
+
 
 use crate::application::use_cases::node_metrics_use_cases::*;
 use crate::application::mappers::NodeMapper;
-use crate::domain::ports::{KubernetesRepository, MetricsRepository};
-use crate::interfaces::http::{AppState, ErrorResponse};
+
+use crate::interfaces::http::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct NodeNamePath {

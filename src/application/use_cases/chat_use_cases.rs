@@ -2,7 +2,7 @@
 //!
 //! Application layer use cases for chat operations.
 
-use crate::domain::entities::{ChatRequest, ChatResponse, ChatMessage, ChatCommand, ResponseType};
+use crate::domain::entities::{ChatRequest, ChatResponse, ChatMessage, ChatCommand};
 use crate::domain::ports::{ChatService, ChatHistoryRepository};
 use crate::error::{KusanagiError, Result};
 use std::sync::Arc;

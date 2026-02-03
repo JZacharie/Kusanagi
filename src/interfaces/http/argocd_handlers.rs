@@ -2,13 +2,14 @@
 //!
 //! HTTP handlers for ArgoCD operations.
 
+use std::sync::Arc;
 use actix_web::{web, HttpResponse, Responder};
 use serde::Deserialize;
-use std::sync::Arc;
+
 
 use crate::application::use_cases::argocd_use_cases::*;
-use crate::domain::ports::argocd_port::ArgoCdRepository;
-use crate::interfaces::http::{AppState, ErrorResponse};
+
+use crate::interfaces::http::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct SyncRequest {

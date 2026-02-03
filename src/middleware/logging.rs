@@ -8,11 +8,10 @@ use actix_web::{
     Error, HttpMessage,
 };
 use futures::future::{Ready, ready, LocalBoxFuture};
-use std::future::Future;
-use std::pin::Pin;
+
 use std::task::{Context, Poll};
 use std::time::Instant;
-use tracing::{info, warn, error, Instrument, Span};
+use tracing::{info, warn, error, Instrument};
 use uuid::Uuid;
 
 pub const CORRELATION_ID_HEADER: &str = "x-correlation-id";
