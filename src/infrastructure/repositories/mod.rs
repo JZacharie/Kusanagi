@@ -25,6 +25,15 @@ pub use chat_repository::{LegacyChatRepository, LegacyAiService};
 mod mcp_repository;
 pub use mcp_repository::LegacyMcpRepository;
 
+mod cilium_repository;
+pub use cilium_repository::LegacyCiliumRepository;
+
+mod proxmox_repository;
+pub use proxmox_repository::LegacyProxmoxRepository;
+
+mod newsfeed_repository;
+pub use newsfeed_repository::LegacyNewsfeedRepository;
+
 /// Kubernetes repository implementation using kube-rs
 pub struct K8sRepository {
     client: Client,

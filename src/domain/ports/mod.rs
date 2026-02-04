@@ -173,6 +173,18 @@ pub use node_metrics_port::{NodeMetricsRepository, NodeDiskMetrics, ClusterDiskS
 pub mod mcp_port;
 pub use mcp_port::{McpRepository, K8sResourceSummary, CiliumPolicySummary, TrivyVulnerabilitySummary, SteampipeResult};
 
+/// Port for Cilium operations
+pub mod cilium_port;
+pub use cilium_port::{CiliumRepository, NetworkFlow, NetworkPolicy, BandwidthMetrics, NetworkAnomaly};
+
+/// Port for Proxmox operations
+pub mod proxmox_port;
+pub use proxmox_port::{ProxmoxRepository, ClusterStatus, ProxmoxVM, ProxmoxContainer};
+
+/// Port for Newsfeed operations
+pub mod newsfeed_port;
+pub use newsfeed_port::{NewsfeedRepository, NewsItem};
+
 /// Port for Cilium network operations
 #[async_trait]
 pub trait CiliumPort: Send + Sync {
