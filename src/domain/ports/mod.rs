@@ -175,7 +175,8 @@ pub use mcp_port::{McpRepository, K8sResourceSummary, CiliumPolicySummary, Trivy
 
 /// Port for Cilium operations
 pub mod cilium_port;
-pub use cilium_port::{CiliumRepository, NetworkFlow, NetworkPolicy, BandwidthMetrics, NetworkAnomaly};
+// Cilium Port - Network security and monitoring
+pub use cilium_port::{CiliumRepository, BandwidthMetrics, NetworkAnomaly};
 
 /// Port for Proxmox operations
 pub mod proxmox_port;
@@ -189,32 +190,13 @@ pub use newsfeed_port::{NewsfeedRepository, NewsItem};
 #[async_trait]
 pub trait CiliumPort: Send + Sync {
     /// Get network flows
-    async fn get_flows(&self, namespace: Option<&str>, limit: usize) -> Result<Vec<NetworkFlow>>;
+    async fn get_flows(&self, namespace: Option<&str>, limit: usize) -> Result<Vec<cilium_port::NetworkFlow>>;
 
     /// Get network policies
-    async fn get_policies(&self, namespace: Option<&str>) -> Result<Vec<NetworkPolicy>>;
+    async fn get_policies(&self, namespace: Option<&str>) -> Result<Vec<cilium_port::NetworkPolicy>>;
 }
 
-/// Network flow information
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct NetworkFlow {
-    pub timestamp: chrono::DateTime<chrono::Utc>,
-    pub source_ip: String,
-    pub destination_ip: String,
-    pub source_port: u16,
-    pub destination_port: u16,
-    pub protocol: String,
-    pub verdict: String,
-}
-
-/// Network policy information
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct NetworkPolicy {
-    pub name: String,
-    pub namespace: String,
-    pub action: String,
-    pub rules: Vec<String>,
-}
+// Remove duplicate definitions - use cilium_port module instead
 
 #[cfg(test)]
 mod tests {

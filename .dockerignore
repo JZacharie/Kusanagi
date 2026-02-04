@@ -1,0 +1,14 @@
+# .dockerignore optimisé
+target/
+.git/
+.gitignore
+README.md
+*.md
+.env*
+docker_build.log
+*.sh
+tests/
+.vscode/
+.idea/
+Dockerfile*
+.dockerignore

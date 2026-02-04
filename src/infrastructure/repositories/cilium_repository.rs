@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use crate::domain::ports::{CiliumRepository, NetworkFlow, NetworkPolicy, BandwidthMetrics, NetworkAnomaly};
+use crate::domain::ports::cilium_port::{CiliumRepository, NetworkFlow, NetworkPolicy, BandwidthMetrics, NetworkAnomaly};
 use crate::error::{Result, KusanagiError};
 use crate::legacy;
 
