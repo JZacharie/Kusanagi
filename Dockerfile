@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
 COPY Cargo.toml Cargo.lock ./
 
 # Create dummy main to cache dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs && echo "pub fn main() {}" > src/lib.rs
+RUN mkdir src && echo "fn main() {}" > src/main.rs && echo "pub fn main() {}" > src/lib.rs && echo "fn main() {}" > src/main_working.rs
 RUN cargo build --release && rm -rf src
 
 # Copy source code
