@@ -317,3 +317,10 @@ mod tests {
         assert!(result.is_err());
     }
 }
+
+// Low Priority Ports (Phase 3)
+pub mod low_priority_ports_part1;
+pub mod low_priority_ports_part2;
+
+pub use low_priority_ports_part1::*;
+pub use low_priority_ports_part2::*;

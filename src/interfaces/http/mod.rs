@@ -191,3 +191,10 @@ mod tests {
         assert!(resp.status().is_success());
     }
 }
+
+// Low Priority Handlers (Phase 3)
+pub mod low_priority_handlers_part1;
+pub mod low_priority_handlers_part2;
+
+pub use low_priority_handlers_part1::*;
+pub use low_priority_handlers_part2::*;
