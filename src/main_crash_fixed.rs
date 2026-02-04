@@ -44,9 +44,11 @@ async fn debug() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    println!("🚀 Kusanagi Agent Controller - Crash-Fixed Version");
-    println!("🔧 Issue: Back-off restarting failed container");
-    println!("✅ Solution: Safe initialization without external dependencies");
+    println!("🚀 Kusanagi Agent Controller - Starting...");
+    
+    // Force flush stdout
+    use std::io::{self, Write};
+    io::stdout().flush().unwrap();
     
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     
@@ -55,22 +57,24 @@ async fn main() -> std::io::Result<()> {
     let bind_addr = format!("{}:{}", host, port);
     
     println!("📍 Binding to: {}", bind_addr);
-    println!("🏗️  37 modules legacy préservés");
-    println!("🛡️  Safe mode: No external service dependencies");
-    println!("🌐 Endpoints:");
-    println!("   - GET / : Service info");
-    println!("   - GET /health : Health check");
-    println!("   - GET /debug : Crash diagnosis");
-    println!("🎯 Starting server...");
+    println!("🏗️  37 modules legacy preserved");
+    println!("🛡️  Safe mode: No external dependencies");
+    println!("🎯 Server starting...");
     
-    HttpServer::new(|| {
+    // Force flush before starting server
+    io::stdout().flush().unwrap();
+    
+    let server = HttpServer::new(|| {
         App::new()
             .wrap(Logger::default())
             .service(index)
             .service(health)
             .service(debug)
     })
-    .bind(&bind_addr)?
-    .run()
-    .await
+    .bind(&bind_addr)?;
+    
+    println!("✅ Server bound successfully, starting...");
+    io::stdout().flush().unwrap();
+    
+    server.run().await
 }

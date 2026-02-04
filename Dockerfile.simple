@@ -1,0 +1,26 @@
+FROM rust:1.88-slim AS builder
+
+WORKDIR /app
+
+# Copy source
+COPY src/main_ultra_simple.rs src/main.rs
+
+# Create minimal Cargo.toml
+RUN echo '[package]' > Cargo.toml && \
+    echo 'name = "kusanagi"' >> Cargo.toml && \
+    echo 'version = "0.2.0"' >> Cargo.toml && \
+    echo 'edition = "2021"' >> Cargo.toml
+
+# Build
+RUN cargo build --release
+
+# Runtime
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi
+RUN chmod +x /usr/local/bin/kusanagi
+
+EXPOSE 8080
+CMD ["/usr/local/bin/kusanagi"]
