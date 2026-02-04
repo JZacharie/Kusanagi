@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
 COPY Cargo.toml Cargo.lock ./
 
 # Create dummy main to cache dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs && echo "pub fn main() {}" > src/lib.rs && echo "fn main() {}" > src/main_working.rs
+RUN mkdir src && echo "fn main() {}" > src/main.rs && echo "pub fn main() {}" > src/lib.rs && echo "fn main() {}" > src/main_complete.rs
 RUN cargo build --release && rm -rf src
 
 # Copy source code
@@ -62,4 +62,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
 # Run the application with verbose output
-CMD ["sh", "-c", "echo 'Starting Kusanagi...' && /usr/local/bin/kusanagi"]
+CMD ["/usr/local/bin/kusanagi"]
