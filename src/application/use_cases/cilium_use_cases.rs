@@ -1,4 +1,4 @@
-use crate::domain::ports::{CiliumRepository, NetworkFlow, NetworkPolicy, BandwidthMetrics, NetworkAnomaly};
+use crate::domain::ports::cilium_port::{CiliumRepository, NetworkFlow, NetworkPolicy, BandwidthMetrics, NetworkAnomaly};
 use crate::error::Result;
 use std::sync::Arc;
 
