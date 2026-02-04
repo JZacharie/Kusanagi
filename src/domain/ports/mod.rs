@@ -153,6 +153,26 @@ pub use alert_port::AlertRepository;
 pub mod chat_port;
 pub use chat_port::{ChatService, ChatHistoryRepository, AiProvider};
 
+/// Port for Chat Repository operations
+pub mod chat_repository;
+pub use chat_repository::{ChatRepository, AiService, ChatMessage};
+
+/// Port for Integration operations
+pub mod integration_port;
+pub use integration_port::IntegrationRepository;
+
+/// Port for System operations
+pub mod system_port;
+pub use system_port::{SystemRepository, DatabaseRepository};
+
+/// Port for Node Metrics operations
+pub mod node_metrics_port;
+pub use node_metrics_port::{NodeMetricsRepository, NodeDiskMetrics, ClusterDiskSummary};
+
+/// Port for MCP operations
+pub mod mcp_port;
+pub use mcp_port::{McpRepository, K8sResourceSummary, CiliumPolicySummary, TrivyVulnerabilitySummary, SteampipeResult};
+
 /// Port for Cilium network operations
 #[async_trait]
 pub trait CiliumPort: Send + Sync {

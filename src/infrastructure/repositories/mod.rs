@@ -13,6 +13,18 @@ use std::sync::Arc;
 mod argocd_repository;
 pub use argocd_repository::ArgoCdRepositoryImpl;
 
+mod legacy_integration_repository;
+pub use legacy_integration_repository::{LegacyIntegrationRepository, LegacySystemRepository, LegacyDatabaseRepository};
+
+mod node_metrics_repository;
+pub use node_metrics_repository::LegacyNodeMetricsRepository;
+
+mod chat_repository;
+pub use chat_repository::{LegacyChatRepository, LegacyAiService};
+
+mod mcp_repository;
+pub use mcp_repository::LegacyMcpRepository;
+
 /// Kubernetes repository implementation using kube-rs
 pub struct K8sRepository {
     client: Client,
