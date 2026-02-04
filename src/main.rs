@@ -754,7 +754,7 @@ async fn main() -> std::io::Result<()> {
             .configure(interfaces::http::configure_routes)
             
             // Legacy routes (being migrated) - Remove as modules are migrated
-            .configure(legacy::proxmox::configure_routes)
+            // .configure(legacy::proxmox::configure_routes) // MIGRATED to new architecture
             .configure(legacy::homeassistant::configure_routes)
             .configure(legacy::weather::configure_routes)
             .configure(legacy::calendar::configure_routes)
@@ -766,7 +766,7 @@ async fn main() -> std::io::Result<()> {
             .configure(legacy::security::configure_routes)
             .configure(legacy::database::configure_routes)
             .configure(legacy::health::configure_routes)
-            // NOTE: nodes, pods, chat, and mcp now handled by new architecture
+            // NOTE: nodes, pods, chat, mcp, cilium, proxmox, newsfeed now handled by new architecture
             .configure(doctor::configure_routes)
             .service(health_check)
 

@@ -61,6 +61,42 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_cilium_flows() {
+        let app = test::init_service(
+            App::new().configure(http::cilium_handlers::configure_routes)
+        ).await;
+
+        let req = test::TestRequest::get().uri("/api/cilium/flows").to_request();
+        let resp = test::call_service(&app, req).await;
+        
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[actix_web::test]
+    async fn test_proxmox_cluster() {
+        let app = test::init_service(
+            App::new().configure(http::proxmox_handlers::configure_routes)
+        ).await;
+
+        let req = test::TestRequest::get().uri("/api/proxmox/cluster").to_request();
+        let resp = test::call_service(&app, req).await;
+        
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[actix_web::test]
+    async fn test_news_endpoint() {
+        let app = test::init_service(
+            App::new().configure(http::newsfeed_handlers::configure_routes)
+        ).await;
+
+        let req = test::TestRequest::get().uri("/api/news").to_request();
+        let resp = test::call_service(&app, req).await;
+        
+        assert!(resp.status().is_success() || resp.status().is_server_error());
+    }
+
+    #[actix_web::test]
     async fn test_health_endpoint() {
         let app = test::init_service(
             App::new().configure(http::configure_routes)

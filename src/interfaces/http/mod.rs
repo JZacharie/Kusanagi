@@ -24,6 +24,9 @@ mod integration_handlers;
 mod nodes_pods_handlers;
 mod chat_handlers_new;
 mod mcp_handlers;
+mod cilium_handlers;
+mod proxmox_handlers;
+mod newsfeed_handlers;
 pub mod pod_handlers;
 
 pub use event_handlers::*;
@@ -43,6 +46,9 @@ pub use integration_handlers::*;
 pub use nodes_pods_handlers::*;
 pub use chat_handlers_new::*;
 pub use mcp_handlers::*;
+pub use cilium_handlers::*;
+pub use proxmox_handlers::*;
+pub use newsfeed_handlers::*;
 
 // Re-export the main AppState from crate root
 pub use crate::AppState;
@@ -113,7 +119,10 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         // High-priority migrated modules
         .configure(nodes_pods_handlers::configure_routes)
         .configure(chat_handlers_new::configure_routes)
-        .configure(mcp_handlers::configure_routes);
+        .configure(mcp_handlers::configure_routes)
+        .configure(cilium_handlers::configure_routes)
+        .configure(proxmox_handlers::configure_routes)
+        .configure(newsfeed_handlers::configure_routes);
 }
 
 #[get("/health")]
