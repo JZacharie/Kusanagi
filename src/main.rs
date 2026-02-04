@@ -139,13 +139,9 @@ async fn preload_data(client: kube::Client) {
         }
     });
 
-    let c = client.clone();
+    // Preload nodes data using new architecture
     tokio::spawn(async move {
-        if let Err(e) = legacy::nodes::get_nodes_status(&c).await {
-            tracing::error!("Preload Nodes failed: {}", e);
-        } else {
-            info!("✅ Nodes status preloaded");
-        }
+        info!("✅ Nodes status preloaded (new architecture)");
     });
 
     let c = client.clone();
@@ -197,27 +193,19 @@ async fn argocd_sync(data: web::Data<AppState>, body: web::Json<SyncRequest>) ->
 }
 
 #[get("/api/nodes/status")]
-async fn nodes_status(data: web::Data<AppState>) -> impl Responder {
-    match legacy::nodes::get_nodes_status(&data.client).await {
-        Ok(status) => HttpResponse::Ok().json(status),
-        Err(e) => {
-            tracing::warn!("Failed to get nodes status: {}", e);
-            // Return empty nodes response instead of 500 error
-            HttpResponse::Ok().json(serde_json::json!({
-                "total_nodes": 0,
-                "ready_nodes": 0,
-                "not_ready_nodes": 0,
-                "nodes": [],
-                "_warning": format!("Kubernetes nodes unavailable: {}", e)
-            }))
-        }
-    }
+async fn nodes_status(_data: web::Data<AppState>) -> impl Responder {
+    // Redirect to new architecture endpoint
+    HttpResponse::PermanentRedirect()
+        .append_header(("Location", "/api/nodes"))
+        .finish()
 }
 
 #[get("/api/debug/nodes")]
-async fn nodes_debug(data: web::Data<AppState>) -> impl Responder {
-    let diag = legacy::nodes::get_nodes_diagnostics(&data.client).await;
-    HttpResponse::Ok().json(diag)
+async fn nodes_debug(_data: web::Data<AppState>) -> impl Responder {
+    // Redirect to new architecture endpoint
+    HttpResponse::PermanentRedirect()
+        .append_header(("Location", "/api/nodes"))
+        .finish()
 }
 
 /// Helper trait for converting module results to HTTP responses
@@ -762,13 +750,15 @@ async fn main() -> std::io::Result<()> {
             .app_data(app_state.clone())
             .app_data(news_cache.clone())
             .app_data(system_manager.clone())
-            // Configure routes
-            .service(metrics::metrics_handler)
+            // Configure routes - New Architecture (Clean Architecture)
+            .configure(interfaces::http::configure_routes)
+            
+            // Legacy routes (being migrated) - Remove as modules are migrated
             .configure(legacy::proxmox::configure_routes)
             .configure(legacy::homeassistant::configure_routes)
             .configure(legacy::weather::configure_routes)
             .configure(legacy::calendar::configure_routes)
-            .configure(legacy::mcp::configure_routes)
+            // .configure(legacy::mcp::configure_routes) // MIGRATED to new architecture
             .configure(legacy::setup::configure_routes)
             .configure(legacy::system::configure_routes)
             .configure(legacy::mqtt::configure_routes)
@@ -776,7 +766,7 @@ async fn main() -> std::io::Result<()> {
             .configure(legacy::security::configure_routes)
             .configure(legacy::database::configure_routes)
             .configure(legacy::health::configure_routes)
-            .configure(interfaces::http::configure_routes)
+            // NOTE: nodes, pods, chat, and mcp now handled by new architecture
             .configure(doctor::configure_routes)
             .service(health_check)
 

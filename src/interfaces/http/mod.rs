@@ -20,6 +20,10 @@ mod security_handlers;
 mod alert_handlers;
 mod chat_handlers;
 mod node_metrics_handlers;
+mod integration_handlers;
+mod nodes_pods_handlers;
+mod chat_handlers_new;
+mod mcp_handlers;
 pub mod pod_handlers;
 
 pub use event_handlers::*;
@@ -35,6 +39,10 @@ pub use security_handlers::*;
 pub use alert_handlers::*;
 pub use chat_handlers::*;
 pub use node_metrics_handlers::*;
+pub use integration_handlers::*;
+pub use nodes_pods_handlers::*;
+pub use chat_handlers_new::*;
+pub use mcp_handlers::*;
 
 // Re-export the main AppState from crate root
 pub use crate::AppState;
@@ -99,7 +107,13 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(handle_chat_command)
         .service(query_ai)
         .service(get_chat_history)
-        .service(clear_chat_history);
+        .service(clear_chat_history)
+        // Integration routes
+        .configure(integration_handlers::configure_routes)
+        // High-priority migrated modules
+        .configure(nodes_pods_handlers::configure_routes)
+        .configure(chat_handlers_new::configure_routes)
+        .configure(mcp_handlers::configure_routes);
 }
 
 #[get("/health")]
