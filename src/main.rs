@@ -612,14 +612,26 @@ async fn export_alerts_endpoint(data: web::Data<AppState>, query: web::Query<Exp
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    println!("🚀 Kusanagi starting...");
+    
     dotenv::dotenv().ok();
     
+    // Set local mode if not in Kubernetes environment
+    if std::env::var("KUBERNETES_SERVICE_HOST").is_err() {
+        std::env::set_var("KUSANAGI_MODE", "local");
+        println!("🏠 Running in local mode - Kubernetes services will be mocked");
+    } else {
+        println!("☸️  Running in Kubernetes mode");
+    }
+    
+    println!("📋 Loading configuration...");
     // Load configuration
     if let Err(e) = config::init() {
-        eprintln!("Failed to load configuration: {}", e);
+        eprintln!("❌ Failed to load configuration: {}", e);
         std::process::exit(1);
     }
     let cfg = config::get();
+    println!("✅ Configuration loaded");
     
     // Setup graceful shutdown handler
     let (shutdown_tx, mut shutdown_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -653,7 +665,35 @@ async fn main() -> std::io::Result<()> {
         info!("Running in development mode");
     }
 
-    let client = if cfg.is_dev_mode() {
+    println!("🔧 Initializing Kubernetes client...");
+    let client = if std::env::var("KUSANAGI_MODE").unwrap_or_default() == "local" {
+        println!("🏠 Creating mock Kubernetes client for local mode");
+        // Créer un client factice pour le mode local
+        let config = kube::Config {
+            cluster_url: "https://localhost:6443".parse().unwrap(),
+            default_namespace: "default".to_string(),
+            root_cert: None,
+            auth_info: kube::config::AuthInfo::default(),
+            proxy_url: None,
+            accept_invalid_certs: false,
+            connect_timeout: None,
+            read_timeout: None,
+            write_timeout: None,
+            tls_server_name: None,
+            disable_compression: false,
+            headers: vec![],
+        };
+        match kube::Client::try_from(config) {
+            Ok(client) => {
+                println!("✅ Mock Kubernetes client created");
+                client
+            },
+            Err(e) => {
+                eprintln!("❌ Failed to create mock client: {}", e);
+                std::process::exit(1);
+            }
+        }
+    } else if cfg.is_dev_mode() {
         tracing::warn!("Running in development mode - Kubernetes features disabled");
         match kube::Client::try_default().await {
             Ok(client) => {
