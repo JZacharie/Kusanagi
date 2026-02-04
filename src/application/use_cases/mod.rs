@@ -479,3 +479,10 @@ mod tests {
         assert!(result.is_empty());
     }
 }
+
+// Low Priority Modules (Phase 3)
+pub mod low_priority_use_cases_part1;
+pub mod low_priority_use_cases_part2;
+
+pub use low_priority_use_cases_part1::*;
+pub use low_priority_use_cases_part2::*;
