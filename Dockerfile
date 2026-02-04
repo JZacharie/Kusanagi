@@ -1,4 +1,4 @@
-# Dockerfile pour Kusanagi (Library) - Version minimale
+# Dockerfile pour Kusanagi - Application Runtime
 FROM rust:1.88-slim AS builder
 
 WORKDIR /app
@@ -12,27 +12,54 @@ RUN apt-get update && apt-get install -y \
 # Copy dependency files
 COPY Cargo.toml Cargo.lock ./
 
-# Create dummy lib to cache dependencies
-RUN mkdir src && echo "pub fn main() {}" > src/lib.rs
-RUN cargo build --lib --release && rm -rf src
+# Create dummy main to cache dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs && echo "pub fn main() {}" > src/lib.rs
+RUN cargo build --release && rm -rf src
 
 # Copy source code
 COPY src ./src
 
-# Build only the library (skip tests due to compilation errors)
-RUN cargo build --lib --release
+# Build the application binary
+RUN cargo build --release
 
-# Final stage - minimal runtime
+# Runtime stage
 FROM debian:bookworm-slim
 
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     ca-certificates \
+    libssl3 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy built library (if exists)
-COPY --from=builder /app/target/release/ /usr/local/lib/kusanagi/
+# Create non-root user
+RUN useradd -r -s /bin/false kusanagi
 
-# Confirmation message
-RUN echo "Kusanagi library built successfully with 37 legacy modules preserved" > /usr/local/lib/build_status.txt
+# Set environment variables
+ENV RUST_LOG=debug
+ENV KUSANAGI_HOST=0.0.0.0
+ENV KUSANAGI_PORT=8080
 
-CMD ["cat", "/usr/local/lib/build_status.txt"]
+# Copy binary from builder
+COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi
+
+# Set ownership and permissions
+RUN chown kusanagi:kusanagi /usr/local/bin/kusanagi
+RUN chmod +x /usr/local/bin/kusanagi
+
+# Create working directory
+RUN mkdir -p /app && chown kusanagi:kusanagi /app
+WORKDIR /app
+
+# Switch to non-root user
+USER kusanagi
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Run the application with verbose output
+CMD ["sh", "-c", "echo 'Starting Kusanagi...' && /usr/local/bin/kusanagi"]
