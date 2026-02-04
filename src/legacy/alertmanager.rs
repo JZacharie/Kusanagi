@@ -74,6 +74,16 @@ lazy_static::lazy_static! {
 
 /// Get cached active alerts
 pub async fn get_cached_active_alerts() -> Result<AlertsResponse, String> {
+    // Check if running in local mode
+    if std::env::var("KUSANAGI_MODE").unwrap_or_default() == "local" {
+        tracing::info!("AlertManager running in local mode, returning mock alerts");
+        return Ok(AlertsResponse {
+            alerts: vec![],
+            firing_count: 0,
+            pending_count: 1,
+        });
+    }
+    
     // 1. Try to get from cache
     {
         let cache = ALERTS_CACHE.alerts.read().await;

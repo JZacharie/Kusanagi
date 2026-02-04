@@ -48,6 +48,12 @@ struct OllamaResponse {
 }
 
 pub async fn start_security_worker() {
+    // Check if running in local mode
+    if std::env::var("KUSANAGI_MODE").unwrap_or_default() == "local" {
+        info!("🔒 Security worker running in local mode - services mocked");
+        return;
+    }
+    
     info!("🛡️ Starting Security Report enrichment worker");
     
     let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");

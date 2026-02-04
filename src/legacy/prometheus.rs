@@ -43,6 +43,22 @@ lazy_static::lazy_static! {
 /// Returns cached metrics if available and not expired,
 /// otherwise fetches fresh metrics from Prometheus.
 pub async fn get_cached_metrics() -> Result<PrometheusMetrics> {
+    // Check if running in local mode
+    if std::env::var("KUSANAGI_MODE").unwrap_or_default() == "local" {
+        tracing::info!("Running in local mode, returning mock metrics");
+        return Ok(PrometheusMetrics {
+            cpu_usage_percent: 25.0,
+            memory_usage_percent: 60.0,
+            memory_usage_bytes: 2048000000,
+            pod_count: 10,
+            node_count: 3,
+            container_count: 25,
+            alerts_firing: 0,
+            alerts_pending: 1,
+            ..Default::default()
+        });
+    }
+    
     let cache_key = "cluster_metrics".to_string();
     
     // Try to get from cache first
