@@ -487,7 +487,7 @@ mod tests {
         
         let status = service.get_cluster_status().await.unwrap();
         // Should be Degraded due to high CPU (>90%) and node not ready
-        assert!(matches!(status, ClusterStatus::Degraded));
+        assert!(matches!(status, crate::domain::entities::ClusterStatus::Degraded));
     }
 
     #[tokio::test]

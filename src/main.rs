@@ -676,6 +676,8 @@ async fn main() -> std::io::Result<()> {
                     read_timeout: None,
                     write_timeout: None,
                     tls_server_name: None,
+                    disable_compression: false,
+                    headers: vec![],
                 };
                 kube::Client::try_from(config).unwrap_or_else(|_| {
                     panic!("Failed to create development client")

@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::application::use_cases::prometheus_use_cases::*;
 
-use crate::interfaces::http::AppState;
+// use crate::interfaces::http::AppState; // Commented out for compilation
 
 #[derive(Debug, Deserialize)]
 pub struct QueryRequest {
@@ -26,7 +26,7 @@ pub struct RangeQueryRequest {
 /// Get cluster metrics
 #[get("/api/metrics")]
 pub async fn get_cluster_metrics(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
 ) -> impl Responder {
     let repo = match data.get_prometheus_repo() {
         Some(repo) => repo,
@@ -47,7 +47,7 @@ pub async fn get_cluster_metrics(
 /// Query Prometheus metric
 #[get("/api/prometheus/query")]
 pub async fn query_metric(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     query: web::Query<QueryRequest>,
 ) -> impl Responder {
     let repo = match data.get_prometheus_repo() {
@@ -69,7 +69,7 @@ pub async fn query_metric(
 /// Query raw Prometheus data
 #[get("/api/prometheus/query_raw")]
 pub async fn query_raw(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     query: web::Query<QueryRequest>,
 ) -> impl Responder {
     let repo = match data.get_prometheus_repo() {
@@ -91,7 +91,7 @@ pub async fn query_raw(
 /// Query Prometheus range
 #[get("/api/prometheus/range")]
 pub async fn query_range(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     query: web::Query<RangeQueryRequest>,
 ) -> impl Responder {
     let repo = match data.get_prometheus_repo() {

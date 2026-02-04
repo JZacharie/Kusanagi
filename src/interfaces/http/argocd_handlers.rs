@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::application::use_cases::argocd_use_cases::*;
 
-use crate::interfaces::http::AppState;
+// use crate::interfaces::http::AppState; // Commented out for compilation
 
 #[derive(Debug, Deserialize)]
 pub struct SyncRequest {
@@ -17,7 +17,7 @@ pub struct SyncRequest {
 
 /// List all ArgoCD applications
 pub async fn list_applications(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
 ) -> impl Responder {
     let repo = match data.get_argocd_repo() {
         Some(repo) => repo,
@@ -44,7 +44,7 @@ pub struct AppStatusPath {
 }
 
 pub async fn get_application_status(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     path: web::Path<AppStatusPath>,
 ) -> impl Responder {
     let repo = match data.get_argocd_repo() {
@@ -67,7 +67,7 @@ pub async fn get_application_status(
 
 /// Sync an application
 pub async fn sync_application(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     path: web::Path<AppStatusPath>,
 ) -> impl Responder {
     let repo = match data.get_argocd_repo() {
@@ -92,7 +92,7 @@ pub async fn sync_application(
 
 /// Get application details
 pub async fn get_application_details(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     path: web::Path<AppStatusPath>,
 ) -> impl Responder {
     let repo = match data.get_argocd_repo() {

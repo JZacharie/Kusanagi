@@ -143,7 +143,7 @@ pub trait WebSocketRepository: Send + Sync {
 pub struct Conversation {
     pub id: String,
     pub user_id: String,
-    pub messages: Vec<ChatMessage>,
+    pub messages: Vec<crate::domain::entities::ChatMessage>,
     pub timestamp: u64,
 }
 

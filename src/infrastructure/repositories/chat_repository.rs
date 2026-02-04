@@ -8,7 +8,7 @@ pub struct LegacyChatRepository;
 
 #[async_trait]
 impl ChatRepository for LegacyChatRepository {
-    async fn store_message(&self, message: &str, response: &str) -> Result<()> {
+    async fn store_message(&self, _message: &str, _response: &str) -> Result<()> {
         // Simplified implementation
         Ok(())
     }

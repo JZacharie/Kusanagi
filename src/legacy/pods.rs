@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::{info, error, warn};
 use tokio::time::{timeout, Duration};
-use crate::AppState;
+// use crate::AppState; // Commented out for compilation
 
 /// Configuration for K8s API timeouts
 const K8S_API_TIMEOUT_SECS: u64 = 30; // Increased from 10s

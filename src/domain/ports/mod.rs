@@ -60,10 +60,10 @@ pub trait KubernetesRepository: Send + Sync {
     async fn list_events(&self, namespace: Option<&str>, event_type: Option<&str>) -> Result<Vec<ClusterEvent>>;
 
     /// Get all services
-    async fn list_services(&self, namespace: Option<&str>) -> Result<Vec<Service>>;
+    async fn list_services(&self, namespace: Option<&str>) -> Result<Vec<crate::domain::entities::Service>>;
 
     /// Get all ingresses
-    async fn list_ingresses(&self, namespace: Option<&str>) -> Result<Vec<Ingress>>;
+    async fn list_ingresses(&self, namespace: Option<&str>) -> Result<Vec<crate::domain::entities::Ingress>>;
 
     /// Get all namespaces
     async fn list_namespaces(&self) -> Result<Vec<Namespace>>;
@@ -268,11 +268,11 @@ mod tests {
             Ok(vec![])
         }
 
-        async fn list_services(&self, _namespace: Option<&str>) -> Result<Vec<Service>> {
+        async fn list_services(&self, _namespace: Option<&str>) -> Result<Vec<crate::domain::entities::Service>> {
             Ok(vec![])
         }
 
-        async fn list_ingresses(&self, _namespace: Option<&str>) -> Result<Vec<Ingress>> {
+        async fn list_ingresses(&self, _namespace: Option<&str>) -> Result<Vec<crate::domain::entities::Ingress>> {
             Ok(vec![])
         }
 

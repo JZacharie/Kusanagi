@@ -52,7 +52,7 @@ pub trait LlmRepository: Send + Sync {
 // Events Domain
 #[async_trait]
 pub trait EventsRepository: Send + Sync {
-    async fn get_cluster_events(&self, namespace: Option<&str>) -> Result<Vec<ClusterEvent>>;
+    async fn get_cluster_events(&self, namespace: Option<&str>) -> Result<Vec<crate::domain::entities::ClusterEvent>>;
     async fn watch_events(&self) -> Result<()>;
 }
 
