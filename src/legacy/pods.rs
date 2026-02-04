@@ -100,7 +100,7 @@ pub struct ScaleRequest {
 
 /// Scale a deployment or statefulset
 #[post("/api/scale/{type}/{namespace}/{name}")]
-pub async fn scale_resource_handler(
+pub async fn scale_resource_handler<AppState>(
     data: web::Data<AppState>,
     path: web::Path<(String, String, String)>,
     body: web::Json<ScaleRequest>,
@@ -158,7 +158,7 @@ async fn scale_statefulset(client: &Client, namespace: &str, name: &str, replica
 }
 
 #[get("/api/pods/status")]
-pub async fn pods_status(data: web::Data<AppState>) -> impl Responder {
+pub async fn pods_status<AppState>(data: web::Data<AppState>) -> impl Responder {
     match get_pods_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
@@ -182,7 +182,7 @@ pub async fn pods_status(data: web::Data<AppState>) -> impl Responder {
 }
 
 #[post("/api/pods/force-delete")]
-pub async fn force_delete_pod_handler(
+pub async fn force_delete_pod_handler<AppState>(
     data: web::Data<AppState>,
     body: web::Json<ForceDeleteRequest>,
 ) -> impl Responder {
@@ -614,7 +614,7 @@ pub struct BulkDeleteResponse {
 }
 
 #[post("/api/pods/delete-error-pods")]
-pub async fn delete_error_pods_handler(
+pub async fn delete_error_pods_handler<AppState>(
     data: web::Data<AppState>,
 ) -> impl Responder {
     match delete_error_pods(&data.client).await {

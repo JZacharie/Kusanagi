@@ -146,7 +146,7 @@ pub async fn get_news_from_s3(s3_client: &S3Client) -> Result<Vec<crate::legacy:
 /// Translate text using the LLM module (multi-provider support)
 pub async fn translate_with_ollama(text: &str, target_lang: &str) -> Result<String, String> {
     // Use the new LLM module with multi-provider support
-    let client = crate::llm::LlmClient::new();
+    let client = crate::legacy::llm::LlmClient::new();
     
     let lang_full = if target_lang == "fr" { "French" } else { "English" };
     let prompt = format!(
@@ -226,7 +226,7 @@ async fn fallback_translate_with_ollama(text: &str, target_lang: &str) -> Result
 /// Generate tags using the LLM module (multi-provider support)
 pub async fn generate_tags_with_ollama(text: &str) -> Result<Vec<String>, String> {
     // Use the new LLM module with multi-provider support
-    let client = crate::llm::LlmClient::new();
+    let client = crate::legacy::llm::LlmClient::new();
     
     let prompt = format!(
         "Analyze the following technical news and generate descriptive tags in 'key:value' format (e.g., 'category:devops', 'language:rust', 'tool:kubernetes'). Output ONLY the tags, separated by commas. Do not include any other text.\n\nNews: {}",
@@ -315,5 +315,5 @@ async fn fallback_generate_tags_with_ollama(text: &str) -> Result<Vec<String>, S
 
 /// Get LLM configuration info for debugging
 pub fn get_llm_config_info() -> serde_json::Value {
-    crate::llm::get_config_info()
+    crate::legacy::llm::get_config_info()
 }

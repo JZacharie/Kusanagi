@@ -139,7 +139,7 @@ async fn trigger_rollout(client: &Client) -> Result<(), Box<dyn std::error::Erro
 }
 
 #[get("/api/system/logs")]
-pub async fn system_logs_handler(data: web::Data<crate::AppState>) -> impl Responder {
+pub async fn system_logs_handler<AppState>(data: web::Data<AppState>) -> impl Responder {
     let hostname = std::env::var("HOSTNAME").unwrap_or_else(|_| "kusanagi".to_string());
     let namespace = std::env::var("POD_NAMESPACE").unwrap_or_else(|_| "kusanagi".to_string());
     let dev_mode = std::env::var("DEV_MODE").unwrap_or_default() == "true";

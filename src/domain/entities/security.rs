@@ -5,7 +5,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Security report
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SecurityReport {
     pub name: String,
     pub report_type: String,
@@ -15,7 +15,7 @@ pub struct SecurityReport {
 }
 
 /// Enrichment data from AI analysis
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EnrichmentData {
     pub summary: String,
     pub remediation_advice: String,
@@ -71,6 +71,19 @@ pub struct SecurityScanSummary {
     pub scanned_at: String,
 }
 
+impl Default for SecurityScanSummary {
+    fn default() -> Self {
+        Self {
+            total_vulnerabilities: 0,
+            critical_count: 0,
+            high_count: 0,
+            medium_count: 0,
+            low_count: 0,
+            scanned_at: chrono::Utc::now().to_rfc3339(),
+        }
+    }
+}
+
 /// Report metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReportMetadata {
@@ -79,4 +92,14 @@ pub struct ReportMetadata {
     pub name: String,
     pub size: i64,
     pub last_modified: String,
+}
+
+impl Default for EnrichmentData {
+    fn default() -> Self {
+        Self {
+            summary: String::new(),
+            remediation_advice: String::new(),
+            criticality_score: 0.0,
+        }
+    }
 }

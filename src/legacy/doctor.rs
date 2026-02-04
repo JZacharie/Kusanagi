@@ -443,11 +443,11 @@ fn generate_recommendations(checks: &[CheckResult]) -> Vec<String> {
 pub async fn doctor_handler(/* data: web::Data<crate::AppState> */ ) -> impl Responder {
     // let report = run_diagnostics(&data.client).await; // Commented out for compilation
     let report = DiagnosticReport {
-        timestamp: chrono::Utc::now(),
-        overall_status: "disabled".to_string(),
-        components: vec![],
+        timestamp: chrono::Utc::now().to_string(),
+        // overall_status: "disabled".to_string(),
+        // components: vec![],
         recommendations: vec!["System diagnostics temporarily disabled for compilation".to_string()],
-        metadata: std::collections::HashMap::new(),
+        // metadata: std::collections::HashMap::new(),
     };
     
     let status_code = match report.overall_status {
@@ -472,13 +472,13 @@ pub async fn doctor_quick_handler(/* data: web::Data<crate::AppState> */ ) -> im
         name: "kubernetes".to_string(),
         status: "disabled".to_string(),
         message: Some("Temporarily disabled for compilation".to_string()),
-        details: std::collections::HashMap::new(),
+        // details: std::collections::HashMap::new(),
     };
     let perm_check = ComponentHealth {
         name: "permissions".to_string(),
         status: "disabled".to_string(),
         message: Some("Temporarily disabled for compilation".to_string()),
-        details: std::collections::HashMap::new(),
+        // details: std::collections::HashMap::new(),
     };
     
     let healthy = k8s_check.status == CheckStatus::Ok && perm_check.status != CheckStatus::Error;

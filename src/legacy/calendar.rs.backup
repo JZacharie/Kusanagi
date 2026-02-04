@@ -226,7 +226,7 @@ pub async fn oauth_authorize_handler() -> Result<HttpResponse> {
     match CalendarClient::build_oauth_client() {
         Ok(client) => {
             let (auth_url, _csrf_token) = client
-                //.authorize_url(CsrfToken::new_random)
+                .authorize_url(CsrfToken::new_random)
                 .add_scope(Scope::new("https://www.googleapis.com/auth/calendar.readonly".to_string()))
                 .url();
 
@@ -254,7 +254,7 @@ pub async fn oauth_callback_handler(query: web::Query<OAuthCallbackQuery>) -> Re
         Ok(client) => {
             let code = AuthorizationCode::new(query.code.clone());
             
-            match client//.exchange_code(code).request_async(&reqwest::Client::new()).await {
+            match client.exchange_code(code).request_async(&reqwest::Client::new()).await {
                 Ok(token_response) => {
                     let access_token = token_response.access_token().secret().to_string();
                     

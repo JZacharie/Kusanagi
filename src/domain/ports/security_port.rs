@@ -9,16 +9,16 @@ use crate::domain::entities::{SecurityReport, ReportMetadata, SecurityScanSummar
 #[async_trait]
 pub trait SecurityRepository: Send + Sync {
     /// List available reports
-    async fn list_reports(&self) -> Result<Vec<ReportMetadata>, String>;
+    async fn list_reports(&self) -> Result<Vec<SecurityReport>>;
     
     /// Get a specific report
-    async fn get_report(&self, category: &str, name: &str) -> Result<SecurityReport, String>;
+    async fn get_report(&self, category: &str, name: &str) -> Result<SecurityReport>;
     
     /// Store a report
-    async fn store_report(&self, report: &SecurityReport) -> Result<(), String>;
+    async fn store_report(&self, report: &SecurityReport) -> Result<()>;
     
     /// Get security scan summary
-    async fn get_scan_summary(&self) -> Result<SecurityScanSummary, String>;
+    async fn get_scan_summary(&self) -> Result<SecurityScanSummary>;
 }
 
 /// Port for AI enrichment operations
