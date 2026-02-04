@@ -7,6 +7,10 @@ edition = "2021"
 name = "kusanagi"
 path = "src/lib.rs"
 
+[[bin]]
+name = "kusanagi"
+path = "src/main.rs"
+
 [dependencies]
 actix-web = "4.4"
 actix-web-actors = "4.2"

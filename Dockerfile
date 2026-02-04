@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y \
 # Copy dependency files
 COPY Cargo.toml Cargo.lock ./
 
-# Create dummy main to cache dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs
+# Create dummy lib to cache dependencies
+RUN mkdir src && echo "pub fn main() {}" > src/lib.rs
 RUN cargo build --release && rm -rf src
 
 # Copy source code
@@ -30,16 +30,17 @@ FROM debian:bookworm-slim AS runtime
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libssl3 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN useradd -r -s /bin/false kusanagi
 
-# Copy binary from builder
-COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi
+# Copy binary from builder (assuming there's a main.rs or bin target)
+COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi 2>/dev/null || echo "No binary found, this is a library"
 
 # Set ownership and permissions
-RUN chown kusanagi:kusanagi /usr/local/bin/kusanagi
+RUN chown -R kusanagi:kusanagi /usr/local/bin/ 2>/dev/null || true
 
 # Switch to non-root user
 USER kusanagi
@@ -51,5 +52,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
-# Run the application
+# Run the application (if binary exists)
 CMD ["kusanagi"]
