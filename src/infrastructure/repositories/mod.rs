@@ -2,8 +2,8 @@
 //!
 //! These are concrete implementations of the driven ports defined in the domain layer.
 
-use crate::domain::entities::*;
-use crate::domain::ports::*;
+use crate::domain::entities::{self, *};
+use crate::domain::ports::{self, *};
 use crate::error::{KusanagiError, Result};
 use async_trait::async_trait;
 use kube::api::ListParams;
@@ -94,9 +94,9 @@ impl KubernetesRepository for K8sRepository {
             pod_count: pod_list.items.len(),
             namespace_count: ns_list.items.len(),
             status: if ready_nodes == node_list.items.len() {
-                ClusterStatus::Healthy
+                entities::ClusterStatus::Healthy
             } else {
-                ClusterStatus::Degraded
+                entities::ClusterStatus::Degraded
             },
             resources: ClusterResources::default(),
             health: ClusterHealth {

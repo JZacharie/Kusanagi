@@ -9,8 +9,8 @@
 //! - Pure business logic
 //! - No dependencies on infrastructure
 
-use crate::domain::entities::*;
-use crate::domain::ports::*;
+use crate::domain::entities::{self, *};
+use crate::domain::ports::{self, *};
 use crate::error::Result;
 use std::sync::Arc;
 
@@ -32,17 +32,17 @@ impl ClusterService {
     }
 
     /// Get comprehensive cluster status
-    pub async fn get_cluster_status(&self) -> Result<ClusterStatus> {
+    pub async fn get_cluster_status(&self) -> Result<entities::ClusterStatus> {
         let overview = self.k8s_repo.get_cluster_overview().await?;
         let metrics = self.metrics_repo.get_cluster_metrics().await?;
         
         // Business logic: determine cluster status based on multiple factors
         let status = if overview.health.nodes_not_ready > 0 || metrics.cpu_percent > 90.0 {
-            ClusterStatus::Degraded
+            entities::ClusterStatus::Degraded
         } else if overview.health.pods_crashing > 10 {
-            ClusterStatus::Critical
+            entities::ClusterStatus::Critical
         } else {
-            ClusterStatus::Healthy
+            entities::ClusterStatus::Healthy
         };
         
         Ok(status)

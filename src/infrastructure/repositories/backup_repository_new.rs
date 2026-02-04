@@ -7,11 +7,8 @@ pub struct LegacyBackupRepository;
 
 #[async_trait]
 impl BackupRepository for LegacyBackupRepository {
-    async fn get_backup_status(&self) -> Result<BackupStatus, String> {
+    async fn get_backup_status(&self) -> Result<BackupStatus> {
         Ok(BackupStatus {
-            last_backup: chrono::Utc::now(),
-            status: "completed".to_string(),
-            size_bytes: 1024 * 1024 * 100,
             total_cronjobs: 0,
             active_jobs: 0,
             succeeded_jobs: 0,
@@ -20,15 +17,15 @@ impl BackupRepository for LegacyBackupRepository {
         })
     }
 
-    async fn list_cronjobs(&self) -> Result<Vec<CronJobInfo>, String> {
+    async fn list_cronjobs(&self) -> Result<Vec<CronJobInfo>> {
         Ok(vec![])
     }
 
-    async fn get_cronjobs_by_namespace(&self, _namespace: &str) -> Result<Vec<CronJobInfo>, String> {
+    async fn get_cronjobs_by_namespace(&self, _namespace: &str) -> Result<Vec<CronJobInfo>> {
         Ok(vec![])
     }
 
-    async fn trigger_backup(&self, _namespace: &str, _name: &str) -> Result<(), String> {
+    async fn trigger_backup(&self, _namespace: &str, _name: &str) -> Result<()> {
         Ok(())
     }
 }
