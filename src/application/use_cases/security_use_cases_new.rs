@@ -1,4 +1,5 @@
-use crate::domain::ports::{SecurityRepository, SecurityReport, EnrichmentData};
+use crate::domain::ports::SecurityRepository;
+use crate::domain::entities::{SecurityReport, EnrichmentData};
 use crate::error::Result;
 use std::sync::Arc;
 

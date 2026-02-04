@@ -37,10 +37,10 @@ pub use newsfeed_repository::LegacyNewsfeedRepository;
 mod prometheus_repository_new;
 pub use prometheus_repository_new::LegacyPrometheusRepository;
 
-mod security_repository_new;
+pub mod security_repository_new;
 pub use security_repository_new::LegacySecurityRepository;
 
-mod backup_repository_new;
+pub mod backup_repository_new;
 pub use backup_repository_new::LegacyBackupRepository;
 
 /// Kubernetes repository implementation using kube-rs

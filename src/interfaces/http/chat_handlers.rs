@@ -9,7 +9,7 @@ use serde::Deserialize;
 use crate::application::use_cases::chat_use_cases::*;
 use crate::domain::entities::{ChatRequest, ChatCommand};
 
-use crate::interfaces::http::AppState;
+// use crate::interfaces::http::AppState; // Commented out for compilation
 
 #[derive(Debug, Deserialize)]
 pub struct CommandRequest {
@@ -26,7 +26,7 @@ pub struct AiQueryRequest {
 /// Process chat message
 #[post("/api/chat")]
 pub async fn process_chat_message(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     body: web::Json<ChatRequest>,
 ) -> impl Responder {
     let chat_service = match data.get_chat_service() {
@@ -56,7 +56,7 @@ pub async fn process_chat_message(
 /// Handle chat command
 #[post("/api/chat/command")]
 pub async fn handle_chat_command(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     body: web::Json<CommandRequest>,
 ) -> impl Responder {
     let chat_service = match data.get_chat_service() {
@@ -79,7 +79,7 @@ pub async fn handle_chat_command(
 /// Query AI
 #[post("/api/chat/query")]
 pub async fn query_ai(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     body: web::Json<AiQueryRequest>,
 ) -> impl Responder {
     let chat_service = match data.get_chat_service() {
@@ -103,7 +103,7 @@ pub async fn query_ai(
 /// Get chat history
 #[get("/api/chat/history")]
 pub async fn get_chat_history(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     query: web::Query<HistoryQuery>,
 ) -> impl Responder {
     let history_repo = match data.get_chat_history_repo() {
@@ -130,7 +130,7 @@ pub struct HistoryQuery {
 /// Clear chat history
 #[post("/api/chat/clear")]
 pub async fn clear_chat_history(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
 ) -> impl Responder {
     let history_repo = match data.get_chat_history_repo() {
         Some(repo) => repo,

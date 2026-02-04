@@ -7,7 +7,7 @@ use tracing::{error, warn, info};
 use chrono::{Local, Utc};
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl,
-    Scope, TokenResponse, TokenUrl, basic::BasicClient, reqwest::async_http_client,
+    Scope, TokenResponse, TokenUrl, basic::BasicClient,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -81,13 +81,13 @@ impl CalendarClient {
         let auth_url = AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string())?;
         let token_url = TokenUrl::new("https://oauth2.googleapis.com/token".to_string())?;
 
-        Ok(BasicClient::new(
-            ClientId::new(client_id),
-            Some(ClientSecret::new(client_secret)),
-            auth_url,
-            Some(token_url),
-        )
-        .set_redirect_uri(RedirectUrl::new(redirect_url)?))
+        let client = BasicClient::new(ClientId::new(client_id))
+            .set_client_secret(ClientSecret::new(client_secret))
+            .set_auth_uri(auth_url)
+            .set_token_uri(token_url)
+            .set_redirect_uri(RedirectUrl::new(redirect_url)?);
+        
+        Ok(client)
     }
 
     pub async fn get_upcoming_events(&self, token: Option<String>) -> Result<CalendarResponse, Box<dyn std::error::Error>> {
@@ -254,7 +254,7 @@ pub async fn oauth_callback_handler(query: web::Query<OAuthCallbackQuery>) -> Re
         Ok(client) => {
             let code = AuthorizationCode::new(query.code.clone());
             
-            match client.exchange_code(code).request_async(async_http_client).await {
+            match client.exchange_code(code).request_async(&reqwest::Client::new()).await {
                 Ok(token_response) => {
                     let access_token = token_response.access_token().secret().to_string();
                     

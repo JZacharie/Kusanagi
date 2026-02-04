@@ -45,7 +45,7 @@ pub async fn collect_metrics(
 
 pub async fn send_telemetry(
     telemetry_use_cases: web::Data<Arc<TelemetryUseCases>>,
-    body: web::Json<serde_json::Value>,
+    _body: web::Json<serde_json::Value>,
 ) -> ActixResult<HttpResponse> {
     let telemetry_data = crate::domain::ports::low_priority_ports_part2::TelemetryData {
         metrics: std::collections::HashMap::new(),

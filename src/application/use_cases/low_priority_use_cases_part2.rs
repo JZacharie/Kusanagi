@@ -2,7 +2,7 @@
 //! 9 modules restants
 
 use crate::domain::ports::*;
-use crate::error::Result;
+use crate::error::{Result, KusanagiError};
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -92,7 +92,7 @@ impl EventsUseCases {
         Self { events_repo }
     }
 
-    pub async fn get_cluster_events(&self, namespace: Option<&str>) -> Result<Vec<ClusterEvent>> {
+    pub async fn get_cluster_events(&self, namespace: Option<&str>) -> Result<Vec<crate::domain::entities::ClusterEvent>> {
         self.events_repo.get_cluster_events(namespace).await
     }
 
@@ -169,10 +169,23 @@ impl ArgoCdUseCases {
     }
 
     pub async fn list_applications(&self) -> Result<Vec<ArgoCdApplication>> {
-        self.argocd_repo.list_applications().await
+        let apps = self.argocd_repo.list_applications().await
+            .map_err(|e| KusanagiError::external_api("ArgoCD", &format!("ArgoCD error: {}", e)))?;
+        
+        // Convert ApplicationInfo to ArgoCdApplication
+        let converted_apps = apps.into_iter().map(|app| ArgoCdApplication {
+            name: app.name,
+            namespace: app.namespace,
+            status: "Unknown".to_string(),
+            health: "Unknown".to_string(),
+            sync_status: "Unknown".to_string(),
+        }).collect();
+        
+        Ok(converted_apps)
     }
 
     pub async fn sync_application(&self, app_name: &str) -> Result<()> {
         self.argocd_repo.sync_application(app_name).await
+            .map_err(|e| KusanagiError::external_api("ArgoCD", &format!("ArgoCD sync error: {}", e)))
     }
 }

@@ -1,7 +1,7 @@
 use actix_web::{get, web, HttpResponse, Responder};
 use serde::Serialize;
 use std::time::{Duration, Instant};
-use sysinfo::{System, SystemExt, ProcessExt};
+use sysinfo::System;
 use kube::{Client, Api, api::{Patch, PatchParams}};
 use k8s_openapi::api::apps::v1::Deployment;
 use tracing::{info, error, warn};

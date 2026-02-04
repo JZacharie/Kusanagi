@@ -123,9 +123,9 @@ pub async fn get_active_alerts() -> Result<AlertsResponse, String> {
     let client = reqwest::Client::new();
     let url = format!("{}/api/v2/alerts", get_alertmanager_url());
     
-    let response = client
-        .get(&url)
-        .query(&[("active", "true"), ("silenced", "false"), ("inhibited", "false")])
+    let mut request = client.get(&url);
+    request = request.query(&[("active", "true"), ("silenced", "false"), ("inhibited", "false")]);
+    let response = request
         .timeout(std::time::Duration::from_secs(10))
         .send()
         .await

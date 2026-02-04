@@ -27,6 +27,7 @@ pub mod newsfeed_use_cases;
 pub mod prometheus_use_cases_new;
 pub mod security_use_cases_new;
 pub mod backup_use_cases_new;
+pub mod chat_use_cases_new;
 pub mod node_use_cases;
 pub mod storage_use_cases;
 pub mod service_use_cases;

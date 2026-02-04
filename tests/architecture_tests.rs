@@ -109,8 +109,8 @@ mod tests {
         assert!(resp.status().is_success());
     }
 
-    #[test]
-    fn test_architecture_migration_progress() {
+    #[tokio::test]
+    async fn test_architecture_migration_progress() {
         // Test that migration constants are correct
         const HIGH_PRIORITY_MODULES: usize = 7;
         const MEDIUM_PRIORITY_MODULES: usize = 11;
@@ -125,10 +125,10 @@ mod tests {
         println!("✅ Migration progress: {:.1}% ({}/{})", progress, migrated, TOTAL_MODULES);
     }
 
-    #[test]
-    fn test_domain_entities_exist() {
+    #[tokio::test]
+    async fn test_domain_entities_exist() {
         // Test that key domain entities are properly defined
-        use crate::domain::entities::*;
+        use kusanagi::domain::entities::*;
         
         let _cluster = ClusterOverview::default();
         let _node = Node {
@@ -162,8 +162,8 @@ mod tests {
         println!("✅ Domain entities are properly defined");
     }
 
-    #[test]
-    fn test_error_handling() {
+    #[tokio::test]
+    async fn test_error_handling() {
         use crate::error::KusanagiError;
         
         let error = KusanagiError::not_found("Pod", "test-pod");

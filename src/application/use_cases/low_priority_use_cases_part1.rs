@@ -16,7 +16,7 @@ impl ServicesUseCases {
         Self { services_repo }
     }
 
-    pub async fn list_services(&self, namespace: Option<&str>) -> Result<Vec<Service>> {
+    pub async fn list_services(&self, namespace: Option<&str>) -> Result<Vec<crate::domain::entities::Service>> {
         self.services_repo.list_services(namespace).await
     }
 
@@ -35,7 +35,7 @@ impl IngressUseCases {
         Self { ingress_repo }
     }
 
-    pub async fn list_ingresses(&self, namespace: Option<&str>) -> Result<Vec<Ingress>> {
+    pub async fn list_ingresses(&self, namespace: Option<&str>) -> Result<Vec<crate::domain::entities::Ingress>> {
         self.ingress_repo.list_ingresses(namespace).await
     }
 
@@ -54,7 +54,7 @@ impl AlertmanagerUseCases {
         Self { alertmanager_repo }
     }
 
-    pub async fn get_alerts(&self) -> Result<Vec<Alert>> {
+    pub async fn get_alerts(&self) -> Result<Vec<crate::domain::entities::Alert>> {
         self.alertmanager_repo.get_alerts().await
     }
 
@@ -73,7 +73,7 @@ impl QuotaUseCases {
         Self { quota_repo }
     }
 
-    pub async fn get_resource_quotas(&self, namespace: &str) -> Result<Vec<ResourceQuota>> {
+    pub async fn get_resource_quotas(&self, namespace: &str) -> Result<Vec<crate::domain::entities::ResourceQuota>> {
         self.quota_repo.get_resource_quotas(namespace).await
     }
 

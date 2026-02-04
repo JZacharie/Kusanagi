@@ -6,7 +6,7 @@ use serde_json::json;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interfaces::http;
+    use kusanagi::interfaces::http;
 
     #[actix_web::test]
     async fn test_nodes_endpoint() {

@@ -1,4 +1,5 @@
-use crate::domain::ports::{BackupRepository, BackupStatus, CronJobInfo};
+use crate::domain::ports::BackupRepository;
+use crate::domain::entities::{BackupStatus, CronJobInfo};
 use crate::error::Result;
 use std::sync::Arc;
 

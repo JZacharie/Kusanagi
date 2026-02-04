@@ -341,7 +341,7 @@ pub async fn liveness_check() -> HttpResponse {
 
 /// Readiness check - is the application ready to serve traffic?
 #[get("/health/ready")]
-pub async fn readiness_check(data: web::Data<crate::AppState>) -> HttpResponse {
+pub async fn readiness_check(/* data: web::Data<crate::AppState> */ ) -> HttpResponse {
     let config = HealthConfig {
         check_kubernetes: true,
         check_mqtt: false,

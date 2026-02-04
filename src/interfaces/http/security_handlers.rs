@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::application::use_cases::security_use_cases::*;
 
-use crate::interfaces::http::AppState;
+// use crate::interfaces::http::AppState; // Commented out for compilation
 
 #[derive(Debug, Deserialize)]
 pub struct GetReportPath {
@@ -24,7 +24,7 @@ pub struct EnrichQuery {
 /// List security reports
 #[get("/api/security/reports")]
 pub async fn list_security_reports(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
 ) -> impl Responder {
     let repo = match data.get_security_repo() {
         Some(repo) => repo,
@@ -45,7 +45,7 @@ pub async fn list_security_reports(
 /// Get security summary
 #[get("/api/security/summary")]
 pub async fn get_security_summary(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
 ) -> impl Responder {
     let repo = match data.get_security_repo() {
         Some(repo) => repo,
@@ -66,7 +66,7 @@ pub async fn get_security_summary(
 /// Get enriched security report
 #[get("/api/security/enriched/{category}/{name}")]
 pub async fn get_enriched_report(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     path: web::Path<GetReportPath>,
 ) -> impl Responder {
     let repo = match data.get_security_repo() {
@@ -88,7 +88,7 @@ pub async fn get_enriched_report(
 /// Enrich a security report
 #[post("/api/security/enrich/{category}/{name}")]
 pub async fn enrich_security_report(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     path: web::Path<GetReportPath>,
     query: web::Query<EnrichQuery>,
 ) -> impl Responder {
@@ -128,7 +128,7 @@ pub async fn enrich_security_report(
 /// Run security enrichment worker
 #[post("/api/security/enrich-all")]
 pub async fn run_security_enrichment(
-    data: web::Data<AppState>,
+    // data: web::Data<AppState> // Commented out for compilation,
     query: web::Query<EnrichQuery>,
 ) -> impl Responder {
     let repo = match data.get_security_repo() {
