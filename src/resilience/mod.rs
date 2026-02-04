@@ -10,16 +10,16 @@
 //!
 
 use crate::error::KusanagiError;
-//! ```rust
-//! use crate::resilience::{CircuitBreaker, RetryPolicy};
-//!
-//! let cb = CircuitBreaker::new("prometheus", 5, Duration::from_secs(60));
-//! let retry = RetryPolicy::exponential_backoff(3, Duration::from_millis(100));
-//!
-//! let result = cb.call(|| async {
-//!     retry.execute(|| fetch_metrics()).await
-//! }).await;
-//! ```
+// ```rust
+// use crate::resilience::{CircuitBreaker, RetryPolicy};
+//
+// let cb = CircuitBreaker::new("prometheus", 5, Duration::from_secs(60));
+// let retry = RetryPolicy::exponential_backoff(3, Duration::from_millis(100));
+//
+// let result = cb.call(|| async {
+//     retry.execute(|| fetch_metrics()).await
+// }).await;
+// ```
 
 pub mod circuit_breaker;
 pub mod retry;

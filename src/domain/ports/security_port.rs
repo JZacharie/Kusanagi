@@ -4,6 +4,7 @@
 
 use async_trait::async_trait;
 use crate::error::Result;
+use crate::domain::entities::{SecurityReport, SecurityScanSummary, EnrichmentData};
 
 /// Port for security report operations
 #[async_trait]
