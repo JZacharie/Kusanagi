@@ -9,14 +9,10 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "kusanagi"
-path = "src/main_crash_fixed.rs"
+path = "src/main_ultra_simple.rs"
 
 [dependencies]
-actix-web = "4.4"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-env_logger = "0.10"
-tokio = { version = "1.35", features = ["macros", "rt-multi-thread"] }
+# Pas de dépendances externes - version ultra-simple
 reqwest = { version = "0.12", features = ["json"] }
 http = "1.0"
 aws-config = "1.8"
