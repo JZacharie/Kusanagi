@@ -1,7 +1,9 @@
 //! Low priority modules migration - Phase 3
 //! 18 modules restants avec patterns établis
 
-use crate::domain::ports::*;
+use crate::domain::ports::low_priority_ports_part1::*;
+use crate::domain::entities::{Service, Ingress, ResourceQuota};
+use crate::domain::entities::alert::Alert;
 use crate::error::Result;
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -16,7 +18,7 @@ impl ServicesUseCases {
         Self { services_repo }
     }
 
-    pub async fn list_services(&self, namespace: Option<&str>) -> Result<Vec<crate::domain::entities::Service>> {
+    pub async fn list_services(&self, namespace: Option<&str>) -> Result<Vec<Service>> {
         self.services_repo.list_services(namespace).await
     }
 

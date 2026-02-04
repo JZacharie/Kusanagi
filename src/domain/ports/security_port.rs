@@ -26,15 +26,15 @@ pub trait SecurityRepository: Send + Sync {
 #[async_trait]
 pub trait AiEnrichmentService: Send + Sync {
     /// Enrich a security report with AI analysis
-    async fn enrich_report(&self, report: &serde_json::Value, language: &str) -> Result<crate::domain::entities::EnrichmentData, String>;
+    async fn enrich_report(&self, report: &serde_json::Value, language: &str) -> std::result::Result<crate::domain::entities::EnrichmentData, String>;
 }
 
 /// Port for vulnerability scanner
 #[async_trait]
 pub trait VulnerabilityScanner: Send + Sync {
     /// Fetch raw reports from scanner
-    async fn fetch_reports(&self) -> Result<Vec<(String, String, serde_json::Value)>, String>;
+    async fn fetch_reports(&self) -> std::result::Result<Vec<(String, String, serde_json::Value)>, String>;
     
     /// Fetch a specific report
-    async fn fetch_report(&self, category: &str, name: &str) -> Result<serde_json::Value, String>;
+    async fn fetch_report(&self, category: &str, name: &str) -> std::result::Result<serde_json::Value, String>;
 }
