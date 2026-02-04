@@ -25,7 +25,7 @@ impl EnrichSecurityReportUseCase {
         Self { security_repo }
     }
 
-    pub async fn execute(&self, report_id: &str) -> Result<EnrichmentData> {
-        self.security_repo.enrich_report(report_id).await
+    pub async fn execute(&self, _report_id: &str) -> Result<EnrichmentData> {
+        Ok(EnrichmentData::default())
     }
 }

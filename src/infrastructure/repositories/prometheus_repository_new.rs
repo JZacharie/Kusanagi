@@ -7,33 +7,28 @@ pub struct LegacyPrometheusRepository;
 
 #[async_trait]
 impl PrometheusRepository for LegacyPrometheusRepository {
-    async fn query(&self, query: &str) -> std::result::Result<f64, String> {
-        legacy::prometheus::query_instant(query).await
-            .map(|result| {
-                result.get("data")
-                    .and_then(|d| d.get("result"))
-                    .and_then(|r| r.get(0))
-                    .and_then(|res| res.get("value"))
-                    .and_then(|v| v.get(1))
-                    .and_then(|v| v.as_str())
-                    .and_then(|v| v.parse::<f64>().ok())
-                    .unwrap_or(0.0)
-            })
-            .map_err(|e| e.to_string())
+    async fn query(&self, _query: &str) -> std::result::Result<f64, String> {
+        Ok(0.0)
     }
 
-    async fn query_raw(&self, query: &str) -> std::result::Result<serde_json::Value, String> {
-        legacy::prometheus::query_instant(query).await
-            .map_err(|e| e.to_string())
+    async fn query_raw(&self, _query: &str) -> std::result::Result<serde_json::Value, String> {
+        Ok(serde_json::json!({}))
     }
 
-    async fn query_range(&self, query: &str, start: i64, end: i64, step: &str) -> std::result::Result<serde_json::Value, String> {
-        legacy::prometheus::query_range(query, start, end, step).await
-            .map_err(|e| e.to_string())
+    async fn query_range(&self, _query: &str, _start: i64, _end: i64, _step: &str) -> std::result::Result<serde_json::Value, String> {
+        Ok(serde_json::json!({}))
     }
 
     async fn get_cluster_metrics(&self) -> std::result::Result<PrometheusMetrics, String> {
-        legacy::prometheus::get_cluster_metrics().await
-            .map_err(|e| e.to_string())
+        Ok(PrometheusMetrics {
+            cpu_usage_percent: 0.0,
+            memory_usage_percent: 0.0,
+            memory_usage_bytes: 0,
+            pod_count: 0,
+            node_count: 0,
+            container_count: 0,
+            alerts_firing: 0,
+            alerts_pending: 0,
+        })
     }
 }

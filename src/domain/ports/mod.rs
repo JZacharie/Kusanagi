@@ -196,7 +196,7 @@ pub trait CiliumPort: Send + Sync {
 }
 
 /// Network flow information
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NetworkFlow {
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub source_ip: String,
@@ -208,7 +208,7 @@ pub struct NetworkFlow {
 }
 
 /// Network policy information
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NetworkPolicy {
     pub name: String,
     pub namespace: String,

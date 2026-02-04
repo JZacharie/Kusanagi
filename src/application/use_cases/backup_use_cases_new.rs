@@ -12,7 +12,8 @@ impl GetBackupStatusUseCase {
     }
 
     pub async fn execute(&self) -> Result<BackupStatus> {
-        self.backup_repo.get_status().await
+        self.backup_repo.get_backup_status().await
+            .map_err(|e| crate::error::KusanagiError::external_api("Backup", &e))
     }
 }
 
@@ -26,6 +27,7 @@ impl TriggerBackupUseCase {
     }
 
     pub async fn execute(&self, backup_name: &str) -> Result<()> {
-        self.backup_repo.trigger_backup(backup_name).await
+        self.backup_repo.trigger_backup("default", backup_name).await
+            .map_err(|e| crate::error::KusanagiError::external_api("Backup", &e))
     }
 }
