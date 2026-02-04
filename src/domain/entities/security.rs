@@ -15,7 +15,7 @@ pub struct SecurityReport {
 }
 
 /// Enrichment data from AI analysis
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnrichmentData {
     pub summary: String,
     pub remediation_advice: String,
