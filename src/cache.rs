@@ -8,23 +8,25 @@
 //!
 //! - **Generic**: Works with any `Clone + Send + Sync` type
 //! - **TTL Support**: Automatic expiration of cached entries
-//! - **Multiple Backends**: In-memory (current) and Redis (future)
-//! - **Metrics**: Cache hit/miss statistics
-//! - **Configurable**: TTL values from config file
-//!
-//! # Example
-//!
-//! ```rust
-//! use crate::cache::{Cache, InMemoryCache};
-//! use std::time::Duration;
-//!
-//! let cache = InMemoryCache::new();
-//! cache.set("key", "value", Duration::from_secs(60)).await;
-//!
-//! if let Some(value) = cache.get(&"key").await {
-//!     println!("Cached: {}", value);
-//! }
-//! ```
+
+use crate::error::KusanagiError;
+// - **Multiple Backends**: In-memory (current) and Redis (future)
+// - **Metrics**: Cache hit/miss statistics
+// - **Configurable**: TTL values from config file
+//
+// # Example
+//
+// ```rust
+// use crate::cache::{Cache, InMemoryCache};
+// use std::time::Duration;
+//
+// let cache = InMemoryCache::new();
+// cache.set("key", "value", Duration::from_secs(60)).await;
+//
+// if let Some(value) = cache.get(&"key").await {
+//     println!("Cached: {}", value);
+// }
+// ```
 
 use crate::config;
 use crate::error::Result;

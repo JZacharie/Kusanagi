@@ -8,6 +8,8 @@
 //!
 //! # Example
 //!
+
+use crate::error::KusanagiError;
 //! ```rust
 //! use crate::resilience::{CircuitBreaker, RetryPolicy};
 //!

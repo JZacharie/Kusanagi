@@ -26,7 +26,7 @@ pub struct LogsQuery {
 /// Get logs for a specific pod
 #[get("/api/pods/{namespace}/{name}/logs")]
 pub async fn get_pod_logs_handler(
-    data: web::Data<AppState>,
+    data: web::Data<crate::AppState>,
     path: web::Path<(String, String)>,
     query: web::Query<LogsQuery>,
 ) -> impl Responder {
@@ -100,8 +100,8 @@ pub struct ScaleRequest {
 
 /// Scale a deployment or statefulset
 #[post("/api/scale/{type}/{namespace}/{name}")]
-pub async fn scale_resource_handler<AppState>(
-    data: web::Data<AppState>,
+pub async fn scale_resource_handler(
+    data: web::Data<crate::AppState>,
     path: web::Path<(String, String, String)>,
     body: web::Json<ScaleRequest>,
 ) -> impl Responder {
@@ -158,7 +158,7 @@ async fn scale_statefulset(client: &Client, namespace: &str, name: &str, replica
 }
 
 #[get("/api/pods/status")]
-pub async fn pods_status<AppState>(data: web::Data<AppState>) -> impl Responder {
+pub async fn pods_status(data: web::Data<crate::AppState>) -> impl Responder {
     match get_pods_status(&data.client).await {
         Ok(status) => HttpResponse::Ok().json(status),
         Err(e) => {
@@ -182,8 +182,8 @@ pub async fn pods_status<AppState>(data: web::Data<AppState>) -> impl Responder 
 }
 
 #[post("/api/pods/force-delete")]
-pub async fn force_delete_pod_handler<AppState>(
-    data: web::Data<AppState>,
+pub async fn force_delete_pod_handler(
+    data: web::Data<crate::AppState>,
     body: web::Json<ForceDeleteRequest>,
 ) -> impl Responder {
     match force_delete_pod(&data.client, &body.namespace, &body.pod_name).await {
@@ -614,8 +614,8 @@ pub struct BulkDeleteResponse {
 }
 
 #[post("/api/pods/delete-error-pods")]
-pub async fn delete_error_pods_handler<AppState>(
-    data: web::Data<AppState>,
+pub async fn delete_error_pods_handler(
+    data: web::Data<crate::AppState>,
 ) -> impl Responder {
     match delete_error_pods(&data.client).await {
         Ok(res) => HttpResponse::Ok().json(res),

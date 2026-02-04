@@ -3,7 +3,7 @@
 //! Port defining the interface for security operations.
 
 use async_trait::async_trait;
-use crate::domain::entities::{SecurityReport, ReportMetadata, SecurityScanSummary};
+use crate::error::Result;
 
 /// Port for security report operations
 #[async_trait]

@@ -3,7 +3,7 @@
 //! Port defining the interface for backup operations.
 
 use async_trait::async_trait;
-use crate::domain::entities::{BackupStatus, CronJobInfo};
+use crate::error::Result;
 
 /// Port for backup operations
 #[async_trait]
