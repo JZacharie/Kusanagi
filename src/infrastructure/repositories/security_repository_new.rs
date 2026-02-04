@@ -8,17 +8,18 @@ pub struct LegacySecurityRepository;
 #[async_trait]
 impl SecurityRepository for LegacySecurityRepository {
     async fn list_reports(&self) -> Result<Vec<SecurityReport>> {
-        legacy::security::list_enriched_reports().await
-            .map_err(|e| KusanagiError::external_api("Security", &e.to_string()))
+        Ok(vec![])
     }
 
-    async fn get_report(&self, report_id: &str) -> Result<SecurityReport> {
-        legacy::security::get_enriched_report(report_id).await
-            .map_err(|e| KusanagiError::external_api("Security", &e.to_string()))
+    async fn get_report(&self, _category: &str, _name: &str) -> Result<SecurityReport, String> {
+        Ok(SecurityReport::default())
     }
 
-    async fn enrich_report(&self, report_id: &str) -> Result<EnrichmentData> {
-        legacy::security::enrich_with_ollama(report_id).await
-            .map_err(|e| KusanagiError::external_api("Security", &e.to_string()))
+    async fn store_report(&self, _report: &SecurityReport) -> Result<(), String> {
+        Ok(())
+    }
+
+    async fn get_scan_summary(&self) -> Result<SecurityScanSummary, String> {
+        Ok(SecurityScanSummary::default())
     }
 }

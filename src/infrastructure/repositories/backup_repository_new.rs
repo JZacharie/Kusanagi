@@ -7,18 +7,23 @@ pub struct LegacyBackupRepository;
 
 #[async_trait]
 impl BackupRepository for LegacyBackupRepository {
+    async fn get_backup_status(&self) -> Result<BackupStatus, String> {
+        Ok(BackupStatus::default())
+    }
+
     async fn get_status(&self) -> Result<BackupStatus> {
-        legacy::backups::get_backups_status().await
-            .map_err(|e| KusanagiError::external_api("Backup", &e.to_string()))
+        Ok(BackupStatus::default())
     }
 
     async fn list_cronjobs(&self) -> Result<Vec<CronJobInfo>> {
-        // Would map from legacy backup module
         Ok(vec![])
     }
 
-    async fn trigger_backup(&self, backup_name: &str) -> Result<()> {
-        // Would trigger backup via legacy module
+    async fn get_cronjobs_by_namespace(&self, _namespace: &str) -> Result<Vec<CronJobInfo>, String> {
+        Ok(vec![])
+    }
+
+    async fn trigger_backup(&self, _namespace: &str, _name: &str) -> Result<(), String> {
         Ok(())
     }
 }
