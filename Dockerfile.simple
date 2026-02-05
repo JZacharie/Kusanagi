@@ -1,26 +1,54 @@
+# Dockerfile pour Kusanagi - Version Ultra Simple
 FROM rust:1.88-slim AS builder
 
 WORKDIR /app
 
-# Copy source
-COPY src/main_ultra_simple.rs src/main.rs
+# Créer un projet Rust minimal
+RUN cargo init --name kusanagi --bin
 
-# Create minimal Cargo.toml
-RUN echo '[package]' > Cargo.toml && \
-    echo 'name = "kusanagi"' >> Cargo.toml && \
-    echo 'version = "0.2.0"' >> Cargo.toml && \
-    echo 'edition = "2021"' >> Cargo.toml
+# Copier seulement le fichier main ultra-simple
+COPY src/main_ultra_simple.rs ./src/main.rs
 
-# Build
+# Compiler l'application
 RUN cargo build --release
 
-# Runtime
+# Runtime stage
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# Installer les dépendances runtime
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
+# Créer un utilisateur non-root
+RUN useradd -r -s /bin/false kusanagi
+
+# Variables d'environnement
+ENV RUST_LOG=info
+ENV KUSANAGI_HOST=0.0.0.0
+ENV KUSANAGI_PORT=8080
+
+# Copier le binaire
 COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi
+
+# Permissions
+RUN chown kusanagi:kusanagi /usr/local/bin/kusanagi
 RUN chmod +x /usr/local/bin/kusanagi
 
+# Répertoire de travail
+RUN mkdir -p /app && chown kusanagi:kusanagi /app
+WORKDIR /app
+
+# Utilisateur non-root
+USER kusanagi
+
+# Port exposé
 EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Lancer l'application
 CMD ["/usr/local/bin/kusanagi"]
