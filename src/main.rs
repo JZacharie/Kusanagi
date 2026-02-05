@@ -1,5 +1,5 @@
 // Kusanagi - Hexagonal Architecture Entry Point
-use actix_web::{web, App, HttpServer, HttpResponse, Responder, middleware::Logger};
+use actix_web::{web, App, HttpServer, HttpResponse, Responder, middleware::Logger, HttpRequest};
 use actix_files;
 use serde_json::json;
 use std::sync::Arc;
@@ -49,8 +49,8 @@ async fn main() -> std::io::Result<()> {
             .route("/api/ha/sensors", web::get().to(ha_sensors))
             .route("/api/ha/automations", web::get().to(ha_automations))
             .route("/status", web::get().to(system_status))
-            // WebSocket endpoint stub
-            .route("/api/ws/notifications", web::get().to(websocket_stub))
+            // WebSocket endpoint
+            .route("/api/ws/notifications", web::get().to(websocket_handler))
             .service(actix_files::Files::new("/static", "./static").show_files_listing())
             .service(
                 web::scope("/api/v1")
@@ -637,5 +637,13 @@ async fn websocket_stub() -> impl Responder {
     HttpResponse::NotImplemented().json(json!({
         "error": "WebSocket not implemented",
         "message": "WebSocket notifications endpoint not available"
+    }))
+}
+
+async fn websocket_handler(_req: HttpRequest, _stream: web::Payload) -> impl Responder {
+    HttpResponse::Ok().json(json!({
+        "error": "WebSocket not fully implemented",
+        "message": "Use HTTP endpoints instead",
+        "status": "fallback"
     }))
 }
