@@ -1,40 +1,51 @@
 # 🕸️ Kusanagi (草薙)
 
-**Kusanagi** est une plateforme de supervision et d'auto-remédiation pour Kubernetes, entièrement développée en **Rust**. 
+**Kusanagi** is a Kubernetes monitoring and auto-remediation platform, entirely developed in **Rust**.
 
-Inspiré par le Major Motoko Kusanagi (*Ghost in the Shell*), ce projet ne se contente pas d'observer : il déploie une intelligence distribuée pour diagnostiquer et agir sur l'infrastructure en temps réel.
+Inspired by Major Motoko Kusanagi (*Ghost in the Shell*), this project doesn't just observe: it deploys distributed intelligence to diagnose and act on infrastructure in real-time.
 
-🔗 **Retrouvez-moi sur mon Little Link : [joseph.p.zacharie.org](https://joseph.p.zacharie.org/)**
+🔗 **Find me on my Little Link: [joseph.p.zacharie.org](https://joseph.p.zacharie.org/)**
 
 ---
 
-## 🚀 Quick Start
+## 🚧 Current Project Status
 
-### Configuration
+**⚠️ MIGRATION IN PROGRESS ⚠️**
 
-Kusanagi uses a structured configuration system supporting environment variables and TOML files:
+Kusanagi is currently undergoing a major architectural migration from a monolithic legacy codebase to a clean hexagonal architecture. The project is **functional but in transition**.
 
+### What's Working ✅
+- **Ultra-Simple HTTP Server**: Basic health checks and service info endpoints
+- **Docker Container**: Successfully builds and runs (fixed "Back-off restarting failed container" issue)
+- **Core Infrastructure**: 37 legacy modules preserved and operational
+- **Basic Monitoring**: Essential cluster status endpoints
+
+### What's Being Migrated 🔄
+- **Hexagonal Architecture**: Clean separation of domain, application, and infrastructure layers
+- **Modern Rust Patterns**: Async/await, proper error handling, and type safety
+- **Modular Design**: Breaking down monolithic components into focused services
+- **Clean Dependencies**: Removing unnecessary external dependencies
+
+### Current Build Status
 ```bash
-# Using environment variables
-export KUSANAGI_SERVER_PORT=8080
-export KUSANAGI_PROMETHEUS_URL=http://prometheus:9090
-export KUSANAGI_DEV_MODE=true
+# Working minimal version
+docker build -f Dockerfile.simple -t kusanagi:debug .
+docker run --rm -p 8080:8080 kusanagi:debug
 
-# Or create kusanagi.toml
-# See kusanagi.example.toml for full example
+# Available endpoints:
+# GET /        - Service information
+# GET /health  - Health check
 ```
 
-See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for complete configuration reference.
-
 ---
 
-## 🏛️ High-Level Design (HLD)
+## 🏛️ Target Architecture (Post-Migration)
 
-L'architecture de **Kusanagi** est conçue pour être à la fois légère, réactive et sécurisée :
+The **Kusanagi** architecture is designed to be lightweight, reactive, and secure:
 
 ```mermaid
 graph TD
-    User((Utilisateur)) <--> UI[Frontend Cyber-UI]
+    User((User)) <--> UI[Frontend Cyber-UI]
     UI <--> WS[WebSockets / API Actix]
     subgraph "Kusanagi Core (Rust)"
         WS <--> Backend[Controller Rust]
@@ -53,41 +64,116 @@ graph TD
     end
 ```
 
-### Composants Clés :
--   **Backend :** Développé avec **Actix-web** pour la performance brute et **kube-rs** pour une interaction native avec Kubernetes.
--   **Temps Réel :** Intégration massive des **WebSockets** et de **MQTT** pour une réactivité instantanée entre le cluster et l'utilisateur.
--   **Multi-Source :** Fusion de données provenant de Prometheus, ArgoCD, MQTT et Home Assistant.
+### Key Components:
+- **Backend**: Built with **Actix-web** for raw performance and **kube-rs** for native Kubernetes interaction
+- **Real-Time**: Massive integration of **WebSockets** and **MQTT** for instant reactivity between cluster and user
+- **Multi-Source**: Data fusion from Prometheus, ArgoCD, MQTT, and Home Assistant
 
 ---
 
-## ✨ Features actuelles
+## ✨ Planned Features (Post-Migration)
 
--   **Supervision de Cluster :** Vue complète sur les Pods, Noeuds, Ingress et Evénements Kubernetes.
--   **Télémétrie Avancée :**
-    *   **GPU :** Monitoring NVIDIA/DCGM (Utilisation, Température, Puissance).
-    *   **Énergie :** Intégration Home Assistant (Production Solaire Enphase, Consommation Maison).
-    *   **Infrastructure VPS :** Métriques système distantes.
--   **Gestion GitOps :** Synchronisation forcée et monitoring des applications **ArgoCD**.
--   **Sécurité unifiée :** Dashboard des vulnérabilités (Trivy), rapports de conformité CIS (Powerpipe) et politiques réseau (Cilium).
--   **Journalisation interactive :** Accès direct aux logs des Pods via l'interface.
--   **Interface Futuristic :** Design "Glitch/Glassmorphism" ultra-performant.
-
----
-
-## 🗺️ Roadmap (Feature à venir)
-
--   [ ] **Autonomous Remediation v2 :** Protocoles de remédiation plus complexes via l'IA.
--   [ ] **Multi-Cluster :** Capacité à gérer plusieurs contextes Kubernetes simultanément.
--   [ ] **Alerting Avancé :** Intégration de webhooks custom et notifications push.
--   [ ] **Dark Theme Engine :** Personnalisation poussée des couleurs et animations UI.
--   [ ] **Module Backup :** Interface de gestion des sauvegardes Velero.
+- **Cluster Monitoring**: Complete view of Pods, Nodes, Ingress, and Kubernetes Events
+- **Advanced Telemetry**:
+  - **GPU**: NVIDIA/DCGM monitoring (Usage, Temperature, Power)
+  - **Energy**: Home Assistant integration (Enphase Solar Production, Home Consumption)
+  - **VPS Infrastructure**: Remote system metrics
+- **GitOps Management**: Forced synchronization and **ArgoCD** application monitoring
+- **Unified Security**: Vulnerability dashboard (Trivy), CIS compliance reports (Powerpipe), and network policies (Cilium)
+- **Interactive Logging**: Direct Pod log access via interface
+- **Futuristic Interface**: Ultra-performant "Glitch/Glassmorphism" design
 
 ---
 
-## ⚡ Pourquoi Rust ?
+## 🗺️ Migration Roadmap
 
-* **Zéro-Cost Abstractions :** Pour monitorer des clusters massifs sans consommer de CPU inutile.
-* **Memory Safety :** Crucial lorsque l'on déploie des agents avec des privilèges élevés.
-* **Single Binary :** Déploiement via des images Docker minimalistes (Distroless).
+### Phase 1: Foundation ✅
+- [x] Fix container startup issues
+- [x] Establish basic HTTP server
+- [x] Preserve legacy module compatibility
+- [x] Create clean Docker build process
+
+### Phase 2: Core Architecture 🔄
+- [ ] Complete hexagonal architecture implementation
+- [ ] Migrate Kubernetes client integration
+- [ ] Implement proper async patterns
+- [ ] Add comprehensive error handling
+
+### Phase 3: Feature Restoration 📋
+- [ ] Restore Prometheus integration
+- [ ] Rebuild ArgoCD monitoring
+- [ ] Implement WebSocket real-time updates
+- [ ] Add security scanning integration
+
+### Phase 4: Enhancement 🚀
+- [ ] **Autonomous Remediation v2**: Complex AI-driven remediation protocols
+- [ ] **Multi-Cluster**: Ability to manage multiple Kubernetes contexts simultaneously
+- [ ] **Advanced Alerting**: Custom webhook integration and push notifications
+- [ ] **Dark Theme Engine**: Advanced UI color and animation customization
+
+---
+
+## ⚡ Why Rust?
+
+- **Zero-Cost Abstractions**: Monitor massive clusters without wasting CPU cycles
+- **Memory Safety**: Critical when deploying agents with elevated privileges
+- **Single Binary**: Deployment via minimal Docker images (Distroless)
+- **Performance**: Native speed for real-time cluster operations
+
+---
+
+## 🚀 Quick Start (Current State)
+
+### Prerequisites
+- Docker
+- Kubernetes cluster (for full functionality post-migration)
+
+### Running the Current Version
+```bash
+# Clone the repository
+git clone <repository-url>
+cd Kusanagi
+
+# Build and run the minimal version
+docker build -f Dockerfile.simple -t kusanagi:debug .
+docker run --rm -p 8080:8080 kusanagi:debug
+
+# Test endpoints
+curl http://localhost:8080/         # Service info
+curl http://localhost:8080/health   # Health check
+```
+
+### Configuration (Post-Migration)
+```bash
+# Environment variables
+export KUSANAGI_SERVER_PORT=8080
+export KUSANAGI_PROMETHEUS_URL=http://prometheus:9090
+export KUSANAGI_DEV_MODE=true
+
+# Or create kusanagi.toml
+# See kusanagi.example.toml for full example
+```
+
+---
+
+## 🤝 Contributing
+
+This project is in active migration. Contributions are welcome, especially:
+- Hexagonal architecture implementation
+- Async/await pattern improvements
+- Error handling enhancements
+- Documentation updates
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
 
 > *"My shell may belong to the system, but my spirit is mine."*
+> 
+> — Major Motoko Kusanagi
+
+**Status**: 🔄 **Migration in Progress** | **Container**: ✅ **Working** | **Legacy Modules**: ✅ **37 Preserved**

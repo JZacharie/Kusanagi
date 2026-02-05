@@ -1,15 +1,11 @@
 use std::io::{self, Write};
-use std::thread;
-use std::time::Duration;
+use std::net::{TcpListener, TcpStream};
+use std::io::prelude::*;
 
 fn main() {
     println!("🚀 Kusanagi Agent Controller - Ultra Simple Version");
     println!("🔧 Fixing: Back-off restarting failed container");
     io::stdout().flush().unwrap();
-    
-    // Simple HTTP server without dependencies
-    use std::net::{TcpListener, TcpStream};
-    use std::io::prelude::*;
     
     let listener = match TcpListener::bind("0.0.0.0:8080") {
         Ok(l) => {
