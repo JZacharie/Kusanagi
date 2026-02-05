@@ -28,15 +28,21 @@ const HomeAssistantDashboard = {
             this.renderAutomations(automations);
         } catch (error) {
             console.error('Failed to fetch Home Assistant data:', error);
-            document.getElementById('ha-sensors-content').innerHTML =
-                `<div class="error">Failed to load Home Assistant data: ${error.message}</div>`;
+            const content = document.getElementById('ha-sensors-content');
+            if (content) {
+                content.innerHTML = `<div class="error">Failed to load Home Assistant data: ${error.message}</div>`;
+            }
         }
     },
 
     renderStats(sensors, automations, devices) {
-        document.getElementById('ha-sensors').textContent = sensors.length || '0';
-        document.getElementById('ha-automations').textContent = automations.length || '0';
-        document.getElementById('ha-devices').textContent = devices.length || '0';
+        const sensorsEl = document.getElementById('ha-sensors');
+        const automationsEl = document.getElementById('ha-automations');
+        const devicesEl = document.getElementById('ha-devices');
+        
+        if (sensorsEl) sensorsEl.textContent = sensors.length || '0';
+        if (automationsEl) automationsEl.textContent = automations.length || '0';
+        if (devicesEl) devicesEl.textContent = devices.length || '0';
     },
 
     getCategory(sensor) {
@@ -87,7 +93,10 @@ const HomeAssistantDashboard = {
 
     renderSensors(sensors) {
         const container = document.getElementById('ha-sensors-content');
-        document.getElementById('ha-sensors-count').textContent = sensors.length;
+        const countEl = document.getElementById('ha-sensors-count');
+        
+        if (!container) return;
+        if (countEl) countEl.textContent = sensors.length;
 
         if (!sensors || sensors.length === 0) {
             container.innerHTML = '<div class="no-issues">No sensors found</div>';
@@ -210,6 +219,8 @@ const HomeAssistantDashboard = {
 
     renderAutomations(automations) {
         const container = document.getElementById('ha-automations-content');
+        if (!container) return;
+        
         if (!automations || automations.length === 0) {
             container.innerHTML = '<div class="no-issues">No automations found</div>';
             return;
