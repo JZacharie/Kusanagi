@@ -49,6 +49,8 @@ async fn main() -> std::io::Result<()> {
             .route("/api/ha/sensors", web::get().to(ha_sensors))
             .route("/api/ha/automations", web::get().to(ha_automations))
             .route("/status", web::get().to(system_status))
+            // WebSocket endpoint stub
+            .route("/api/ws/notifications", web::get().to(websocket_stub))
             .service(actix_files::Files::new("/static", "./static").show_files_listing())
             .service(
                 web::scope("/api/v1")
@@ -398,15 +400,54 @@ async fn metrics() -> impl Responder {
 // Endpoints mockés temporairement
 async fn alerts() -> impl Responder {
     match monitoring_service::get_alerts().await {
-        Ok(alerts) => HttpResponse::Ok().json(alerts),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Ok(alerts) => {
+            if let Some(alerts_array) = alerts.as_array() {
+                HttpResponse::Ok().json(json!({
+                    "alerts": alerts_array,
+                    "count": alerts_array.len(),
+                    "data": alerts_array
+                }))
+            } else {
+                HttpResponse::Ok().json(json!({
+                    "alerts": [],
+                    "count": 0,
+                    "data": []
+                }))
+            }
+        },
+        Err(_) => HttpResponse::Ok().json(json!({
+            "alerts": [],
+            "count": 0,
+            "data": []
+        }))
     }
 }
 
 async fn news() -> impl Responder {
     match news_service::get_news().await {
-        Ok(news) => HttpResponse::Ok().json(news),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Ok(news) => {
+            if let Some(news_array) = news.as_array() {
+                HttpResponse::Ok().json(json!({
+                    "articles": news_array,
+                    "count": news_array.len(),
+                    "data": news_array,
+                    "news": news_array
+                }))
+            } else {
+                HttpResponse::Ok().json(json!({
+                    "articles": [],
+                    "count": 0,
+                    "data": [],
+                    "news": []
+                }))
+            }
+        },
+        Err(_) => HttpResponse::Ok().json(json!({
+            "articles": [],
+            "count": 0,
+            "data": [],
+            "news": []
+        }))
     }
 }
 
@@ -419,8 +460,28 @@ async fn quotas() -> impl Responder {
 
 async fn pods_status() -> impl Responder {
     match kubernetes_service::get_pods_status().await {
-        Ok(status) => HttpResponse::Ok().json(status),
-        Err(_) => HttpResponse::Ok().json(json!({"running": 0, "pending": 0, "failed": 0}))
+        Ok(status) => {
+            let running = status["running"].as_u64().unwrap_or(0);
+            let pending = status["pending"].as_u64().unwrap_or(0);
+            let failed = status["failed"].as_u64().unwrap_or(0);
+            let total = status["total"].as_u64().unwrap_or(0);
+            
+            HttpResponse::Ok().json(json!({
+                "running": running,
+                "pending": pending,
+                "failed": failed,
+                "total": total,
+                // Champs attendus par le frontend
+                "total_pods": total,
+                "running_pods": running,
+                "error_pods": failed,
+                "pods_in_error": failed
+            }))
+        },
+        Err(_) => HttpResponse::Ok().json(json!({
+            "running": 0, "pending": 0, "failed": 0, "total": 0,
+            "total_pods": 0, "running_pods": 0, "error_pods": 0, "pods_in_error": 0
+        }))
     }
 }
 
@@ -520,4 +581,11 @@ async fn ha_automations() -> impl Responder {
         Ok(automations) => HttpResponse::Ok().json(automations),
         Err(_) => HttpResponse::Ok().json(json!([]))
     }
+}
+
+async fn websocket_stub() -> impl Responder {
+    HttpResponse::NotImplemented().json(json!({
+        "error": "WebSocket not implemented",
+        "message": "WebSocket notifications endpoint not available"
+    }))
 }
