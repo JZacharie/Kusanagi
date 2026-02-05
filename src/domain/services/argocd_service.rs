@@ -2,23 +2,9 @@ use serde_json::{json, Value};
 use std::process::Command;
 
 pub async fn get_argocd_status() -> Result<Value, String> {
-    // Try ArgoCD API on standard port
-    let argocd_api_output = Command::new("curl")
-        .args(&["-s", "-k", "http://localhost:8081/api/v1/applications", "-H", "Accept: application/json"])
-        .output();
+    eprintln!("🔍 Fetching ArgoCD status...");
     
-    if let Ok(result) = argocd_api_output {
-        if result.status.success() {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(apps_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(items) = apps_data["items"].as_array() {
-                    return parse_argocd_apps(items, "argocd_api");
-                }
-            }
-        }
-    }
-    
-    // Fallback: kubectl for ArgoCD
+    // Try kubectl for ArgoCD applications
     let kubectl_output = Command::new("kubectl")
         .args(&["get", "applications", "-n", "argocd", "-o", "json"])
         .output();
@@ -28,13 +14,17 @@ pub async fn get_argocd_status() -> Result<Value, String> {
             let json_str = String::from_utf8_lossy(&result.stdout);
             if let Ok(apps_data) = serde_json::from_str::<Value>(&json_str) {
                 if let Some(items) = apps_data["items"].as_array() {
-                    return parse_argocd_apps(items, "kubectl");
+                    eprintln!("✅ ArgoCD: Found {} applications via kubectl", items.len());
+                    return parse_argocd_apps(items);
                 }
             }
+        } else {
+            let stderr = String::from_utf8_lossy(&result.stderr);
+            eprintln!("⚠️ ArgoCD kubectl error: {}", stderr.trim());
         }
     }
     
-    // Fallback: check if ArgoCD is installed
+    // Check if ArgoCD is installed
     let argocd_pods_output = Command::new("kubectl")
         .args(&["get", "pods", "-n", "argocd", "--no-headers"])
         .output();
@@ -49,6 +39,7 @@ pub async fn get_argocd_status() -> Result<Value, String> {
                     .filter(|line| line.contains("Running"))
                     .count();
                 
+                eprintln!("⚠️ ArgoCD installed ({}/{} pods running) but no apps found", running_pods, pod_lines.len());
                 return Ok(json!({
                     "total": 0,
                     "healthy": 0,
@@ -65,7 +56,7 @@ pub async fn get_argocd_status() -> Result<Value, String> {
         }
     }
     
-    // Final fallback: ArgoCD not detected
+    eprintln!("❌ ArgoCD not detected or not accessible");
     Ok(json!({
         "total": 0,
         "healthy": 0,
@@ -80,7 +71,7 @@ pub async fn get_argocd_status() -> Result<Value, String> {
     }))
 }
 
-fn parse_argocd_apps(items: &Vec<Value>, source: &str) -> Result<Value, String> {
+fn parse_argocd_apps(items: &Vec<Value>) -> Result<Value, String> {
     let mut healthy = 0;
     let mut unhealthy = 0;
     let mut synced = 0;
@@ -96,7 +87,6 @@ fn parse_argocd_apps(items: &Vec<Value>, source: &str) -> Result<Value, String> 
         let sync_status = app["status"]["sync"]["status"].as_str().unwrap_or("Unknown");
         let revision = app["status"]["sync"]["revision"].as_str().unwrap_or("");
         
-        // Count stats
         match health_status {
             "Healthy" => healthy += 1,
             "Degraded" | "Missing" | "Unknown" => unhealthy += 1,
@@ -110,7 +100,6 @@ fn parse_argocd_apps(items: &Vec<Value>, source: &str) -> Result<Value, String> 
             _ => {}
         }
         
-        // Build app object
         let app_obj = json!({
             "name": name,
             "namespace": namespace,
@@ -122,12 +111,10 @@ fn parse_argocd_apps(items: &Vec<Value>, source: &str) -> Result<Value, String> 
             "can_sync": sync_status == "OutOfSync"
         });
         
-        // Add to issues if unhealthy or out of sync
         if health_status != "Healthy" || sync_status == "OutOfSync" {
             apps_with_issues.push(app_obj.clone());
         }
         
-        // Check for upgrades (simplified - would need more logic)
         if sync_status == "OutOfSync" && health_status == "Healthy" {
             apps_with_upgrades.push(app_obj);
         }
@@ -142,7 +129,6 @@ fn parse_argocd_apps(items: &Vec<Value>, source: &str) -> Result<Value, String> 
         "progressing": progressing,
         "upgrades_available": apps_with_upgrades.len(),
         "apps_with_issues": apps_with_issues,
-        "apps_with_upgrades": apps_with_upgrades,
-        "source": source
+        "apps_with_upgrades": apps_with_upgrades
     }))
 }
