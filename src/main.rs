@@ -51,8 +51,7 @@ async fn main() -> std::io::Result<()> {
             .route("/status", web::get().to(system_status))
             // WebSocket endpoint
             .route("/api/ws/notifications", web::get().to(websocket_handler))
-            // Manifest PWA
-            .route("/static/manifest.json", web::get().to(manifest_handler))
+            // Static files (including manifest.json) - no auth required
             .service(actix_files::Files::new("/static", "./static").show_files_listing())
             .service(
                 web::scope("/api/v1")
