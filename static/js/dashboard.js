@@ -963,9 +963,12 @@ const NewsManager = {
      * Update last updated timestamp
      */
     updateTimestamp(timestamp) {
-        const date = new Date(timestamp);
-        const formatted = date.toLocaleString();
-        document.getElementById('news-updated-at').textContent = formatted;
+        const timestampEl = document.getElementById('news-updated-at');
+        if (timestampEl && timestamp) {
+            const date = new Date(timestamp);
+            const formatted = date.toLocaleString();
+            timestampEl.textContent = formatted;
+        }
     },
 
     /**
