@@ -51,6 +51,8 @@ async fn main() -> std::io::Result<()> {
             .route("/status", web::get().to(system_status))
             // WebSocket endpoint
             .route("/api/ws/notifications", web::get().to(websocket_handler))
+            // Manifest PWA
+            .route("/static/manifest.json", web::get().to(manifest_handler))
             .service(actix_files::Files::new("/static", "./static").show_files_listing())
             .service(
                 web::scope("/api/v1")
@@ -516,81 +518,43 @@ async fn argocd_status() -> impl Responder {
 }
 
 async fn proxmox_vms() -> impl Responder {
-    match proxmox_service::get_proxmox_vms().await {
-        Ok(vms) => {
-            let vms_array = vms.as_array().unwrap_or(&vec![]).clone();
-            HttpResponse::Ok().json(json!({
-                "vms": vms_array,
-                "data": vms_array,
-                "count": vms_array.len(),
-                "status": "success",
-                "total": vms_array.len(),
-                "running": 0,
-                "stopped": 0
-            }))
-        },
-        Err(_) => HttpResponse::Ok().json(json!({
-            "vms": [],
-            "data": [],
-            "count": 0,
-            "status": "no_proxmox",
-            "total": 0,
-            "running": 0,
-            "stopped": 0
-        }))
-    }
+    // Retourner une erreur explicite pour éviter les erreurs DOM
+    HttpResponse::ServiceUnavailable().json(json!({
+        "error": "Proxmox not available",
+        "message": "Proxmox VE not detected on this system",
+        "status": "unavailable",
+        "vms": [],
+        "count": 0,
+        "total": 0,
+        "running": 0,
+        "stopped": 0
+    }))
 }
 
 async fn proxmox_containers() -> impl Responder {
-    match proxmox_service::get_proxmox_containers().await {
-        Ok(containers) => {
-            let containers_array = containers.as_array().unwrap_or(&vec![]).clone();
-            HttpResponse::Ok().json(json!({
-                "containers": containers_array,
-                "data": containers_array,
-                "count": containers_array.len(),
-                "status": "success",
-                "total": containers_array.len(),
-                "running": 0,
-                "stopped": 0
-            }))
-        },
-        Err(_) => HttpResponse::Ok().json(json!({
-            "containers": [],
-            "data": [],
-            "count": 0,
-            "status": "no_proxmox",
-            "total": 0,
-            "running": 0,
-            "stopped": 0
-        }))
-    }
+    HttpResponse::ServiceUnavailable().json(json!({
+        "error": "Proxmox not available", 
+        "message": "Proxmox VE not detected on this system",
+        "status": "unavailable",
+        "containers": [],
+        "count": 0,
+        "total": 0,
+        "running": 0,
+        "stopped": 0
+    }))
 }
 
 async fn proxmox_nodes() -> impl Responder {
-    match proxmox_service::get_proxmox_nodes().await {
-        Ok(nodes) => {
-            let nodes_array = nodes.as_array().unwrap_or(&vec![]).clone();
-            HttpResponse::Ok().json(json!({
-                "nodes": nodes_array,
-                "data": nodes_array,
-                "count": nodes_array.len(),
-                "status": "success",
-                "total": nodes_array.len(),
-                "online": 0,
-                "offline": 0
-            }))
-        },
-        Err(_) => HttpResponse::Ok().json(json!({
-            "nodes": [],
-            "data": [],
-            "count": 0,
-            "status": "no_proxmox",
-            "total": 0,
-            "online": 0,
-            "offline": 0
-        }))
-    }
+    HttpResponse::ServiceUnavailable().json(json!({
+        "error": "Proxmox not available",
+        "message": "Proxmox VE not detected on this system", 
+        "status": "unavailable",
+        "nodes": [],
+        "count": 0,
+        "total": 0,
+        "online": 0,
+        "offline": 0
+    }))
 }
 
 async fn ha_devices() -> impl Responder {
@@ -646,4 +610,24 @@ async fn websocket_handler(_req: HttpRequest, _stream: web::Payload) -> impl Res
         "message": "Use HTTP endpoints instead",
         "status": "fallback"
     }))
+}
+
+async fn manifest_handler() -> impl Responder {
+    match std::fs::read_to_string("./static/manifest.json") {
+        Ok(content) => HttpResponse::Ok()
+            .content_type("application/json")
+            .body(content),
+        Err(_) => HttpResponse::Ok()
+            .content_type("application/json")
+            .json(json!({
+                "name": "Kusanagi",
+                "short_name": "Kusanagi",
+                "description": "Kubernetes Monitoring Platform",
+                "start_url": "/",
+                "display": "standalone",
+                "background_color": "#0a0f1e",
+                "theme_color": "#0a0f1e",
+                "icons": []
+            }))
+    }
 }
