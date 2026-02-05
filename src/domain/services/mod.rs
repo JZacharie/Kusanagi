@@ -1,2 +1,6 @@
 pub mod kubernetes_service;
 pub mod monitoring_service;
+pub mod argocd_service;
+pub mod proxmox_service;
+pub mod news_service;
+pub mod homeassistant_service;
