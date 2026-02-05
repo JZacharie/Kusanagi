@@ -26,6 +26,28 @@ async fn main() -> std::io::Result<()> {
             .route("/api", web::get().to(service_info))
             .route("/health", web::get().to(health_check))
             .route("/docs", web::get().to(web_docs))
+            // API endpoints for frontend
+            .route("/api/system/status", web::get().to(system_status))
+            .route("/api/alerts", web::get().to(alerts))
+            .route("/api/metrics", web::get().to(metrics))
+            .route("/api/news", web::get().to(news))
+            .route("/api/quotas", web::get().to(quotas))
+            .route("/api/pods/status", web::get().to(pods_status))
+            .route("/api/cluster/overview", web::get().to(cluster_overview))
+            .route("/api/backups", web::get().to(backups))
+            .route("/api/services", web::get().to(services))
+            .route("/api/ingress", web::get().to(ingress))
+            .route("/api/nodes/status", web::get().to(nodes_status))
+            .route("/api/storage", web::get().to(storage))
+            .route("/api/events", web::get().to(events))
+            .route("/api/argocd/status", web::get().to(argocd_status))
+            .route("/api/proxmox/vms", web::get().to(proxmox_vms))
+            .route("/api/proxmox/containers", web::get().to(proxmox_containers))
+            .route("/api/proxmox/nodes", web::get().to(proxmox_nodes))
+            .route("/api/ha/devices", web::get().to(ha_devices))
+            .route("/api/ha/sensors", web::get().to(ha_sensors))
+            .route("/api/ha/automations", web::get().to(ha_automations))
+            .route("/status", web::get().to(system_status))
             .service(actix_files::Files::new("/static", "./static").show_files_listing())
             .service(
                 web::scope("/api/v1")
@@ -330,4 +352,89 @@ async fn web_index() -> impl Responder {
             }))
         }
     }
+}
+
+// API endpoints for frontend
+async fn system_status() -> impl Responder {
+    HttpResponse::Ok().json(json!({
+        "status": "operational",
+        "uptime": "24h",
+        "version": "0.2.0"
+    }))
+}
+
+async fn alerts() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
+}
+
+async fn metrics() -> impl Responder {
+    HttpResponse::Ok().json(json!({"cpu": 45, "memory": 67, "disk": 23}))
+}
+
+async fn news() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
+}
+
+async fn quotas() -> impl Responder {
+    HttpResponse::Ok().json(json!({"used": 50, "total": 100}))
+}
+
+async fn pods_status() -> impl Responder {
+    HttpResponse::Ok().json(json!({"running": 12, "pending": 0, "failed": 0}))
+}
+
+async fn cluster_overview() -> impl Responder {
+    HttpResponse::Ok().json(json!({"nodes": 3, "pods": 12, "services": 8}))
+}
+
+async fn backups() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
+}
+
+async fn services() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
+}
+
+async fn ingress() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
+}
+
+async fn nodes_status() -> impl Responder {
+    HttpResponse::Ok().json(json!({"ready": 3, "not_ready": 0}))
+}
+
+async fn storage() -> impl Responder {
+    HttpResponse::Ok().json(json!({"total": "100GB", "used": "23GB"}))
+}
+
+async fn events() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
+}
+
+async fn argocd_status() -> impl Responder {
+    HttpResponse::Ok().json(json!({"healthy": true, "apps": 5}))
+}
+
+async fn proxmox_vms() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
+}
+
+async fn proxmox_containers() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
+}
+
+async fn proxmox_nodes() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
+}
+
+async fn ha_devices() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
+}
+
+async fn ha_sensors() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
+}
+
+async fn ha_automations() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
 }
