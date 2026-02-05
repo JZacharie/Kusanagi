@@ -466,6 +466,7 @@ impl From<std::io::Error> for KusanagiError {
 }
 
 /// Convert from aws_sdk_s3::Error (simplified)
+#[cfg(feature = "aws")]
 impl From<aws_sdk_s3::error::SdkError<aws_sdk_s3::operation::put_object::PutObjectError>>
     for KusanagiError
 {
@@ -476,6 +477,7 @@ impl From<aws_sdk_s3::error::SdkError<aws_sdk_s3::operation::put_object::PutObje
     }
 }
 
+#[cfg(feature = "aws")]
 impl From<aws_sdk_s3::error::SdkError<aws_sdk_s3::operation::get_object::GetObjectError>>
     for KusanagiError
 {

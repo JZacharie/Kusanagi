@@ -1,9 +1,13 @@
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn, error, debug};
 use std::time::{Duration};
+#[cfg(feature = "aws")]
 use aws_sdk_s3::Client as S3Client;
+#[cfg(feature = "aws")]
 use aws_config::meta::region::RegionProviderChain;
+#[cfg(feature = "aws")]
 use aws_sdk_s3::primitives::ByteStream;
+#[cfg(feature = "aws")]
 use aws_config::BehaviorVersion;
 use actix_web::{get, web, HttpResponse, Responder};
 

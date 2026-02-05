@@ -1,25 +1,15 @@
-pub mod application;
+// Minimal lib.rs for compilation
 pub mod cache;
 pub mod config;
-pub mod domain;
 pub mod error;
-pub mod event_bus;
 pub mod features;
-pub mod infrastructure;
-pub mod interfaces;
-pub mod jobs;
-pub mod legacy;
-pub mod metrics;
-pub mod middleware;
-pub mod resilience;
 pub mod response;
 pub mod validation;
 
-use std::sync::Arc;
-
-/// Shared application state
-pub struct AppState {
-    pub client: kube::Client,
-    pub k8s_repo: Arc<dyn domain::ports::KubernetesRepository>,
-    pub metrics_repo: Arc<dyn domain::ports::MetricsRepository>,
-}
+// Selective re-exports to avoid conflicts
+pub use cache::{Cache, InMemoryCache};
+pub use config::Config;
+pub use error::KusanagiError;
+pub use features::*;
+pub use response::ApiResponse;
+pub use validation::{ValidationErrorResponse, FieldError};
