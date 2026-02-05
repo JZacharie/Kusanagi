@@ -628,6 +628,12 @@ const AlertsManager = {
         const container = document.getElementById('alerts-content');
         if (!container) return;
 
+        // Validate data structure
+        if (!data || typeof data !== 'object') {
+            this.renderAlertsError('Invalid alerts data');
+            return;
+        }
+
         // Check if there's a warning from the backend (e.g., Alertmanager unavailable)
         const warningMsg = data._warning || data.warning_message;
 
@@ -645,9 +651,9 @@ const AlertsManager = {
         let html = '<div class="alerts-list">';
 
         // Critical alerts
-        if (data.critical.length > 0) {
+        if (data.critical && data.critical.length > 0) {
             html += '<div class="alert-group critical">';
-            html += '<h4>🔴 Critical (${data.critical.length})</h4>';
+            html += `<h4>🔴 Critical (${data.critical.length})</h4>`;
             data.critical.forEach(alert => {
                 html += this.renderAlertCard(alert, 'critical');
             });
@@ -655,7 +661,7 @@ const AlertsManager = {
         }
 
         // Warning alerts
-        if (data.warning.length > 0) {
+        if (data.warning && data.warning.length > 0) {
             html += '<div class="alert-group warning">';
             html += `<h4>🟠 Warning (${data.warning.length})</h4>`;
             data.warning.forEach(alert => {
@@ -665,7 +671,7 @@ const AlertsManager = {
         }
 
         // Info alerts
-        if (data.info.length > 0) {
+        if (data.info && data.info.length > 0) {
             html += '<div class="alert-group info">';
             html += `<h4>🔵 Info (${data.info.length})</h4>`;
             data.info.forEach(alert => {
