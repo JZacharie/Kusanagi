@@ -400,8 +400,21 @@ async fn metrics() -> impl Responder {
 // Endpoints mockés temporairement
 async fn alerts() -> impl Responder {
     match monitoring_service::get_alerts().await {
-        Ok(alerts) => HttpResponse::Ok().json(alerts),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Ok(alerts) => {
+            let alerts_array = alerts.as_array().unwrap_or(&vec![]).clone();
+            HttpResponse::Ok().json(json!({
+                "alerts": alerts_array,
+                "data": alerts_array,
+                "count": alerts_array.len(),
+                "status": "success"
+            }))
+        },
+        Err(_) => HttpResponse::Ok().json(json!({
+            "alerts": [],
+            "data": [],
+            "count": 0,
+            "status": "error"
+        }))
     }
 }
 
@@ -504,29 +517,105 @@ async fn argocd_status() -> impl Responder {
 
 async fn proxmox_vms() -> impl Responder {
     match proxmox_service::get_proxmox_vms().await {
-        Ok(vms) => HttpResponse::Ok().json(vms),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Ok(vms) => {
+            let vms_array = vms.as_array().unwrap_or(&vec![]).clone();
+            HttpResponse::Ok().json(json!({
+                "vms": vms_array,
+                "data": vms_array,
+                "count": vms_array.len(),
+                "status": "success",
+                "total": vms_array.len(),
+                "running": 0,
+                "stopped": 0
+            }))
+        },
+        Err(_) => HttpResponse::Ok().json(json!({
+            "vms": [],
+            "data": [],
+            "count": 0,
+            "status": "no_proxmox",
+            "total": 0,
+            "running": 0,
+            "stopped": 0
+        }))
     }
 }
 
 async fn proxmox_containers() -> impl Responder {
     match proxmox_service::get_proxmox_containers().await {
-        Ok(containers) => HttpResponse::Ok().json(containers),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Ok(containers) => {
+            let containers_array = containers.as_array().unwrap_or(&vec![]).clone();
+            HttpResponse::Ok().json(json!({
+                "containers": containers_array,
+                "data": containers_array,
+                "count": containers_array.len(),
+                "status": "success",
+                "total": containers_array.len(),
+                "running": 0,
+                "stopped": 0
+            }))
+        },
+        Err(_) => HttpResponse::Ok().json(json!({
+            "containers": [],
+            "data": [],
+            "count": 0,
+            "status": "no_proxmox",
+            "total": 0,
+            "running": 0,
+            "stopped": 0
+        }))
     }
 }
 
 async fn proxmox_nodes() -> impl Responder {
     match proxmox_service::get_proxmox_nodes().await {
-        Ok(nodes) => HttpResponse::Ok().json(nodes),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Ok(nodes) => {
+            let nodes_array = nodes.as_array().unwrap_or(&vec![]).clone();
+            HttpResponse::Ok().json(json!({
+                "nodes": nodes_array,
+                "data": nodes_array,
+                "count": nodes_array.len(),
+                "status": "success",
+                "total": nodes_array.len(),
+                "online": 0,
+                "offline": 0
+            }))
+        },
+        Err(_) => HttpResponse::Ok().json(json!({
+            "nodes": [],
+            "data": [],
+            "count": 0,
+            "status": "no_proxmox",
+            "total": 0,
+            "online": 0,
+            "offline": 0
+        }))
     }
 }
 
 async fn ha_devices() -> impl Responder {
     match homeassistant_service::get_ha_devices().await {
-        Ok(devices) => HttpResponse::Ok().json(devices),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Ok(devices) => {
+            let devices_array = devices.as_array().unwrap_or(&vec![]).clone();
+            HttpResponse::Ok().json(json!({
+                "devices": devices_array,
+                "data": devices_array,
+                "count": devices_array.len(),
+                "status": "success",
+                "total": devices_array.len(),
+                "online": 0,
+                "offline": 0
+            }))
+        },
+        Err(_) => HttpResponse::Ok().json(json!({
+            "devices": [],
+            "data": [],
+            "count": 0,
+            "status": "no_ha",
+            "total": 0,
+            "online": 0,
+            "offline": 0
+        }))
     }
 }
 
