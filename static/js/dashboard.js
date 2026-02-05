@@ -946,8 +946,7 @@ const NewsManager = {
      */
     updateStats(data) {
         if (!data || !data.items || !Array.isArray(data.items)) {
-            console.warn('No news data available for stats');
-            // Set zeros if elements exist
+            // Silently set zeros without warning spam
             const totalEl = document.getElementById('news-total');
             const hnEl = document.getElementById('news-hn');
             const korbenEl = document.getElementById('news-korben');

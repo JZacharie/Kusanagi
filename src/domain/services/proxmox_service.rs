@@ -6,6 +6,7 @@ pub async fn get_proxmox_vms() -> Result<Value, String> {
     let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
     
     if proxmox_urls.is_empty() || proxmox_user.is_empty() {
+        eprintln!("⚠️ Proxmox VMs: Missing PROXMOX_URLS or PROXMOX_USER");
         return Ok(json!([]));
     }
     
@@ -42,14 +43,17 @@ pub async fn get_proxmox_vms() -> Result<Value, String> {
                                 "uptime": vm["uptime"]
                             })
                         }).collect();
+                        eprintln!("✅ Proxmox VMs: Found {} VMs from {}", vms.len(), url);
                         return Ok(json!(vms));
                     }
                 }
             }
-            _ => continue
+            Ok(response) => eprintln!("⚠️ Proxmox VMs: {} returned status {}", url, response.status()),
+            Err(e) => eprintln!("❌ Proxmox VMs: {} error: {}", url, e)
         }
     }
     
+    eprintln!("⚠️ Proxmox VMs: No data from any server");
     Ok(json!([]))
 }
 
@@ -59,6 +63,7 @@ pub async fn get_proxmox_containers() -> Result<Value, String> {
     let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
     
     if proxmox_urls.is_empty() || proxmox_user.is_empty() {
+        eprintln!("⚠️ Proxmox Containers: Missing PROXMOX_URLS or PROXMOX_USER");
         return Ok(json!([]));
     }
     
@@ -95,14 +100,17 @@ pub async fn get_proxmox_containers() -> Result<Value, String> {
                                 "uptime": ct["uptime"]
                             })
                         }).collect();
+                        eprintln!("✅ Proxmox Containers: Found {} containers from {}", containers.len(), url);
                         return Ok(json!(containers));
                     }
                 }
             }
-            _ => continue
+            Ok(response) => eprintln!("⚠️ Proxmox Containers: {} returned status {}", url, response.status()),
+            Err(e) => eprintln!("❌ Proxmox Containers: {} error: {}", url, e)
         }
     }
     
+    eprintln!("⚠️ Proxmox Containers: No data from any server");
     Ok(json!([]))
 }
 
@@ -112,6 +120,7 @@ pub async fn get_proxmox_nodes() -> Result<Value, String> {
     let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
     
     if proxmox_urls.is_empty() || proxmox_user.is_empty() {
+        eprintln!("⚠️ Proxmox Nodes: Missing PROXMOX_URLS or PROXMOX_USER");
         return Ok(json!([]));
     }
     
@@ -148,13 +157,16 @@ pub async fn get_proxmox_nodes() -> Result<Value, String> {
                                 "uptime": node["uptime"]
                             })
                         }).collect();
+                        eprintln!("✅ Proxmox Nodes: Found {} nodes from {}", nodes.len(), url);
                         return Ok(json!(nodes));
                     }
                 }
             }
-            _ => continue
+            Ok(response) => eprintln!("⚠️ Proxmox Nodes: {} returned status {}", url, response.status()),
+            Err(e) => eprintln!("❌ Proxmox Nodes: {} error: {}", url, e)
         }
     }
     
+    eprintln!("⚠️ Proxmox Nodes: No data from any server");
     Ok(json!([]))
 }
