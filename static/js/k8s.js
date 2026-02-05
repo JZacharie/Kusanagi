@@ -36,34 +36,45 @@ const K8sManager = {
     async fetchArgoStatus() {
         try {
             const response = await fetch('/api/argocd/status');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
             const data = await response.json();
+            
             if (data.error) {
                 this.showArgoError(data.error);
                 return;
             }
+            
             this.updateArgoStats(data);
-            this.updateArgoIssuesTable(data.apps_with_issues);
-            this.updateArgoUpgradesTable(data.apps_with_upgrades);
+            this.updateArgoIssuesTable(data.apps_with_issues || []);
+            this.updateArgoUpgradesTable(data.apps_with_upgrades || []);
         } catch (error) {
-            this.showArgoError('Failed to connect to ArgoCD API');
+            console.error('ArgoCD fetch error:', error);
+            this.showArgoError(`Failed to connect to ArgoCD API: ${error.message}`);
         }
     },
 
     updateArgoStats(data) {
         const stats = {
-            'stat-total': data.total,
-            'stat-healthy': data.healthy,
-            'stat-unhealthy': data.unhealthy,
-            'stat-synced': data.synced,
-            'stat-outofsync': data.out_of_sync,
-            'stat-progressing': data.progressing,
+            'stat-total': data.total || 0,
+            'stat-healthy': data.healthy || 0,
+            'stat-unhealthy': data.unhealthy || 0,
+            'stat-synced': data.synced || 0,
+            'stat-outofsync': data.out_of_sync || 0,
+            'stat-progressing': data.progressing || 0,
             'stat-upgrades': data.upgrades_available || 0,
-            'issues-count': data.apps_with_issues.length,
+            'issues-count': (data.apps_with_issues || []).length,
             'upgrades-count': (data.apps_with_upgrades || []).length
         };
         for (const [id, value] of Object.entries(stats)) {
             const el = document.getElementById(id);
             if (el) el.textContent = value;
+        }
+        
+        // Show message if provided
+        if (data.message) {
+            console.info('ArgoCD:', data.message);
         }
     },
 
