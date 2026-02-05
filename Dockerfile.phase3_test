@@ -1,0 +1,54 @@
+# Dockerfile pour Kusanagi - Phase 3 Test Integration
+FROM rust:1.88-slim AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Cargo files
+COPY Cargo_hexagonal.toml ./Cargo.toml
+
+# Create dummy main to cache dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release
+RUN rm src/main.rs
+
+# Copy test main
+COPY src/main_phase3_test.rs ./src/main.rs
+
+# Build the application
+RUN cargo build --release
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Environment variables
+ENV RUST_LOG=info
+ENV PROMETHEUS_URL=http://prometheus:9090
+
+# Copy binary
+COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi
+
+# Set permissions
+RUN chmod +x /usr/local/bin/kusanagi
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Run the application
+CMD ["/usr/local/bin/kusanagi"]
