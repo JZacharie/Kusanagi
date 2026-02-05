@@ -4,7 +4,7 @@ use actix_files;
 use serde_json::json;
 use std::sync::Arc;
 use kusanagi::{Config, Cache, InMemoryCache, legacy};
-use kusanagi::domain::services::{kubernetes_service, monitoring_service};
+use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -404,7 +404,10 @@ async fn alerts() -> impl Responder {
 }
 
 async fn news() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+    match news_service::get_news().await {
+        Ok(news) => HttpResponse::Ok().json(news),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn quotas() -> impl Responder {
@@ -471,29 +474,50 @@ async fn events() -> impl Responder {
 }
 
 async fn argocd_status() -> impl Responder {
-    HttpResponse::Ok().json(json!({"healthy": false, "apps": 0}))
+    match argocd_service::get_argocd_status().await {
+        Ok(status) => HttpResponse::Ok().json(status),
+        Err(_) => HttpResponse::Ok().json(json!({"healthy": false, "apps": 0}))
+    }
 }
 
 async fn proxmox_vms() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+    match proxmox_service::get_proxmox_vms().await {
+        Ok(vms) => HttpResponse::Ok().json(vms),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn proxmox_containers() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+    match proxmox_service::get_proxmox_containers().await {
+        Ok(containers) => HttpResponse::Ok().json(containers),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn proxmox_nodes() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+    match proxmox_service::get_proxmox_nodes().await {
+        Ok(nodes) => HttpResponse::Ok().json(nodes),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn ha_devices() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+    match homeassistant_service::get_ha_devices().await {
+        Ok(devices) => HttpResponse::Ok().json(devices),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn ha_sensors() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+    match homeassistant_service::get_ha_sensors().await {
+        Ok(sensors) => HttpResponse::Ok().json(sensors),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn ha_automations() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+    match homeassistant_service::get_ha_automations().await {
+        Ok(automations) => HttpResponse::Ok().json(automations),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
