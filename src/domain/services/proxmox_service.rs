@@ -2,17 +2,40 @@ use serde_json::{json, Value};
 
 async fn get_proxmox_ticket(client: &reqwest::Client, url: &str, user: &str, password: &str) -> Option<(String, String)> {
     let auth_url = format!("{}/api2/json/access/ticket", url);
-    let params = [("username", format!("{}@pam", user)), ("password", password.to_string())];
+    
+    // Handle username that might already have @pam
+    let username = if user.contains('@') {
+        user.to_string()
+    } else {
+        format!("{}@pam", user)
+    };
+    
+    let params = [("username", username), ("password", password.to_string())];
+    
+    eprintln!("🔐 Proxmox Auth: Attempting login to {} as {}", url, params[0].0);
     
     match client.post(&auth_url).form(&params).send().await {
-        Ok(response) if response.status().is_success() => {
-            if let Ok(data) = response.json::<Value>().await {
-                let ticket = data["data"]["ticket"].as_str()?.to_string();
-                let csrf = data["data"]["CSRFPreventionToken"].as_str()?.to_string();
-                return Some((ticket, csrf));
+        Ok(response) => {
+            if response.status().is_success() {
+                if let Ok(data) = response.json::<Value>().await {
+                    let ticket = data["data"]["ticket"].as_str().map(|s| s.to_string());
+                    let csrf = data["data"]["CSRFPreventionToken"].as_str().map(|s| s.to_string());
+                    
+                    if let (Some(t), Some(c)) = (ticket, csrf) {
+                        return Some((t, c));
+                    } else {
+                        eprintln!("❌ Proxmox Auth: {} - Missing ticket or CSRF in response: {:?}", url, data);
+                    }
+                } else {
+                    eprintln!("❌ Proxmox Auth: {} - Failed to parse JSON response", url);
+                }
+            } else {
+                let status = response.status();
+                let body = response.text().await.unwrap_or_else(|_| "no body".to_string());
+                eprintln!("❌ Proxmox Auth: {} - Failed with status {}. Body: {}", url, status, body);
             }
         }
-        _ => {}
+        Err(e) => eprintln!("❌ Proxmox Auth: {} - Network error: {}", url, e)
     }
     None
 }
