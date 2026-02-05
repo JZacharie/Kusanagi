@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use crate::domain::ports::{IntegrationRepository, SystemRepository, DatabaseRepository};
 use crate::error::{Result, KusanagiError};
-use crate::legacy;
+// // use crate::legacy; // Disabled for core version // Disabled for core version
 
 /// Implementation of IntegrationRepository using legacy modules
 pub struct LegacyIntegrationRepository;

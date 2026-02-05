@@ -3,7 +3,9 @@ use kube::{Client, Api};
 use k8s_openapi::api::core::v1::Secret;
 use k8s_openapi::ByteString;
 use serde::Serialize;
+#[cfg(feature = "database")]
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions, PgPool};
+#[cfg(feature = "database")]
 use sqlx::ConnectOptions;
 use std::time::Duration;
 use tracing::{info, warn};

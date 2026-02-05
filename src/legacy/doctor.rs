@@ -7,7 +7,7 @@ use actix_web::{get, web, HttpResponse, Responder};
 use kube::{Client, Api};
 use k8s_openapi::api::core::v1::Pod;
 use serde::{Deserialize, Serialize};
-use crate::legacy::health::ComponentHealth;
+// use crate::legacy:: // Disabled for core versionhealth::ComponentHealth;
 
 use std::time::{Duration, Instant};
 

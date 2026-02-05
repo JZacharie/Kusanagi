@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use crate::domain::ports::prometheus_port::{PrometheusRepository, PrometheusMetrics};
 use crate::error::{Result, KusanagiError};
-use crate::legacy;
+// use crate::legacy; // Disabled for core version
 
 pub struct LegacyPrometheusRepository;
 

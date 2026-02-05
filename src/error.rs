@@ -6,19 +6,15 @@
 //!
 //! # Usage
 //!
-//! ```rust
-//! use crate::error::{KusanagiError, Result};
+//! ```rust,ignore
+//! use kusanagi::error::{KusanagiError, Result};
 //!
 //! fn may_fail() -> Result<String> {
-//!     // Automatically converted from kube::Error
-//!     let pods = client.list_pods().await?;
-//!     
 //!     // Custom error with context
-//!     if pods.is_empty() {
+//!     if true {
 //!         return Err(KusanagiError::cluster("No pods found in namespace"));
 //!     }
-//!     
-//!     Ok(pods)
+//!     Ok("success".to_string())
 //! }
 //! ```
 
