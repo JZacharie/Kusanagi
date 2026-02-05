@@ -1,5 +1,6 @@
 use serde_json::{json, Value};
 use std::process::Command;
+use chrono::Utc;
 
 pub async fn get_news() -> Result<Value, String> {
     // Essayer des sources de news tech/DevOps
@@ -52,50 +53,58 @@ pub async fn get_news() -> Result<Value, String> {
                 }
                 
                 if !news_items.is_empty() {
-                    return Ok(json!(news_items));
+                    return Ok(json!({
+                        "items": news_items,
+                        "cached_at": Utc::now().to_rfc3339(),
+                        "source": "hackernews"
+                    }));
                 }
             }
         }
     }
     
     // Fallback: news statiques tech/DevOps
-    Ok(json!([
-        {
-            "title": "Kubernetes 1.29 Released with Enhanced Security Features",
-            "url": "https://kubernetes.io/blog/2024/12/11/kubernetes-v1-29-release/",
-            "source": "kubernetes.io",
-            "category": "kubernetes",
-            "time": "2024-12-11"
-        },
-        {
-            "title": "Docker Desktop 4.26 Introduces New Container Management Tools",
-            "url": "https://www.docker.com/blog/docker-desktop-4-26/",
-            "source": "docker.com",
-            "category": "docker",
-            "time": "2024-12-10"
-        },
-        {
-            "title": "ArgoCD 2.9 Brings Improved GitOps Workflows",
-            "url": "https://argo-cd.readthedocs.io/en/stable/",
-            "source": "argoproj.io",
-            "category": "gitops",
-            "time": "2024-12-09"
-        },
-        {
-            "title": "Prometheus 2.48 Enhances Monitoring Capabilities",
-            "url": "https://prometheus.io/blog/2024/12/08/prometheus-2-48-0-release/",
-            "source": "prometheus.io",
-            "category": "monitoring",
-            "time": "2024-12-08"
-        },
-        {
-            "title": "CNCF Announces New Cloud Native Projects",
-            "url": "https://www.cncf.io/blog/2024/12/07/new-projects/",
-            "source": "cncf.io",
-            "category": "cloud-native",
-            "time": "2024-12-07"
-        }
-    ]))
+    Ok(json!({
+        "items": [
+            {
+                "title": "Kubernetes 1.29 Released with Enhanced Security Features",
+                "url": "https://kubernetes.io/blog/2024/12/11/kubernetes-v1-29-release/",
+                "source": "kubernetes.io",
+                "category": "kubernetes",
+                "time": "2024-12-11"
+            },
+            {
+                "title": "Docker Desktop 4.26 Introduces New Container Management Tools",
+                "url": "https://www.docker.com/blog/docker-desktop-4-26/",
+                "source": "docker.com",
+                "category": "docker",
+                "time": "2024-12-10"
+            },
+            {
+                "title": "ArgoCD 2.9 Brings Improved GitOps Workflows",
+                "url": "https://argo-cd.readthedocs.io/en/stable/",
+                "source": "argoproj.io",
+                "category": "gitops",
+                "time": "2024-12-09"
+            },
+            {
+                "title": "Prometheus 2.48 Enhances Monitoring Capabilities",
+                "url": "https://prometheus.io/blog/2024/12/08/prometheus-2-48-0-release/",
+                "source": "prometheus.io",
+                "category": "monitoring",
+                "time": "2024-12-08"
+            },
+            {
+                "title": "CNCF Announces New Cloud Native Projects",
+                "url": "https://www.cncf.io/blog/2024/12/07/new-projects/",
+                "source": "cncf.io",
+                "category": "cloud-native",
+                "time": "2024-12-07"
+            }
+        ],
+        "cached_at": "2024-12-11T12:00:00Z",
+        "source": "static"
+    }))
 }
 
 async fn fetch_rss_feed(url: &str) -> Result<Vec<Value>, String> {
