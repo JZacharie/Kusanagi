@@ -346,7 +346,9 @@ function refreshAllKusanagiData() {
     if (window.MetricsManager && MetricsManager.init) MetricsManager.init();
     if (window.AlertsManager && AlertsManager.init) AlertsManager.init();
     if (window.NewsManager && NewsManager.fetchNews) NewsManager.fetchNews();
-    if (window.QuotasManager && QuotasManager.fetchQuotas) QuotasManager.fetchQuotas();
+    if (window.QuotasManager && QuotasManager.fetchQuotas) {
+        // QuotasManager.fetchQuotas(); // Disabled
+    }
     if (window.MqttManager && MqttManager.fetchInitialData) MqttManager.fetchInitialData();
 
     // Refresh current active tab if it's a dashboard

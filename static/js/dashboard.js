@@ -750,9 +750,9 @@ const QuotasManager = {
      * Initialize quotas display
      */
     init() {
-        this.fetchQuotas();
+        // this.fetchQuotas(); // Disabled
         // Refresh every 60 seconds
-        setInterval(() => this.fetchQuotas(), 60000);
+        // setInterval(() => this.fetchQuotas(), 60000); // Disabled
     },
 
     /**
@@ -802,7 +802,10 @@ const QuotasManager = {
         this.updateStorage(data);
 
         // Update Timestamp
-        document.getElementById('quota-updated-at').textContent = data.last_updated;
+        const timestampEl = document.getElementById('quota-updated-at');
+        if (timestampEl) {
+            timestampEl.textContent = data.last_updated;
+        }
     },
 
     /**
@@ -936,14 +939,24 @@ const NewsManager = {
      * Update news statistics
      */
     updateStats(data) {
+        if (!data || !data.items) {
+            console.warn('No news data available for stats');
+            return;
+        }
+        
         const hnCount = data.items.filter(n => n.source === 'hackernews').length;
         const korbenCount = data.items.filter(n => n.source === 'korben').length;
         const ghCount = data.items.filter(n => n.source === 'github').length;
 
-        document.getElementById('news-total').textContent = data.total || 0;
-        document.getElementById('news-hn').textContent = hnCount;
-        document.getElementById('news-korben').textContent = korbenCount;
-        document.getElementById('news-github').textContent = ghCount;
+        const totalEl = document.getElementById('news-total');
+        const hnEl = document.getElementById('news-hn');
+        const korbenEl = document.getElementById('news-korben');
+        const ghEl = document.getElementById('news-github');
+
+        if (totalEl) totalEl.textContent = data.total || 0;
+        if (hnEl) hnEl.textContent = hnCount;
+        if (korbenEl) korbenEl.textContent = korbenCount;
+        if (ghEl) ghEl.textContent = ghCount;
     },
 
     /**

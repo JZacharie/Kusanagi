@@ -1,44 +1,95 @@
 // Proxmox Dashboard Module
 const ProxmoxDashboard = {
     refreshInterval: null,
+    debug: true, // Enable debug mode
 
     init() {
+        this.log('Initializing Proxmox Dashboard...');
         this.fetchAndRender();
         if (this.refreshInterval) clearInterval(this.refreshInterval);
         this.refreshInterval = setInterval(() => this.fetchAndRender(), 30000);
-        console.log('✅ Proxmox Dashboard initialized');
+        this.log('✅ Proxmox Dashboard initialized');
+    },
+
+    log(message, data = null) {
+        if (this.debug) {
+            console.log(`[PROXMOX DEBUG] ${message}`, data || '');
+        }
     },
 
     async fetchAndRender() {
         try {
+            this.log('Fetching Proxmox data...');
+            
             // Fetch all data in parallel
-            const [vms, containers, nodes] = await Promise.all([
-                fetch('/api/proxmox/vms').then(r => r.json()),
-                fetch('/api/proxmox/containers').then(r => r.json()),
-                fetch('/api/proxmox/nodes').then(r => r.json())
+            const [vmsResponse, containersResponse, nodesResponse] = await Promise.all([
+                fetch('/api/proxmox/vms'),
+                fetch('/api/proxmox/containers'), 
+                fetch('/api/proxmox/nodes')
             ]);
+
+            this.log('Response status:', {
+                vms: vmsResponse.status,
+                containers: containersResponse.status,
+                nodes: nodesResponse.status
+            });
+
+            const [vms, containers, nodes] = await Promise.all([
+                vmsResponse.json(),
+                containersResponse.json(),
+                nodesResponse.json()
+            ]);
+
+            this.log('Fetched data:', { vms: vms.length, containers: containers.length, nodes: nodes.length });
 
             this.renderStats(vms, containers, nodes);
             this.renderVMs(vms);
             this.renderContainers(containers);
         } catch (error) {
+            this.log('Fetch error:', error);
             console.error('Failed to fetch Proxmox data:', error);
-            document.getElementById('proxmox-vms-content').innerHTML =
-                `<div class="error">Failed to load Proxmox data: ${error.message}</div>`;
+            const errorMsg = `Failed to load Proxmox data: ${error.message}`;
+            document.getElementById('proxmox-vms-content').innerHTML = `<div class="error">${errorMsg}</div>`;
+            document.getElementById('proxmox-containers-content').innerHTML = `<div class="error">${errorMsg}</div>`;
         }
     },
 
     renderStats(vms, containers, nodes) {
-        document.getElementById('proxmox-nodes').textContent = nodes.length || '0';
-        document.getElementById('proxmox-vms').textContent = vms.length || '0';
-        document.getElementById('proxmox-containers').textContent = containers.length || '0';
+        const nodeCount = Array.isArray(nodes) ? nodes.length : 0;
+        const vmCount = Array.isArray(vms) ? vms.length : 0;
+        const containerCount = Array.isArray(containers) ? containers.length : 0;
+
+        this.log('Rendering stats:', { nodeCount, vmCount, containerCount });
+
+        const nodeEl = document.getElementById('proxmox-nodes');
+        const vmEl = document.getElementById('proxmox-vms');
+        const containerEl = document.getElementById('proxmox-containers');
+
+        if (nodeEl) nodeEl.textContent = nodeCount;
+        if (vmEl) vmEl.textContent = vmCount;
+        if (containerEl) containerEl.textContent = containerCount;
     },
 
     renderVMs(vms) {
         const container = document.getElementById('proxmox-vms-content');
-        document.getElementById('proxmox-vms-count').textContent = vms.length;
+        const countEl = document.getElementById('proxmox-vms-count');
+        
+        if (!Array.isArray(vms)) {
+            this.log('VMs data is not an array:', vms);
+            if (container) container.innerHTML = '<div class="error">Invalid VMs data received</div>';
+            if (countEl) countEl.textContent = '0';
+            return;
+        }
 
-        if (!vms || vms.length === 0) {
+        if (countEl) countEl.textContent = vms.length;
+        this.log('Rendering VMs:', vms.length);
+
+        if (!container) {
+            this.log('VM container element not found');
+            return;
+        }
+
+        if (vms.length === 0) {
             container.innerHTML = '<div class="no-issues">No VMs found</div>';
             return;
         }
@@ -67,29 +118,19 @@ const ProxmoxDashboard = {
                             <th>Status</th>
                             <th>CPU</th>
                             <th>Memory</th>
-                            <th>Disk</th>
                             <th>Uptime</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${serverVMs.map(vm => `
                             <tr>
-                                <td>${vm.vmid}</td>
-                                <td><strong>${vm.name || 'VM-' + vm.vmid}</strong></td>
-                                <td>${vm.node}</td>
-                                <td><span class="status-badge ${vm.status === 'running' ? 'healthy' : 'unhealthy'}">${vm.status}</span></td>
-                                <td>${(vm.cpu * 100).toFixed(1)}%</td>
-                                <td>${this.formatBytes(vm.mem)} / ${this.formatBytes(vm.maxmem)}</td>
-                                <td>${this.formatBytes(vm.disk)} / ${this.formatBytes(vm.maxdisk)}</td>
-                                <td>${this.formatUptime(vm.uptime)}</td>
-                                <td>
-                                    <div class="vm-actions" style="display: flex; gap: 0.5rem;">
-                                        <button class="cyber-btn sm" onclick="ProxmoxDashboard.vmAction(${vm.vmid}, '${vm.node}', '${vm.server}', 'start')" ${vm.status === 'running' ? 'disabled' : ''} title="Start VM" style="padding: 2px 8px; font-size: 0.8rem; border-color: var(--neon-green); color: var(--neon-green);">▶</button>
-                                        <button class="cyber-btn sm" onclick="ProxmoxDashboard.vmAction(${vm.vmid}, '${vm.node}', '${vm.server}', 'shutdown')" ${vm.status !== 'running' ? 'disabled' : ''} title="Shutdown VM" style="padding: 2px 8px; font-size: 0.8rem; border-color: var(--neon-yellow); color: var(--neon-yellow);">⏹</button>
-                                        <button class="cyber-btn sm" onclick="ProxmoxDashboard.vmAction(${vm.vmid}, '${vm.node}', '${vm.server}', 'stop')" ${vm.status !== 'running' ? 'disabled' : ''} title="Force Stop VM" style="padding: 2px 8px; font-size: 0.8rem; border-color: var(--neon-magenta); color: var(--neon-magenta);">⚡</button>
-                                    </div>
-                                </td>
+                                <td>${vm.vmid || 'N/A'}</td>
+                                <td><strong>${vm.name || 'VM-' + (vm.vmid || 'Unknown')}</strong></td>
+                                <td>${vm.node || 'N/A'}</td>
+                                <td><span class="status-badge ${vm.status === 'running' ? 'healthy' : 'unhealthy'}">${vm.status || 'unknown'}</span></td>
+                                <td>${vm.cpu ? (vm.cpu * 100).toFixed(1) + '%' : 'N/A'}</td>
+                                <td>${vm.mem && vm.maxmem ? this.formatBytes(vm.mem) + ' / ' + this.formatBytes(vm.maxmem) : 'N/A'}</td>
+                                <td>${vm.uptime ? this.formatUptime(vm.uptime) : 'N/A'}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -126,9 +167,24 @@ const ProxmoxDashboard = {
 
     renderContainers(containers) {
         const container = document.getElementById('proxmox-containers-content');
-        document.getElementById('proxmox-containers-count').textContent = containers.length;
+        const countEl = document.getElementById('proxmox-containers-count');
 
-        if (!containers || containers.length === 0) {
+        if (!Array.isArray(containers)) {
+            this.log('Containers data is not an array:', containers);
+            if (container) container.innerHTML = '<div class="error">Invalid containers data received</div>';
+            if (countEl) countEl.textContent = '0';
+            return;
+        }
+
+        if (countEl) countEl.textContent = containers.length;
+        this.log('Rendering containers:', containers.length);
+
+        if (!container) {
+            this.log('Container element not found');
+            return;
+        }
+
+        if (containers.length === 0) {
             container.innerHTML = '<div class="no-issues">No containers found</div>';
             return;
         }
@@ -157,29 +213,19 @@ const ProxmoxDashboard = {
                             <th>Status</th>
                             <th>CPU</th>
                             <th>Memory</th>
-                            <th>Disk</th>
                             <th>Uptime</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${serverCTs.map(ct => `
                             <tr>
-                                <td>${ct.vmid}</td>
-                                <td><strong>${ct.name || 'CT-' + ct.vmid}</strong></td>
-                                <td>${ct.node}</td>
-                                <td><span class="status-badge ${ct.status === 'running' ? 'healthy' : 'unhealthy'}">${ct.status}</span></td>
-                                <td>${(ct.cpu * 100).toFixed(1)}%</td>
-                                <td>${this.formatBytes(ct.mem)} / ${this.formatBytes(ct.maxmem)}</td>
-                                <td>${this.formatBytes(ct.disk)} / ${this.formatBytes(ct.maxdisk)}</td>
-                                <td>${this.formatUptime(ct.uptime)}</td>
-                                <td>
-                                    <div class="ct-actions" style="display: flex; gap: 0.5rem;">
-                                        <button class="cyber-btn sm" onclick="ProxmoxDashboard.ctAction(${ct.vmid}, '${ct.node}', '${ct.server}', 'start')" ${ct.status === 'running' ? 'disabled' : ''} title="Start Container" style="padding: 2px 8px; font-size: 0.8rem; border-color: var(--neon-green); color: var(--neon-green);">▶</button>
-                                        <button class="cyber-btn sm" onclick="ProxmoxDashboard.ctAction(${ct.vmid}, '${ct.node}', '${ct.server}', 'shutdown')" ${ct.status !== 'running' ? 'disabled' : ''} title="Shutdown Container" style="padding: 2px 8px; font-size: 0.8rem; border-color: var(--neon-yellow); color: var(--neon-yellow);">⏹</button>
-                                        <button class="cyber-btn sm" onclick="ProxmoxDashboard.ctAction(${ct.vmid}, '${ct.node}', '${ct.server}', 'stop')" ${ct.status !== 'running' ? 'disabled' : ''} title="Force Stop Container" style="padding: 2px 8px; font-size: 0.8rem; border-color: var(--neon-magenta); color: var(--neon-magenta);">⚡</button>
-                                    </div>
-                                </td>
+                                <td>${ct.vmid || 'N/A'}</td>
+                                <td><strong>${ct.name || 'CT-' + (ct.vmid || 'Unknown')}</strong></td>
+                                <td>${ct.node || 'N/A'}</td>
+                                <td><span class="status-badge ${ct.status === 'running' ? 'healthy' : 'unhealthy'}">${ct.status || 'unknown'}</span></td>
+                                <td>${ct.cpu ? (ct.cpu * 100).toFixed(1) + '%' : 'N/A'}</td>
+                                <td>${ct.mem && ct.maxmem ? this.formatBytes(ct.mem) + ' / ' + this.formatBytes(ct.maxmem) : 'N/A'}</td>
+                                <td>${ct.uptime ? this.formatUptime(ct.uptime) : 'N/A'}</td>
                             </tr>
                         `).join('')}
                     </tbody>
