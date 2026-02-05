@@ -240,12 +240,11 @@ const K8sManager = {
                 { key: 'node', label: 'Node' },
                 { key: 'actions', label: 'Actions' }
             ];
-            if (window.TableManager) {
+            if (window.TableManager && typeof TableManager.init === 'function') {
                 TableManager.init('pods', data.pods_in_error, (pods) => this.renderPodsTableContent(pods), podsColumns);
                 this.renderPodsTable(data.pods_in_error);
             } else {
                 // Fallback rendering if TableManager is missing
-                console.warn('TableManager not found, using fallback rendering');
                 this.renderPodsTable(data.pods_in_error);
             }
             console.log('Pods status fetched successfully');
@@ -283,7 +282,9 @@ const K8sManager = {
             { key: 'node', label: 'Node' },
             { key: 'actions', label: 'Actions' }
         ];
-        const searchHtml = (window.TableManager && TableManager.createSearchInput) ? TableManager.createSearchInput('pods', 'Search pods...') : '';
+        const searchHtml = (window.TableManager && typeof TableManager.createSearchInput === 'function') ? 
+            TableManager.createSearchInput('pods', 'Search pods...') : 
+            '<input type="text" placeholder="Search pods..." style="width: 100%; padding: 0.5rem; margin-bottom: 1rem; background: rgba(0,0,0,0.3); border: 1px solid var(--neon-cyan); color: var(--text-color);">';
         const headerHtml = (window.TableManager && TableManager.createSortableHeader) ? TableManager.createSortableHeader('pods', podsColumns) :
             podsColumns.map(col => `<th>${col.label}</th>`).join('');
 
