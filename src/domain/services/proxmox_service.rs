@@ -2,13 +2,19 @@ use serde_json::{json, Value};
 
 pub async fn get_proxmox_vms() -> Result<Value, String> {
     let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
-    let proxmox_user = std::env::var("PROXMOX_USER").unwrap_or_default();
+    let proxmox_user_raw = std::env::var("PROXMOX_USER").unwrap_or_default();
     let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
     
-    if proxmox_urls.is_empty() || proxmox_user.is_empty() {
+    if proxmox_urls.is_empty() || proxmox_user_raw.is_empty() {
         eprintln!("⚠️ Proxmox VMs: Missing PROXMOX_URLS or PROXMOX_USER");
         return Ok(json!([]));
     }
+
+    let proxmox_user = if proxmox_user_raw.contains('@') {
+        proxmox_user_raw
+    } else {
+        format!("{}@pam", proxmox_user_raw)
+    };
     
     let urls: Vec<&str> = proxmox_urls.split(',').collect();
     let client = reqwest::Client::builder()
@@ -59,13 +65,19 @@ pub async fn get_proxmox_vms() -> Result<Value, String> {
 
 pub async fn get_proxmox_containers() -> Result<Value, String> {
     let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
-    let proxmox_user = std::env::var("PROXMOX_USER").unwrap_or_default();
+    let proxmox_user_raw = std::env::var("PROXMOX_USER").unwrap_or_default();
     let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
     
-    if proxmox_urls.is_empty() || proxmox_user.is_empty() {
+    if proxmox_urls.is_empty() || proxmox_user_raw.is_empty() {
         eprintln!("⚠️ Proxmox Containers: Missing PROXMOX_URLS or PROXMOX_USER");
         return Ok(json!([]));
     }
+
+    let proxmox_user = if proxmox_user_raw.contains('@') {
+        proxmox_user_raw
+    } else {
+        format!("{}@pam", proxmox_user_raw)
+    };
     
     let urls: Vec<&str> = proxmox_urls.split(',').collect();
     let client = reqwest::Client::builder()
@@ -116,13 +128,19 @@ pub async fn get_proxmox_containers() -> Result<Value, String> {
 
 pub async fn get_proxmox_nodes() -> Result<Value, String> {
     let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
-    let proxmox_user = std::env::var("PROXMOX_USER").unwrap_or_default();
+    let proxmox_user_raw = std::env::var("PROXMOX_USER").unwrap_or_default();
     let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
     
-    if proxmox_urls.is_empty() || proxmox_user.is_empty() {
+    if proxmox_urls.is_empty() || proxmox_user_raw.is_empty() {
         eprintln!("⚠️ Proxmox Nodes: Missing PROXMOX_URLS or PROXMOX_USER");
         return Ok(json!([]));
     }
+
+    let proxmox_user = if proxmox_user_raw.contains('@') {
+        proxmox_user_raw
+    } else {
+        format!("{}@pam", proxmox_user_raw)
+    };
     
     let urls: Vec<&str> = proxmox_urls.split(',').collect();
     let client = reqwest::Client::builder()
