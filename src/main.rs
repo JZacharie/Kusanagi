@@ -4,7 +4,7 @@ use actix_files;
 use serde_json::json;
 use std::sync::Arc;
 use kusanagi::{Config, Cache, InMemoryCache, legacy};
-use kusanagi::domain::services::kubernetes_service;
+use kusanagi::domain::services::{kubernetes_service, monitoring_service};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -397,7 +397,10 @@ async fn metrics() -> impl Responder {
 
 // Endpoints mockés temporairement
 async fn alerts() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+    match monitoring_service::get_alerts().await {
+        Ok(alerts) => HttpResponse::Ok().json(alerts),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn news() -> impl Responder {
@@ -405,7 +408,10 @@ async fn news() -> impl Responder {
 }
 
 async fn quotas() -> impl Responder {
-    HttpResponse::Ok().json(json!({"used": 50, "total": 100}))
+    match monitoring_service::get_quotas().await {
+        Ok(quotas) => HttpResponse::Ok().json(quotas),
+        Err(_) => HttpResponse::Ok().json(json!({"used": 50, "total": 100}))
+    }
 }
 
 async fn pods_status() -> impl Responder {
@@ -423,15 +429,24 @@ async fn cluster_overview() -> impl Responder {
 }
 
 async fn backups() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+    match monitoring_service::get_backups().await {
+        Ok(backups) => HttpResponse::Ok().json(backups),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn services() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+    match kubernetes_service::get_services().await {
+        Ok(services) => HttpResponse::Ok().json(services),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn ingress() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+    match kubernetes_service::get_ingress().await {
+        Ok(ingress) => HttpResponse::Ok().json(ingress),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn nodes_status() -> impl Responder {
@@ -442,11 +457,17 @@ async fn nodes_status() -> impl Responder {
 }
 
 async fn storage() -> impl Responder {
-    HttpResponse::Ok().json(json!({"total": "0GB", "used": "0GB"}))
+    match kubernetes_service::get_storage().await {
+        Ok(storage) => HttpResponse::Ok().json(storage),
+        Err(_) => HttpResponse::Ok().json(json!({"total": "0GB", "used": "0GB"}))
+    }
 }
 
 async fn events() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+    match kubernetes_service::get_events().await {
+        Ok(events) => HttpResponse::Ok().json(events),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn argocd_status() -> impl Responder {
