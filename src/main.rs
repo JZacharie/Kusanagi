@@ -321,9 +321,13 @@ async fn web_index() -> impl Responder {
         Ok(content) => HttpResponse::Ok()
             .content_type("text/html")
             .body(content),
-        Err(_) => HttpResponse::NotFound().json(json!({
-            "error": "Index page not found",
-            "message": "Please ensure static/index.html exists"
-        }))
+        Err(_) => match std::fs::read_to_string("/app/static/index.html") {
+            Ok(content) => HttpResponse::Ok()
+                .content_type("text/html")
+                .body(content),
+            Err(_) => HttpResponse::NotFound().json(json!({
+                "error": "Index page not found"
+            }))
+        }
     }
 }
