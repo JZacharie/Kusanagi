@@ -1,4 +1,4 @@
-# Dockerfile pour test simple
+# Dockerfile pour Kusanagi - Phase 3 Simple
 FROM rust:1.88-slim AS builder
 
 WORKDIR /app
@@ -17,8 +17,8 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs
 RUN cargo build --release
 RUN rm src/main.rs
 
-# Copy test main
-COPY src/main_phase3_test.rs ./src/main.rs
+# Copy simple main
+COPY src/main_phase3_simple.rs ./src/main.rs
 
 # Build the application
 RUN cargo build --release
