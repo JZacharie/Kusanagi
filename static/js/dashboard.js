@@ -945,8 +945,18 @@ const NewsManager = {
      * Update news statistics
      */
     updateStats(data) {
-        if (!data || !data.items) {
+        if (!data || !data.items || !Array.isArray(data.items)) {
             console.warn('No news data available for stats');
+            // Set zeros if elements exist
+            const totalEl = document.getElementById('news-total');
+            const hnEl = document.getElementById('news-hn');
+            const korbenEl = document.getElementById('news-korben');
+            const ghEl = document.getElementById('news-github');
+            
+            if (totalEl) totalEl.textContent = '0';
+            if (hnEl) hnEl.textContent = '0';
+            if (korbenEl) korbenEl.textContent = '0';
+            if (ghEl) ghEl.textContent = '0';
             return;
         }
         
