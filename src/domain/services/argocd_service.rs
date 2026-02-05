@@ -146,4 +146,3 @@ fn parse_argocd_apps(items: &Vec<Value>, source: &str) -> Result<Value, String> 
         "source": source
     }))
 }
-}
