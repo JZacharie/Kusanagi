@@ -34,11 +34,10 @@ const ProxmoxDashboard = {
                 nodes: nodesResponse.status
             });
 
-            const [vms, containers, nodes] = await Promise.all([
-                vmsResponse.json(),
-                containersResponse.json(),
-                nodesResponse.json()
-            ]);
+            // Parse JSON only if response is OK
+            const vms = vmsResponse.ok ? await vmsResponse.json() : [];
+            const containers = containersResponse.ok ? await containersResponse.json() : [];
+            const nodes = nodesResponse.ok ? await nodesResponse.json() : [];
 
             this.log('Fetched data:', { vms: vms.length, containers: containers.length, nodes: nodes.length });
 
@@ -49,8 +48,10 @@ const ProxmoxDashboard = {
             this.log('Fetch error:', error);
             console.error('Failed to fetch Proxmox data:', error);
             const errorMsg = `Failed to load Proxmox data: ${error.message}`;
-            document.getElementById('proxmox-vms-content').innerHTML = `<div class="error">${errorMsg}</div>`;
-            document.getElementById('proxmox-containers-content').innerHTML = `<div class="error">${errorMsg}</div>`;
+            const vmsContent = document.getElementById('proxmox-vms-content');
+            const containersContent = document.getElementById('proxmox-containers-content');
+            if (vmsContent) vmsContent.innerHTML = `<div class="error">${errorMsg}</div>`;
+            if (containersContent) containersContent.innerHTML = `<div class="error">${errorMsg}</div>`;
         }
     },
 

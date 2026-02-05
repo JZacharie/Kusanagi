@@ -1,10 +1,34 @@
 // Kusanagi - Hexagonal Architecture Entry Point
 use actix_web::{web, App, HttpServer, HttpResponse, Responder, middleware::Logger, HttpRequest};
 use actix_files;
+use actix_web_actors::ws;
+use actix::{Actor, StreamHandler, ActorContext};
 use serde_json::json;
 use std::sync::Arc;
 use kusanagi::{Config, Cache, InMemoryCache, legacy};
 use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service};
+
+// WebSocket Actor
+struct WsNotifications;
+
+impl Actor for WsNotifications {
+    type Context = ws::WebsocketContext<Self>;
+    
+    fn started(&mut self, ctx: &mut Self::Context) {
+        ctx.text(r#"{"type":"connected","message":"WebSocket connected"}"#);
+    }
+}
+
+impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsNotifications {
+    fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+        match msg {
+            Ok(ws::Message::Ping(msg)) => ctx.pong(&msg),
+            Ok(ws::Message::Text(_)) => {},
+            Ok(ws::Message::Close(reason)) => ctx.close(reason),
+            _ => {}
+        }
+    }
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -517,43 +541,24 @@ async fn argocd_status() -> impl Responder {
 }
 
 async fn proxmox_vms() -> impl Responder {
-    // Retourner une erreur explicite pour éviter les erreurs DOM
-    HttpResponse::ServiceUnavailable().json(json!({
-        "error": "Proxmox not available",
-        "message": "Proxmox VE not detected on this system",
-        "status": "unavailable",
-        "vms": [],
-        "count": 0,
-        "total": 0,
-        "running": 0,
-        "stopped": 0
-    }))
+    match proxmox_service::get_proxmox_vms().await {
+        Ok(vms) => HttpResponse::Ok().json(vms),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn proxmox_containers() -> impl Responder {
-    HttpResponse::ServiceUnavailable().json(json!({
-        "error": "Proxmox not available", 
-        "message": "Proxmox VE not detected on this system",
-        "status": "unavailable",
-        "containers": [],
-        "count": 0,
-        "total": 0,
-        "running": 0,
-        "stopped": 0
-    }))
+    match proxmox_service::get_proxmox_containers().await {
+        Ok(containers) => HttpResponse::Ok().json(containers),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn proxmox_nodes() -> impl Responder {
-    HttpResponse::ServiceUnavailable().json(json!({
-        "error": "Proxmox not available",
-        "message": "Proxmox VE not detected on this system", 
-        "status": "unavailable",
-        "nodes": [],
-        "count": 0,
-        "total": 0,
-        "online": 0,
-        "offline": 0
-    }))
+    match proxmox_service::get_proxmox_nodes().await {
+        Ok(nodes) => HttpResponse::Ok().json(nodes),
+        Err(_) => HttpResponse::Ok().json(json!([]))
+    }
 }
 
 async fn ha_devices() -> impl Responder {
@@ -603,12 +608,8 @@ async fn websocket_stub() -> impl Responder {
     }))
 }
 
-async fn websocket_handler(_req: HttpRequest, _stream: web::Payload) -> impl Responder {
-    HttpResponse::Ok().json(json!({
-        "error": "WebSocket not fully implemented",
-        "message": "Use HTTP endpoints instead",
-        "status": "fallback"
-    }))
+async fn websocket_handler(req: HttpRequest, stream: web::Payload) -> impl Responder {
+    ws::start(WsNotifications, &req, stream)
 }
 
 async fn manifest_handler() -> impl Responder {
