@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Kusanagi - Agent Controller for K3s Infrastructure">
+    
+    <!-- PWA / Android Fullscreen -->
+    <meta name="theme-color" content="#0a0f1e">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kusanagi">
+    <meta name="application-name" content="Kusanagi">
+    <meta name="msapplication-TileColor" content="#0a0f1e">
+    <meta name="msapplication-config" content="/static/browserconfig.xml">
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/images/favicon-16x16.png">
+    <link rel="shortcut icon" href="/static/images/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <link rel="mask-icon" href="/static/images/safari-pinned-tab.svg" color="#00fff9">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- Fallback favicon -->
+    <link rel="icon" href="/static/images/favicon.png">
+    
+    <link rel="stylesheet" href="/static/css/cyberpunk.css">
+    <link rel="stylesheet" href="/static/css/modern-2026.css">
+    <link rel="stylesheet" href="/static/css/loot-drop.css">
+    <link rel="stylesheet" href="/static/css/weather.css">
+    <link rel="stylesheet" href="/static/css/homeassistant.css">
+    <link rel="stylesheet" href="/static/css/sidebar-responsive.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&family=Rajdhani:wght@500;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Core UI & Utilities -->
+    <script src="/static/js/theme.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/debug.js"></script>
+    <script src="/static/js/ansi-parser.js"></script>
+
+    <!-- OpenObserve RUM & Logs SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@openobserve/browser-rum@0.3.1/bundle/openobserve-rum.min.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@openobserve/browser-logs@0.3.1/bundle/openobserve-logs.min.js"
+        crossorigin="anonymous"></script>
+    <script src="/static/js/rum.js"></script>
+
+    <!-- Monitoring & Infrastructure Modules -->
+    <script src="/static/js/api-tracker.js"></script>
+    <script src="/static/js/error-boundary.js"></script>
+    <script src="/static/js/core.js"></script>
+    <script src="/static/js/page-loader.js"></script>
+    <script src="/static/js/k8s.js"></script>
+    <script src="/static/js/proxmox.js"></script>
+    <script src="/static/js/homeassistant.js"></script>
+    <script src="/static/js/weather.js"></script>
+    <script src="/static/js/calendar.js"></script>
+    <script src="/static/js/calendar_oauth.js"></script>
+    <script src="/static/js/security.js"></script>
+    <script src="/static/js/network.js"></script>
+    <script src="/static/js/mqtt.js"></script>
+    <script src="/static/js/setup.js"></script>
+    <script src="/static/js/system.js"></script>
+
+    <!-- Main Orchestrator -->
+    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/sidebar.js"></script>
+    <script src="/static/js/pwa.js"></script>
+</head>
+
+
+<body>
+    <!-- Background Effects -->
+    <div class="grid-bg"></div>
+    <div class="scanlines"></div>
+
+    <!-- Notification Container -->
+    <div class="notification-container" id="notification-container"></div>
+    <div class="ws-status" id="ws-status" title="WebSocket connection status">
+        <span class="ws-indicator disconnected" id="ws-indicator"></span>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <img src="/static/images/logo.png" alt="Kusanagi">
+                <span class="sidebar-logo-text">KUSANAGI</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <!-- Platform Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Platform</div>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-page="argocd" href="#argocd">
+                            <i class="mdi mdi-rocket-launch"></i>
+                            <span class="nav-link-text">ArgoCD</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="system" href="#system">
+                            <i class="mdi mdi-server"></i>
+                            <span class="nav-link-text">System</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="proxmox" href="#proxmox">
+                            <i class="mdi mdi-cube-outline"></i>
+                            <span class="nav-link-text">Proxmox</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="alerts" href="#alerts">
+                            <i class="mdi mdi-bell-alert"></i>
+                            <span class="nav-link-text">Alerts</span>
+                            <span class="nav-badge" id="alerts-count">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="events" href="#events">
+                            <i class="mdi mdi-bell-outline"></i>
+                            <span class="nav-link-text">Events</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Kubernetes Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Kubernetes</div>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="nodes" href="#nodes">
+                            <i class="mdi mdi-server-network"></i>
+                            <span class="nav-link-text">Nodes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="pods" href="#pods">
+                            <i class="mdi mdi-hexagon-multiple"></i>
+                            <span class="nav-link-text">Pods</span>
+                            <span class="nav-badge" id="pods-error-count">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="services" href="#services">
+                            <i class="mdi mdi-cloud-outline"></i>
+                            <span class="nav-link-text">Services</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="ingress" href="#ingress">
+                            <i class="mdi mdi-web"></i>
+                            <span class="nav-link-text">Ingress</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="storage" href="#storage">
+                            <i class="mdi mdi-database"></i>
+                            <span class="nav-link-text">Storage</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="metrics" href="#metrics">
+                            <i class="mdi mdi-chart-line"></i>
+                            <span class="nav-link-text">Metrics</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="network" href="#network">
+                            <i class="mdi mdi-lan"></i>
+                            <span class="nav-link-text">Network</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Operations Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Operations</div>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="backups" href="#backups">
+                            <i class="mdi mdi-backup-restore"></i>
+                            <span class="nav-link-text">Backups</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="security" href="#security">
+                            <i class="mdi mdi-shield-check"></i>
+                            <span class="nav-link-text">Security</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="setup" href="#setup">
+                            <i class="mdi mdi-cog"></i>
+                            <span class="nav-link-text">Setup</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Integrations Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Integrations</div>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="homeassistant" href="#homeassistant">
+                            <i class="mdi mdi-home-assistant"></i>
+                            <span class="nav-link-text">Home Assistant</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="mqtt" href="#mqtt">
+                            <i class="mdi mdi-radio-tower"></i>
+                            <span class="nav-link-text">MQTT</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="calendar" href="#calendar">
+                            <i class="mdi mdi-calendar"></i>
+                            <span class="nav-link-text">Calendar</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="weather" href="#weather">
+                            <i class="mdi mdi-weather-partly-cloudy"></i>
+                            <span class="nav-link-text">Weather</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Tools Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Tools</div>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="chat" href="#chat">
+                            <i class="mdi mdi-robot"></i>
+                            <span class="nav-link-text">AI Chat</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="docs" href="#docs">
+                            <i class="mdi mdi-information-outline"></i>
+                            <span class="nav-link-text">About</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="news" href="#news">
+                            <i class="mdi mdi-newspaper"></i>
+                            <span class="nav-link-text">News</span>
+                        </a>
+                    </li>
+                    <!-- Quotas moved to Metrics section -->
+                </ul>
+            </div>
+        </nav>
+
+        <div class="sidebar-status">
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span class="status-text">System Online</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <header class="content-header">
+            <button class="header-toggle" id="sidebar-toggle" aria-label="Toggle navigation" title="Toggle sidebar (Alt+S)">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <h1 class="header-title">Dashboard</h1>
+            <div style="display: flex; align-items: center; gap: 1rem; margin-left: auto;">
+                <div id="theme-switcher-container"></div>
+                <div id="language-switcher-container">
+                    <select id="language-select" class="cyber-select"
+                        style="background: rgba(0,0,0,0.5); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); border-radius: 4px; padding: 2px 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; cursor: pointer;">
+                        <option value="en">EN</option>
+                        <option value="fr" selected>FR</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <div class="content-body">
+
+        <!-- Dashboard Header Elements (only visible on ArgoCD page) -->
+        <div class="dashboard-header-elements" id="dashboard-header-elements" style="display: none;">
+            <!-- Kusanagi System Status -->
+            <div class="system-status-bar" id="kusanagi-system-status"
+                style="display: flex; gap: 1rem; align-items: center; justify-content: flex-end; padding: 0.5rem 1rem; background: rgba(0, 255, 249, 0.05); border-bottom: 1px solid rgba(0, 255, 249, 0.2); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--neon-cyan);">
+                <div class="system-item">
+                    <span style="opacity: 0.7;" data-i18n="uptime">UPTIME:</span> <span id="kusanagi-uptime">--:--:--</span>
+                </div>
+                <div class="system-item">
+                    <span style="opacity: 0.7;" data-i18n="cpu">CPU:</span> <span id="kusanagi-cpu">--%</span>
+                </div>
+                <div class="system-item">
+                    <span style="opacity: 0.7;" data-i18n="ram">RAM:</span> <span id="kusanagi-ram">--MB</span>
+                </div>
+                <div class="system-item">
+                    <span style="opacity: 0.7;" data-i18n="version">VERSION:</span> <span id="kusanagi-version">0.2.0</span>
+                </div>
+                <div class="system-item">
+                    <span style="opacity: 0.7;" data-i18n="db_status">DB:</span> <span id="kusanagi-db-status">--</span>
+                </div>
+            </div>
+
+            <!-- Quick External Links Bar -->
+            <div class="quick-links-bar" style="display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem 1rem; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--sidebar-border); flex-wrap: wrap;">
+            <span style="font-size: 0.75rem; opacity: 0.6; margin-right: 0.5rem;">Links:</span>
+            <a href="https://grafana.p.zacharie.org" target="_blank" class="quick-link" style="font-size: 0.8rem; padding: 2px 8px; background: rgba(255,120,50,0.2); border: 1px solid rgba(255,120,50,0.4); border-radius: 4px; color: #ff7832; text-decoration: none; transition: all 0.2s;">
+                <span>📈</span> Grafana
+            </a>
+            <a href="https://prometheus.p.zacharie.org" target="_blank" class="quick-link" style="font-size: 0.8rem; padding: 2px 8px; background: rgba(230,70,70,0.2); border: 1px solid rgba(230,70,70,0.4); border-radius: 4px; color: #e64747; text-decoration: none; transition: all 0.2s;">
+                <span>🔥</span> Prometheus
+            </a>
+            <a href="https://argocd.p.zacharie.org" target="_blank" class="quick-link" style="font-size: 0.8rem; padding: 2px 8px; background: rgba(0,200,200,0.2); border: 1px solid rgba(0,200,200,0.4); border-radius: 4px; color: #00c8c8; text-decoration: none; transition: all 0.2s;">
+                <span>🚀</span> ArgoCD
+            </a>
+            <a href="https://o2-openobserve.p.zacharie.org" target="_blank" class="quick-link" style="font-size: 0.8rem; padding: 2px 8px; background: rgba(100,100,255,0.2); border: 1px solid rgba(100,100,255,0.4); border-radius: 4px; color: #6464ff; text-decoration: none; transition: all 0.2s;">
+                <span>👁️</span> OpenObserve
+            </a>
+        </div>
+        </div>
+
+        <!-- Export Floating Button -->
+        <div class="export-dropdown" style="position: fixed; bottom: 80px; right: 20px; z-index: 100;">
+            <button class="tab-btn export-trigger cyber-btn" onclick="toggleExportMenu()" style="border-radius: 50%; width: 50px; height: 50px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); border: 1px solid var(--neon-cyan);">
+                <span class="tab-icon" style="font-size: 1.5rem;">📥</span>
+            </button>
+            <div class="export-menu" id="export-menu" style="display:none; position: absolute; bottom: 60px; right: 0; background: rgba(0,0,0,0.95); border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 0.5rem; min-width: 150px; box-shadow: 0 0 20px rgba(0,255,249,0.2);">
+                <button class="export-btn" data-format="json" style="display: block; width: 100%; text-align: left; padding: 0.5rem; background: none; border: none; color: var(--neon-cyan); cursor: pointer; border-radius: 4px;">📄 JSON</button>
+                <button class="export-btn" data-format="csv" style="display: block; width: 100%; text-align: left; padding: 0.5rem; background: none; border: none; color: var(--neon-cyan); cursor: pointer; border-radius: 4px;">📊 CSV</button>
+                <button class="export-btn" data-format="markdown" style="display: block; width: 100%; text-align: left; padding: 0.5rem; background: none; border: none; color: var(--neon-cyan); cursor: pointer; border-radius: 4px;">📝 Markdown</button>
+            </div>
+        </div>
+        <!-- Les sections commencent ici -->
+
+    <!-- ArgoCD Status Section -->
+    <section class="argocd-section tab-content active" data-tab="argocd">
+        <h2 class="section-title">ArgoCD Applications Status</h2>
+
+        <div class="argocd-stats" id="argocd-stats">
+            <div class="stat-box info">
+                <div class="stat-value" id="stat-total">-</div>
+                <div class="stat-label">Total Apps</div>
+            </div>
+            <div class="stat-box healthy">
+                <div class="stat-value" id="stat-healthy">-</div>
+                <div class="stat-label">Healthy</div>
+            </div>
+            <div class="stat-box unhealthy">
+                <div class="stat-value" id="stat-unhealthy">-</div>
+                <div class="stat-label">Unhealthy</div>
+            </div>
+            <div class="stat-box healthy">
+                <div class="stat-value" id="stat-synced">-</div>
+                <div class="stat-label">Synced</div>
+            </div>
+            <div class="stat-box unhealthy">
+                <div class="stat-value" id="stat-outofsync">-</div>
+                <div class="stat-label">Out of Sync</div>
+            </div>
+            <div class="stat-box warning">
+                <div class="stat-value" id="stat-progressing">-</div>
+                <div class="stat-label">Progressing</div>
+            </div>
+            <div class="stat-box info">
+                <div class="stat-value" id="stat-upgrades">-</div>
+                <div class="stat-label">Upgrades</div>
+            </div>
+        </div>
+
+        <!-- Real Issues Table -->
+        <div class="issues-table-container" id="issues-container">
+            <div class="issues-table-header">
+                <span class="issues-table-title">⚠ Real Issues</span>
+                <span class="issues-count" id="issues-count">0</span>
+            </div>
+            <div id="issues-content">
+                <div class="loading">Loading ArgoCD status...</div>
+            </div>
+        </div>
+
+        <!-- Upgrades Available Table -->
+        <div class="issues-table-container upgrades-container" id="upgrades-container"
+            style="margin-top: 2rem; border-color: var(--neon-cyan);">
+            <div class="issues-table-header"
+                style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+                <span class="issues-table-title" style="color: var(--neon-cyan);">🔄 Upgrades Available</span>
+                <span class="issues-count" id="upgrades-count" style="background: var(--neon-cyan);">0</span>
+            </div>
+            <div id="upgrades-content">
+                <div class="no-issues">No upgrades available</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Nodes Monitoring Section (loaded dynamically) -->
+    <section class="argocd-section tab-content" data-tab="nodes" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- PVC Monitoring Section -->
+    <section class="argocd-section tab-content" data-tab="storage" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="argocd-section tab-content" data-tab="services" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Ingress Section -->
+    <section class="argocd-section tab-content" data-tab="ingress" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Kubernetes Events Section -->
+    <section class="argocd-section tab-content" data-tab="events" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Pods Error Monitoring Section -->
+    <section class="argocd-section tab-content" data-tab="pods" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Chat Section -->
+    <section class="argocd-section tab-content" data-tab="chat" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- News Feed Section -->
+    <section class="argocd-section tab-content" data-tab="news" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Backups Section -->
+    <section class="argocd-section tab-content" data-tab="backups" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Network Visualization Section -->
+    <section class="argocd-section tab-content" data-tab="network" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Prometheus Metrics Section -->
+    <section class="argocd-section tab-content" data-tab="metrics" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- System Section -->
+    <section class="argocd-section tab-content" data-tab="system" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Alerts Section -->
+    <section class="argocd-section tab-content" data-tab="alerts" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Security Dashboard Section -->
+    <section class="argocd-section tab-content" data-tab="security" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <section class="argocd-section tab-content" data-tab="mqtt" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+
+    <!-- Proxmox Section -->
+    <section class="argocd-section tab-content" data-tab="proxmox" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Home Assistant Section -->
+    <section class="argocd-section tab-content" data-tab="homeassistant" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Weather Section -->
+    <section class="argocd-section tab-content" data-tab="weather" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Calendar Section -->
+    <section class="argocd-section tab-content" data-tab="calendar" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Setup Interview Section -->
+    <section class="argocd-section tab-content" data-tab="setup" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Documentation & Evolution Section (loaded dynamically) -->
+    <section class="argocd-section tab-content" data-tab="docs" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- MQTT Logs Modal -->
+    <section class="argocd-section tab-content" data-tab="mqtt" style="display: none;">
+        <div class="loading">Loading...</div>
+    </section>
+
+    <!-- Pod Logs Modal -->
+    <section class="argocd-section tab-content" data-tab="logs" style="display: none;">
+        <div id="logs-modal" class="cyber-modal" style="display: none;">
+            <div class="cyber-modal-content" style="max-width: 90%; width: 1000px; max-height: 80vh;">
+                <div class="cyber-modal-header">
+                    <h3 id="logs-modal-title">📄 Pod Logs: Unknown</h3>
+                    <span class="cyber-modal-close" onclick="LogsManager.closeModal()">&times;</span>
+                </div>
+                <div class="cyber-modal-body"
+                    style="background: rgba(0, 0, 0, 0.8); padding: 1rem; border: 1px solid var(--neon-blue);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <div>
+                            <span class="stat-label">Lines: </span>
+                            <select id="log-tail-select" class="cyber-input" style="width: 100px; padding: 2px 5px;"
+                                onchange="LogsManager.refreshLogs()">
+                                <option value="100">100</option>
+                                <option value="500">500</option>
+                                <option value="1000">1000</option>
+                            </select>
+                        </div>
+                        <button class="cyber-btn" style="padding: 5px 15px;" onclick="LogsManager.refreshLogs()">🔄
+                            Refresh</button>
+                    </div>
+                    <pre id="log-content"
+                        style="height: 50vh; overflow-y: auto; color: #fff; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 0; white-space: pre-wrap;"></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Home Assistant Detail Modal -->
+    <section class="argocd-section tab-content" data-tab="ha" style="display: none;">
+        <div id="ha-detail-modal">
+            <div class="ha-modal-content">
+                <button class="ha-modal-close" onclick="HomeAssistantDashboard.closeDetail()">&times;</button>
+                <div id="ha-modal-body"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p class="footer-quote">"Your effort to remain what you are is what limits you."</p>
+        <p>KUSANAGI // Ghost in the Shell Inspired // Built with ⚡ by Rust</p>
+    </footer>
+        </div> <!-- /content-body -->
+    </div> <!-- /main-content -->
+
+    <!-- Modals and overlays outside main content -->
+    <div id="global-modal-container"></div>
+
+</body>
+
+</html>

@@ -1,0 +1,33 @@
+<!-- pods section -->
+<h2 class="section-title">🐳 Pods in Error</h2>
+
+<div class="argocd-stats" id="pods-stats-grid" style="margin-bottom: 1.5rem;">
+    <div class="stat-box info">
+        <div class="stat-value" id="pods-total">-</div>
+        <div class="stat-label">Total Pods</div>
+    </div>
+    <div class="stat-box healthy">
+        <div class="stat-value" id="pods-running">-</div>
+        <div class="stat-label">Running</div>
+    </div>
+    <div class="stat-box warning">
+        <div class="stat-value" id="pods-pending">-</div>
+        <div class="stat-label">Pending</div>
+    </div>
+    <div class="stat-box unhealthy">
+        <div class="stat-value" id="pods-error">-</div>
+        <div class="stat-label">In Error</div>
+    </div>
+</div>
+
+<div class="issues-table-container" id="pods-container" style="border-color: var(--neon-orange, #ff8c00);">
+    <div class="issues-table-header"
+        style="background: rgba(255, 140, 0, 0.1); border-color: var(--neon-orange, #ff8c00);">
+        <span class="issues-table-title" style="color: var(--neon-orange, #ff8c00);">⚠️ Pods with
+            Issues</span>
+        <span class="issues-count" id="pods-error-count" style="background: var(--neon-orange, #ff8c00);">0</span>
+    </div>
+    <div id="pods-content">
+        <div class="loading">Loading pods status...</div>
+    </div>
+</div>

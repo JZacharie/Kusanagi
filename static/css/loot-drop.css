@@ -1,0 +1,225 @@
+/* ============================================
+   KUSANAGI - Loot-Drop Design System
+   Cyberpunk Gaming & Neon Aesthetics
+   ============================================ */
+
+:root {
+    --ld-bg-main: #050505;
+    --ld-bg-surface: rgba(15, 15, 15, 0.7);
+    --ld-bg-elevated: rgba(20, 20, 20, 0.8);
+    --ld-blur: blur(12px);
+
+    --ld-neon-cyan: #00f2ff;
+    --ld-neon-magenta: #ff00ff;
+    --ld-neon-yellow: #ffcc00;
+    --ld-neon-gradient: linear-gradient(90deg, #00f2ff 0%, #ff00ff 100%);
+
+    --ld-text-main: #ffffff;
+    --ld-text-dim: #a0a0a0;
+    --ld-text-muted: #606060;
+
+    --ld-border: 1px solid rgba(0, 242, 255, 0.2);
+    --ld-border-bright: 1px solid rgba(0, 242, 255, 0.5);
+
+    --ld-glow-cyan: 0 0 10px rgba(0, 242, 255, 0.3);
+    --ld-glow-magenta: 0 0 10px rgba(255, 0, 255, 0.3);
+
+    --ld-radius: 4px;
+    /* Shaper corners than modern theme */
+}
+
+/* Base Theme Class */
+body.theme-loot-drop {
+    background-color: var(--ld-bg-main);
+    color: var(--ld-text-main);
+    font-family: 'Inter', sans-serif;
+    background-image:
+        radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(255, 0, 255, 0.05) 0%, transparent 20%);
+    background-attachment: fixed;
+}
+
+body.theme-loot-drop .grid-bg {
+    background-image:
+        linear-gradient(rgba(0, 242, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 242, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    opacity: 0.5;
+}
+
+body.theme-loot-drop .scanlines {
+    display: block;
+    pointer-events: none;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+        linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+    background-size: 100% 2px, 3px 100%;
+}
+
+/* Typography Overrides */
+body.theme-loot-drop .logo,
+body.theme-loot-drop .section-title,
+body.theme-loot-drop h1,
+body.theme-loot-drop h2,
+body.theme-loot-drop h3 {
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+body.theme-loot-drop .logo {
+    background: var(--ld-neon-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 5px rgba(0, 242, 255, 0.5));
+}
+
+/* Layout Elements */
+body.theme-loot-drop header.header {
+    background: rgba(0, 0, 0, 0.8);
+    border-bottom: 2px solid var(--ld-neon-cyan);
+    box-shadow: 0 4px 15px rgba(0, 242, 255, 0.2);
+    padding: 1.5rem 2rem;
+}
+
+body.theme-loot-drop .system-status-bar {
+    background: rgba(0, 0, 0, 0.9) !important;
+    border-bottom: 1px solid rgba(0, 242, 255, 0.3) !important;
+    color: var(--ld-neon-cyan) !important;
+}
+
+/* Cards & Containers */
+body.theme-loot-drop .stat-box,
+body.theme-loot-drop .argocd-section,
+body.theme-loot-drop .node-card,
+body.theme-loot-drop .issues-table-container,
+body.theme-loot-drop .chat-container,
+body.theme-loot-drop .news-card {
+    background: var(--ld-bg-surface);
+    backdrop-filter: var(--ld-blur);
+    border: var(--ld-border);
+    border-radius: var(--ld-radius);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 1.5rem 0;
+}
+
+body.theme-loot-drop .argocd-section:first-of-type {
+    margin-top: 0;
+}
+
+body.theme-loot-drop .stat-box::before,
+body.theme-loot-drop .node-card::before,
+body.theme-loot-drop .news-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 0;
+    background: var(--ld-neon-cyan);
+    transition: height 0.3s ease;
+}
+
+body.theme-loot-drop .stat-box:hover::before,
+body.theme-loot-drop .node-card:hover::before,
+body.theme-loot-drop .news-card:hover::before {
+    height: 100%;
+}
+
+body.theme-loot-drop .stat-box:hover,
+body.theme-loot-drop .node-card:hover,
+body.theme-loot-drop .news-card:hover {
+    border-color: var(--ld-neon-cyan);
+    box-shadow: var(--ld-glow-cyan);
+    transform: translateY(-2px);
+    background: var(--ld-bg-elevated);
+}
+
+/* Buttons */
+body.theme-loot-drop .cyber-btn {
+    background: transparent;
+    border: 1px solid var(--ld-neon-cyan);
+    border-radius: 0;
+    color: var(--ld-neon-cyan);
+    text-transform: uppercase;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    padding: 0.6rem 1.2rem;
+    position: relative;
+    clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+    transition: all 0.2s ease;
+}
+
+body.theme-loot-drop .cyber-btn:hover {
+    background: var(--ld-neon-cyan);
+    color: #000;
+    box-shadow: 0 0 15px var(--ld-neon-cyan);
+}
+
+body.theme-loot-drop .cyber-btn.active {
+    background: var(--ld-neon-cyan);
+    color: #000;
+    box-shadow: 0 0 10px var(--ld-neon-cyan);
+}
+
+/* Tabs */
+body.theme-loot-drop .tab-btn {
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    clip-path: none;
+    margin: 0 5px;
+}
+
+body.theme-loot-drop .tab-btn.active {
+    border-bottom-color: var(--ld-neon-cyan);
+    background: rgba(0, 242, 255, 0.1);
+    color: var(--ld-neon-cyan);
+}
+
+/* Tables */
+body.theme-loot-drop .issues-table th {
+    background: rgba(0, 0, 0, 0.5);
+    color: var(--ld-neon-cyan);
+    border-bottom: 1px solid var(--ld-neon-cyan);
+}
+
+body.theme-loot-drop .issues-table td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* News Feed Specifics */
+body.theme-loot-drop .news-card-source {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--ld-neon-yellow);
+    font-size: 0.7rem;
+    margin-bottom: 0.5rem;
+}
+
+body.theme-loot-drop .news-card-title {
+    color: var(--ld-text-main);
+    font-weight: 700;
+}
+
+body.theme-loot-drop .news-card-tag {
+    background: rgba(0, 242, 255, 0.1);
+    border: 1px solid rgba(0, 242, 255, 0.3);
+    color: var(--ld-neon-cyan);
+    font-size: 0.6rem;
+    border-radius: 0;
+}
+
+/* Scrollbar */
+body.theme-loot-drop ::-webkit-scrollbar {
+    width: 6px;
+}
+
+body.theme-loot-drop ::-webkit-scrollbar-track {
+    background: #000;
+}
+
+body.theme-loot-drop ::-webkit-scrollbar-thumb {
+    background: var(--ld-neon-cyan);
+    box-shadow: 0 0 5px var(--ld-neon-cyan);
+}

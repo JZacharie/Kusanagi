@@ -1,0 +1,45 @@
+<!-- events section -->
+<h2 class="section-title">🔔 Kubernetes Events (Last Hour)</h2>
+
+<div class="argocd-stats" id="events-stats-grid" style="margin-bottom: 1.5rem;">
+    <div class="stat-box info">
+        <div class="stat-value" id="events-total">-</div>
+        <div class="stat-label">Total Events</div>
+    </div>
+    <div class="stat-box unhealthy">
+        <div class="stat-value" id="events-warnings">-</div>
+        <div class="stat-label">Warnings</div>
+    </div>
+    <div class="stat-box healthy">
+        <div class="stat-value" id="events-normal">-</div>
+        <div class="stat-label">Normal</div>
+    </div>
+</div>
+
+<!-- Filter Controls -->
+<div class="filter-controls" style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
+    <button class="cyber-btn active" id="btn-show-all" onclick="filterEvents('all')">Show All</button>
+    <button class="cyber-btn" id="btn-show-warnings" onclick="filterEvents('Warning')">⚠️ Warnings
+        Only</button>
+</div>
+
+<!-- Top Recurrent Warnings (Hidden by default) -->
+<div class="issues-table-container" id="top-warnings-container"
+    style="display: none; border-color: #ff4444; margin-bottom: 1.5rem;">
+    <div class="issues-table-header" style="background: rgba(255, 68, 68, 0.1); border-color: #ff4444;">
+        <span class="issues-table-title" style="color: #ff4444;">🔥 Top Recurrent Warnings</span>
+    </div>
+    <div id="top-warnings-content">
+        <div class="loading">Calculating top warnings...</div>
+    </div>
+</div>
+
+<div class="issues-table-container" id="events-container" style="border-color: var(--neon-magenta);">
+    <div class="issues-table-header" style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+        <span class="issues-table-title" style="color: var(--neon-magenta);">⚠️ Recent Events</span>
+        <span class="issues-count" id="events-table-count" style="background: var(--neon-magenta);">0</span>
+    </div>
+    <div id="events-content">
+        <div class="loading">Loading events...</div>
+    </div>
+</div>
