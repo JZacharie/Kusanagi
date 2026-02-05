@@ -1,11 +1,17 @@
 // Proxmox Dashboard Module
 const ProxmoxDashboard = {
     refreshInterval: null,
-    debug: true, // Enable debug mode
+    debug: false,
+    initialized: false,
 
     init() {
+        if (this.initialized) {
+            this.log('⚠️ Already initialized, skipping...');
+            return;
+        }
+        this.initialized = true;
         this.log('Initializing Proxmox Dashboard...');
-        // Wait for DOM to be fully ready after partial load
+        
         requestAnimationFrame(() => {
             this.fetchAndRender();
             if (this.refreshInterval) clearInterval(this.refreshInterval);
