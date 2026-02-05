@@ -33,6 +33,7 @@ pub struct ApiError {
 
 /// Response metadata (pagination, etc.)
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Default)]
 pub struct ResponseMeta {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page: Option<usize>,
@@ -122,17 +123,6 @@ impl<T: Serialize> ApiResponse<T> {
     }
 }
 
-impl Default for ResponseMeta {
-    fn default() -> Self {
-        Self {
-            page: None,
-            per_page: None,
-            total: None,
-            total_pages: None,
-            timestamp: None,
-        }
-    }
-}
 
 /// Helper trait for converting results to standardized responses
 pub trait IntoApiResponse<T> {

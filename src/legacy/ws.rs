@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
 use crate::event_bus::integration::subscribe_pod_notifications;
-use crate::legacy::{argocd, events, pods};
+// use crate::legacy:: // Disabled for core version{argocd, events, pods};
 
 /// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);

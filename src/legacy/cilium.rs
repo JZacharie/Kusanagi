@@ -12,7 +12,7 @@ use k8s_openapi::api::core::v1::Namespace;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::time::{Instant, Duration};
-use crate::legacy::telemetry;
+// use crate::legacy:: // Disabled for core versiontelemetry;
 
 /// Cache for network data to improve performance
 pub struct CiliumCache {

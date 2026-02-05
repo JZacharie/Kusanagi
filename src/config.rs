@@ -18,10 +18,10 @@
 //!
 //! # Example
 //!
-//! ```rust
-//! use crate::config::Config;
+//! ```rust,no_run
+//! use kusanagi::config::Config;
 //!
-//! let config = Config::load()?;
+//! let config = Config::load().unwrap();
 //! println!("Server will bind to {}:{}", config.server.host, config.server.port);
 //! ```
 
@@ -34,7 +34,7 @@ use std::time::Duration;
 ///
 /// This is the root configuration structure that contains all settings
 /// for the Kusanagi application.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 #[serde(default)]
 pub struct Config {
     /// Server configuration
@@ -145,6 +145,7 @@ pub struct AlertmanagerConfig {
 /// External integrations configuration
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct IntegrationsConfig {
     /// MCP (Model Context Protocol) servers
     pub mcp: McpConfig,
@@ -211,6 +212,7 @@ pub struct OpenObserveConfig {
 /// Home Assistant configuration
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct HomeAssistantConfig {
     /// Home Assistant URL
     pub url: Option<String>,
@@ -228,6 +230,7 @@ pub struct HomeAssistantConfig {
 /// Proxmox configuration
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct ProxmoxConfig {
     /// Proxmox VE URL(s) - comma-separated for multiple
     pub urls: Option<String>,
@@ -279,6 +282,7 @@ pub struct WeatherConfig {
 /// Calendar configuration
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct CalendarConfig {
     /// Google Calendar API key
     pub google_api_key: Option<String>,
@@ -293,6 +297,7 @@ pub struct CalendarConfig {
 /// Slack configuration
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct SlackConfig {
     /// Bot token
     pub bot_token: Option<String>,
@@ -420,23 +425,6 @@ pub struct LogConfig {
 
 // ==================== Default Implementations ====================
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            server: ServerConfig::default(),
-            kubernetes: KubernetesConfig::default(),
-            prometheus: PrometheusConfig::default(),
-            alertmanager: AlertmanagerConfig::default(),
-            integrations: IntegrationsConfig::default(),
-            storage: StorageConfig::default(),
-            cache: CacheConfig::default(),
-            security: SecurityConfig::default(),
-            log: LogConfig::default(),
-            dev_mode: false,
-        }
-    }
-}
-
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
@@ -483,22 +471,6 @@ impl Default for AlertmanagerConfig {
     }
 }
 
-impl Default for IntegrationsConfig {
-    fn default() -> Self {
-        Self {
-            mcp: McpConfig::default(),
-            openobserve: OpenObserveConfig::default(),
-            home_assistant: HomeAssistantConfig::default(),
-            proxmox: ProxmoxConfig::default(),
-            mqtt: MqttConfig::default(),
-            weather: WeatherConfig::default(),
-            calendar: CalendarConfig::default(),
-            slack: SlackConfig::default(),
-            ollama: OllamaConfig::default(),
-            llm: LlmConfig::default(),
-        }
-    }
-}
 
 impl Default for McpConfig {
     fn default() -> Self {
@@ -521,28 +493,7 @@ impl Default for OpenObserveConfig {
     }
 }
 
-impl Default for HomeAssistantConfig {
-    fn default() -> Self {
-        Self {
-            url: None,
-            token: None,
-            username: None,
-            password: None,
-        }
-    }
-}
 
-impl Default for ProxmoxConfig {
-    fn default() -> Self {
-        Self {
-            urls: None,
-            user: None,
-            password: None,
-            token_id: None,
-            token_secret: None,
-        }
-    }
-}
 
 impl Default for MqttConfig {
     fn default() -> Self {
@@ -565,26 +516,7 @@ impl Default for WeatherConfig {
     }
 }
 
-impl Default for CalendarConfig {
-    fn default() -> Self {
-        Self {
-            google_api_key: None,
-            google_client_secret: None,
-            google_redirect_url: None,
-        }
-    }
-}
 
-impl Default for SlackConfig {
-    fn default() -> Self {
-        Self {
-            bot_token: None,
-            bot_user_id: None,
-            channel_id: None,
-            signing_secret: None,
-        }
-    }
-}
 
 impl Default for OllamaConfig {
     fn default() -> Self {

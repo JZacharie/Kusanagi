@@ -11,20 +11,17 @@ use tracing::{info, warn};
 /// Feature flag state
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum FeatureState {
     /// Feature is enabled for everyone
     Enabled,
     /// Feature is disabled
+    #[default]
     Disabled,
     /// Feature is enabled for a percentage of users (0-100)
     Percentage(u8),
 }
 
-impl Default for FeatureState {
-    fn default() -> Self {
-        FeatureState::Disabled
-    }
-}
 
 /// Feature flag definition
 #[derive(Debug, Clone, Serialize, Deserialize)]

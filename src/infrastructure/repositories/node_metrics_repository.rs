@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use crate::domain::ports::{NodeMetricsRepository, NodeDiskMetrics, ClusterDiskSummary};
 use crate::error::{Result, KusanagiError};
-use crate::legacy;
+// use crate::legacy; // Disabled for core version
 
 /// Implementation of NodeMetricsRepository using legacy modules and Prometheus
 pub struct LegacyNodeMetricsRepository;

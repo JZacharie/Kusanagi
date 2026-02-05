@@ -2,12 +2,12 @@ use chrono::Utc;
 use serde::Serialize;
 
 use kube::Client;
-use crate::legacy::alertmanager::{self, AlertsResponse};
-use crate::legacy::argocd::{self, ArgoStatusResponse};
-use crate::legacy::events::{self, EventsResponse};
-use crate::legacy::nodes::{self, NodesStatusResponse};
-use crate::legacy::prometheus::{self, PrometheusMetrics};
-use crate::legacy::storage::{self, StorageStatusResponse};
+// use crate::legacy:: // Disabled for core versionalertmanager::{self, AlertsResponse};
+// use crate::legacy:: // Disabled for core versionargocd::{self, ArgoStatusResponse};
+// use crate::legacy:: // Disabled for core versionevents::{self, EventsResponse};
+// use crate::legacy:: // Disabled for core versionnodes::{self, NodesStatusResponse};
+// use crate::legacy:: // Disabled for core versionprometheus::{self, PrometheusMetrics};
+// use crate::legacy:: // Disabled for core versionstorage::{self, StorageStatusResponse};
 
 /// Complete cluster report structure
 #[derive(Debug, Serialize)]

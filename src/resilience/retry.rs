@@ -135,7 +135,9 @@ impl RetryPolicy {
 
                 if *jitter {
                     // Add random jitter (0-25%)
-                    let jitter_factor = rand::rng().random_range(0.0..0.25);
+                    use rand::Rng;
+                    let mut rng = rand::thread_rng();
+                    let jitter_factor = rng.gen_range(0.0..0.25);
                     let jitter_ms = (delay_ms as f64 * jitter_factor) as u64;
                     Duration::from_millis(delay_ms + jitter_ms)
                 } else {

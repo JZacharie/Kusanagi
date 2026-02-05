@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use crate::domain::ports::SecurityRepository;
 use crate::domain::entities::{SecurityReport, EnrichmentData, SecurityScanSummary, ReportMetadata};
 use crate::error::{Result, KusanagiError};
-use crate::legacy;
+// use crate::legacy; // Disabled for core version
 
 pub struct LegacySecurityRepository;
 

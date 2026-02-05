@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use crate::domain::ports::{ProxmoxRepository, ClusterStatus, ProxmoxVM, ProxmoxContainer};
 use crate::error::{Result, KusanagiError};
-use crate::legacy::proxmox::ProxmoxClient;
+// use crate::legacy:: // Disabled for core versionproxmox::ProxmoxClient;
 
 pub struct LegacyProxmoxRepository;
 

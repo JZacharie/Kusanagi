@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use crate::domain::ports::{ChatRepository, AiService};
 use crate::domain::ports::chat_repository::ChatMessage;
 use crate::error::{Result, KusanagiError};
-use crate::legacy;
+// use crate::legacy; // Disabled for core version
 
 pub struct LegacyChatRepository;
 
