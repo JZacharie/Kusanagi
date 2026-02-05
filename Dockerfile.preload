@@ -1,0 +1,73 @@
+# Dockerfile pour Kusanagi - Version Preload v1.1.0
+FROM rust:1.88-slim AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Cargo files
+COPY Cargo_hexagonal.toml ./Cargo.toml
+
+# Create dummy main to cache dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release
+RUN rm src/main.rs
+
+# Copy source files
+COPY src/main.rs ./src/
+COPY src/preload_cache.rs ./src/
+COPY static ./static
+
+# Build the application
+RUN cargo build --release
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -r -s /bin/false -u 1001 kusanagi
+
+# Environment variables
+ENV RUST_LOG=info
+ENV KUSANAGI_ENV=preload
+
+# Copy binary and static files
+COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi
+COPY --from=builder /app/static /app/static
+
+# Set permissions
+RUN chown kusanagi:kusanagi /usr/local/bin/kusanagi
+RUN chmod +x /usr/local/bin/kusanagi
+
+# Create app directory and set permissions
+RUN mkdir -p /app && chown -R kusanagi:kusanagi /app
+WORKDIR /app
+
+# Switch to non-root user
+USER kusanagi
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Labels for metadata
+LABEL maintainer="Kusanagi Team" \
+      version="1.1.0-preload" \
+      description="Kubernetes monitoring with preloaded integrations"
+
+# Run the application
+CMD ["/usr/local/bin/kusanagi"]

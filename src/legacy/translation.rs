@@ -1,4 +1,6 @@
+#[cfg(feature = "aws")]
 use aws_sdk_s3::{Client as S3Client, config::Region};
+#[cfg(feature = "aws")]
 use aws_config::BehaviorVersion;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
