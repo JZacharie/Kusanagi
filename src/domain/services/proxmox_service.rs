@@ -57,6 +57,8 @@ pub async fn get_proxmox_vms() -> Result<Value, String> {
         .build()
         .map_err(|e| e.to_string())?;
     
+    let mut all_vms = Vec::new();
+
     for url in urls {
         let url = url.trim();
         if url.is_empty() { continue; }
@@ -86,7 +88,7 @@ pub async fn get_proxmox_vms() -> Result<Value, String> {
                             })
                         }).collect();
                         eprintln!("✅ Proxmox VMs: Found {} from {}", vms.len(), url);
-                        return Ok(json!(vms));
+                        all_vms.extend(vms);
                     }
                 }
             }
@@ -95,7 +97,7 @@ pub async fn get_proxmox_vms() -> Result<Value, String> {
         }
     }
     
-    Ok(json!([]))
+    Ok(json!(all_vms))
 }
 
 pub async fn get_proxmox_containers() -> Result<Value, String> {
@@ -114,6 +116,8 @@ pub async fn get_proxmox_containers() -> Result<Value, String> {
         .build()
         .map_err(|e| e.to_string())?;
     
+    let mut all_containers = Vec::new();
+
     for url in urls {
         let url = url.trim();
         if url.is_empty() { continue; }
@@ -142,7 +146,7 @@ pub async fn get_proxmox_containers() -> Result<Value, String> {
                             })
                         }).collect();
                         eprintln!("✅ Proxmox Containers: Found {} from {}", containers.len(), url);
-                        return Ok(json!(containers));
+                        all_containers.extend(containers);
                     }
                 }
             }
@@ -150,7 +154,7 @@ pub async fn get_proxmox_containers() -> Result<Value, String> {
         }
     }
     
-    Ok(json!([]))
+    Ok(json!(all_containers))
 }
 
 pub async fn get_proxmox_nodes() -> Result<Value, String> {
@@ -169,6 +173,8 @@ pub async fn get_proxmox_nodes() -> Result<Value, String> {
         .build()
         .map_err(|e| e.to_string())?;
     
+    let mut all_nodes = Vec::new();
+
     for url in urls {
         let url = url.trim();
         if url.is_empty() { continue; }
@@ -192,11 +198,12 @@ pub async fn get_proxmox_nodes() -> Result<Value, String> {
                                 "maxmem": node["maxmem"],
                                 "disk": node["disk"],
                                 "maxdisk": node["maxdisk"],
-                                "uptime": node["uptime"]
+                                "uptime": node["uptime"],
+                                "server": url
                             })
                         }).collect();
                         eprintln!("✅ Proxmox Nodes: Found {} from {}", nodes.len(), url);
-                        return Ok(json!(nodes));
+                        all_nodes.extend(nodes);
                     }
                 }
             }
@@ -204,5 +211,5 @@ pub async fn get_proxmox_nodes() -> Result<Value, String> {
         }
     }
     
-    Ok(json!([]))
+    Ok(json!(all_nodes))
 }
