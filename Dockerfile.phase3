@@ -1,0 +1,70 @@
+# Dockerfile pour Kusanagi - Phase 3 (Real K8s Integration)
+FROM rust:1.88-slim AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Cargo files
+COPY Cargo_hexagonal.toml ./Cargo.toml
+
+# Create dummy main to cache dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release
+RUN rm src/main.rs
+
+# Copy source files
+COPY src/main_phase3.rs ./src/main.rs
+COPY src/error_simple.rs ./src/
+COPY src/config_simple.rs ./src/
+COPY src/domain ./src/domain
+COPY src/infrastructure ./src/infrastructure
+
+# Build the application
+RUN cargo build --release
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -r -s /bin/false kusanagi
+
+# Environment variables
+ENV RUST_LOG=info
+ENV KUSANAGI_HOST=0.0.0.0
+ENV KUSANAGI_PORT=8080
+
+# Copy binary
+COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi
+
+# Set permissions
+RUN chown kusanagi:kusanagi /usr/local/bin/kusanagi
+RUN chmod +x /usr/local/bin/kusanagi
+
+# Working directory
+RUN mkdir -p /app && chown kusanagi:kusanagi /app
+WORKDIR /app
+
+# Switch to non-root user
+USER kusanagi
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Run the application
+CMD ["/usr/local/bin/kusanagi"]
