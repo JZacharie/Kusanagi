@@ -321,87 +321,9 @@ async fn web_index() -> impl Responder {
         Ok(content) => HttpResponse::Ok()
             .content_type("text/html")
             .body(content),
-        Err(_) => HttpResponse::Ok()
-            .content_type("text/html")
-            .body(r#"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Kusanagi - Kubernetes Monitoring Platform</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; min-height: 100vh; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
-        .header { text-align: center; margin-bottom: 50px; }
-        .header h1 { font-size: 3em; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
-        .header p { font-size: 1.2em; opacity: 0.9; margin: 10px 0; }
-        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin: 40px 0; }
-        .card { background: rgba(255,255,255,0.1); padding: 30px; border-radius: 15px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
-        .card h3 { margin-top: 0; color: #fff; }
-        .card a { color: #fff; text-decoration: none; font-weight: bold; }
-        .card a:hover { text-decoration: underline; }
-        .stats { display: flex; justify-content: space-around; margin: 40px 0; }
-        .stat { text-align: center; }
-        .stat-number { font-size: 2.5em; font-weight: bold; }
-        .stat-label { opacity: 0.8; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 Kusanagi</h1>
-            <p>Kubernetes Monitoring Platform</p>
-            <p><strong>Architecture:</strong> Hexagonal + Legacy | <strong>Version:</strong> 0.2.0</p>
-        </div>
-        
-        <div class="stats">
-            <div class="stat">
-                <div class="stat-number">13</div>
-                <div class="stat-label">API Endpoints</div>
-            </div>
-            <div class="stat">
-                <div class="stat-number">10</div>
-                <div class="stat-label">Legacy Modules</div>
-            </div>
-            <div class="stat">
-                <div class="stat-number">4</div>
-                <div class="stat-label">Architecture Layers</div>
-            </div>
-        </div>
-        
-        <div class="cards">
-            <div class="card">
-                <h3>📊 API Documentation</h3>
-                <p>Interactive documentation for all 13 endpoints including legacy modules.</p>
-                <a href="/docs">View API Docs →</a>
-            </div>
-            
-            <div class="card">
-                <h3>🏥 System Health</h3>
-                <p>Monitor system health, cache status, and component status.</p>
-                <a href="/health">Check Health →</a>
-            </div>
-            
-            <div class="card">
-                <h3>🔧 Service Info</h3>
-                <p>Get detailed service information and configuration.</p>
-                <a href="/api">Service API →</a>
-            </div>
-            
-            <div class="card">
-                <h3>🏗️ Legacy Modules</h3>
-                <p>Access legacy Kubernetes monitoring endpoints.</p>
-                <a href="/api/v1/legacy/cluster">Legacy APIs →</a>
-            </div>
-        </div>
-        
-        <div style="text-align: center; margin-top: 50px; opacity: 0.7;">
-            <p>Powered by Rust + Actix-Web | Hexagonal Architecture</p>
-        </div>
-    </div>
-</body>
-</html>
-            "#)
+        Err(_) => HttpResponse::NotFound().json(json!({
+            "error": "Index page not found",
+            "message": "Please ensure static/index.html exists"
+        }))
     }
 }
