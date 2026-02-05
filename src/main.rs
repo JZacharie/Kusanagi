@@ -4,6 +4,7 @@ use actix_files;
 use serde_json::json;
 use std::sync::Arc;
 use kusanagi::{Config, Cache, InMemoryCache, legacy};
+use kusanagi::domain::services::kubernetes_service;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -356,19 +357,47 @@ async fn web_index() -> impl Responder {
 
 // API endpoints for frontend
 async fn system_status() -> impl Responder {
+    let uptime = std::fs::read_to_string("/proc/uptime")
+        .unwrap_or_default()
+        .split_whitespace()
+        .next()
+        .and_then(|s| s.parse::<f64>().ok())
+        .map(|s| format!("{}h", (s / 3600.0) as u32))
+        .unwrap_or_else(|| "unknown".to_string());
+    
     HttpResponse::Ok().json(json!({
         "status": "operational",
-        "uptime": "24h",
+        "uptime": uptime,
         "version": "0.2.0"
     }))
 }
 
-async fn alerts() -> impl Responder {
-    HttpResponse::Ok().json(json!([]))
+async fn metrics() -> impl Responder {
+    let loadavg = std::fs::read_to_string("/proc/loadavg").unwrap_or_default();
+    let load = loadavg.split_whitespace().next().unwrap_or("0.0").parse::<f64>().unwrap_or(0.0);
+    
+    let meminfo = std::fs::read_to_string("/proc/meminfo").unwrap_or_default();
+    let mut total_mem = 0;
+    let mut free_mem = 0;
+    for line in meminfo.lines() {
+        if line.starts_with("MemTotal:") {
+            total_mem = line.split_whitespace().nth(1).unwrap_or("0").parse().unwrap_or(0);
+        } else if line.starts_with("MemAvailable:") {
+            free_mem = line.split_whitespace().nth(1).unwrap_or("0").parse().unwrap_or(0);
+        }
+    }
+    let memory_usage = if total_mem > 0 { ((total_mem - free_mem) * 100 / total_mem) } else { 0 };
+    
+    HttpResponse::Ok().json(json!({
+        "cpu_load": (load * 100.0) as u32,
+        "memory_usage": memory_usage,
+        "disk_usage": 23
+    }))
 }
 
-async fn metrics() -> impl Responder {
-    HttpResponse::Ok().json(json!({"cpu": 45, "memory": 67, "disk": 23}))
+// Endpoints mockés temporairement
+async fn alerts() -> impl Responder {
+    HttpResponse::Ok().json(json!([]))
 }
 
 async fn news() -> impl Responder {
@@ -380,11 +409,17 @@ async fn quotas() -> impl Responder {
 }
 
 async fn pods_status() -> impl Responder {
-    HttpResponse::Ok().json(json!({"running": 12, "pending": 0, "failed": 0}))
+    match kubernetes_service::get_pods_status().await {
+        Ok(status) => HttpResponse::Ok().json(status),
+        Err(_) => HttpResponse::Ok().json(json!({"running": 0, "pending": 0, "failed": 0}))
+    }
 }
 
 async fn cluster_overview() -> impl Responder {
-    HttpResponse::Ok().json(json!({"nodes": 3, "pods": 12, "services": 8}))
+    match kubernetes_service::get_cluster_overview().await {
+        Ok(overview) => HttpResponse::Ok().json(overview),
+        Err(_) => HttpResponse::Ok().json(json!({"nodes": 0, "pods": 0, "services": 0}))
+    }
 }
 
 async fn backups() -> impl Responder {
@@ -400,11 +435,14 @@ async fn ingress() -> impl Responder {
 }
 
 async fn nodes_status() -> impl Responder {
-    HttpResponse::Ok().json(json!({"ready": 3, "not_ready": 0}))
+    match kubernetes_service::get_nodes_status().await {
+        Ok(status) => HttpResponse::Ok().json(status),
+        Err(_) => HttpResponse::Ok().json(json!({"ready": 0, "not_ready": 0}))
+    }
 }
 
 async fn storage() -> impl Responder {
-    HttpResponse::Ok().json(json!({"total": "100GB", "used": "23GB"}))
+    HttpResponse::Ok().json(json!({"total": "0GB", "used": "0GB"}))
 }
 
 async fn events() -> impl Responder {
@@ -412,7 +450,7 @@ async fn events() -> impl Responder {
 }
 
 async fn argocd_status() -> impl Responder {
-    HttpResponse::Ok().json(json!({"healthy": true, "apps": 5}))
+    HttpResponse::Ok().json(json!({"healthy": false, "apps": 0}))
 }
 
 async fn proxmox_vms() -> impl Responder {
