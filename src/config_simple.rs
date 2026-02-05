@@ -1,32 +1,22 @@
-use crate::error::{Result, KusanagiError};
 use std::env;
 
 #[derive(Debug, Clone)]
-pub struct ServerConfig {
+pub struct Config {
     pub host: String,
     pub port: u16,
-}
-
-#[derive(Debug, Clone)]
-pub struct Config {
-    pub server: ServerConfig,
-    pub dev_mode: bool,
+    pub prometheus_url: String,
 }
 
 impl Config {
-    pub fn load() -> Result<Self> {
-        Ok(Config {
-            server: ServerConfig {
-                host: env::var("KUSANAGI_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
-                port: env::var("KUSANAGI_PORT")
-                    .unwrap_or_else(|_| "8080".to_string())
-                    .parse()
-                    .map_err(|_| KusanagiError::config("Invalid port number"))?,
-            },
-            dev_mode: env::var("KUSANAGI_DEV_MODE")
-                .unwrap_or_else(|_| "false".to_string())
+    pub fn new() -> Self {
+        Self {
+            host: env::var("KUSANAGI_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
+            port: env::var("KUSANAGI_PORT")
+                .unwrap_or_else(|_| "8080".to_string())
                 .parse()
-                .unwrap_or(false),
-        })
+                .unwrap_or(8080),
+            prometheus_url: env::var("PROMETHEUS_URL")
+                .unwrap_or_else(|_| "http://prometheus:9090".to_string()),
+        }
     }
 }

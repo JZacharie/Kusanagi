@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error_simple::Result;
 use crate::domain::entities_simple::{PrometheusMetrics, NodeMetric, PodMetric};
 use async_trait::async_trait;
 use prometheus_http_query::{Client, Selector};

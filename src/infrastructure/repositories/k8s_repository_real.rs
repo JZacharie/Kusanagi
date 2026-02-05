@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error_simple::{Result, KusanagiError};
 use crate::domain::entities_simple::{ClusterOverview, NodeInfo, PodInfo, EventInfo};
 use async_trait::async_trait;
 use kube::{Api, Client};
@@ -81,7 +81,7 @@ impl KubernetesRepository for K8sRepository {
         // Get nodes
         let nodes: Api<Node> = Api::all(client.clone());
         let node_list = nodes.list(&Default::default()).await
-            .map_err(|e| crate::error::KusanagiError::k8s(format!("Failed to list nodes: {}", e)))?;
+            .map_err(|e| KusanagiError::k8s(format!("Failed to list nodes: {}", e)))?;
         
         let node_count = node_list.items.len() as i32;
         let healthy_nodes = node_list.items.iter()
@@ -98,7 +98,7 @@ impl KubernetesRepository for K8sRepository {
         // Get pods
         let pods: Api<Pod> = Api::all(client.clone());
         let pod_list = pods.list(&Default::default()).await
-            .map_err(|e| crate::error::KusanagiError::k8s(format!("Failed to list pods: {}", e)))?;
+            .map_err(|e| KusanagiError::k8s(format!("Failed to list pods: {}", e)))?;
         
         let pod_count = pod_list.items.len() as i32;
         let running_pods = pod_list.items.iter()
@@ -113,7 +113,7 @@ impl KubernetesRepository for K8sRepository {
         // Get namespaces
         let namespaces: Api<Namespace> = Api::all(client.clone());
         let namespace_list = namespaces.list(&Default::default()).await
-            .map_err(|e| crate::error::KusanagiError::k8s(format!("Failed to list namespaces: {}", e)))?;
+            .map_err(|e| KusanagiError::k8s(format!("Failed to list namespaces: {}", e)))?;
         
         let namespace_count = namespace_list.items.len() as i32;
 
@@ -163,7 +163,7 @@ impl KubernetesRepository for K8sRepository {
         let client = self.client.as_ref().unwrap();
         let nodes: Api<Node> = Api::all(client.clone());
         let node_list = nodes.list(&Default::default()).await
-            .map_err(|e| crate::error::KusanagiError::k8s(format!("Failed to list nodes: {}", e)))?;
+            .map_err(|e| KusanagiError::k8s(format!("Failed to list nodes: {}", e)))?;
 
         let mut node_infos = Vec::new();
         for node in node_list.items {
@@ -242,7 +242,7 @@ impl KubernetesRepository for K8sRepository {
         };
 
         let pod_list = pods.list(&Default::default()).await
-            .map_err(|e| crate::error::KusanagiError::k8s(format!("Failed to list pods: {}", e)))?;
+            .map_err(|e| KusanagiError::k8s(format!("Failed to list pods: {}", e)))?;
 
         let mut pod_infos = Vec::new();
         for pod in pod_list.items {
@@ -312,7 +312,7 @@ impl KubernetesRepository for K8sRepository {
         };
 
         let event_list = events.list(&Default::default()).await
-            .map_err(|e| crate::error::KusanagiError::k8s(format!("Failed to list events: {}", e)))?;
+            .map_err(|e| KusanagiError::k8s(format!("Failed to list events: {}", e)))?;
 
         let mut event_infos = Vec::new();
         for event in event_list.items.into_iter().take(50) { // Limit to 50 events
