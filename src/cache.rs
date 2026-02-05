@@ -21,10 +21,10 @@ impl Default for CacheStats {
 }
 
 #[async_trait::async_trait]
-pub trait Cache<K = String, V = String>: Send + Sync {
-    async fn get(&self, key: &K) -> Option<V>;
-    async fn set(&self, key: K, value: V);
-    async fn delete(&self, key: &K);
+pub trait Cache: Send + Sync {
+    async fn get(&self, key: &str) -> Option<String>;
+    async fn set(&self, key: &str, value: String);
+    async fn delete(&self, key: &str);
     async fn stats(&self) -> CacheStats;
 }
 
@@ -41,8 +41,8 @@ impl InMemoryCache {
 }
 
 #[async_trait::async_trait]
-impl Cache<String, String> for InMemoryCache {
-    async fn get(&self, key: &String) -> Option<String> {
+impl Cache for InMemoryCache {
+    async fn get(&self, key: &str) -> Option<String> {
         let data = self.data.read().await;
         let result = data.get(key).cloned();
         
@@ -56,15 +56,15 @@ impl Cache<String, String> for InMemoryCache {
         result
     }
 
-    async fn set(&self, key: String, value: String) {
+    async fn set(&self, key: &str, value: String) {
         let mut data = self.data.write().await;
-        data.insert(key, value);
+        data.insert(key.to_string(), value);
         
         let mut stats = self.stats.write().await;
         stats.entries = data.len();
     }
 
-    async fn delete(&self, key: &String) {
+    async fn delete(&self, key: &str) {
         let mut data = self.data.write().await;
         data.remove(key);
         

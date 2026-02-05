@@ -1,18 +1,27 @@
 [package]
-name = "kusanagi"
+name = "kusanagi-hexagonal"
 version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-# Core
+# Core async runtime
 tokio = { version = "1.0", features = ["full"] }
+
+# HTTP server
 actix-web = "4.0"
+
+# Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+# Date/time
 chrono = { version = "0.4", features = ["serde"] }
+
+# Logging
 env_logger = "0.10"
+
+# Async traits
 async-trait = "0.1"
 
-# Optional features
-thiserror = "1.0"
-anyhow = "1.0"
+# Cache implementation
+# kusanagi = { path = "../", default-features = false }
