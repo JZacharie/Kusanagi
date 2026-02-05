@@ -1,0 +1,63 @@
+<!-- security section -->
+<h2 class="section-title">🛡️ Security & Policies</h2>
+
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+    <a href="https://powerpipe.p.zacharie.org/kubernetes_compliance.benchmark.cis_v170" target="_blank"
+        class="cyber-btn"
+        style="border-color: var(--neon-cyan); color: var(--neon-cyan); text-decoration: none; display: flex; align-items: center; gap: 8px;">
+        <span>📜</span> CIS Compliance (Powerpipe)
+    </a>
+</div>
+
+<div class="argocd-stats" id="security-stats-grid" style="margin-bottom: 1.5rem;">
+    <div class="stat-box unhealthy">
+        <div class="stat-value" id="security-critical-vulns">-</div>
+        <div class="stat-label">Critical Vulns</div>
+    </div>
+    <div class="stat-box warning">
+        <div class="stat-value" id="security-high-vulns">-</div>
+        <div class="stat-label">High Vulns</div>
+    </div>
+    <div class="stat-box info">
+        <div class="stat-value" id="security-total-policies">-</div>
+        <div class="stat-label">Network Policies</div>
+    </div>
+    <div class="stat-box healthy" id="fence-status-box">
+        <div class="stat-value" id="fence-status-text">-</div>
+        <div class="stat-label">Fence Status</div>
+    </div>
+</div>
+
+<div class="issues-table-container" style="border-color: var(--neon-magenta); margin-bottom: 1.5rem;">
+    <div class="issues-table-header" style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+        <span class="issues-table-title" style="color: var(--neon-magenta);">🔍 Container Vulnerabilities
+            (Trivy)</span>
+        <span class="issues-count" id="security-vuln-count" style="background: var(--neon-magenta);">0</span>
+    </div>
+    <div id="security-vulns-content">
+        <div class="loading">Loading vulnerability reports...</div>
+    </div>
+</div>
+
+<div class="issues-table-container" style="border-color: var(--neon-cyan); margin-bottom: 1.5rem;">
+    <div class="issues-table-header" style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+        <span class="issues-table-title" style="color: var(--neon-cyan);">🛡️ Network Policies (Cilium)</span>
+        <span class="issues-count" id="security-policies-count" style="background: var(--neon-cyan);">0</span>
+    </div>
+    <div id="security-policies-content">
+        <div class="loading">Loading network policies...</div>
+    </div>
+</div>
+
+<div class="issues-table-container" style="border-color: var(--neon-yellow, #ffff00);">
+    <div class="issues-table-header"
+        style="background: rgba(255, 255, 0, 0.1); border-color: var(--neon-yellow, #ffff00);">
+        <span class="issues-table-title" style="color: var(--neon-yellow, #ffff00);">⚖️ Policy Violations
+            (Kyverno)</span>
+        <span class="issues-count" id="security-violations-count"
+            style="background: var(--neon-yellow, #ffff00);">0</span>
+    </div>
+    <div id="security-violations-content">
+        <div class="loading">Loading policy reports...</div>
+    </div>
+</div>

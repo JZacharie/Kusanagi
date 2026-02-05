@@ -1,0 +1,17 @@
+<!-- calendar section -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2 class="section-title" style="margin-bottom: 0;">📅 Google Calendar</h2>
+    <div id="calendar-auth-container">
+        <button class="tab-btn" onclick="CalendarOAuth.login()" id="btn-calendar-login"
+            style="background: var(--neon-cyan); color: #000;">
+            🔑 Login
+        </button>
+        <button class="tab-btn" onclick="CalendarOAuth.logout()" id="btn-calendar-logout"
+            style="display: none; background: var(--neon-magenta); color: #000;">
+            🚪 Logout
+        </button>
+    </div>
+</div>
+<div id="calendar-content">
+    <div class="loading">Loading calendar events...</div>
+</div>
