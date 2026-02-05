@@ -2,14 +2,28 @@ use serde_json::{json, Value};
 use std::process::Command;
 
 pub async fn get_proxmox_vms() -> Result<Value, String> {
-    // Essayer l'API Proxmox VE
-    let proxmox_api_output = Command::new("curl")
-        .args(&["-s", "-k", "https://localhost:8006/api2/json/cluster/resources?type=vm", "-H", "Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID"])
-        .output();
+    let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
+    let urls: Vec<&str> = proxmox_urls.split(',').collect();
+    
+    for url in urls {
+        let url = url.trim();
+        if url.is_empty() { continue; }
+        
+        let api_url = format!("{}:8006/api2/json/cluster/resources?type=vm", url);
+        println!("[DEBUG] Trying Proxmox URL: {}", api_url);
+        let proxmox_api_output = Command::new("curl")
+            .args(&["-s", "-k", &api_url, "-H", "Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID"])
+            .output();
     
     if let Ok(result) = proxmox_api_output {
+        println!("[DEBUG] Status: {}, Output: {}", result.status, String::from_utf8_lossy(&result.stdout));
         if result.status.success() {
             let json_str = String::from_utf8_lossy(&result.stdout);
+            // Check if response is HTML error page
+            if json_str.starts_with("<!DOCTYPE") || json_str.contains("Error 404") {
+                println!("[DEBUG] HTML error page detected, skipping URL");
+                continue; // Try next URL
+            }
             if let Ok(api_data) = serde_json::from_str::<Value>(&json_str) {
                 if let Some(data) = api_data["data"].as_array() {
                     let vms: Vec<Value> = data.iter().map(|vm| {
@@ -29,6 +43,7 @@ pub async fn get_proxmox_vms() -> Result<Value, String> {
                 }
             }
         }
+    }
     }
     
     // Fallback: essayer qm list si disponible
@@ -87,14 +102,25 @@ pub async fn get_proxmox_vms() -> Result<Value, String> {
 }
 
 pub async fn get_proxmox_containers() -> Result<Value, String> {
-    // Essayer l'API Proxmox VE pour les containers LXC
-    let proxmox_api_output = Command::new("curl")
-        .args(&["-s", "-k", "https://localhost:8006/api2/json/cluster/resources?type=lxc", "-H", "Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID"])
-        .output();
+    let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
+    let urls: Vec<&str> = proxmox_urls.split(',').collect();
+    
+    for url in urls {
+        let url = url.trim();
+        if url.is_empty() { continue; }
+        
+        let api_url = format!("{}:8006/api2/json/cluster/resources?type=lxc", url);
+        println!("[DEBUG] Trying Proxmox containers URL: {}", api_url);
+        let proxmox_api_output = Command::new("curl")
+            .args(&["-s", "-k", &api_url, "-H", "Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID"])
+            .output();
     
     if let Ok(result) = proxmox_api_output {
         if result.status.success() {
             let json_str = String::from_utf8_lossy(&result.stdout);
+            if json_str.starts_with("<!DOCTYPE") || json_str.contains("Error 404") {
+                continue;
+            }
             if let Ok(api_data) = serde_json::from_str::<Value>(&json_str) {
                 if let Some(data) = api_data["data"].as_array() {
                     let containers: Vec<Value> = data.iter().map(|ct| {
@@ -114,6 +140,7 @@ pub async fn get_proxmox_containers() -> Result<Value, String> {
                 }
             }
         }
+    }
     }
     
     // Fallback: essayer pct list si disponible
@@ -175,14 +202,25 @@ pub async fn get_proxmox_containers() -> Result<Value, String> {
 }
 
 pub async fn get_proxmox_nodes() -> Result<Value, String> {
-    // Essayer l'API Proxmox VE pour les nodes
-    let proxmox_api_output = Command::new("curl")
-        .args(&["-s", "-k", "https://localhost:8006/api2/json/nodes", "-H", "Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID"])
-        .output();
+    let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
+    let urls: Vec<&str> = proxmox_urls.split(',').collect();
+    
+    for url in urls {
+        let url = url.trim();
+        if url.is_empty() { continue; }
+        
+        let api_url = format!("{}:8006/api2/json/nodes", url);
+        println!("[DEBUG] Trying Proxmox nodes URL: {}", api_url);
+        let proxmox_api_output = Command::new("curl")
+            .args(&["-s", "-k", &api_url, "-H", "Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID"])
+            .output();
     
     if let Ok(result) = proxmox_api_output {
         if result.status.success() {
             let json_str = String::from_utf8_lossy(&result.stdout);
+            if json_str.starts_with("<!DOCTYPE") || json_str.contains("Error 404") {
+                continue;
+            }
             if let Ok(api_data) = serde_json::from_str::<Value>(&json_str) {
                 if let Some(data) = api_data["data"].as_array() {
                     let nodes: Vec<Value> = data.iter().map(|node| {
@@ -202,6 +240,7 @@ pub async fn get_proxmox_nodes() -> Result<Value, String> {
                 }
             }
         }
+    }
     }
     
     // Fallback: essayer pvecm status si disponible
