@@ -16,6 +16,9 @@ function initWebSocket() {
     updateWsStatus('connecting');
 
     try {
+        if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+            wsConnection.close();
+        }
         wsConnection = new WebSocket(wsUrl);
 
         wsConnection.onopen = function () {

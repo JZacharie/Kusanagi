@@ -5,10 +5,13 @@ const ProxmoxDashboard = {
 
     init() {
         this.log('Initializing Proxmox Dashboard...');
-        this.fetchAndRender();
-        if (this.refreshInterval) clearInterval(this.refreshInterval);
-        this.refreshInterval = setInterval(() => this.fetchAndRender(), 30000);
-        this.log('✅ Proxmox Dashboard initialized');
+        // Wait for DOM to be fully ready after partial load
+        requestAnimationFrame(() => {
+            this.fetchAndRender();
+            if (this.refreshInterval) clearInterval(this.refreshInterval);
+            this.refreshInterval = setInterval(() => this.fetchAndRender(), 30000);
+            this.log('✅ Proxmox Dashboard initialized');
+        });
     },
 
     log(message, data = null) {
