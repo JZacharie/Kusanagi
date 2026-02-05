@@ -400,54 +400,15 @@ async fn metrics() -> impl Responder {
 // Endpoints mockés temporairement
 async fn alerts() -> impl Responder {
     match monitoring_service::get_alerts().await {
-        Ok(alerts) => {
-            if let Some(alerts_array) = alerts.as_array() {
-                HttpResponse::Ok().json(json!({
-                    "alerts": alerts_array,
-                    "count": alerts_array.len(),
-                    "data": alerts_array
-                }))
-            } else {
-                HttpResponse::Ok().json(json!({
-                    "alerts": [],
-                    "count": 0,
-                    "data": []
-                }))
-            }
-        },
-        Err(_) => HttpResponse::Ok().json(json!({
-            "alerts": [],
-            "count": 0,
-            "data": []
-        }))
+        Ok(alerts) => HttpResponse::Ok().json(alerts),
+        Err(_) => HttpResponse::Ok().json(json!([]))
     }
 }
 
 async fn news() -> impl Responder {
     match news_service::get_news().await {
-        Ok(news) => {
-            if let Some(news_array) = news.as_array() {
-                HttpResponse::Ok().json(json!({
-                    "articles": news_array,
-                    "count": news_array.len(),
-                    "data": news_array,
-                    "news": news_array
-                }))
-            } else {
-                HttpResponse::Ok().json(json!({
-                    "articles": [],
-                    "count": 0,
-                    "data": [],
-                    "news": []
-                }))
-            }
-        },
-        Err(_) => HttpResponse::Ok().json(json!({
-            "articles": [],
-            "count": 0,
-            "data": [],
-            "news": []
-        }))
+        Ok(news) => HttpResponse::Ok().json(news),
+        Err(_) => HttpResponse::Ok().json(json!([]))
     }
 }
 
