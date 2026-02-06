@@ -42,10 +42,33 @@ async fn main() -> std::io::Result<()> {
     let bind_addr = format!("{}:{}", config.server.host, config.server.port);
     println!("🌐 Server: {}", bind_addr);
     
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .unwrap_or_default();
+
+    println!("🔥 Warming up cache...");
+    let cache_clone = cache.clone();
+    let client_clone = client.clone();
+    actix_web::rt::spawn(async move {
+        // Kubernetes Warmup
+        if let Ok(overview) = kubernetes_service::get_cluster_overview().await {
+            cache_clone.set("cluster_overview", overview.to_string()).await;
+            println!("✅ Cache warmed: Cluster Overview");
+        }
+        
+        // Proxmox Warmup
+        let _ = proxmox_service::get_proxmox_vms(&client_clone).await;
+        // Nodes and Containers are less critical for initial render but good to have
+        let _ = proxmox_service::get_proxmox_nodes(&client_clone).await;
+    });
+
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(cache.clone()))
             .app_data(web::Data::new(config.clone()))
+            .app_data(web::Data::new(client.clone()))
             .wrap(Logger::default().exclude("/health"))
             .route("/", web::get().to(web_index))
             .route("/api", web::get().to(service_info))
@@ -574,22 +597,22 @@ async fn argocd_status() -> impl Responder {
     }
 }
 
-async fn proxmox_vms() -> impl Responder {
-    match proxmox_service::get_proxmox_vms().await {
+async fn proxmox_vms(client: web::Data<reqwest::Client>) -> impl Responder {
+    match proxmox_service::get_proxmox_vms(&client).await {
         Ok(vms) => HttpResponse::Ok().json(vms),
         Err(_) => HttpResponse::Ok().json(json!([]))
     }
 }
 
-async fn proxmox_containers() -> impl Responder {
-    match proxmox_service::get_proxmox_containers().await {
+async fn proxmox_containers(client: web::Data<reqwest::Client>) -> impl Responder {
+    match proxmox_service::get_proxmox_containers(&client).await {
         Ok(containers) => HttpResponse::Ok().json(containers),
         Err(_) => HttpResponse::Ok().json(json!([]))
     }
 }
 
-async fn proxmox_nodes() -> impl Responder {
-    match proxmox_service::get_proxmox_nodes().await {
+async fn proxmox_nodes(client: web::Data<reqwest::Client>) -> impl Responder {
+    match proxmox_service::get_proxmox_nodes(&client).await {
         Ok(nodes) => HttpResponse::Ok().json(nodes),
         Err(_) => HttpResponse::Ok().json(json!([]))
     }

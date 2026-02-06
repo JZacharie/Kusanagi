@@ -40,7 +40,7 @@ async fn get_proxmox_ticket(client: &reqwest::Client, url: &str, user: &str, pas
     None
 }
 
-pub async fn get_proxmox_vms() -> Result<Value, String> {
+pub async fn get_proxmox_vms(client: &reqwest::Client) -> Result<Value, String> {
     let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
     let proxmox_user = std::env::var("PROXMOX_USER").unwrap_or_default();
     let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
@@ -51,11 +51,6 @@ pub async fn get_proxmox_vms() -> Result<Value, String> {
     }
     
     let urls: Vec<&str> = proxmox_urls.split(',').collect();
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .map_err(|e| e.to_string())?;
     
     let mut all_vms = Vec::new();
 
@@ -63,7 +58,7 @@ pub async fn get_proxmox_vms() -> Result<Value, String> {
         let url = url.trim();
         if url.is_empty() { continue; }
         
-        let Some((ticket, _csrf)) = get_proxmox_ticket(&client, url, &proxmox_user, &proxmox_password).await else {
+        let Some((ticket, _csrf)) = get_proxmox_ticket(client, url, &proxmox_user, &proxmox_password).await else {
             eprintln!("⚠️ Proxmox VMs: {} auth failed", url);
             continue;
         };
@@ -100,7 +95,7 @@ pub async fn get_proxmox_vms() -> Result<Value, String> {
     Ok(json!(all_vms))
 }
 
-pub async fn get_proxmox_containers() -> Result<Value, String> {
+pub async fn get_proxmox_containers(client: &reqwest::Client) -> Result<Value, String> {
     let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
     let proxmox_user = std::env::var("PROXMOX_USER").unwrap_or_default();
     let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
@@ -110,11 +105,6 @@ pub async fn get_proxmox_containers() -> Result<Value, String> {
     }
     
     let urls: Vec<&str> = proxmox_urls.split(',').collect();
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .map_err(|e| e.to_string())?;
     
     let mut all_containers = Vec::new();
 
@@ -122,7 +112,7 @@ pub async fn get_proxmox_containers() -> Result<Value, String> {
         let url = url.trim();
         if url.is_empty() { continue; }
         
-        let Some((ticket, _csrf)) = get_proxmox_ticket(&client, url, &proxmox_user, &proxmox_password).await else {
+        let Some((ticket, _csrf)) = get_proxmox_ticket(client, url, &proxmox_user, &proxmox_password).await else {
             continue;
         };
         
@@ -157,7 +147,7 @@ pub async fn get_proxmox_containers() -> Result<Value, String> {
     Ok(json!(all_containers))
 }
 
-pub async fn get_proxmox_nodes() -> Result<Value, String> {
+pub async fn get_proxmox_nodes(client: &reqwest::Client) -> Result<Value, String> {
     let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
     let proxmox_user = std::env::var("PROXMOX_USER").unwrap_or_default();
     let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
@@ -167,11 +157,6 @@ pub async fn get_proxmox_nodes() -> Result<Value, String> {
     }
     
     let urls: Vec<&str> = proxmox_urls.split(',').collect();
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .map_err(|e| e.to_string())?;
     
     let mut all_nodes = Vec::new();
 
@@ -179,7 +164,7 @@ pub async fn get_proxmox_nodes() -> Result<Value, String> {
         let url = url.trim();
         if url.is_empty() { continue; }
         
-        let Some((ticket, _csrf)) = get_proxmox_ticket(&client, url, &proxmox_user, &proxmox_password).await else {
+        let Some((ticket, _csrf)) = get_proxmox_ticket(client, url, &proxmox_user, &proxmox_password).await else {
             continue;
         };
         
