@@ -79,7 +79,10 @@ async fn main() -> std::io::Result<()> {
         .and_then(|p| p.parse().ok())
         .unwrap_or(config.mqtt.port);
     
-    mqtt_service::start_mqtt_client(mqtt_state.clone(), mqtt_host, mqtt_port);
+    let mqtt_user = std::env::var("MQTT_USER").ok();
+    let mqtt_password = std::env::var("MQTT_PASSWORD").ok();
+    
+    mqtt_service::start_mqtt_client(mqtt_state.clone(), mqtt_host, mqtt_port, mqtt_user, mqtt_password);
 
     // Slack Monitoring Init
     let slack = slack_service::SlackService::new();
