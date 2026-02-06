@@ -72,6 +72,10 @@ async fn main() -> std::io::Result<()> {
     let mqtt_state = mqtt_service::MqttState::new();
     mqtt_service::start_mqtt_client(mqtt_state.clone(), config.mqtt.host.clone(), config.mqtt.port);
 
+    // Slack Monitoring Init
+    let slack = slack_service::SlackService::new();
+    tokio::spawn(start_slack_monitoring(slack));
+
     HttpServer::new(move || {
         App::new()
             .app_data(sys.clone())
@@ -724,3 +728,92 @@ async fn mqtt_devices(state: web::Data<mqtt_service::MqttState>) -> impl Respond
 async fn mqtt_messages(state: web::Data<mqtt_service::MqttState>) -> impl Responder {
     HttpResponse::Ok().json(state.get_messages())
 }
+
+// Slack Monitoring Background Task
+async fn start_slack_monitoring(slack: slack_service::SlackService) {
+    use std::time::Duration;
+    
+    let mut last_error_pods = 0u64;
+    let mut last_unhealthy_apps = 0u64;
+    
+    // Wait 30s before starting to allow services to initialize
+    tokio::time::sleep(Duration::from_secs(30)).await;
+    
+    loop {
+        tokio::time::sleep(Duration::from_secs(60)).await;
+        
+        let prev_error_pods = last_error_pods;
+        let prev_unhealthy_apps = last_unhealthy_apps;
+        
+        let mut pods_checked = false;
+        let mut apps_checked = false;
+        
+        // Check Pods
+        if let Ok(pods_status) = kubernetes_service::get_pods_status().await {
+            pods_checked = true;
+            let error_pods = pods_status["error_pods"].as_u64().unwrap_or(0);
+            
+            if error_pods > last_error_pods {
+                let mut message = format!("Detected {} pods in error state:\n", error_pods);
+                
+                if let Some(pods_in_error) = pods_status["pods_in_error"].as_array() {
+                    for pod in pods_in_error.iter().take(10) {
+                        let name = pod["name"].as_str().unwrap_or("unknown");
+                        let namespace = pod["namespace"].as_str().unwrap_or("unknown");
+                        let status = pod["status"].as_str().unwrap_or("unknown");
+                        let reason = pod["reason"].as_str().unwrap_or("Unknown");
+                        message.push_str(&format!("• *{}/{}*: {} ({})\n", namespace, name, status, reason));
+                    }
+                    
+                    if error_pods > 10 {
+                        message.push_str(&format!("...and {} more.", error_pods - 10));
+                    }
+                }
+                
+                let _ = slack.send_alert("Infrastructure Issue", &message, "error").await;
+            }
+            last_error_pods = error_pods;
+        }
+        
+        // Check ArgoCD
+        if let Ok(argocd_status) = argocd_service::get_argocd_status().await {
+            apps_checked = true;
+            let unhealthy = argocd_status["unhealthy"].as_u64().unwrap_or(0);
+            
+            if unhealthy > last_unhealthy_apps {
+                let mut message = format!("Detected {} unhealthy applications:\n", unhealthy);
+                
+                if let Some(apps) = argocd_status["apps_with_issues"].as_array() {
+                    for app in apps.iter().take(10) {
+                        let name = app["name"].as_str().unwrap_or("unknown");
+                        let health = app["health_status"].as_str().unwrap_or("unknown");
+                        let sync = app["sync_status"].as_str().unwrap_or("unknown");
+                        message.push_str(&format!("• *{}*: {} ({})\n", name, health, sync));
+                    }
+                    
+                    if unhealthy > 10 {
+                        message.push_str(&format!("...and {} more.", unhealthy - 10));
+                    }
+                }
+                
+                let _ = slack.send_alert("ArgoCD Sync Alert", &message, "warning").await;
+            }
+            last_unhealthy_apps = unhealthy;
+        }
+        
+        // Check for recovery
+        if pods_checked && apps_checked {
+            let was_unhealthy = prev_error_pods > 0 || prev_unhealthy_apps > 0;
+            let is_now_healthy = last_error_pods == 0 && last_unhealthy_apps == 0;
+            
+            if was_unhealthy && is_now_healthy {
+                let _ = slack.send_alert(
+                    "System Recovered",
+                    "All pods and applications are now healthy! 🎉",
+                    "success"
+                ).await;
+            }
+        }
+    }
+}
+
