@@ -6,7 +6,7 @@ use actix::{Actor, StreamHandler, ActorContext};
 use serde_json::json;
 use std::sync::Arc;
 use kusanagi::{Config, Cache, InMemoryCache, legacy};
-use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service, mqtt_service};
+use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service, mqtt_service, slack_service};
 use sysinfo::{System, Networks, CpuRefreshKind, MemoryRefreshKind};
 use std::sync::Mutex;
 
