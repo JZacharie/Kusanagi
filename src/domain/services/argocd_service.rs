@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-use std::process::Command;
+use tokio::process::Command;
 
 pub async fn get_argocd_status() -> Result<Value, String> {
     eprintln!("🔍 Fetching ArgoCD status...");
@@ -9,7 +9,8 @@ pub async fn get_argocd_status() -> Result<Value, String> {
     let kubectl_output = Command::new("kubectl")
         .args(&["get", "applications", "-n", "argocd", "--no-headers", 
                 "-o", "custom-columns=NAME:.metadata.name,NS:.metadata.namespace,HEALTH:.status.health.status,SYNC:.status.sync.status,REV:.status.sync.revision"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = kubectl_output {
         if result.status.success() {
@@ -24,7 +25,8 @@ pub async fn get_argocd_status() -> Result<Value, String> {
     // Check if ArgoCD is installed if app fetch failed
     let argocd_pods_output = Command::new("kubectl")
         .args(&["get", "pods", "-n", "argocd", "--no-headers"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = argocd_pods_output {
         if result.status.success() {
