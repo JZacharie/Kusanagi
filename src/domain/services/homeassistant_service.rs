@@ -12,6 +12,7 @@ pub async fn get_ha_devices() -> Result<Value, String> {
         if result.status.success() {
             let json_str = String::from_utf8_lossy(&result.stdout);
             if let Ok(states) = serde_json::from_str::<Vec<Value>>(&json_str) {
+                eprintln!("🏠 Home Assistant: Connected via API (states found: {})", states.len());
                 let devices: Vec<Value> = states.iter()
                     .filter(|state| {
                         let entity_id = state["entity_id"].as_str().unwrap_or("");
@@ -47,6 +48,7 @@ pub async fn get_ha_devices() -> Result<Value, String> {
             if result.status.success() {
                 let response = String::from_utf8_lossy(&result.stdout);
                 if response.contains("Home Assistant") || response.contains("API running") {
+                    eprintln!("🏠 Home Assistant: Detected on port {}", port);
                     return Ok(json!([{
                         "entity_id": "homeassistant.detected",
                         "friendly_name": "Home Assistant Instance",

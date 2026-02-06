@@ -1,3 +1,6 @@
+
+use tracing::{info, error};
+
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
@@ -6,7 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use rumqttc::{AsyncClient, MqttOptions, QoS, Event, Packet};
 use tokio::task;
 use std::time::Duration;
-use tracing::{error, warn};
+// Removed
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct MqttMessage {
@@ -96,7 +99,7 @@ pub fn start_mqtt_client(state: MqttState, host: String, port: u16, username: Op
     task::spawn(async move {
         // Generate random client id
         let client_id = format!("kusanagi-{}", std::process::id());
-        let mut mqttoptions = MqttOptions::new(client_id, host, port);
+        let mut mqttoptions = MqttOptions::new(client_id, host.clone(), port);
         mqttoptions.set_keep_alive(Duration::from_secs(5));
 
         if let (Some(u), Some(p)) = (username, password) {
@@ -107,9 +110,11 @@ pub fn start_mqtt_client(state: MqttState, host: String, port: u16, username: Op
         
         // Subscribe to everything
         if let Err(e) = client.subscribe("#", QoS::AtMostOnce).await {
-             error!("Error subscribing to MQTT: {:?}", e);
+             eprintln!("❌ MQTT: Error subscribing: {:?}", e);
              return;
         }
+
+        println!("📡 MQTT: Connected to {}", host);
 
         loop {
             match eventloop.poll().await {
@@ -121,7 +126,7 @@ pub fn start_mqtt_client(state: MqttState, host: String, port: u16, username: Op
                     }
                 },
                 Err(e) => {
-                    error!("MQTT connection error: {:?}", e);
+                    eprintln!("❌ MQTT: Connection error: {:?}", e);
                     tokio::time::sleep(Duration::from_secs(5)).await;
                 }
             }
