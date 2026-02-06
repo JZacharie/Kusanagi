@@ -121,27 +121,28 @@ pub async fn get_cluster_overview() -> Result<Value, String> {
 
 pub async fn get_services() -> Result<Value, String> {
     let output = Command::new("kubectl")
-        .args(&["get", "services", "--all-namespaces", "-o", "json"])
+        .args(&["get", "services", "--all-namespaces", "--no-headers", "-o", "custom-columns=NAME:.metadata.name,NS:.metadata.namespace,TYPE:.spec.type,IP:.spec.clusterIP"])
         .output()
         .await;
     
     match output {
         Ok(result) if result.status.success() => {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(services_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(items) = services_data["items"].as_array() {
-                    let services: Vec<Value> = items.iter().map(|svc| {
-                        json!({
-                            "name": svc["metadata"]["name"],
-                            "namespace": svc["metadata"]["namespace"],
-                            "type": svc["spec"]["type"],
-                            "cluster_ip": svc["spec"]["clusterIP"]
-                        })
-                    }).collect();
-                    
-                    return Ok(json!(services));
+            let stdout = String::from_utf8_lossy(&result.stdout);
+            let services: Vec<Value> = stdout.lines().map(|line| {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 4 {
+                    json!({
+                        "name": parts[0],
+                        "namespace": parts[1],
+                        "type": parts[2],
+                        "cluster_ip": parts[3]
+                    })
+                } else {
+                    json!({})
                 }
-            }
+            }).filter(|v| !v.as_object().unwrap().is_empty()).collect();
+            
+            return Ok(json!(services));
         },
         _ => {}
     }
@@ -151,28 +152,33 @@ pub async fn get_services() -> Result<Value, String> {
 
 pub async fn get_ingress() -> Result<Value, String> {
     let output = Command::new("kubectl")
-        .args(&["get", "ingress", "--all-namespaces", "-o", "json"])
+        .args(&["get", "ingress", "--all-namespaces", "--no-headers", "-o", "custom-columns=NAME:.metadata.name,NS:.metadata.namespace,HOSTS:.spec.rules[*].host"])
         .output()
         .await;
     
     match output {
         Ok(result) if result.status.success() => {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(ingress_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(items) = ingress_data["items"].as_array() {
-                    let ingresses: Vec<Value> = items.iter().map(|ing| {
-                        json!({
-                            "name": ing["metadata"]["name"],
-                            "namespace": ing["metadata"]["namespace"],
-                            "hosts": ing["spec"]["rules"].as_array().map(|rules| 
-                                rules.iter().filter_map(|r| r["host"].as_str()).collect::<Vec<_>>()
-                            ).unwrap_or_default()
-                        })
-                    }).collect();
+            let stdout = String::from_utf8_lossy(&result.stdout);
+            let ingresses: Vec<Value> = stdout.lines().map(|line| {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 2 {
+                    let hosts = if parts.len() > 2 {
+                        parts[2].split(',').map(|h| h.to_string()).collect::<Vec<String>>()
+                    } else {
+                        vec![]
+                    };
                     
-                    return Ok(json!(ingresses));
+                    json!({
+                        "name": parts[0],
+                        "namespace": parts[1],
+                        "hosts": hosts
+                    })
+                } else {
+                    json!({})
                 }
-            }
+            }).filter(|v| !v.as_object().unwrap().is_empty()).collect();
+            
+            return Ok(json!(ingresses));
         },
         _ => {}
     }
@@ -181,76 +187,83 @@ pub async fn get_ingress() -> Result<Value, String> {
 }
 
 pub async fn get_storage() -> Result<Value, String> {
+    // Optimization: Just count lines instead of parsing JSON
     let pv_output = Command::new("kubectl")
-        .args(&["get", "pv", "-o", "json"])
+        .args(&["get", "pv", "--no-headers"])
         .output()
         .await;
     
     let pvc_output = Command::new("kubectl")
-        .args(&["get", "pvc", "--all-namespaces", "-o", "json"])
+        .args(&["get", "pvc", "--all-namespaces", "--no-headers"])
         .output()
         .await;
     
-    let total_capacity = 0i64;
-    let used_capacity = 0i64;
     let mut pv_count = 0;
     let mut pvc_count = 0;
     
     if let Ok(result) = pv_output {
         if result.status.success() {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(pv_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(items) = pv_data["items"].as_array() {
-                    pv_count = items.len();
-                }
-            }
+            pv_count = String::from_utf8_lossy(&result.stdout).lines().count();
         }
     }
     
     if let Ok(result) = pvc_output {
         if result.status.success() {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(pvc_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(items) = pvc_data["items"].as_array() {
-                    pvc_count = items.len();
-                }
-            }
+            pvc_count = String::from_utf8_lossy(&result.stdout).lines().count();
         }
     }
     
     Ok(json!({
-        "total": format!("{}GB", total_capacity / (1024*1024*1024)),
-        "used": format!("{}GB", used_capacity / (1024*1024*1024)),
+        "total": "0GB", // Placeholder as original code didn't calculate it either
+        "used": "0GB",
         "pv_count": pv_count,
         "pvc_count": pvc_count
     }))
 }
 
 pub async fn get_events() -> Result<Value, String> {
+    // Optimization: Use --sort-by but limit output and use custom-columns to avoid huge JSON
+    // Note: We take top 20 latest events.
     let output = Command::new("kubectl")
-        .args(&["get", "events", "--all-namespaces", "--sort-by=.lastTimestamp", "-o", "json"])
+        .args(&["get", "events", "--all-namespaces", "--sort-by=.lastTimestamp", "--no-headers", "-o", "custom-columns=TYPE:.type,REASON:.reason,NS:.metadata.namespace,OBJ:.involvedObject.name,TIME:.lastTimestamp,MSG:.message"])
         .output()
         .await;
     
     match output {
         Ok(result) if result.status.success() => {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(events_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(items) = events_data["items"].as_array() {
-                    let events: Vec<Value> = items.iter().take(20).map(|event| {
-                        json!({
-                            "type": event["type"],
-                            "reason": event["reason"],
-                            "message": event["message"],
-                            "namespace": event["namespace"],
-                            "object": event["involvedObject"]["name"],
-                            "timestamp": event["lastTimestamp"]
-                        })
-                    }).collect();
+            let stdout = String::from_utf8_lossy(&result.stdout);
+            // Process lines in reverse to get latest (since sort-by puts latest at end usually? actually timestamp sort is ascending)
+            // .lastTimestamp ascending -> latest at bottom.
+            // So we take last 20 lines.
+            let lines: Vec<&str> = stdout.lines().rev().take(20).collect();
+            
+            let events: Vec<Value> = lines.iter().map(|line| {
+                // Custom columns splitting is tricky with messages containing spaces.
+                // But simplified splitting might be enough for this quick fix or we deal with fixed width?
+                // custom-columns separates by space. Message is last column, so we can splitn.
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 6 {
+                    let type_ = parts[0];
+                    let reason = parts[1];
+                    let ns = parts[2];
+                    let obj = parts[3];
+                    let time = parts[4];
+                    let msg = parts[5..].join(" ");
                     
-                    return Ok(json!(events));
+                    json!({
+                        "type": type_,
+                        "reason": reason,
+                        "message": msg,
+                        "namespace": ns,
+                        "object": obj,
+                        "timestamp": time
+                    })
+                } else {
+                    json!({})
                 }
-            }
+            }).filter(|v| !v.as_object().unwrap().is_empty()).collect();
+            
+            return Ok(json!(events));
         },
         _ => {}
     }
