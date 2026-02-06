@@ -12,20 +12,109 @@ pub async fn get_pods_status() -> Result<Value, String> {
     let mut pending = 0;
     let mut failed = 0;
     let mut total = 0;
+    let mut pods_in_error = Vec::new();
 
     for pod in list {
         total += 1;
-        if let Some(status) = pod.status {
-            if let Some(phase) = status.phase {
-                match phase.as_str() {
-                    "Running" | "Succeeded" => running += 1,
-                    "Pending" => pending += 1,
-                    "Failed" => failed += 1,
-                    _ => {} // Unknown
+        let mut is_error = false;
+        let mut reason = String::new();
+        let mut restart_count = 0;
+        
+        // Check Phase
+        let phase = pod.status.as_ref()
+            .and_then(|s| s.phase.as_deref())
+            .unwrap_or("Unknown");
+
+        match phase {
+            "Running" | "Succeeded" => running += 1,
+            "Pending" => {
+                pending += 1;
+                // Pending is technically not failing, but can be stuck.
+                // We'll mark it as error only if it has bad conditions/reasons,
+                // but usually user wants to see it in the list if it's stuck.
+                // For now, let's include Pending in the list if we want visibility?
+                // Frontend k8s.js calls it "progressing".
+            },
+            _ => {
+                failed += 1;
+                is_error = true;
+                reason = phase.to_string();
+            }
+        }
+        
+        // Deep inspection of container statuses
+        if let Some(status) = &pod.status {
+            if let Some(container_statuses) = &status.container_statuses {
+                for cs in container_statuses {
+                    restart_count += cs.restart_count;
+                    
+                    if let Some(state) = &cs.state {
+                        if let Some(waiting) = &state.waiting {
+                            if let Some(r) = &waiting.reason {
+                                if r == "CrashLoopBackOff" || r == "ImagePullBackOff" || r == "ErrImagePull" || r == "ContainerCreating" {
+                                    // ContainerCreating is normal but maybe we show it?
+                                    if r != "ContainerCreating" {
+                                        is_error = true;
+                                        reason = r.clone();
+                                        if phase == "Running" {
+                                            // Should we decrement running and increment failed?
+                                            // This changes the stats vs phase.
+                                            // Let's keep stats based on Phase (k8s standard) but add to error list.
+                                            // NOTE: Frontend shows "error_pods" count.
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if let Some(terminated) = &state.terminated {
+                            if terminated.exit_code != 0 {
+                                is_error = true;
+                                reason = terminated.reason.clone().unwrap_or("Error".to_string());
+                            }
+                        }
+                    }
                 }
             }
         }
+
+        if is_error {
+             // Calculate Age
+             let age = if let Some(ts) = &pod.metadata.creation_timestamp {
+                 let now = chrono::Utc::now();
+                 let created = ts.0;
+                 let diff = now.signed_duration_since(created);
+                 if diff.num_days() > 0 {
+                     format!("{}d", diff.num_days())
+                 } else if diff.num_hours() > 0 {
+                     format!("{}h", diff.num_hours())
+                 } else if diff.num_minutes() > 0 {
+                     format!("{}m", diff.num_minutes())
+                 } else {
+                     format!("{}s", diff.num_seconds())
+                 }
+             } else {
+                 "0s".to_string()
+             };
+
+             pods_in_error.push(json!({
+                "name": pod.metadata.name.clone().unwrap_or_default(),
+                "namespace": pod.metadata.namespace.clone().unwrap_or_default(),
+                "status": phase,
+                "reason": if reason.is_empty() { phase } else { &reason },
+                "restart_count": restart_count,
+                "age": age,
+                "node": pod.spec.as_ref().and_then(|s| s.node_name.clone()).unwrap_or_default(),
+                "cpu_usage": 0, // Needs metrics-server, placeholder
+                "memory_usage": 0,
+                "cpu_limit": 0,
+                "memory_limit": 0
+             }));
+        }
     }
+    
+    // Determine strict failing count for dashboard (including CrashLoops that might be Phase=Running)
+    // The frontend uses `pods_in_error.length` as `pods-error-count`
+    // But `error_pods` stat is also sent.
     
     Ok(json!({
         "running": running,
@@ -35,8 +124,9 @@ pub async fn get_pods_status() -> Result<Value, String> {
         // Frontend expected fields
         "total_pods": total,
         "running_pods": running,
-        "error_pods": failed,
-        "pods_in_error": failed
+        "error_pods": pods_in_error.len(), // Use actual list length
+        "pending_pods": pending,
+        "pods_in_error": pods_in_error
     }))
 }
 
