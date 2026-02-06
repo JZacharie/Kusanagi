@@ -6,7 +6,7 @@ use actix::{Actor, StreamHandler, ActorContext};
 use serde_json::json;
 use std::sync::Arc;
 use kusanagi::{Config, Cache, InMemoryCache, legacy};
-use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service};
+use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service, mqtt_service};
 use sysinfo::{System, Networks, CpuRefreshKind, MemoryRefreshKind};
 use std::sync::Mutex;
 
@@ -68,12 +68,17 @@ async fn main() -> std::io::Result<()> {
 
     let sys = web::Data::new(Mutex::new(System::new_all()));
 
+    // MQTT Init
+    let mqtt_state = mqtt_service::MqttState::new();
+    mqtt_service::start_mqtt_client(mqtt_state.clone(), config.mqtt.host.clone(), config.mqtt.port);
+
     HttpServer::new(move || {
         App::new()
             .app_data(sys.clone())
             .app_data(web::Data::new(cache.clone()))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(client.clone()))
+            .app_data(web::Data::new(mqtt_state.clone()))
             .wrap(Logger::default().exclude("/health"))
             .route("/", web::get().to(web_index))
             .route("/api", web::get().to(service_info))
@@ -93,6 +98,8 @@ async fn main() -> std::io::Result<()> {
             .route("/api/nodes/status", web::get().to(nodes_status))
             .route("/api/storage", web::get().to(storage))
             .route("/api/events", web::get().to(events))
+            .route("/api/mqtt/devices", web::get().to(mqtt_devices))
+            .route("/api/mqtt/messages", web::get().to(mqtt_messages))
             .route("/api/argocd/status", web::get().to(argocd_status))
             .route("/api/proxmox/vms", web::get().to(proxmox_vms))
             .route("/api/proxmox/containers", web::get().to(proxmox_containers))
@@ -510,7 +517,7 @@ async fn pods_status() -> impl Responder {
         },
         Err(_) => HttpResponse::Ok().json(json!({
             "running": 0, "pending": 0, "failed": 0, "total": 0,
-            "total_pods": 0, "running_pods": 0, "error_pods": 0, "pods_in_error": 0
+            "total_pods": 0, "running_pods": 0, "error_pods": 0, "pods_in_error": []
         }))
     }
 }
@@ -695,4 +702,12 @@ async fn manifest_handler() -> impl Responder {
                 "icons": []
             }))
     }
+}
+
+async fn mqtt_devices(state: web::Data<mqtt_service::MqttState>) -> impl Responder {
+    HttpResponse::Ok().json(state.get_devices())
+}
+
+async fn mqtt_messages(state: web::Data<mqtt_service::MqttState>) -> impl Responder {
+    HttpResponse::Ok().json(state.get_messages())
 }

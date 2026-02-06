@@ -26,3 +26,4 @@ k8s-openapi = { version = "0.23", features = ["latest"] }
 reqwest = { version = "0.12", features = ["json"] }
 base64 = "0.22"
 sysinfo = "0.30"
+rumqttc = "0.24"

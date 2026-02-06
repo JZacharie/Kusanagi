@@ -101,10 +101,12 @@ pub async fn get_ha_sensors() -> Result<Value, String> {
                     .map(|state| {
                         json!({
                             "entity_id": state["entity_id"],
-                            "friendly_name": state["attributes"]["friendly_name"],
                             "state": state["state"],
-                            "unit_of_measurement": state["attributes"]["unit_of_measurement"],
-                            "device_class": state["attributes"]["device_class"]
+                            "attributes": {
+                                "friendly_name": state["attributes"]["friendly_name"],
+                                "unit_of_measurement": state["attributes"]["unit_of_measurement"],
+                                "device_class": state["attributes"]["device_class"]
+                            }
                         })
                     })
                     .collect();
@@ -132,18 +134,22 @@ pub async fn get_ha_sensors() -> Result<Value, String> {
     Ok(json!([
         {
             "entity_id": "sensor.cpu_temperature",
-            "friendly_name": "CPU Temperature",
             "state": cpu_temp,
-            "unit_of_measurement": "°C",
-            "device_class": "temperature",
+            "attributes": {
+                "friendly_name": "CPU Temperature",
+                "unit_of_measurement": "°C",
+                "device_class": "temperature"
+            },
             "source": "system_fallback"
         },
         {
             "entity_id": "sensor.system_uptime",
-            "friendly_name": "System Uptime",
             "state": uptime,
-            "unit_of_measurement": "hours",
-            "device_class": "duration",
+            "attributes": {
+                "friendly_name": "System Uptime",
+                "unit_of_measurement": "hours",
+                "device_class": "duration"
+            },
             "source": "system_fallback"
         }
     ]))
@@ -195,9 +201,11 @@ pub async fn get_ha_automations() -> Result<Value, String> {
                     .map(|state| {
                         json!({
                             "entity_id": state["entity_id"],
-                            "friendly_name": state["attributes"]["friendly_name"],
                             "state": state["state"],
-                            "last_triggered": state["attributes"]["last_triggered"]
+                            "attributes": {
+                                "friendly_name": state["attributes"]["friendly_name"],
+                                "last_triggered": state["attributes"]["last_triggered"]
+                            }
                         })
                     })
                     .collect();
