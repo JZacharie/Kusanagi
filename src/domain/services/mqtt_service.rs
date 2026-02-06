@@ -92,12 +92,16 @@ impl MqttState {
     }
 }
 
-pub fn start_mqtt_client(state: MqttState, host: String, port: u16) {
+pub fn start_mqtt_client(state: MqttState, host: String, port: u16, username: Option<String>, password: Option<String>) {
     task::spawn(async move {
         // Generate random client id
         let client_id = format!("kusanagi-{}", std::process::id());
         let mut mqttoptions = MqttOptions::new(client_id, host, port);
         mqttoptions.set_keep_alive(Duration::from_secs(5));
+
+        if let (Some(u), Some(p)) = (username, password) {
+            mqttoptions.set_credentials(u, p);
+        }
 
         let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
         
