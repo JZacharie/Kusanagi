@@ -1,11 +1,12 @@
 use serde_json::{json, Value};
-use std::process::Command;
+use tokio::process::Command;
 
 pub async fn get_pods_status() -> Result<Value, String> {
     // OPTIMIZATION: Use custom-columns to fetch ONLY the phase, avoiding massive JSON parsing
     let output = Command::new("kubectl")
         .args(&["get", "pods", "--all-namespaces", "--no-headers", "-o", "custom-columns=PHASE:.status.phase"])
-        .output();
+        .output()
+        .await;
     
     match output {
         Ok(result) if result.status.success() => {
@@ -56,7 +57,8 @@ pub async fn get_nodes_status() -> Result<Value, String> {
     // OPTIMIZATION: Use custom-columns to fetch only the Ready condition status
     let output = Command::new("kubectl")
         .args(&["get", "nodes", "--no-headers", "-o", "custom-columns=STATUS:.status.conditions[?(@.type==\"Ready\")].status"])
-        .output();
+        .output()
+        .await;
     
     match output {
         Ok(result) if result.status.success() => {
@@ -100,7 +102,8 @@ pub async fn get_cluster_overview() -> Result<Value, String> {
     
     let services_count = match Command::new("kubectl")
         .args(&["get", "services", "--all-namespaces", "--no-headers"])
-        .output() {
+        .output()
+        .await {
         Ok(result) if result.status.success() => {
             String::from_utf8_lossy(&result.stdout).lines().count()
         },
@@ -119,7 +122,8 @@ pub async fn get_cluster_overview() -> Result<Value, String> {
 pub async fn get_services() -> Result<Value, String> {
     let output = Command::new("kubectl")
         .args(&["get", "services", "--all-namespaces", "-o", "json"])
-        .output();
+        .output()
+        .await;
     
     match output {
         Ok(result) if result.status.success() => {
@@ -148,7 +152,8 @@ pub async fn get_services() -> Result<Value, String> {
 pub async fn get_ingress() -> Result<Value, String> {
     let output = Command::new("kubectl")
         .args(&["get", "ingress", "--all-namespaces", "-o", "json"])
-        .output();
+        .output()
+        .await;
     
     match output {
         Ok(result) if result.status.success() => {
@@ -178,11 +183,13 @@ pub async fn get_ingress() -> Result<Value, String> {
 pub async fn get_storage() -> Result<Value, String> {
     let pv_output = Command::new("kubectl")
         .args(&["get", "pv", "-o", "json"])
-        .output();
+        .output()
+        .await;
     
     let pvc_output = Command::new("kubectl")
         .args(&["get", "pvc", "--all-namespaces", "-o", "json"])
-        .output();
+        .output()
+        .await;
     
     let total_capacity = 0i64;
     let used_capacity = 0i64;
@@ -222,7 +229,8 @@ pub async fn get_storage() -> Result<Value, String> {
 pub async fn get_events() -> Result<Value, String> {
     let output = Command::new("kubectl")
         .args(&["get", "events", "--all-namespaces", "--sort-by=.lastTimestamp", "-o", "json"])
-        .output();
+        .output()
+        .await;
     
     match output {
         Ok(result) if result.status.success() => {
