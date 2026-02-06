@@ -1,9 +1,11 @@
 use serde_json::{json, Value};
-use tokio::process::Command;
 use chrono::Utc;
+use reqwest::Client;
 
 pub async fn get_news() -> Result<Value, String> {
-    // Essayer des sources de news tech/DevOps
+    let client = Client::new();
+    
+    // Tech/DevOps sources
     let sources = vec![
         "https://feeds.feedburner.com/oreilly/radar",
         "https://kubernetes.io/feed.xml",
@@ -11,61 +13,54 @@ pub async fn get_news() -> Result<Value, String> {
         "https://www.cncf.io/feed/",
     ];
     
+    // Try RSS feeds first
     for source in sources {
-        if let Ok(news) = fetch_rss_feed(source).await {
+        if let Ok(news) = fetch_rss_feed(&client, source).await {
             if !news.is_empty() {
-                return Ok(json!(news));
+                return Ok(json!({
+                    "items": news,
+                    "cached_at": Utc::now().to_rfc3339(),
+                    "source": "rss"
+                }));
             }
         }
     }
     
-    // Fallback: essayer curl pour une API de news simple
-    let news_api_output = Command::new("curl")
-        .args(&["-s", "https://hacker-news.firebaseio.com/v0/topstories.json"])
-        .output()
-        .await;
-    
-    if let Ok(result) = news_api_output {
-        if result.status.success() {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(story_ids) = serde_json::from_str::<Vec<u64>>(&json_str) {
-                let mut news_items = Vec::new();
-                
-                // Prendre les 5 premiers articles
-                for &story_id in story_ids.iter().take(5) {
-                    let story_output = Command::new("curl")
-                        .args(&["-s", &format!("https://hacker-news.firebaseio.com/v0/item/{}.json", story_id)])
-                        .output()
-                        .await;
-                    
-                    if let Ok(story_result) = story_output {
-                        if story_result.status.success() {
-                            let story_json = String::from_utf8_lossy(&story_result.stdout);
-                            if let Ok(story) = serde_json::from_str::<Value>(&story_json) {
-                                news_items.push(json!({
-                                    "title": story["title"],
-                                    "url": story["url"],
-                                    "score": story["score"],
-                                    "time": story["time"],
-                                    "source": "hackernews"
-                                }));
-                            }
-                        }
+    // Fallback: Hacker News API via reqwest
+    if let Ok(response) = client.get("https://hacker-news.firebaseio.com/v0/topstories.json")
+        .send().await 
+    {
+        if let Ok(story_ids) = response.json::<Vec<u64>>().await {
+            let mut news_items = Vec::new();
+            
+            // Take top 5
+            for &story_id in story_ids.iter().take(5) {
+                if let Ok(story_res) = client.get(&format!("https://hacker-news.firebaseio.com/v0/item/{}.json", story_id))
+                    .send().await 
+                {
+                    if let Ok(story) = story_res.json::<Value>().await {
+                        news_items.push(json!({
+                            "title": story["title"],
+                            "url": story["url"],
+                            "score": story["score"],
+                            "time": story["time"],
+                            "source": "hackernews"
+                        }));
                     }
                 }
-                
-                if !news_items.is_empty() {
-                    return Ok(json!({
-                        "items": news_items,
-                        "cached_at": Utc::now().to_rfc3339(),
-                        "source": "hackernews"
-                    }));
-                }
+            }
+            
+            if !news_items.is_empty() {
+                return Ok(json!({
+                    "items": news_items,
+                    "cached_at": Utc::now().to_rfc3339(),
+                    "source": "hackernews"
+                }));
             }
         }
     }
     
-    // Fallback: news statiques tech/DevOps
+    // Fallback: Static news
     Ok(json!({
         "items": [
             {
@@ -81,80 +76,57 @@ pub async fn get_news() -> Result<Value, String> {
                 "source": "docker.com",
                 "category": "docker",
                 "time": "2024-12-10"
-            },
-            {
-                "title": "ArgoCD 2.9 Brings Improved GitOps Workflows",
-                "url": "https://argo-cd.readthedocs.io/en/stable/",
-                "source": "argoproj.io",
-                "category": "gitops",
-                "time": "2024-12-09"
-            },
-            {
-                "title": "Prometheus 2.48 Enhances Monitoring Capabilities",
-                "url": "https://prometheus.io/blog/2024/12/08/prometheus-2-48-0-release/",
-                "source": "prometheus.io",
-                "category": "monitoring",
-                "time": "2024-12-08"
-            },
-            {
-                "title": "CNCF Announces New Cloud Native Projects",
-                "url": "https://www.cncf.io/blog/2024/12/07/new-projects/",
-                "source": "cncf.io",
-                "category": "cloud-native",
-                "time": "2024-12-07"
             }
         ],
-        "cached_at": "2024-12-11T12:00:00Z",
+        "cached_at": Utc::now().to_rfc3339(),
         "source": "static"
     }))
 }
 
-async fn fetch_rss_feed(url: &str) -> Result<Vec<Value>, String> {
-    let output = Command::new("curl")
-        .args(&["-s", url])
-        .output()
-        .await;
-    
-    if let Ok(result) = output {
-        if result.status.success() {
-            let xml_content = String::from_utf8_lossy(&result.stdout);
+async fn fetch_rss_feed(client: &Client, url: &str) -> Result<Vec<Value>, String> {
+    let response = client.get(url)
+        .timeout(std::time::Duration::from_secs(3))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if response.status().is_success() {
+        let xml_content = response.text().await.map_err(|e| e.to_string())?;
+        
+        let mut news_items = Vec::new();
+        let lines: Vec<&str> = xml_content.lines().collect();
+        
+        let mut current_item = json!({});
+        let mut in_item = false;
+        
+        for line in lines {
+            let line = line.trim();
             
-            // Simple XML parsing pour RSS (très basique)
-            let mut news_items = Vec::new();
-            let lines: Vec<&str> = xml_content.lines().collect();
-            
-            let mut current_item = json!({});
-            let mut in_item = false;
-            
-            for line in lines {
-                let line = line.trim();
-                
-                if line.contains("<item>") {
-                    in_item = true;
-                    current_item = json!({});
-                } else if line.contains("</item>") && in_item {
-                    if !current_item["title"].is_null() {
-                        current_item["source"] = json!(extract_domain(url));
-                        news_items.push(current_item.clone());
-                    }
-                    in_item = false;
-                } else if in_item {
-                    if let Some(title) = extract_xml_content(line, "title") {
-                        current_item["title"] = json!(title);
-                    } else if let Some(link) = extract_xml_content(line, "link") {
-                        current_item["url"] = json!(link);
-                    } else if let Some(pub_date) = extract_xml_content(line, "pubDate") {
-                        current_item["time"] = json!(pub_date);
-                    }
+            if line.contains("<item>") || line.contains("<entry>") {
+                in_item = true;
+                current_item = json!({});
+            } else if (line.contains("</item>") || line.contains("</entry>")) && in_item {
+                if !current_item["title"].is_null() {
+                    current_item["source"] = json!(extract_domain(url));
+                    news_items.push(current_item.clone());
                 }
-                
-                if news_items.len() >= 5 {
-                    break;
+                in_item = false;
+            } else if in_item {
+                if let Some(title) = extract_xml_content(line, "title") {
+                    current_item["title"] = json!(title);
+                } else if let Some(link) = extract_xml_content(line, "link") {
+                    current_item["url"] = json!(link);
+                } else if let Some(pub_date) = extract_xml_content(line, "pubDate") {
+                    current_item["time"] = json!(pub_date);
                 }
             }
             
-            return Ok(news_items);
+            if news_items.len() >= 5 {
+                break;
+            }
         }
+        
+        return Ok(news_items);
     }
     
     Err("Failed to fetch RSS feed".to_string())
