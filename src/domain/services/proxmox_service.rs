@@ -1,4 +1,5 @@
 use serde_json::{json, Value};
+use tracing::{info, warn, error};
 
 async fn get_proxmox_ticket(client: &reqwest::Client, url: &str, user: &str, password: &str) -> Option<(String, String)> {
     let auth_url = format!("{}/api2/json/access/ticket", url);
@@ -12,7 +13,7 @@ async fn get_proxmox_ticket(client: &reqwest::Client, url: &str, user: &str, pas
     
     let params = [("username", username), ("password", password.to_string())];
     
-    eprintln!("🔐 Proxmox Auth: Attempting login to {} as {}", url, params[0].1);
+    info!("🔐 Proxmox Auth: Attempting login to {} as {}", url, params[0].1);
     
     match client.post(&auth_url).form(&params).send().await {
         Ok(response) => {
@@ -24,18 +25,18 @@ async fn get_proxmox_ticket(client: &reqwest::Client, url: &str, user: &str, pas
                     if let (Some(t), Some(c)) = (ticket, csrf) {
                         return Some((t, c));
                     } else {
-                        eprintln!("❌ Proxmox Auth: {} - Missing ticket or CSRF in response: {:?}", url, data);
+                        error!("❌ Proxmox Auth: {} - Missing ticket or CSRF in response: {:?}", url, data);
                     }
                 } else {
-                    eprintln!("❌ Proxmox Auth: {} - Failed to parse JSON response", url);
+                    error!("❌ Proxmox Auth: {} - Failed to parse JSON response", url);
                 }
             } else {
                 let status = response.status();
                 let body = response.text().await.unwrap_or_else(|_| "no body".to_string());
-                eprintln!("❌ Proxmox Auth: {} - Failed with status {}. Body: {}", url, status, body);
+                error!("❌ Proxmox Auth: {} - Failed with status {}. Body: {}", url, status, body);
             }
         }
-        Err(e) => eprintln!("❌ Proxmox Auth: {} - Network error: {}", url, e)
+        Err(e) => error!("❌ Proxmox Auth: {} - Network error: {}", url, e)
     }
     None
 }
@@ -46,7 +47,7 @@ pub async fn get_proxmox_vms(client: &reqwest::Client) -> Result<Value, String> 
     let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
     
     if proxmox_urls.is_empty() || proxmox_user.is_empty() {
-        eprintln!("⚠️ Proxmox VMs: Missing credentials");
+        warn!("⚠️ Proxmox VMs: Missing credentials");
         return Ok(json!([]));
     }
     
@@ -59,7 +60,7 @@ pub async fn get_proxmox_vms(client: &reqwest::Client) -> Result<Value, String> 
         if url.is_empty() { continue; }
         
         let Some((ticket, _csrf)) = get_proxmox_ticket(client, url, &proxmox_user, &proxmox_password).await else {
-            eprintln!("⚠️ Proxmox VMs: {} auth failed", url);
+            warn!("⚠️ Proxmox VMs: {} auth failed", url);
             continue;
         };
         
@@ -82,13 +83,13 @@ pub async fn get_proxmox_vms(client: &reqwest::Client) -> Result<Value, String> 
                                 "server": url
                             })
                         }).collect();
-                        eprintln!("✅ Proxmox VMs: Found {} from {}", vms.len(), url);
+                        info!("✅ Proxmox VMs: Found {} from {}", vms.len(), url);
                         all_vms.extend(vms);
                     }
                 }
             }
-            Ok(response) => eprintln!("⚠️ Proxmox VMs: {} status {}", url, response.status()),
-            Err(e) => eprintln!("❌ Proxmox VMs: {} error: {}", url, e)
+            Ok(response) => warn!("⚠️ Proxmox VMs: {} status {}", url, response.status()),
+            Err(e) => error!("❌ Proxmox VMs: {} error: {}", url, e)
         }
     }
     
@@ -135,7 +136,7 @@ pub async fn get_proxmox_containers(client: &reqwest::Client) -> Result<Value, S
                                 "server": url
                             })
                         }).collect();
-                        eprintln!("✅ Proxmox Containers: Found {} from {}", containers.len(), url);
+                        info!("✅ Proxmox Containers: Found {} from {}", containers.len(), url);
                         all_containers.extend(containers);
                     }
                 }
@@ -187,7 +188,7 @@ pub async fn get_proxmox_nodes(client: &reqwest::Client) -> Result<Value, String
                                 "server": url
                             })
                         }).collect();
-                        eprintln!("✅ Proxmox Nodes: Found {} from {}", nodes.len(), url);
+                        info!("✅ Proxmox Nodes: Found {} from {}", nodes.len(), url);
                         all_nodes.extend(nodes);
                     }
                 }

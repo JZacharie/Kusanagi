@@ -110,11 +110,11 @@ pub fn start_mqtt_client(state: MqttState, host: String, port: u16, username: Op
         
         // Subscribe to everything
         if let Err(e) = client.subscribe("#", QoS::AtMostOnce).await {
-             eprintln!("❌ MQTT: Error subscribing: {:?}", e);
+             error!("❌ MQTT: Error subscribing: {:?}", e);
              return;
         }
 
-        println!("📡 MQTT: Connected to {}", host);
+        info!("📡 MQTT: Connected to {}", host);
 
         loop {
             match eventloop.poll().await {
@@ -126,7 +126,7 @@ pub fn start_mqtt_client(state: MqttState, host: String, port: u16, username: Op
                     }
                 },
                 Err(e) => {
-                    eprintln!("❌ MQTT: Connection error: {:?}", e);
+                    error!("❌ MQTT: Connection error: {:?}", e);
                     tokio::time::sleep(Duration::from_secs(5)).await;
                 }
             }
