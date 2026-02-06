@@ -197,11 +197,48 @@ pub async fn get_services() -> Result<Value, String> {
     let list = services.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
 
     let services_json: Vec<Value> = list.iter().map(|svc| {
+        // Age calculation
+        let age = if let Some(ts) = &svc.metadata.creation_timestamp {
+             let now = chrono::Utc::now();
+             let created = ts.0;
+             let diff = now.signed_duration_since(created);
+             if diff.num_days() > 0 {
+                 format!("{}d", diff.num_days())
+             } else if diff.num_hours() > 0 {
+                 format!("{}h", diff.num_hours())
+             } else if diff.num_minutes() > 0 {
+                 format!("{}m", diff.num_minutes())
+             } else {
+                 format!("{}s", diff.num_seconds())
+             }
+         } else {
+             "0s".to_string()
+         };
+
+        // Ports
+        let ports = svc.spec.as_ref()
+            .and_then(|s| s.ports.as_ref())
+            .map(|p| p.iter().map(|port| {
+                format!("{}:{}/{}", port.port, port.node_port.unwrap_or(0), port.protocol.clone().unwrap_or_default())
+            }).collect::<Vec<String>>().join(", "))
+            .unwrap_or_default();
+
+        // External IP
+        let external_ip = svc.status.as_ref()
+            .and_then(|s| s.load_balancer.as_ref())
+            .and_then(|lb| lb.ingress.as_ref())
+            .and_then(|i| i.first())
+            .map(|ing| ing.ip.clone().unwrap_or_else(|| ing.hostname.clone().unwrap_or_default()))
+            .unwrap_or_else(|| "<none>".to_string());
+
         json!({
             "name": svc.metadata.name.clone().unwrap_or_default(),
             "namespace": svc.metadata.namespace.clone().unwrap_or_default(),
-            "type": svc.spec.as_ref().and_then(|s| s.type_.clone()).unwrap_or_default(),
-            "cluster_ip": svc.spec.as_ref().and_then(|s| s.cluster_ip.clone()).unwrap_or_default()
+            "type_": svc.spec.as_ref().and_then(|s| s.type_.clone()).unwrap_or_default(),
+            "cluster_ip": svc.spec.as_ref().and_then(|s| s.cluster_ip.clone()).unwrap_or_default(),
+            "external_ip": external_ip,
+            "ports": ports,
+            "age": age
         })
     }).collect();
     
@@ -217,7 +254,25 @@ pub async fn get_ingress() -> Result<Value, String> {
     let list = ingresses.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
     
     let ingresses_json: Vec<Value> = list.iter().map(|ing| {
-        let hosts = ing.spec.as_ref()
+        // Age calculation
+        let age = if let Some(ts) = &ing.metadata.creation_timestamp {
+             let now = chrono::Utc::now();
+             let created = ts.0;
+             let diff = now.signed_duration_since(created);
+             if diff.num_days() > 0 {
+                 format!("{}d", diff.num_days())
+             } else if diff.num_hours() > 0 {
+                 format!("{}h", diff.num_hours())
+             } else if diff.num_minutes() > 0 {
+                 format!("{}m", diff.num_minutes())
+             } else {
+                 format!("{}s", diff.num_seconds())
+             }
+         } else {
+             "0s".to_string()
+         };
+
+        let rules = ing.spec.as_ref()
             .and_then(|spec| spec.rules.as_ref())
             .map(|rules| {
                 rules.iter().filter_map(|r| r.host.clone()).collect::<Vec<String>>()
@@ -227,7 +282,8 @@ pub async fn get_ingress() -> Result<Value, String> {
         json!({
             "name": ing.metadata.name.clone().unwrap_or_default(),
             "namespace": ing.metadata.namespace.clone().unwrap_or_default(),
-            "hosts": hosts
+            "rules": rules,
+            "age": age
         })
     }).collect();
     
@@ -240,17 +296,41 @@ pub async fn get_ingress() -> Result<Value, String> {
 pub async fn get_storage() -> Result<Value, String> {
     let client = Client::try_default().await.map_err(|e| e.to_string())?;
     
-    let pvs: Api<PersistentVolume> = Api::all(client.clone());
-    let pv_list = pvs.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
-    
     let pvcs: Api<PersistentVolumeClaim> = Api::all(client);
     let pvc_list = pvcs.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
     
+    let pvcs_json: Vec<Value> = pvc_list.iter().map(|pvc| {
+        let name = pvc.metadata.name.clone().unwrap_or_default();
+        let namespace = pvc.metadata.namespace.clone().unwrap_or_default();
+        let status = pvc.status.as_ref().and_then(|s| s.phase.clone()).unwrap_or("Unknown".to_string());
+        let storage_class = pvc.spec.as_ref().and_then(|s| s.storage_class_name.clone()).unwrap_or_default();
+        
+        let capacity = pvc.status.as_ref()
+            .and_then(|s| s.capacity.as_ref())
+            .and_then(|c| c.get("storage"))
+            .map(|q| q.0.clone())
+            .unwrap_or("0".to_string());
+
+        // Rough parsing of capacity string to bytes for total calculation (simplified)
+        // e.g., "10Gi" -> 10 * 1024^3
+        // This is a bit complex in Rust without a parser library, but for now we can just display strings.
+        // Or leave total calculation separate or simplified.
+        
+        json!({
+            "name": name,
+            "namespace": namespace,
+            "status": status,
+            "storage_class": storage_class,
+            "capacity": capacity,
+            "used_bytes": 0, // No metrics available via standard API
+            "usage_percent": 0.0
+        })
+    }).collect();
+    
     Ok(json!({
-        "total": "0GB", // Placeholder
-        "used": "0GB",
-        "pv_count": pv_list.items.len(),
-        "pvc_count": pvc_list.items.len()
+        "pvc_count": pvcs_json.len(),
+        "pvc_total_capacity": "Calculated on Frontend or Placeholder", // Parsing Quantity is hard without crate
+        "pvcs": pvcs_json
     }))
 }
 

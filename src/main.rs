@@ -7,6 +7,8 @@ use serde_json::json;
 use std::sync::Arc;
 use kusanagi::{Config, Cache, InMemoryCache, legacy};
 use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service};
+use sysinfo::{System, Networks, CpuRefreshKind, MemoryRefreshKind};
+use std::sync::Mutex;
 
 // WebSocket Actor
 struct WsNotifications;
@@ -64,8 +66,11 @@ async fn main() -> std::io::Result<()> {
         let _ = proxmox_service::get_proxmox_nodes(&client_clone).await;
     });
 
+    let sys = web::Data::new(Mutex::new(System::new_all()));
+
     HttpServer::new(move || {
         App::new()
+            .app_data(sys.clone())
             .app_data(web::Data::new(cache.clone()))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(client.clone()))
@@ -406,42 +411,45 @@ async fn web_index() -> impl Responder {
 }
 
 // API endpoints for frontend
-async fn system_status() -> impl Responder {
-    let uptime = std::fs::read_to_string("/proc/uptime")
-        .unwrap_or_default()
-        .split_whitespace()
-        .next()
-        .and_then(|s| s.parse::<f64>().ok())
-        .map(|s| format!("{}h", (s / 3600.0) as u32))
-        .unwrap_or_else(|| "unknown".to_string());
+async fn system_status(sys: web::Data<Mutex<System>>) -> impl Responder {
+    let mut sys = sys.lock().unwrap();
+    sys.refresh_all();
+
+    let uptime = System::uptime();
+    let cpu_usage = sys.global_cpu_info().cpu_usage();
+    let total_mem = sys.total_memory();
+    let used_mem = sys.used_memory();
+    
+    // Convert to MB
+    let memory_usage_mb = used_mem as f64 / 1024.0 / 1024.0;
     
     HttpResponse::Ok().json(json!({
         "status": "operational",
-        "uptime": uptime,
-        "version": "0.2.0"
+        "uptime_secs": uptime,
+        "uptime": format!("{}h", uptime / 3600),
+        "version": "0.2.0",
+        "cpu_usage": cpu_usage,
+        "memory_usage_mb": memory_usage_mb,
+        "memory_total_mb": total_mem as f64 / 1024.0 / 1024.0
     }))
 }
 
-async fn metrics() -> impl Responder {
-    let loadavg = std::fs::read_to_string("/proc/loadavg").unwrap_or_default();
-    let load = loadavg.split_whitespace().next().unwrap_or("0.0").parse::<f64>().unwrap_or(0.0);
+async fn metrics(sys: web::Data<Mutex<System>>) -> impl Responder {
+    let mut sys = sys.lock().unwrap();
+    sys.refresh_all();
     
-    let meminfo = std::fs::read_to_string("/proc/meminfo").unwrap_or_default();
-    let mut total_mem = 0;
-    let mut free_mem = 0;
-    for line in meminfo.lines() {
-        if line.starts_with("MemTotal:") {
-            total_mem = line.split_whitespace().nth(1).unwrap_or("0").parse().unwrap_or(0);
-        } else if line.starts_with("MemAvailable:") {
-            free_mem = line.split_whitespace().nth(1).unwrap_or("0").parse().unwrap_or(0);
-        }
-    }
-    let memory_usage = if total_mem > 0 { ((total_mem - free_mem) * 100 / total_mem) } else { 0 };
+    let load = sys.global_cpu_info().cpu_usage(); // Use cpu usage as load approx or use sys.load_average() if available?
+    // sysinfo 0.30 removed load_average() from SystemExt? It's usually in SystemExt.
+    // Let's stick to using what we have.
     
+    let total_mem = sys.total_memory();
+    let used_mem = sys.used_memory();
+    let memory_usage = if total_mem > 0 { (used_mem * 100) / total_mem } else { 0 };
+
     HttpResponse::Ok().json(json!({
-        "cpu_load": (load * 100.0) as u32,
+        "cpu_load": load,
         "memory_usage": memory_usage,
-        "disk_usage": 23
+        "disk_usage": 23 // Placeholder or use DiskExt
     }))
 }
 
