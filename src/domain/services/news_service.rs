@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-use std::process::Command;
+use tokio::process::Command;
 use chrono::Utc;
 
 pub async fn get_news() -> Result<Value, String> {
@@ -22,7 +22,8 @@ pub async fn get_news() -> Result<Value, String> {
     // Fallback: essayer curl pour une API de news simple
     let news_api_output = Command::new("curl")
         .args(&["-s", "https://hacker-news.firebaseio.com/v0/topstories.json"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = news_api_output {
         if result.status.success() {
@@ -34,7 +35,8 @@ pub async fn get_news() -> Result<Value, String> {
                 for &story_id in story_ids.iter().take(5) {
                     let story_output = Command::new("curl")
                         .args(&["-s", &format!("https://hacker-news.firebaseio.com/v0/item/{}.json", story_id)])
-                        .output();
+                        .output()
+                        .await;
                     
                     if let Ok(story_result) = story_output {
                         if story_result.status.success() {
@@ -110,7 +112,8 @@ pub async fn get_news() -> Result<Value, String> {
 async fn fetch_rss_feed(url: &str) -> Result<Vec<Value>, String> {
     let output = Command::new("curl")
         .args(&["-s", url])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = output {
         if result.status.success() {
