@@ -46,7 +46,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(cache.clone()))
             .app_data(web::Data::new(config.clone()))
-            .wrap(Logger::default())
+            .wrap(Logger::default().exclude("/health"))
             .route("/", web::get().to(web_index))
             .route("/api", web::get().to(service_info))
             .route("/health", web::get().to(health_check))
@@ -484,9 +484,43 @@ async fn pods_status() -> impl Responder {
     }
 }
 
-async fn cluster_overview() -> impl Responder {
+async fn cluster_overview(cache: web::Data<Arc<InMemoryCache>>) -> impl Responder {
+    let cache_key = "cluster_overview";
+    
+    // Check cache first
+    if let Some(cached_data) = cache.get(cache_key).await {
+        if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(&cached_data) {
+            return HttpResponse::Ok().json(json_val);
+        }
+    }
+
     match kubernetes_service::get_cluster_overview().await {
-        Ok(overview) => HttpResponse::Ok().json(overview),
+        Ok(overview) => {
+            // Cache the result for 30 seconds
+            let overview_clone = overview.clone();
+            let cache_clone = cache.clone();
+            actix_web::rt::spawn(async move {
+                cache_clone.set(cache_key, overview_clone.to_string()).await;
+                // Note: Simple InMemoryCache doesn't support TTL eviction built-in yet, 
+                // but avoiding concurrent kubectl storms is the main goal.
+                // ideally adding TTL support to cache would be better, but for now 
+                // just setting it is better than nothing.
+                // Actually, without TTL, we serve stale data forever.
+                // We MUST implement TTL or expire it.
+                // Since our minimal cache interface doesn't have TTL, let's just use it to debounce high traffic
+                // and maybe rely on a separate cleaner or just overwrite it?
+                // Wait, if we never invalidate, it's static.
+                // Let's implement a simple "overwrite if empty" or just accept we need to clear it.
+                // A better approach for now: Just return fresh data but maybe debounce?
+                // No, we need 503 fix.
+                
+                // Let's sleep and clear it?
+                tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
+                cache_clone.delete(cache_key).await;
+            });
+            
+            HttpResponse::Ok().json(overview)
+        },
         Err(_) => HttpResponse::Ok().json(json!({"nodes": 0, "pods": 0, "services": 0}))
     }
 }
