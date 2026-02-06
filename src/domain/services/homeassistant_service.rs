@@ -1,11 +1,12 @@
 use serde_json::{json, Value};
-use std::process::Command;
+use tokio::process::Command;
 
 pub async fn get_ha_devices() -> Result<Value, String> {
     // Essayer l'API Home Assistant
     let ha_api_output = Command::new("curl")
         .args(&["-s", "-H", "Authorization: Bearer LONG_LIVED_ACCESS_TOKEN", "http://localhost:8123/api/states"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = ha_api_output {
         if result.status.success() {
@@ -39,7 +40,8 @@ pub async fn get_ha_devices() -> Result<Value, String> {
     for port in [8123, 8124, 8125] {
         let ha_check = Command::new("curl")
             .args(&["-s", "-m", "2", &format!("http://localhost:{}/api/", port)])
-            .output();
+            .output()
+            .await;
         
         if let Ok(result) = ha_check {
             if result.status.success() {
@@ -60,7 +62,8 @@ pub async fn get_ha_devices() -> Result<Value, String> {
     // Fallback: chercher des processus Home Assistant
     let ha_process = Command::new("ps")
         .args(&["aux"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = ha_process {
         if result.status.success() {
@@ -83,7 +86,8 @@ pub async fn get_ha_sensors() -> Result<Value, String> {
     // Essayer l'API Home Assistant pour les sensors
     let ha_api_output = Command::new("curl")
         .args(&["-s", "-H", "Authorization: Bearer LONG_LIVED_ACCESS_TOKEN", "http://localhost:8123/api/states"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = ha_api_output {
         if result.status.success() {
@@ -149,7 +153,8 @@ pub async fn get_ha_automations() -> Result<Value, String> {
     // Essayer l'API Home Assistant pour les automations
     let ha_api_output = Command::new("curl")
         .args(&["-s", "-H", "Authorization: Bearer LONG_LIVED_ACCESS_TOKEN", "http://localhost:8123/api/config/automation/config"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = ha_api_output {
         if result.status.success() {
@@ -176,7 +181,8 @@ pub async fn get_ha_automations() -> Result<Value, String> {
     // Fallback: essayer les états automation.*
     let ha_states_output = Command::new("curl")
         .args(&["-s", "-H", "Authorization: Bearer LONG_LIVED_ACCESS_TOKEN", "http://localhost:8123/api/states"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = ha_states_output {
         if result.status.success() {
@@ -204,7 +210,8 @@ pub async fn get_ha_automations() -> Result<Value, String> {
     // Fallback: chercher des fichiers de configuration HA
     let ha_config_check = Command::new("find")
         .args(&["/", "-name", "configuration.yaml", "-path", "*/homeassistant/*", "2>/dev/null"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = ha_config_check {
         if result.status.success() {

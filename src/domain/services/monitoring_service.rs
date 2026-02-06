@@ -1,11 +1,12 @@
 use serde_json::{json, Value};
-use std::process::Command;
+use tokio::process::Command;
 
 pub async fn get_alerts() -> Result<Value, String> {
     // Essayer Prometheus AlertManager
     let alertmanager_output = Command::new("curl")
         .args(&["-s", "http://localhost:9093/api/v1/alerts"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = alertmanager_output {
         if result.status.success() {
@@ -31,7 +32,8 @@ pub async fn get_alerts() -> Result<Value, String> {
     // Fallback: vérifier les pods en erreur comme "alertes"
     let pods_output = Command::new("kubectl")
         .args(&["get", "pods", "--all-namespaces", "--field-selector=status.phase!=Running,status.phase!=Succeeded", "-o", "json"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = pods_output {
         if result.status.success() {
@@ -60,7 +62,8 @@ pub async fn get_alerts() -> Result<Value, String> {
 pub async fn get_quotas() -> Result<Value, String> {
     let output = Command::new("kubectl")
         .args(&["get", "resourcequota", "--all-namespaces", "-o", "json"])
-        .output();
+        .output()
+        .await;
     
     match output {
         Ok(result) if result.status.success() => {
@@ -123,7 +126,8 @@ pub async fn get_backups() -> Result<Value, String> {
     // Essayer Velero
     let velero_output = Command::new("kubectl")
         .args(&["get", "backups", "-n", "velero", "-o", "json"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = velero_output {
         if result.status.success() {
@@ -148,7 +152,8 @@ pub async fn get_backups() -> Result<Value, String> {
     // Fallback: chercher des CronJobs de backup
     let cronjob_output = Command::new("kubectl")
         .args(&["get", "cronjobs", "--all-namespaces", "-o", "json"])
-        .output();
+        .output()
+        .await;
     
     if let Ok(result) = cronjob_output {
         if result.status.success() {
