@@ -1,6 +1,6 @@
 use serde_json::{json, Value};
 use kube::{Client, Api, api::ListParams};
-use k8s_openapi::api::core::v1::{Pod, Node, Service, PersistentVolume, PersistentVolumeClaim, Event};
+use k8s_openapi::api::core::v1::{Pod, Node, Service, PersistentVolumeClaim, Event};
 use k8s_openapi::api::networking::v1::Ingress;
 
 pub async fn get_pods_status() -> Result<Value, String> {
@@ -80,18 +80,7 @@ pub async fn get_pods_status() -> Result<Value, String> {
         if is_error {
              // Calculate Age
              let age = if let Some(ts) = &pod.metadata.creation_timestamp {
-                 let now = chrono::Utc::now();
-                 let created = ts.0;
-                 let diff = now.signed_duration_since(created);
-                 if diff.num_days() > 0 {
-                     format!("{}d", diff.num_days())
-                 } else if diff.num_hours() > 0 {
-                     format!("{}h", diff.num_hours())
-                 } else if diff.num_minutes() > 0 {
-                     format!("{}m", diff.num_minutes())
-                 } else {
-                     format!("{}s", diff.num_seconds())
-                 }
+                 calculate_age_from_timestamp(ts)
              } else {
                  "0s".to_string()
              };
@@ -197,23 +186,11 @@ pub async fn get_services() -> Result<Value, String> {
     let list = services.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
 
     let services_json: Vec<Value> = list.iter().map(|svc| {
-        // Age calculation
         let age = if let Some(ts) = &svc.metadata.creation_timestamp {
-             let now = chrono::Utc::now();
-             let created = ts.0;
-             let diff = now.signed_duration_since(created);
-             if diff.num_days() > 0 {
-                 format!("{}d", diff.num_days())
-             } else if diff.num_hours() > 0 {
-                 format!("{}h", diff.num_hours())
-             } else if diff.num_minutes() > 0 {
-                 format!("{}m", diff.num_minutes())
-             } else {
-                 format!("{}s", diff.num_seconds())
-             }
-         } else {
-             "0s".to_string()
-         };
+            calculate_age_from_timestamp(ts)
+        } else {
+            "0s".to_string()
+        };
 
         // Ports
         let ports = svc.spec.as_ref()
@@ -254,23 +231,11 @@ pub async fn get_ingress() -> Result<Value, String> {
     let list = ingresses.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
     
     let ingresses_json: Vec<Value> = list.iter().map(|ing| {
-        // Age calculation
         let age = if let Some(ts) = &ing.metadata.creation_timestamp {
-             let now = chrono::Utc::now();
-             let created = ts.0;
-             let diff = now.signed_duration_since(created);
-             if diff.num_days() > 0 {
-                 format!("{}d", diff.num_days())
-             } else if diff.num_hours() > 0 {
-                 format!("{}h", diff.num_hours())
-             } else if diff.num_minutes() > 0 {
-                 format!("{}m", diff.num_minutes())
-             } else {
-                 format!("{}s", diff.num_seconds())
-             }
-         } else {
-             "0s".to_string()
-         };
+            calculate_age_from_timestamp(ts)
+        } else {
+            "0s".to_string()
+        };
 
         let rules = ing.spec.as_ref()
             .and_then(|spec| spec.rules.as_ref())
@@ -305,33 +270,67 @@ pub async fn get_storage() -> Result<Value, String> {
         let status = pvc.status.as_ref().and_then(|s| s.phase.clone()).unwrap_or("Unknown".to_string());
         let storage_class = pvc.spec.as_ref().and_then(|s| s.storage_class_name.clone()).unwrap_or_default();
         
-        let capacity = pvc.status.as_ref()
+        let capacity_str = pvc.status.as_ref()
             .and_then(|s| s.capacity.as_ref())
             .and_then(|c| c.get("storage"))
             .map(|q| q.0.clone())
             .unwrap_or("0".to_string());
 
-        // Rough parsing of capacity string to bytes for total calculation (simplified)
-        // e.g., "10Gi" -> 10 * 1024^3
-        // This is a bit complex in Rust without a parser library, but for now we can just display strings.
-        // Or leave total calculation separate or simplified.
-        
+        let capacity_bytes = parse_k8s_quantity(&capacity_str);
+
         json!({
             "name": name,
             "namespace": namespace,
             "status": status,
             "storage_class": storage_class,
-            "capacity": capacity,
+            "capacity": capacity_str,
+            "capacity_bytes": capacity_bytes,
             "used_bytes": 0, // No metrics available via standard API
             "usage_percent": 0.0
         })
     }).collect();
     
+    let total_capacity: u64 = pvcs_json.iter().map(|v| v["capacity_bytes"].as_u64().unwrap_or(0)).sum();
+    let total_formatted = format_bytes(total_capacity);
+
     Ok(json!({
         "pvc_count": pvcs_json.len(),
-        "pvc_total_capacity": "Calculated on Frontend or Placeholder", // Parsing Quantity is hard without crate
+        "pvc_total_capacity": total_formatted,
         "pvcs": pvcs_json
     }))
+}
+
+fn parse_k8s_quantity(q: &str) -> u64 {
+    let q = q.trim();
+    if q.is_empty() { return 0; }
+    
+    let digits: String = q.chars().take_while(|c| c.is_digit(10)).collect();
+    let suffix: String = q.chars().skip_while(|c| c.is_digit(10)).collect();
+    
+    let value = digits.parse::<u64>().unwrap_or(0);
+    
+    match suffix.as_str() {
+        "Ki" => value * 1024,
+        "Mi" => value * 1024 * 1024,
+        "Gi" => value * 1024 * 1024 * 1024,
+        "Ti" => value * 1024 * 1024 * 1024 * 1024,
+        "Pi" => value * 1024 * 1024 * 1024 * 1024 * 1024,
+        "m" => 0, // Millibytes not relevant for storage
+        "" => value,
+        _ => value, // Unknown suffix, return raw
+    }
+}
+
+fn format_bytes(bytes: u64) -> String {
+    if bytes == 0 { return "0 B".to_string(); }
+    let units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
+    let mut b = bytes as f64;
+    let mut i = 0;
+    while b >= 1024.0 && i < units.len() - 1 {
+        b /= 1024.0;
+        i += 1;
+    }
+    format!("{:.1} {}", b, units[i])
 }
 
 // Imports are at top
@@ -360,6 +359,37 @@ pub async fn get_events() -> Result<Value, String> {
     }).collect();
     
     Ok(json!(events))
+}
+
+// Helper function to calculate age from k8s timestamp (kube 3.0 uses jiff::Timestamp)
+fn calculate_age_from_timestamp(ts: &k8s_openapi::apimachinery::pkg::apis::meta::v1::Time) -> String {
+    // Convert jiff::Timestamp to seconds since epoch
+    let created_secs = ts.0.as_second();
+    let now_secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+    
+    let diff_secs = now_secs - created_secs;
+    
+    if diff_secs < 0 {
+        return "0s".to_string();
+    }
+    
+    let days = diff_secs / 86400;
+    let hours = (diff_secs % 86400) / 3600;
+    let minutes = (diff_secs % 3600) / 60;
+    let seconds = diff_secs % 60;
+    
+    if days > 0 {
+        format!("{}d", days)
+    } else if hours > 0 {
+        format!("{}h", hours)
+    } else if minutes > 0 {
+        format!("{}m", minutes)
+    } else {
+        format!("{}s", seconds)
+    }
 }
 
 // End of file

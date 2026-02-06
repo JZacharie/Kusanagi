@@ -39,7 +39,7 @@ const HomeAssistantDashboard = {
         const sensorsEl = document.getElementById('ha-sensors');
         const automationsEl = document.getElementById('ha-automations');
         const devicesEl = document.getElementById('ha-devices');
-        
+
         if (sensorsEl) sensorsEl.textContent = sensors.length || '0';
         if (automationsEl) automationsEl.textContent = automations.length || '0';
         if (devicesEl) devicesEl.textContent = devices.length || '0';
@@ -62,7 +62,7 @@ const HomeAssistantDashboard = {
     getMDIIcon(sensor) {
         const deviceClass = sensor.attributes.device_class;
         const domain = sensor.entity_id.split('.')[0];
-        const state = sensor.state.toLowerCase();
+        const state = String(sensor.state).toLowerCase();
 
         const iconMap = {
             'temperature': 'mdi-thermometer',
@@ -94,7 +94,7 @@ const HomeAssistantDashboard = {
     renderSensors(sensors) {
         const container = document.getElementById('ha-sensors-content');
         const countEl = document.getElementById('ha-sensors-count');
-        
+
         if (!container) return;
         if (countEl) countEl.textContent = sensors.length;
 
@@ -210,7 +210,7 @@ const HomeAssistantDashboard = {
     },
 
     getStateColor(sensor) {
-        const state = sensor.state.toLowerCase();
+        const state = String(sensor.state).toLowerCase();
         if (['on', 'home', 'locked', 'open'].includes(state)) return 'var(--neon-green)';
         if (['off', 'not_home', 'unlocked', 'closed'].includes(state)) return 'var(--neon-magenta)';
         if (['unavailable', 'unknown'].includes(state)) return '#666';
@@ -220,7 +220,7 @@ const HomeAssistantDashboard = {
     renderAutomations(automations) {
         const container = document.getElementById('ha-automations-content');
         if (!container) return;
-        
+
         if (!automations || automations.length === 0) {
             container.innerHTML = '<div class="no-issues">No automations found</div>';
             return;
