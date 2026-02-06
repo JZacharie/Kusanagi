@@ -7,7 +7,7 @@ use serde_json::json;
 use std::sync::Arc;
 use kusanagi::{Config, Cache, InMemoryCache, legacy};
 use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service, mqtt_service, slack_service};
-use sysinfo::{System, Networks, CpuRefreshKind, MemoryRefreshKind};
+use sysinfo::{System, Networks, CpuRefreshKind, MemoryRefreshKind, Disks};
 use std::sync::Mutex;
 
 // WebSocket Actor
@@ -453,10 +453,23 @@ async fn metrics(sys: web::Data<Mutex<System>>) -> impl Responder {
     let used_mem = sys.used_memory();
     let memory_usage = if total_mem > 0 { (used_mem * 100) / total_mem } else { 0 };
 
+    // Calculate real disk usage
+    let disks = Disks::new_with_refreshed_list();
+    let mut total_disk = 0;
+    let mut available_disk = 0;
+    
+    for disk in &disks {
+        total_disk += disk.total_space();
+        available_disk += disk.available_space();
+    }
+    
+    let used_disk = total_disk - available_disk;
+    let disk_usage = if total_disk > 0 { (used_disk * 100) / total_disk } else { 0 };
+
     HttpResponse::Ok().json(json!({
         "cpu_load": load,
         "memory_usage": memory_usage,
-        "disk_usage": 23 // Placeholder or use DiskExt
+        "disk_usage": disk_usage
     }))
 }
 

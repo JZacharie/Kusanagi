@@ -145,14 +145,20 @@ pub async fn get_backups() -> Result<Value, String> {
             // Calculate last schedule age
             let last_schedule_age = if let Some(status) = &job.status {
                 if let Some(last_time) = &status.last_schedule_time {
-                     let now = chrono::Utc::now();
-                     let created = last_time.0;
-                     let diff = now.signed_duration_since(created);
-                     if diff.num_hours() > 0 {
-                         format!("{}h", diff.num_hours())
-                     } else {
-                         format!("{}m", diff.num_minutes())
-                     }
+                    let created_secs = last_time.0.as_second();
+                    let now_secs = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs() as i64;
+                    let age_seconds = now_secs - created_secs;
+
+                    if age_seconds >= 3600 { // If age is 1 hour or more
+                        format!("{}h", age_seconds / 3600)
+                    } else if age_seconds >= 60 { // If age is 1 minute or more
+                        format!("{}m", age_seconds / 60)
+                    } else {
+                        format!("{}s", age_seconds)
+                    }
                 } else {
                     "-".to_string()
                 }

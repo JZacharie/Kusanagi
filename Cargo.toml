@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 # Core
 tokio = { version = "1.0", features = ["full"] }
-actix-web = "4.0"
+actix-web = "4.12"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
@@ -21,8 +21,8 @@ thiserror = "1.0"
 anyhow = "1.0"
 
 # Legacy dependencies
-kube = { version = "0.95", features = ["runtime", "derive"] }
-k8s-openapi = { version = "0.23", features = ["latest"] }
+kube = { version = "3.0", features = ["runtime", "derive"] }
+k8s-openapi = { version = "0.27", features = ["latest"] }
 reqwest = { version = "0.12", features = ["json"] }
 base64 = "0.22"
 sysinfo = "0.30"
