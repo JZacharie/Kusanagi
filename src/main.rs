@@ -34,7 +34,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsNotifications {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init();
+    // Configure logger with timestamps
+    env_logger::Builder::from_default_env()
+        .format_timestamp_millis()
+        .init();
     
     println!("🚀 Kusanagi Hexagonal Architecture + Legacy");
     
@@ -70,7 +73,13 @@ async fn main() -> std::io::Result<()> {
 
     // MQTT Init
     let mqtt_state = mqtt_service::MqttState::new();
-    mqtt_service::start_mqtt_client(mqtt_state.clone(), config.mqtt.host.clone(), config.mqtt.port);
+    let mqtt_host = std::env::var("MQTT_HOST").unwrap_or_else(|_| config.mqtt.host.clone());
+    let mqtt_port = std::env::var("MQTT_PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(config.mqtt.port);
+    
+    mqtt_service::start_mqtt_client(mqtt_state.clone(), mqtt_host, mqtt_port);
 
     // Slack Monitoring Init
     let slack = slack_service::SlackService::new();
