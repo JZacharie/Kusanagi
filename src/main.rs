@@ -188,19 +188,13 @@ async fn service_info(config: web::Data<Config>) -> impl Responder {
     }))
 }
 
-async fn health_check(cache: web::Data<Arc<InMemoryCache>>) -> impl Responder {
-    let stats = cache.stats().await;
+async fn health_check() -> impl Responder {
     HttpResponse::Ok().json(json!({
         "status": "healthy",
         "architecture": "hexagonal + legacy",
         "legacy_modules": [
             "cluster", "nodes", "pods", "argocd", "prometheus", "events", "services", "storage", "ingress", "health"
-        ],
-        "cache": {
-            "entries": stats.entries,
-            "hits": stats.hits,
-            "misses": stats.misses
-        }
+        ]
     }))
 }
 
