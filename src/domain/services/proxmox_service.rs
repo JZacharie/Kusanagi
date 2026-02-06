@@ -12,7 +12,7 @@ async fn get_proxmox_ticket(client: &reqwest::Client, url: &str, user: &str, pas
     
     let params = [("username", username), ("password", password.to_string())];
     
-    eprintln!("🔐 Proxmox Auth: Attempting login to {} as {}", url, params[0].0);
+    eprintln!("🔐 Proxmox Auth: Attempting login to {} as {}", url, params[0].1);
     
     match client.post(&auth_url).form(&params).send().await {
         Ok(response) => {
