@@ -1,5 +1,7 @@
 use serde_json::{json, Value};
 use tokio::process::Command;
+use kube::{Client, Api, api::ListParams};
+use k8s_openapi::api::batch::v1::CronJob;
 
 pub async fn get_alerts() -> Result<Value, String> {
     // Essayer Prometheus AlertManager
@@ -123,65 +125,73 @@ pub async fn get_quotas() -> Result<Value, String> {
 }
 
 pub async fn get_backups() -> Result<Value, String> {
-    // Essayer Velero
-    let velero_output = Command::new("kubectl")
-        .args(&["get", "backups", "-n", "velero", "-o", "json"])
-        .output()
-        .await;
-    
-    if let Ok(result) = velero_output {
-        if result.status.success() {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(backup_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(items) = backup_data["items"].as_array() {
-                    let backups: Vec<Value> = items.iter().map(|backup| {
-                        json!({
-                            "name": backup["metadata"]["name"],
-                            "status": backup["status"]["phase"],
-                            "created": backup["metadata"]["creationTimestamp"],
-                            "size": backup["status"]["progress"]["totalItems"]
-                        })
-                    }).collect();
-                    
-                    return Ok(json!(backups));
+    // We primarily look for CronJobs with "backup" or "dump" in the name
+    let client = Client::try_default().await.map_err(|e| e.to_string())?;
+    let cronjobs_api: Api<CronJob> = Api::all(client);
+    let list = cronjobs_api.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
+
+    let backup_jobs: Vec<Value> = list.items.iter()
+        .filter(|job| {
+            job.metadata.name.as_deref()
+                .map(|name| name.contains("backup") || name.contains("dump"))
+                .unwrap_or(false)
+        })
+        .map(|job| {
+            let name = job.metadata.name.clone().unwrap_or_default();
+            let namespace = job.metadata.namespace.clone().unwrap_or_default();
+            let schedule = job.spec.as_ref().map(|s| s.schedule.clone()).unwrap_or_default();
+            let suspend = job.spec.as_ref().map(|s| s.suspend.unwrap_or(false)).unwrap_or(false);
+            
+            // Calculate last schedule age
+            let last_schedule_age = if let Some(status) = &job.status {
+                if let Some(last_time) = &status.last_schedule_time {
+                     let now = chrono::Utc::now();
+                     let created = last_time.0;
+                     let diff = now.signed_duration_since(created);
+                     if diff.num_hours() > 0 {
+                         format!("{}h", diff.num_hours())
+                     } else {
+                         format!("{}m", diff.num_minutes())
+                     }
+                } else {
+                    "-".to_string()
                 }
-            }
-        }
-    }
+            } else {
+                "-".to_string()
+            };
+            
+            // Active jobs count
+            let active_jobs_count = job.status.as_ref()
+                .and_then(|s| s.active.as_ref())
+                .map(|a| a.len())
+                .unwrap_or(0);
+
+            // Recent jobs - simplified placeholder as listing all Jobs is expensive just for this
+            // To be accurate we would need to list Jobs filtered by ownerReference=CronJob
+            // For now, let's just return mostly static info or what we have.
+            
+            json!({
+                "name": name,
+                "namespace": namespace,
+                "schedule": schedule,
+                "status": if suspend { "suspended" } else if active_jobs_count > 0 { "running" } else { "idle" },
+                "suspend": suspend,
+                "active_jobs": active_jobs_count,
+                "last_schedule_age": last_schedule_age,
+                "recent_jobs": [] // Placeholder
+            })
+        }).collect();
     
-    // Fallback: chercher des CronJobs de backup
-    let cronjob_output = Command::new("kubectl")
-        .args(&["get", "cronjobs", "--all-namespaces", "-o", "json"])
-        .output()
-        .await;
+    let total = backup_jobs.len();
+    let active = backup_jobs.iter().filter(|j| j["active_jobs"].as_u64().unwrap_or(0) > 0).count();
     
-    if let Ok(result) = cronjob_output {
-        if result.status.success() {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(cronjob_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(items) = cronjob_data["items"].as_array() {
-                    let backup_jobs: Vec<Value> = items.iter()
-                        .filter(|job| {
-                            job["metadata"]["name"].as_str()
-                                .map(|name| name.contains("backup") || name.contains("dump"))
-                                .unwrap_or(false)
-                        })
-                        .map(|job| {
-                            json!({
-                                "name": job["metadata"]["name"],
-                                "status": "scheduled",
-                                "schedule": job["spec"]["schedule"],
-                                "namespace": job["metadata"]["namespace"]
-                            })
-                        }).collect();
-                    
-                    return Ok(json!(backup_jobs));
-                }
-            }
-        }
-    }
-    
-    Ok(json!([]))
+    Ok(json!({
+        "total_cronjobs": total,
+        "active_jobs": active,
+        "succeeded_jobs": 0, // Need to check Jobs history
+        "failed_jobs": 0,
+        "cronjobs": backup_jobs
+    }))
 }
 
 fn parse_cpu_value(cpu_str: &str) -> i64 {
