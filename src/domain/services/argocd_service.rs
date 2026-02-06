@@ -4,27 +4,24 @@ use std::process::Command;
 pub async fn get_argocd_status() -> Result<Value, String> {
     eprintln!("🔍 Fetching ArgoCD status...");
     
-    // Try kubectl for ArgoCD applications
+    // OPTIMIZATION: Use custom-columns to avoid parsing massive JSON with history/managedFields
+    // Columns: NAME, NAMESPACE, HEALTH, SYNC, REVISION
     let kubectl_output = Command::new("kubectl")
-        .args(&["get", "applications", "-n", "argocd", "-o", "json"])
+        .args(&["get", "applications", "-n", "argocd", "--no-headers", 
+                "-o", "custom-columns=NAME:.metadata.name,NS:.metadata.namespace,HEALTH:.status.health.status,SYNC:.status.sync.status,REV:.status.sync.revision"])
         .output();
     
     if let Ok(result) = kubectl_output {
         if result.status.success() {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(apps_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(items) = apps_data["items"].as_array() {
-                    eprintln!("✅ ArgoCD: Found {} applications via kubectl", items.len());
-                    return parse_argocd_apps(items);
-                }
-            }
+            let stdout = String::from_utf8_lossy(&result.stdout);
+            return parse_argocd_apps_text(&stdout);
         } else {
             let stderr = String::from_utf8_lossy(&result.stderr);
             eprintln!("⚠️ ArgoCD kubectl error: {}", stderr.trim());
         }
     }
     
-    // Check if ArgoCD is installed
+    // Check if ArgoCD is installed if app fetch failed
     let argocd_pods_output = Command::new("kubectl")
         .args(&["get", "pods", "-n", "argocd", "--no-headers"])
         .output();
@@ -71,7 +68,7 @@ pub async fn get_argocd_status() -> Result<Value, String> {
     }))
 }
 
-fn parse_argocd_apps(items: &Vec<Value>) -> Result<Value, String> {
+fn parse_argocd_apps_text(stdout: &str) -> Result<Value, String> {
     let mut healthy = 0;
     let mut unhealthy = 0;
     let mut synced = 0;
@@ -79,19 +76,25 @@ fn parse_argocd_apps(items: &Vec<Value>) -> Result<Value, String> {
     let mut progressing = 0;
     let mut apps_with_issues = Vec::new();
     let mut apps_with_upgrades = Vec::new();
+    let mut total = 0;
     
-    for app in items {
-        let name = app["metadata"]["name"].as_str().unwrap_or("unknown");
-        let namespace = app["metadata"]["namespace"].as_str().unwrap_or("argocd");
-        let health_status = app["status"]["health"]["status"].as_str().unwrap_or("Unknown");
-        let sync_status = app["status"]["sync"]["status"].as_str().unwrap_or("Unknown");
-        let revision = app["status"]["sync"]["revision"].as_str().unwrap_or("");
+    for line in stdout.lines() {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        // Expecting at least 4 columns: NAME, NS, HEALTH, SYNC. REV is optional/might be empty but split_whitespace handles it.
+        if parts.len() < 4 { continue; }
+        
+        total += 1;
+        let name = parts[0];
+        let namespace = parts[1];
+        let health_status = parts[2];
+        let sync_status = parts[3];
+        let revision = if parts.len() > 4 { parts[4] } else { "" };
         
         match health_status {
             "Healthy" => healthy += 1,
             "Degraded" | "Missing" | "Unknown" => unhealthy += 1,
             "Progressing" => progressing += 1,
-            _ => {}
+            _ => {} // Handle custom statuses if any
         }
         
         match sync_status {
@@ -107,7 +110,7 @@ fn parse_argocd_apps(items: &Vec<Value>) -> Result<Value, String> {
             "sync_status": sync_status,
             "current_revision": revision,
             "argocd_url": format!("https://argocd.p.zacharie.org/applications/{}", name),
-            "message": app["status"]["health"]["message"].as_str().unwrap_or(""),
+            "message": "", // Omitted for performance/safety with custom-columns
             "can_sync": sync_status == "OutOfSync"
         });
         
@@ -121,7 +124,7 @@ fn parse_argocd_apps(items: &Vec<Value>) -> Result<Value, String> {
     }
     
     Ok(json!({
-        "total": items.len(),
+        "total": total,
         "healthy": healthy,
         "unhealthy": unhealthy,
         "synced": synced,

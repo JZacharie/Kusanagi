@@ -2,36 +2,43 @@ use serde_json::{json, Value};
 use std::process::Command;
 
 pub async fn get_pods_status() -> Result<Value, String> {
+    // OPTIMIZATION: Use custom-columns to fetch ONLY the phase, avoiding massive JSON parsing
     let output = Command::new("kubectl")
-        .args(&["get", "pods", "--all-namespaces", "-o", "json"])
+        .args(&["get", "pods", "--all-namespaces", "--no-headers", "-o", "custom-columns=PHASE:.status.phase"])
         .output();
     
     match output {
         Ok(result) if result.status.success() => {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(pods_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(items) = pods_data["items"].as_array() {
-                    let mut running = 0;
-                    let mut pending = 0;
-                    let mut failed = 0;
-                    
-                    for pod in items {
-                        match pod["status"]["phase"].as_str() {
-                            Some("Running") => running += 1,
-                            Some("Pending") => pending += 1,
-                            Some("Failed") => failed += 1,
-                            _ => {}
-                        }
-                    }
-                    
-                    return Ok(json!({
-                        "running": running,
-                        "pending": pending,
-                        "failed": failed,
-                        "total": items.len()
-                    }));
+            let stdout = String::from_utf8_lossy(&result.stdout);
+            let mut running = 0;
+            let mut pending = 0;
+            let mut failed = 0;
+            let mut total = 0;
+            
+            for line in stdout.lines() {
+                let phase = line.trim();
+                if phase.is_empty() { continue; }
+                
+                total += 1;
+                match phase {
+                    "Running" => running += 1,
+                    "Pending" => pending += 1,
+                    "Failed" | "Error" | "CrashLoopBackOff" => failed += 1,
+                    _ => {}
                 }
             }
+            
+            return Ok(json!({
+                "running": running,
+                "pending": pending,
+                "failed": failed,
+                "total": total,
+                 // Frontend expected fields
+                "total_pods": total,
+                "running_pods": running,
+                "error_pods": failed,
+                "pods_in_error": failed
+            }));
         },
         _ => {}
     }
@@ -46,35 +53,35 @@ pub async fn get_pods_status() -> Result<Value, String> {
 }
 
 pub async fn get_nodes_status() -> Result<Value, String> {
+    // OPTIMIZATION: Use custom-columns to fetch only the Ready condition status
     let output = Command::new("kubectl")
-        .args(&["get", "nodes", "-o", "json"])
+        .args(&["get", "nodes", "--no-headers", "-o", "custom-columns=STATUS:.status.conditions[?(@.type==\"Ready\")].status"])
         .output();
     
     match output {
         Ok(result) if result.status.success() => {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(nodes_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(items) = nodes_data["items"].as_array() {
-                    let mut ready = 0;
-                    let mut not_ready = 0;
-                    
-                    for node in items {
-                        if let Some(conditions) = node["status"]["conditions"].as_array() {
-                            let is_ready = conditions.iter().any(|c| 
-                                c["type"].as_str() == Some("Ready") && 
-                                c["status"].as_str() == Some("True")
-                            );
-                            if is_ready { ready += 1; } else { not_ready += 1; }
-                        }
-                    }
-                    
-                    return Ok(json!({
-                        "ready": ready,
-                        "not_ready": not_ready,
-                        "total": items.len()
-                    }));
+            let stdout = String::from_utf8_lossy(&result.stdout);
+            let mut ready = 0;
+            let mut not_ready = 0;
+            let mut total = 0;
+            
+            for line in stdout.lines() {
+                let status = line.trim();
+                if status.is_empty() { continue; }
+                
+                total += 1;
+                if status == "True" {
+                    ready += 1;
+                } else {
+                    not_ready += 1;
                 }
             }
+            
+            return Ok(json!({
+                "ready": ready,
+                "not_ready": not_ready,
+                "total": total
+            }));
         },
         _ => {}
     }
