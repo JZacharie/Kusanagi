@@ -24,7 +24,9 @@ impl SlackService {
         let channel_id = env::var("SLACK_CHANNEL_ID").unwrap_or_default();
         
         if token.is_empty() {
-            warn!("SLACK_BOT_TOKEN is not set. Slack integration disabled.");
+            warn!("⚠️ Slack: Token not set. Integration disabled.");
+        } else {
+            info!("💬 Slack: Integration enabled for channel {}", channel_id);
         }
 
         Self {
