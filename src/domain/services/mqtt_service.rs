@@ -6,6 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use rumqttc::{AsyncClient, MqttOptions, QoS, Event, Packet};
 use tokio::task;
 use std::time::Duration;
+use tracing::{error, warn};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct MqttMessage {
@@ -102,7 +103,7 @@ pub fn start_mqtt_client(state: MqttState, host: String, port: u16) {
         
         // Subscribe to everything
         if let Err(e) = client.subscribe("#", QoS::AtMostOnce).await {
-             eprintln!("Error subscribing to MQTT: {:?}", e);
+             error!("Error subscribing to MQTT: {:?}", e);
              return;
         }
 
@@ -116,7 +117,7 @@ pub fn start_mqtt_client(state: MqttState, host: String, port: u16) {
                     }
                 },
                 Err(e) => {
-                    eprintln!("MQTT connection error: {:?}", e);
+                    error!("MQTT connection error: {:?}", e);
                     tokio::time::sleep(Duration::from_secs(5)).await;
                 }
             }
