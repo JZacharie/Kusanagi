@@ -11,7 +11,7 @@ COPY static ./static
 COPY build.rs ./
 RUN cargo build --release
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 RUN apt-get update && apt-get install -y ca-certificates libssl3 curl && rm -rf /var/lib/apt/lists/*
 
 # Install kubectl - robust version fetch
