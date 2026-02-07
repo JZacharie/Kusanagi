@@ -526,11 +526,11 @@ const K8sManager = {
             if (data._warning) {
                 console.warn('Nodes warning:', data._warning);
             }
-            
+
             // Update stats
-            const stats = { 
-                'node-total': data.total_nodes, 
-                'node-ready': data.ready_nodes, 
+            const stats = {
+                'node-total': data.total_nodes,
+                'node-ready': data.ready_nodes,
                 'node-notready': data.not_ready_nodes,
                 'node-cpu-total': data.total_cpu || '-',
                 'node-memory-total': data.total_memory || '-'
@@ -564,19 +564,19 @@ const K8sManager = {
             `;
             return;
         }
-        
+
         nodes.sort((a, b) => a.name.localeCompare(b.name));
-        
+
         container.innerHTML = nodes.map(node => {
             const isReady = node.status === 'Ready';
             const cpuPercent = node.cpu_usage_percent || 0;
             const memPercent = node.memory_usage_percent || 0;
             const podPercent = node.pod_capacity ? Math.round((node.pod_count / parseInt(node.pod_capacity)) * 100) : 0;
-            
-            const getCpuClass = (p) => p > 80 ? 'high' : p > 60 ? 'medium' : 'low';
-            const getMemClass = (p) => p > 80 ? 'high' : p > 60 ? 'medium' : 'low';
-            const getPodClass = (p) => p > 80 ? 'high' : p > 60 ? 'medium' : 'low';
-            
+
+            const getCpuClass = (p) => p > 90 ? 'bar-danger' : p > 75 ? 'bar-warning' : 'bar-ok';
+            const getMemClass = (p) => p > 90 ? 'bar-danger' : p > 75 ? 'bar-warning' : 'bar-ok';
+            const getPodClass = (p) => p > 90 ? 'bar-danger' : p > 75 ? 'bar-warning' : 'bar-ok';
+
             return `
                 <div class="node-card ${isReady ? 'ready' : 'not-ready'}">
                     <div class="node-header">
@@ -610,8 +610,8 @@ const K8sManager = {
                                     <span>CPU</span>
                                     <span>${cpuPercent.toFixed(1)}% (${node.cpu_capacity || 'N/A'})</span>
                                 </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill ${getCpuClass(cpuPercent)}" style="width: ${Math.min(cpuPercent, 100)}%"></div>
+                                <div class="pod-bar-container">
+                                    <div class="pod-bar ${getCpuClass(cpuPercent)}" style="width: ${Math.min(cpuPercent, 100)}%"></div>
                                 </div>
                             </div>
                             
@@ -620,8 +620,8 @@ const K8sManager = {
                                     <span>Pods</span>
                                     <span>${node.pod_count || 0} / ${node.pod_capacity || 'N/A'}</span>
                                 </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill ${getPodClass(podPercent)}" style="width: ${Math.min(podPercent, 100)}%"></div>
+                                <div class="pod-bar-container">
+                                    <div class="pod-bar ${getPodClass(podPercent)}" style="width: ${Math.min(podPercent, 100)}%"></div>
                                 </div>
                             </div>
                         </div>
@@ -632,8 +632,8 @@ const K8sManager = {
                                     <span>Memory</span>
                                     <span>${memPercent.toFixed(1)}% (${node.memory_allocatable || 'N/A'})</span>
                                 </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill ${getMemClass(memPercent)}" style="width: ${Math.min(memPercent, 100)}%"></div>
+                                <div class="pod-bar-container">
+                                    <div class="pod-bar ${getMemClass(memPercent)}" style="width: ${Math.min(memPercent, 100)}%"></div>
                                 </div>
                             </div>
                             
@@ -648,9 +648,9 @@ const K8sManager = {
                     
                     ${node.conditions ? `
                     <div class="node-conditions">
-                        ${Object.entries(node.conditions).map(([key, value]) => 
-                            `<span class="condition-item ${value === 'True' ? 'true' : 'false'}">${key}: ${value}</span>`
-                        ).join('')}
+                        ${Object.entries(node.conditions).map(([key, value]) =>
+                `<span class="condition-item ${value === 'True' ? 'true' : 'false'}">${key}: ${value}</span>`
+            ).join('')}
                     </div>
                     ` : ''}
                 </div>
