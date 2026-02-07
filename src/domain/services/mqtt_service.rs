@@ -54,7 +54,7 @@ impl MqttState {
 
     pub fn handle_message(&self, topic: String, payload: String) {
         use crate::utils::MutexExt;
-        
+
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()

@@ -15,13 +15,13 @@ mod tests {
     #[test]
     fn test_perf_monitor_record() {
         let monitor = PerfMonitor::new();
-        
+
         monitor.record_cache_hit();
         monitor.record_cache_hit();
         monitor.record_cache_miss();
         monitor.record_api_call();
         monitor.record_k8s_query();
-        
+
         let stats = monitor.stats();
         assert_eq!(stats.cache_hits, 2);
         assert_eq!(stats.cache_misses, 1);
@@ -32,12 +32,12 @@ mod tests {
     #[test]
     fn test_cache_hit_rate() {
         let monitor = PerfMonitor::new();
-        
+
         monitor.record_cache_hit();
         monitor.record_cache_hit();
         monitor.record_cache_hit();
         monitor.record_cache_miss();
-        
+
         let stats = monitor.stats();
         assert_eq!(stats.cache_hit_rate(), 75.0);
     }

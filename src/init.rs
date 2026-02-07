@@ -25,7 +25,7 @@ pub fn setup_caches() -> (
     let k8s_cache = Arc::new(crate::AdvancedCache::new(Duration::from_secs(60)));
     let argocd_cache = Arc::new(crate::AdvancedCache::new(Duration::from_secs(600)));
     let general_cache = Arc::new(crate::AdvancedCache::new(Duration::from_secs(120)));
-    
+
     (k8s_cache, argocd_cache, general_cache)
 }
 

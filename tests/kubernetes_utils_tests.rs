@@ -23,12 +23,18 @@ mod tests {
     #[tokio::test]
     async fn test_parse_k8s_quantity_mi() {
         assert_eq!(kubernetes_service::parse_k8s_quantity("1Mi"), 1024 * 1024);
-        assert_eq!(kubernetes_service::parse_k8s_quantity("2Mi"), 2 * 1024 * 1024);
+        assert_eq!(
+            kubernetes_service::parse_k8s_quantity("2Mi"),
+            2 * 1024 * 1024
+        );
     }
 
     #[tokio::test]
     async fn test_parse_k8s_quantity_gi() {
-        assert_eq!(kubernetes_service::parse_k8s_quantity("1Gi"), 1024 * 1024 * 1024);
+        assert_eq!(
+            kubernetes_service::parse_k8s_quantity("1Gi"),
+            1024 * 1024 * 1024
+        );
     }
 
     #[tokio::test]
