@@ -34,12 +34,16 @@ const KusanagiSystem = {
     },
 
     fetchSystemStatus: async function () {
+        console.log('🔍 Fetching system status...');
         try {
             const response = await fetch('/api/system/status');
+            console.log('📡 System status response:', response.status);
             if (response.ok) {
                 const data = await response.json();
+                console.log('✅ System status data:', data);
                 this.updateStatusUI(data);
             } else {
+                console.warn('⚠️ System status not OK:', response.status);
                 this.updateStatusUI({
                     uptime: 'N/A',
                     cpu_usage: 0,
@@ -49,7 +53,7 @@ const KusanagiSystem = {
                 });
             }
         } catch (error) {
-            console.error("Failed to fetch system status:", error);
+            console.error("❌ Failed to fetch system status:", error);
             this.updateStatusUI({
                 uptime: 'N/A',
                 cpu_usage: 0,
@@ -61,8 +65,10 @@ const KusanagiSystem = {
     },
 
     updateStatusUI: function (data) {
+        console.log('🎨 Updating status UI with:', data);
         // Handle uptime - can be either uptime_secs (number) or uptime (formatted string)
         const uptimeDisplay = data.uptime || this.formatUptime(data.uptime_secs) || 'N/A';
+        console.log('⏱️ Uptime display:', uptimeDisplay);
         setText('sys-tab-uptime', uptimeDisplay);
         setText('sys-tab-cpu', data.cpu_usage ? `${data.cpu_usage.toFixed(1)}%` : '0%');
         setText('sys-tab-memory', data.memory_usage_mb ? `${data.memory_usage_mb.toFixed(0)} MB` : '0 MB');
@@ -72,6 +78,7 @@ const KusanagiSystem = {
         setText('kusanagi-uptime', uptimeDisplay);
         setText('kusanagi-cpu', data.cpu_usage ? `${data.cpu_usage.toFixed(1)}%` : '--%');
         setText('kusanagi-ram', data.memory_usage_mb ? `${data.memory_usage_mb.toFixed(0)}MB` : '--MB');
+        console.log('✅ Status UI updated');
     },
 
     fetchDatabaseHealth: async function () {
