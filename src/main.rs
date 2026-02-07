@@ -5,7 +5,7 @@ use actix_web_actors::ws;
 use actix::{Actor, StreamHandler};
 use serde_json::json;
 use kusanagi::{Config, InMemoryCache, legacy};
-use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service, mqtt_service, slack_service};
+use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service, mqtt_service, slack_service, trivy_service};
 use sysinfo::System;
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
@@ -128,6 +128,10 @@ async fn main() -> std::io::Result<()> {
             .route("/api/ha/automations", web::get().to(ha_automations))
             .route("/status", web::get().to(system_status))
             .route("/api/logs", web::get().to(logs_endpoint))
+            // Security endpoints (Trivy)
+            .route("/api/security/vulnerabilities", web::get().to(security_vulnerabilities))
+            .route("/api/security/reports", web::get().to(security_reports))
+            .route("/api/security/reports/{report_id}", web::get().to(security_report_by_id))
             // WebSocket endpoint
             .route("/api/ws/notifications", web::get().to(websocket_handler))
             // Static files (including manifest.json) - no auth required
@@ -193,12 +197,10 @@ async fn service_info(config: web::Data<Config>) -> impl Responder {
 }
 
 async fn health_check() -> impl Responder {
+    // Ultra-fast health check - no blocking operations
     HttpResponse::Ok().json(json!({
         "status": "healthy",
-        "architecture": "hexagonal + legacy",
-        "legacy_modules": [
-            "cluster", "nodes", "pods", "argocd", "prometheus", "events", "services", "storage", "ingress", "health"
-        ]
+        "timestamp": chrono::Utc::now().to_rfc3339()
     }))
 }
 
@@ -438,20 +440,18 @@ async fn system_status() -> impl Responder {
         .map(|t| t.elapsed().as_secs())
         .unwrap_or(0);
     
-    // Read Kusanagi process memory from /proc/self/status
-    let mut memory_mb = 0.0;
-    if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
-        for line in status.lines() {
-            if line.starts_with("VmRSS:") {
-                if let Some(kb) = line.split_whitespace().nth(1) {
-                    if let Ok(kb_val) = kb.parse::<f64>() {
-                        memory_mb = kb_val / 1024.0; // KB to MB
-                    }
-                }
-                break;
-            }
+    // Read Kusanagi process memory from /proc/self/status asynchronously
+    let memory_mb = match tokio::fs::read_to_string("/proc/self/status").await {
+        Ok(status) => {
+            status.lines()
+                .find(|line| line.starts_with("VmRSS:"))
+                .and_then(|line| line.split_whitespace().nth(1))
+                .and_then(|kb| kb.parse::<f64>().ok())
+                .map(|kb_val| kb_val / 1024.0) // KB to MB
+                .unwrap_or(0.0)
         }
-    }
+        Err(_) => 0.0
+    };
     
     HttpResponse::Ok().json(json!({
         "status": "operational",
@@ -475,10 +475,11 @@ async fn metrics() -> impl Responder {
 }
 
 async fn logs_endpoint() -> impl Responder {
-    // Get logs from kubectl (last 100 lines)
-    let output = std::process::Command::new("kubectl")
+    // Get logs from kubectl (last 100 lines) - async version
+    let output = tokio::process::Command::new("kubectl")
         .args(&["logs", "-n", "kusanagi", "-l", "app.kubernetes.io/name=kusanagi", "--tail=100"])
-        .output();
+        .output()
+        .await;
     
     match output {
         Ok(result) if result.status.success() => {
@@ -774,3 +775,48 @@ async fn start_slack_monitoring(slack: slack_service::SlackService) {
     }
 }
 
+// Security endpoints (Trivy)
+async fn security_vulnerabilities() -> impl Responder {
+    match trivy_service::get_vulnerabilities().await {
+        Ok(vulns) => HttpResponse::Ok().json(vulns),
+        Err(e) => {
+            tracing::warn!("Failed to fetch vulnerabilities: {}", e);
+            HttpResponse::Ok().json(json!({
+                "critical": 0,
+                "high": 0,
+                "medium": 0,
+                "low": 0,
+                "total": 0,
+                "images": [],
+                "error": e
+            }))
+        }
+    }
+}
+
+async fn security_reports() -> impl Responder {
+    match trivy_service::list_reports().await {
+        Ok(reports) => HttpResponse::Ok().json(reports),
+        Err(e) => {
+            tracing::warn!("Failed to list reports: {}", e);
+            HttpResponse::Ok().json(json!({
+                "reports": [],
+                "total": 0,
+                "error": e
+            }))
+        }
+    }
+}
+
+async fn security_report_by_id(path: web::Path<String>) -> impl Responder {
+    let report_id = path.into_inner();
+    match trivy_service::get_report_by_id(&report_id).await {
+        Ok(report) => HttpResponse::Ok().json(report),
+        Err(e) => {
+            tracing::warn!("Failed to fetch report {}: {}", report_id, e);
+            HttpResponse::NotFound().json(json!({
+                "error": format!("Report not found: {}", e)
+            }))
+        }
+    }
+}

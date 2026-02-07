@@ -6,3 +6,4 @@ pub mod news_service;
 pub mod homeassistant_service;
 pub mod mqtt_service;
 pub mod slack_service;
+pub mod trivy_service;

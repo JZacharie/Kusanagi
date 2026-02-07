@@ -1,4 +1,4 @@
-// Security Dashboard Module
+// Security Dashboard Module - Trivy Integration
 const SecurityDashboard = {
     refreshInterval: null,
 
@@ -11,33 +11,31 @@ const SecurityDashboard = {
 
     async fetchAndRender() {
         try {
-            // Fetch all data in parallel
-            const [vulnsRes, policiesRes, fenceRes, violationsRes] = await Promise.all([
-                fetch('/api/security/vulnerabilities'),
-                fetch('/api/security/policies'),
-                fetch('/api/security/fence'),
-                fetch('/api/security/policies/violations')
-            ]);
+            // Fetch Trivy vulnerability data
+            const vulnsRes = await fetch('/api/security/vulnerabilities');
 
-            // Check if any request failed
-            if (!vulnsRes.ok || !policiesRes.ok || !fenceRes.ok || !violationsRes.ok) {
-                throw new Error('Security service unavailable');
+            if (!vulnsRes.ok) {
+                throw new Error('Trivy service unavailable');
             }
 
-            const [vulns, policies, fence, violations] = await Promise.all([
-                vulnsRes.json(),
-                policiesRes.json(),
-                fenceRes.json(),
-                violationsRes.json()
-            ]);
+            const vulns = await vulnsRes.json();
 
-            this.renderStats(vulns, policies, fence, violations);
+            // Also fetch available reports for the selector
+            try {
+                const reportsRes = await fetch('/api/security/reports');
+                if (reportsRes.ok) {
+                    const reportsData = await reportsRes.json();
+                    this.renderReportSelector(reportsData.reports || []);
+                }
+            } catch (e) {
+                console.warn('Failed to fetch reports list:', e);
+            }
+
+            this.renderStats(vulns);
             this.renderVulnerabilities(vulns);
-            this.renderPolicies(policies);
-            this.renderViolations(violations);
         } catch (error) {
-            console.error('Failed to fetch Security data:', error);
-            this.renderSecurityError('Security data unavailable. The security service may not be configured.');
+            console.error('Failed to fetch Trivy data:', error);
+            this.renderSecurityError('Trivy security service unavailable. Please check Trivy server configuration.');
         }
     },
 
@@ -45,9 +43,12 @@ const SecurityDashboard = {
         // Update stats to show N/A
         document.getElementById('security-critical-vulns').textContent = '-';
         document.getElementById('security-high-vulns').textContent = '-';
-        document.getElementById('security-total-policies').textContent = '-';
-        document.getElementById('security-violations-count').textContent = '-';
-        document.getElementById('fence-status-text').textContent = 'N/A';
+        const mediumEl = document.getElementById('security-medium-vulns');
+        const lowEl = document.getElementById('security-low-vulns');
+        const totalEl = document.getElementById('security-total-vulns');
+        if (mediumEl) mediumEl.textContent = '-';
+        if (lowEl) lowEl.textContent = '-';
+        if (totalEl) totalEl.textContent = '-';
 
         // Render error in vulnerabilities container
         const container = document.getElementById('security-vulns-content');
@@ -61,33 +62,60 @@ const SecurityDashboard = {
                 </div>
             `;
         }
-
-        // Render error in policies container
-        const policiesContainer = document.getElementById('security-policies-content');
-        if (policiesContainer) {
-            policiesContainer.innerHTML = '<div class="no-issues">Security policies unavailable</div>';
-        }
-
-        // Render error in violations container
-        const violationsContainer = document.getElementById('security-violations-content');
-        if (violationsContainer) {
-            violationsContainer.innerHTML = '<div class="no-issues">Policy violations unavailable</div>';
-        }
     },
 
-    renderStats(vulns, policies, fence, violations) {
+    renderStats(vulns) {
         document.getElementById('security-critical-vulns').textContent = vulns.critical || '0';
         document.getElementById('security-high-vulns').textContent = vulns.high || '0';
-        document.getElementById('security-total-policies').textContent = policies.total_policies || '0';
-        document.getElementById('security-violations-count').textContent = (violations && violations.total_violations) || '0';
+        const mediumEl = document.getElementById('security-medium-vulns');
+        const lowEl = document.getElementById('security-low-vulns');
+        const totalEl = document.getElementById('security-total-vulns');
+        if (mediumEl) mediumEl.textContent = vulns.medium || '0';
+        if (lowEl) lowEl.textContent = vulns.low || '0';
+        if (totalEl) totalEl.textContent = vulns.total || '0';
+    },
 
-        const fenceStatusText = document.getElementById('fence-status-text');
-        const fenceStatusBox = document.getElementById('fence-status-box');
+    renderReportSelector(reports) {
+        const container = document.getElementById('security-report-selector');
+        if (!container) return;
 
-        if (fenceStatusText && fence) {
-            fenceStatusText.textContent = fence.status.toUpperCase();
-            fenceStatusBox.className = `stat-box ${fence.status === 'healthy' ? 'healthy' : 'unhealthy'}`;
-            fenceStatusBox.title = `Pods: ${fence.pods} in namespace ${fence.namespace}`;
+        if (!reports || reports.length === 0) {
+            container.innerHTML = '<p style="color: var(--neon-orange); font-size: 0.9rem;">No cached reports available</p>';
+            return;
+        }
+
+        const selector = `
+            <div style="margin-bottom: 1rem;">
+                <label for="report-select" style="margin-right: 0.5rem; color: var(--neon-cyan);">📊 Select Report:</label>
+                <select id="report-select" class="cyber-select" onchange="SecurityDashboard.loadReport(this.value)" style="background: rgba(0,0,0,0.5); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); border-radius: 4px; padding: 0.5rem; font-family: 'JetBrains Mono', monospace;">
+                    <option value="">Current Scan</option>
+                    ${reports.map(r => `
+                        <option value="${r.report_id}">${r.report_id} (${new Date(r.timestamp).toLocaleString()})</option>
+                    `).join('')}
+                </select>
+            </div>
+        `;
+
+        container.innerHTML = selector;
+    },
+
+    async loadReport(reportId) {
+        if (!reportId) {
+            // Reload current scan
+            this.fetchAndRender();
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/security/reports/${reportId}`);
+            if (!res.ok) throw new Error('Failed to load report');
+
+            const vulns = await res.json();
+            this.renderStats(vulns);
+            this.renderVulnerabilities(vulns);
+        } catch (error) {
+            console.error('Failed to load report:', error);
+            this.renderSecurityError(`Failed to load report: ${reportId}`);
         }
     },
 
@@ -108,6 +136,8 @@ const SecurityDashboard = {
                         <th>Namespace</th>
                         <th>🔴 Critical</th>
                         <th>🟠 High</th>
+                        <th>🟡 Medium</th>
+                        <th>🟢 Low</th>
                         <th>Last Scan</th>
                     </tr>
                 </thead>
@@ -118,80 +148,9 @@ const SecurityDashboard = {
                             <td>${img.namespace}</td>
                             <td><span class="status-badge ${img.critical_count > 0 ? 'unhealthy' : 'healthy'}">${img.critical_count}</span></td>
                             <td><span class="status-badge ${img.high_count > 0 ? 'warning' : 'healthy'}">${img.high_count}</span></td>
+                            <td><span class="status-badge ${img.medium_count > 0 ? 'info' : 'healthy'}">${img.medium_count || 0}</span></td>
+                            <td><span class="status-badge healthy">${img.low_count || 0}</span></td>
                             <td>${this.formatTime(img.last_scan)}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
-
-        container.innerHTML = table;
-    },
-
-    renderPolicies(policies) {
-        const container = document.getElementById('security-policies-content');
-        document.getElementById('security-policies-count').textContent = policies.policies ? policies.policies.length : 0;
-
-        if (!policies.policies || policies.policies.length === 0) {
-            container.innerHTML = '<div class="no-issues">No network policies found</div>';
-            return;
-        }
-
-        const table = `
-            <table class="issues-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Namespace</th>
-                        <th>Matched Pods</th>
-                        <th>Ingress Rules</th>
-                        <th>Egress Rules</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${policies.policies.map(policy => `
-                        <tr>
-                            <td><strong>${policy.name}</strong></td>
-                            <td>${policy.namespace}</td>
-                            <td>${policy.endpoints_matched}</td>
-                            <td>${policy.ingress_rules}</td>
-                            <td>${policy.egress_rules}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
-
-        container.innerHTML = table;
-    },
-
-    renderViolations(violations) {
-        const container = document.getElementById('security-violations-content');
-
-        if (!violations.violations || violations.violations.length === 0) {
-            container.innerHTML = '<div class="no-issues">No policy violations found ✓</div>';
-            return;
-        }
-
-        const table = `
-            <table class="issues-table">
-                <thead>
-                    <tr>
-                        <th>Policy</th>
-                        <th>Resource</th>
-                        <th>Namespace</th>
-                        <th>Severity</th>
-                        <th>Message</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${violations.violations.map(v => `
-                        <tr>
-                            <td><strong title="${v.rule}">${v.policy}</strong></td>
-                            <td><code>${v.resource}</code></td>
-                            <td>${v.namespace}</td>
-                            <td><span class="status-badge ${v.severity === 'high' ? 'unhealthy' : 'warning'}">${v.severity}</span></td>
-                            <td class="error-message" title="${v.message}">${this.truncate(v.message, 60)}</td>
                         </tr>
                     `).join('')}
                 </tbody>
