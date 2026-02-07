@@ -98,7 +98,7 @@ pub async fn get_cached_active_alerts() -> Result<AlertsResponse, String> {
     {
         let cache = get_alerts_cache().alerts.read().await;
         if let Some((ref alerts, timestamp)) = *cache {
-            if timestamp.elapsed() < Duration::from_secs(60) {
+            if timestamp.elapsed() < Duration::from_secs(120) { // Augmenté de 60s à 120s
                 return Ok(alerts.clone());
             }
         }
@@ -118,7 +118,7 @@ pub async fn get_cached_active_alerts() -> Result<AlertsResponse, String> {
 pub async fn start_background_refresh() {
     tracing::info!("🚀 Starting Alertmanager background refresh task");
 
-    let mut interval = tokio::time::interval(Duration::from_secs(60));
+    let mut interval = tokio::time::interval(Duration::from_secs(120)); // Augmenté de 60s à 120s
 
     loop {
         interval.tick().await;

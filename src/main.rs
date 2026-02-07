@@ -135,6 +135,11 @@ async fn main() -> std::io::Result<()> {
     let slack = slack_service::SlackService::new();
     tokio::spawn(start_slack_monitoring(slack));
 
+    // Start Alertmanager background cache refresh
+    tokio::spawn(async {
+        kusanagi::legacy::alertmanager::start_background_refresh().await;
+    });
+
     HttpServer::new(move || {
         let mut app = App::new()
             .app_data(web::Data::new(k8s_cache.clone()))
