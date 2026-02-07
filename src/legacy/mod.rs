@@ -9,6 +9,7 @@ pub mod services;
 pub mod storage;
 pub mod ingress;
 pub mod health;
+pub mod alertmanager;
 
 // Re-exports
 pub use cluster::*;
@@ -21,3 +22,4 @@ pub use services::*;
 pub use storage::*;
 pub use ingress::*;
 pub use health::*;
+pub use alertmanager::*;

@@ -51,7 +51,7 @@ fn get_alertmanager_url() -> String {
         })
 }
 
-use std::sync::Arc;
+use std::sync::OnceLock;
 use tokio::sync::RwLock;
 use std::time::{Instant, Duration};
 
@@ -68,8 +68,10 @@ impl AlertsCache {
     }
 }
 
-lazy_static::lazy_static! {
-    pub static ref ALERTS_CACHE: Arc<AlertsCache> = Arc::new(AlertsCache::new());
+static ALERTS_CACHE: OnceLock<AlertsCache> = OnceLock::new();
+
+fn get_alerts_cache() -> &'static AlertsCache {
+    ALERTS_CACHE.get_or_init(|| AlertsCache::new())
 }
 
 /// Get cached active alerts
@@ -78,15 +80,18 @@ pub async fn get_cached_active_alerts() -> Result<AlertsResponse, String> {
     if std::env::var("KUSANAGI_MODE").unwrap_or_default() == "local" {
         tracing::info!("AlertManager running in local mode, returning mock alerts");
         return Ok(AlertsResponse {
-            alerts: vec![],
-            firing_count: 0,
-            pending_count: 1,
+            critical: vec![],
+            warning: vec![],
+            info: vec![],
+            total: 0,
+            firing: 0,
+            pending: 0,
         });
     }
     
     // 1. Try to get from cache
     {
-        let cache = ALERTS_CACHE.alerts.read().await;
+        let cache = get_alerts_cache().alerts.read().await;
         if let Some((ref alerts, timestamp)) = *cache {
             if timestamp.elapsed() < Duration::from_secs(60) {
                 return Ok(alerts.clone());
@@ -98,7 +103,7 @@ pub async fn get_cached_active_alerts() -> Result<AlertsResponse, String> {
     let alerts = get_active_alerts().await?;
     
     // 3. Update cache
-    let mut cache = ALERTS_CACHE.alerts.write().await;
+    let mut cache = get_alerts_cache().alerts.write().await;
     *cache = Some((alerts.clone(), Instant::now()));
     
     Ok(alerts)
@@ -116,7 +121,7 @@ pub async fn start_background_refresh() {
         
         match get_active_alerts().await {
             Ok(alerts) => {
-                let mut cache = ALERTS_CACHE.alerts.write().await;
+                let mut cache = get_alerts_cache().alerts.write().await;
                 *cache = Some((alerts, Instant::now()));
                 tracing::debug!("✅ Updated Alertmanager cache");
             }
