@@ -69,7 +69,7 @@ async fn main() -> std::io::Result<()> {
         let _ = proxmox_service::get_proxmox_nodes(&client_clone).await;
     });
 
-    let sys = web::Data::new(Mutex::new(System::new_all()));
+    let sys = web::Data::new(Mutex::new(System::new()));
 
     // MQTT Init
     let mqtt_state = mqtt_service::MqttState::new();
