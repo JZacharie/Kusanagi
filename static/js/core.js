@@ -256,6 +256,14 @@ const TableManager = {
 
 // === TAB NAVIGATION ===
 async function switchTab(tabName) {
+    // Deactivate previous tab dashboards
+    const currentTab = window.KusanagiDashboard ? KusanagiDashboard.activeTab : null;
+    if (currentTab === 'proxmox' && tabName !== 'proxmox' && window.ProxmoxDashboard) {
+        if (typeof window.ProxmoxDashboard.deactivate === 'function') {
+            window.ProxmoxDashboard.deactivate();
+        }
+    }
+
     // Update buttons
     document.querySelectorAll(".tab-btn").forEach(btn => {
         btn.classList.remove("active");
@@ -296,7 +304,9 @@ async function switchTab(tabName) {
 
     // Load data for specific tabs
     if (tabName === "proxmox" && window.ProxmoxDashboard) {
-        ProxmoxDashboard.init();
+        if (typeof window.ProxmoxDashboard.activate === 'function') {
+            window.ProxmoxDashboard.activate();
+        }
     } else if (tabName === "homeassistant" && window.HomeAssistantDashboard) {
         HomeAssistantDashboard.init();
     } else if (tabName === "weather" && window.WeatherDashboard) {
