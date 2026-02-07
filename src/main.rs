@@ -4,11 +4,14 @@ use actix_files;
 use actix_web_actors::ws;
 use actix::{Actor, StreamHandler, ActorContext};
 use serde_json::json;
-use std::sync::Arc;
 use kusanagi::{Config, Cache, InMemoryCache, legacy};
 use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service, mqtt_service, slack_service};
 use sysinfo::{System, Networks, CpuRefreshKind, MemoryRefreshKind, Disks};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Instant;
+
+// Track process startup time
+static START_TIME: OnceLock<Instant> = OnceLock::new();
 
 // Memory logging helper
 fn log_memory_usage(label: &str) {
@@ -50,6 +53,9 @@ async fn main() -> std::io::Result<()> {
         .init();
     
     println!("🚀 Kusanagi Hexagonal Architecture + Legacy");
+    
+    // Initialize startup time
+    START_TIME.set(Instant::now()).ok();
     
     let config = Config::default();
     let cache = Arc::new(InMemoryCache::new());
@@ -120,6 +126,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/ha/sensors", web::get().to(ha_sensors))
             .route("/api/ha/automations", web::get().to(ha_automations))
             .route("/status", web::get().to(system_status))
+            .route("/api/logs", web::get().to(logs_endpoint))
             // WebSocket endpoint
             .route("/api/ws/notifications", web::get().to(websocket_handler))
             // Static files (including manifest.json) - no auth required
@@ -425,15 +432,35 @@ async fn web_index() -> impl Responder {
 
 // API endpoints for frontend
 async fn system_status() -> impl Responder {
-    // Stubbed - System removed to save 7GB RAM
+    // Lightweight - only Kusanagi process metrics
+    let uptime_secs = START_TIME.get()
+        .map(|t| t.elapsed().as_secs())
+        .unwrap_or(0);
+    
+    // Read Kusanagi process memory from /proc/self/status
+    let mut memory_mb = 0.0;
+    if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
+        for line in status.lines() {
+            if line.starts_with("VmRSS:") {
+                if let Some(kb) = line.split_whitespace().nth(1) {
+                    if let Ok(kb_val) = kb.parse::<f64>() {
+                        memory_mb = kb_val / 1024.0; // KB to MB
+                    }
+                }
+                break;
+            }
+        }
+    }
+    
     HttpResponse::Ok().json(json!({
         "status": "operational",
-        "uptime_secs": 0,
-        "uptime": "0h",
+        "uptime_secs": uptime_secs,
+        "uptime": format!("{}h {}m", uptime_secs / 3600, (uptime_secs % 3600) / 60),
         "version": "0.2.0",
-        "cpu_usage": 0.0,
-        "memory_usage_mb": 0.0,
-        "memory_total_mb": 0.0
+        "build_timestamp": env!("BUILD_TIMESTAMP"),
+        "cpu_usage": 0.0,  // Can add CPU tracking if needed
+        "memory_usage_mb": memory_mb,
+        "memory_total_mb": 0.0  // Pod-specific, not relevant
     }))
 }
 
@@ -444,6 +471,27 @@ async fn metrics() -> impl Responder {
         "memory_usage": 0,
         "disk_usage": 0
     }))
+}
+
+async fn logs_endpoint() -> impl Responder {
+    // Get logs from kubectl (last 100 lines)
+    let output = std::process::Command::new("kubectl")
+        .args(&["logs", "-n", "kusanagi", "-l", "app.kubernetes.io/name=kusanagi", "--tail=100"])
+        .output();
+    
+    match output {
+        Ok(result) if result.status.success() => {
+            let logs = String::from_utf8_lossy(&result.stdout).to_string();
+            HttpResponse::Ok().json(json!({
+                "logs": logs
+            }))
+        },
+        _ => {
+            HttpResponse::Ok().json(json!({
+                "logs": "Unable to fetch logs"
+            }))
+        }
+    }
 }
 
 // Endpoints mockés temporairement
