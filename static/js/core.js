@@ -311,8 +311,6 @@ async function switchTab(tabName) {
         HomeAssistantDashboard.init();
     } else if (tabName === "weather" && window.WeatherDashboard) {
         WeatherDashboard.init();
-    } else if (tabName === "calendar" && window.CalendarDashboard) {
-        CalendarDashboard.init();
     } else if (tabName === "security" && window.SecurityDashboard) {
         SecurityDashboard.init();
     } else if (tabName === "alerts" && window.AlertsManager) {

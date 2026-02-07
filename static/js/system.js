@@ -13,7 +13,8 @@ const KusanagiSystem = {
 
         // Refresh logs every 10 seconds
         this.refreshInterval = setInterval(() => {
-            if (document.querySelector('.tab-content[data-tab="system"]').style.display !== 'none') {
+            const systemTab = document.querySelector('.tab-content[data-tab="system"]');
+            if (systemTab && systemTab.style.display !== 'none') {
                 this.fetchSystemStatus();
                 this.fetchSystemLogs();
                 this.fetchDatabaseHealth();
