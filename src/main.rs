@@ -10,6 +10,16 @@ use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_
 use sysinfo::{System, Networks, CpuRefreshKind, MemoryRefreshKind, Disks};
 use std::sync::Mutex;
 
+// Memory logging helper
+fn log_memory_usage(label: &str) {
+    let mut sys = System::new();
+    sys.refresh_memory();
+    let used_mb = sys.used_memory() as f64 / 1024.0 / 1024.0;
+    let total_mb = sys.total_memory() as f64 / 1024.0 / 1024.0;
+    let percent = (used_mb / total_mb) * 100.0;
+    tracing::warn!("🔍 RAM [{}]: {:.2} MB / {:.2} MB ({:.1}%)", label, used_mb, total_mb, percent);
+}
+
 // WebSocket Actor
 struct WsNotifications;
 
@@ -43,6 +53,7 @@ async fn main() -> std::io::Result<()> {
     
     let config = Config::default();
     let cache = Arc::new(InMemoryCache::new());
+    log_memory_usage("After Config + Cache Init");
     
     let bind_addr = format!("{}:{}", config.server.host, config.server.port);
     println!("🌐 Server: {}", bind_addr);
@@ -60,6 +71,7 @@ async fn main() -> std::io::Result<()> {
     actix_web::rt::spawn(async move {
         // Wait for server to fully start before warming cache
         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        log_memory_usage("Before Cache Warming");
         
         // 1. Kubernetes Warmup
         println!("📦 Warming: Kubernetes cluster overview...");
@@ -67,6 +79,7 @@ async fn main() -> std::io::Result<()> {
             cache_clone.set("cluster_overview", overview.to_string()).await;
             println!("✅ Cache warmed: Cluster Overview");
         }
+        log_memory_usage("After Kubernetes Warmup");
         // Allow GC / memory release
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
         
@@ -74,14 +87,17 @@ async fn main() -> std::io::Result<()> {
         println!("🖥️ Warming: Proxmox VMs...");
         let _ = proxmox_service::get_proxmox_vms(&client_clone).await;
         println!("✅ Cache warmed: Proxmox VMs");
+        log_memory_usage("After Proxmox VMs Warmup");
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
         
         // 3. Proxmox Nodes
         println!("🖥️ Warming: Proxmox Nodes...");
         let _ = proxmox_service::get_proxmox_nodes(&client_clone).await;
         println!("✅ Cache warmed: Proxmox Nodes");
+        log_memory_usage("After Proxmox Nodes Warmup");
         
         println!("🎉 All caches warmed!");
+        log_memory_usage("Cache Warming Complete");
     });
 
     let sys = web::Data::new(Mutex::new(System::new()));
