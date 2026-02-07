@@ -2,7 +2,8 @@ use serde_json::{json, Value};
 use tokio::process::Command;
 
 pub async fn get_argocd_status() -> Result<Value, String> {
-    eprintln!("🔍 Fetching ArgoCD status...");
+    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
+    eprintln!("[{}] 🔍 Fetching ArgoCD status...", now);
     
     // OPTIMIZATION: Use custom-columns to avoid parsing massive JSON with history/managedFields
     // Columns: NAME, NAMESPACE, HEALTH, SYNC, REVISION

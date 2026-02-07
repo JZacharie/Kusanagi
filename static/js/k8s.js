@@ -34,18 +34,24 @@ const K8sManager = {
 
     // === ARGOCD STATUS ===
     async fetchArgoStatus() {
+        // Only fetch if we're on the ArgoCD tab
+        const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
+        if (activeTab !== 'argocd') {
+            return; // Skip fetch if not on ArgoCD tab
+        }
+
         try {
             const response = await fetch('/api/argocd/status');
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
             const data = await response.json();
-            
+
             if (data.error) {
                 this.showArgoError(data.error);
                 return;
             }
-            
+
             this.updateArgoStats(data);
             this.updateArgoIssuesTable(data.apps_with_issues || []);
             this.updateArgoUpgradesTable(data.apps_with_upgrades || []);
@@ -71,7 +77,7 @@ const K8sManager = {
             const el = document.getElementById(id);
             if (el) el.textContent = value;
         }
-        
+
         // Show message if provided
         if (data.message) {
             console.info('ArgoCD:', data.message);
@@ -213,19 +219,19 @@ const K8sManager = {
             }
 
             const data = await response.json();
-            
+
             // Debug logging
             if (window.KusanagiDebug) {
                 KusanagiDebug.logApiResponse('/api/pods/status', data, duration);
                 KusanagiDebug.validatePodsData(data);
             }
-            
+
             if (data.error) {
                 const el = document.getElementById('pods-content');
                 if (el) el.innerHTML = `<div class="loading" style="color: #ff4444;">Error: ${data.error}</div>`;
                 return;
             }
-            
+
             // Safely access data with defaults
             const stats = {
                 'pods-total': data.total_pods ?? 0,
@@ -234,7 +240,7 @@ const K8sManager = {
                 'pods-error': data.error_pods ?? 0,
                 'pods-error-count': data.pods_in_error?.length ?? 0
             };
-            
+
             for (const [id, value] of Object.entries(stats)) {
                 const el = document.getElementById(id);
                 if (el) el.textContent = value;
@@ -293,8 +299,8 @@ const K8sManager = {
             { key: 'node', label: 'Node' },
             { key: 'actions', label: 'Actions' }
         ];
-        const searchHtml = (window.TableManager && typeof TableManager.createSearchInput === 'function') ? 
-            TableManager.createSearchInput('pods', 'Search pods...') : 
+        const searchHtml = (window.TableManager && typeof TableManager.createSearchInput === 'function') ?
+            TableManager.createSearchInput('pods', 'Search pods...') :
             '<input type="text" placeholder="Search pods..." style="width: 100%; padding: 0.5rem; margin-bottom: 1rem; background: rgba(0,0,0,0.3); border: 1px solid var(--neon-cyan); color: var(--text-color);">';
         const headerHtml = (window.TableManager && TableManager.createSortableHeader) ? TableManager.createSortableHeader('pods', podsColumns) :
             podsColumns.map(col => `<th>${col.label}</th>`).join('');
@@ -453,22 +459,22 @@ const K8sManager = {
         const modal = document.getElementById('logs-modal');
         const title = document.getElementById('logs-modal-title');
         const content = document.getElementById('logs-modal-content');
-        
+
         if (!modal || !title || !content) {
             console.error('Logs modal elements not found');
             return;
         }
-        
+
         title.textContent = `📄 Pod Logs: ${namespace}/${podName}`;
         content.innerHTML = '<div class="loading">Loading logs...</div>';
         modal.style.display = 'flex';
-        
+
         try {
             const response = await fetch(`/api/pods/${namespace}/${podName}/logs?tail=500`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            
+
             const logs = await response.text();
-            
+
             // Parse ANSI codes if parser is available
             if (window.AnsiParser) {
                 const parsedLogs = AnsiParser.parse(logs);
@@ -481,7 +487,7 @@ const K8sManager = {
             content.innerHTML = `<div style="color: #ff4444;">Error loading logs: ${error.message}</div>`;
         }
     },
-    
+
     closeLogsModal() {
         const modal = document.getElementById('logs-modal');
         if (modal) modal.style.display = 'none';
@@ -659,7 +665,7 @@ const K8sManager = {
                 throw new Error(`Server returned ${response.status}`);
             }
             const data = await response.json();
-            
+
             // Update stats grid
             const stats = {
                 'pvc-total-count': data.pvc_count || 0,
@@ -671,13 +677,13 @@ const K8sManager = {
                 const el = document.getElementById(id);
                 if (el) el.textContent = value;
             }
-            
+
             if (data.error) {
                 console.warn('Storage API returned error:', data.error);
                 this.renderStorageError(data.error);
                 return;
             }
-            
+
             this.storageData = data.pvcs || [];
             const countEl = document.getElementById('pvc-table-count');
             if (countEl) countEl.textContent = this.storageData.length;
@@ -704,9 +710,9 @@ const K8sManager = {
     renderStorageTable(data = null) {
         const container = document.getElementById('pvc-content');
         if (!container) return;
-        
+
         const warningMsg = data?._warning || data?.warning_message;
-        
+
         if (!this.storageData || this.storageData.length === 0) {
             container.innerHTML = `
                 <div class="no-issues" style="padding: 2rem; text-align: center;">
@@ -868,7 +874,7 @@ const K8sManager = {
         try {
             const response = await fetch('/api/backups');
             const data = await response.json();
-            
+
             // Handle explicit error
             if (data.error) {
                 console.error('Backups API error:', data.error);
@@ -885,25 +891,25 @@ const K8sManager = {
                 }
                 return;
             }
-            
+
             // Handle warning (e.g., Kubernetes unavailable)
             if (data._warning) {
                 console.warn('Backups API warning:', data._warning);
             }
-            
+
             // Update stats (with fallback to 0)
-            const stats = { 
-                'backup-cronjobs': data.total_cronjobs ?? 0, 
-                'backup-active': data.active_jobs ?? 0, 
-                'backup-succeeded': data.succeeded_jobs ?? 0, 
-                'backup-failed': data.failed_jobs ?? 0, 
-                'backups-count': data.total_cronjobs ?? 0 
+            const stats = {
+                'backup-cronjobs': data.total_cronjobs ?? 0,
+                'backup-active': data.active_jobs ?? 0,
+                'backup-succeeded': data.succeeded_jobs ?? 0,
+                'backup-failed': data.failed_jobs ?? 0,
+                'backups-count': data.total_cronjobs ?? 0
             };
-            for (const [id, value] of Object.entries(stats)) { 
-                const el = document.getElementById(id); 
-                if (el) el.textContent = value; 
+            for (const [id, value] of Object.entries(stats)) {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
             }
-            
+
             // Render table with warning message if present
             this.renderBackupsTable(data.cronjobs || [], data._warning);
         } catch (error) {
@@ -925,7 +931,7 @@ const K8sManager = {
     renderBackupsTable(cronjobs, warningMsg = null) {
         const container = document.getElementById('backups-content');
         if (!container) return;
-        
+
         if (!cronjobs || cronjobs.length === 0) {
             container.innerHTML = `
                 <div class="no-issues" style="padding: 2rem; text-align: center;">
@@ -937,7 +943,7 @@ const K8sManager = {
             `;
             return;
         }
-        
+
         container.innerHTML = `
             <table class="issues-table">
                 <thead><tr><th>CronJob</th><th>Namespace</th><th>Schedule</th><th>Last Run</th><th>Status</th><th>Recent Jobs</th></tr></thead>
