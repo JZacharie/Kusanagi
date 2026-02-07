@@ -3,9 +3,9 @@ use actix_web::{web, App, HttpServer, HttpResponse, Responder, HttpRequest};
 use actix_files;
 use actix_web_actors::ws;
 use actix::{Actor, StreamHandler};
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use kusanagi::{Config, InMemoryCache, legacy};
+use serde::Deserialize;
+use serde_json::json;
+use kusanagi::{Config, legacy};
 use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service, mqtt_service, slack_service, trivy_service};
 use sysinfo::System;
 use std::sync::{Arc, OnceLock};
@@ -65,7 +65,12 @@ async fn main() -> std::io::Result<()> {
     START_TIME.set(Instant::now()).ok();
     
     let config = Config::default();
-    let cache = Arc::new(InMemoryCache::new());
+    
+    // Advanced caches with TTL
+    let k8s_cache = Arc::new(kusanagi::AdvancedCache::<String>::new(std::time::Duration::from_secs(30)));
+    let argocd_cache = Arc::new(kusanagi::AdvancedCache::<String>::new(std::time::Duration::from_secs(300)));
+    let general_cache = Arc::new(kusanagi::AdvancedCache::<String>::new(std::time::Duration::from_secs(60)));
+    
     log_memory_usage("After Config + Cache Init");
     
     let bind_addr = format!("{}:{}", config.server.host, config.server.port);
@@ -90,11 +95,6 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    // Cache warming removed - cache disabled to prevent memory leaks
-    // Data is fetched fresh on each request now
-
-    // System removed - was causing 7GB memory usage at startup
-
     // MQTT Init
     let mqtt_state = mqtt_service::MqttState::new();
     let mqtt_host = std::env::var("MQTT_HOST").unwrap_or_else(|_| config.mqtt.host.clone());
@@ -114,7 +114,9 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         let mut app = App::new()
-            .app_data(web::Data::new(cache.clone()))
+            .app_data(web::Data::new(k8s_cache.clone()))
+            .app_data(web::Data::new(argocd_cache.clone()))
+            .app_data(web::Data::new(general_cache.clone()))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(client.clone()))
             .app_data(web::Data::new(mqtt_state.clone()));
@@ -133,6 +135,7 @@ async fn main() -> std::io::Result<()> {
             // API endpoints for frontend
             .route("/api/system/status", web::get().to(system_status))
             .route("/api/system/logs", web::get().to(system_logs))
+            .route("/api/cache/stats", web::get().to(cache_stats))
             .route("/api/alerts", web::get().to(alerts))
             .route("/api/metrics", web::get().to(metrics))
             .route("/api/news", web::get().to(news))
@@ -464,7 +467,11 @@ async fn web_index() -> impl Responder {
 }
 
 // Prometheus metrics endpoint
-async fn prometheus_metrics() -> impl Responder {
+async fn prometheus_metrics(
+    k8s_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>,
+    argocd_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>,
+    general_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>,
+) -> impl Responder {
     let uptime_secs = START_TIME.get()
         .map(|t| t.elapsed().as_secs())
         .unwrap_or(0);
@@ -498,6 +505,11 @@ async fn prometheus_metrics() -> impl Responder {
         Err(_) => (0.0, 0.0)
     };
 
+    // Get cache stats
+    let k8s_stats = k8s_cache.stats().await;
+    let argocd_stats = argocd_cache.stats().await;
+    let general_stats = general_cache.stats().await;
+
     // Prometheus text format
     let metrics = format!(
         "# HELP kusanagi_uptime_seconds Kusanagi uptime in seconds\n\
@@ -509,12 +521,36 @@ async fn prometheus_metrics() -> impl Responder {
          # HELP kusanagi_cpu_usage_percent Kusanagi CPU usage percentage\n\
          # TYPE kusanagi_cpu_usage_percent gauge\n\
          kusanagi_cpu_usage_percent {:.2}\n\
+         # HELP kusanagi_cache_entries Cache entries by type\n\
+         # TYPE kusanagi_cache_entries gauge\n\
+         kusanagi_cache_entries{{type=\"k8s\"}} {}\n\
+         kusanagi_cache_entries{{type=\"argocd\"}} {}\n\
+         kusanagi_cache_entries{{type=\"general\"}} {}\n\
+         # HELP kusanagi_cache_expired Expired cache entries by type\n\
+         # TYPE kusanagi_cache_expired gauge\n\
+         kusanagi_cache_expired{{type=\"k8s\"}} {}\n\
+         kusanagi_cache_expired{{type=\"argocd\"}} {}\n\
+         kusanagi_cache_expired{{type=\"general\"}} {}\n\
+         # HELP kusanagi_cache_memory_bytes Cache memory usage by type\n\
+         # TYPE kusanagi_cache_memory_bytes gauge\n\
+         kusanagi_cache_memory_bytes{{type=\"k8s\"}} {}\n\
+         kusanagi_cache_memory_bytes{{type=\"argocd\"}} {}\n\
+         kusanagi_cache_memory_bytes{{type=\"general\"}} {}\n\
          # HELP kusanagi_build_info Kusanagi build information\n\
          # TYPE kusanagi_build_info gauge\n\
          kusanagi_build_info{{version=\"0.2.0\",build_timestamp=\"{}\"}} 1\n",
         uptime_secs,
         memory_mb,
         cpu_usage,
+        k8s_stats.entries,
+        argocd_stats.entries,
+        general_stats.entries,
+        k8s_stats.expired,
+        argocd_stats.expired,
+        general_stats.expired,
+        k8s_stats.memory_bytes,
+        argocd_stats.memory_bytes,
+        general_stats.memory_bytes,
         env!("BUILD_TIMESTAMP")
     );
 
@@ -678,6 +714,42 @@ async fn alerts() -> impl Responder {
             "status": "error"
         }))
     }
+}
+
+async fn cache_stats(
+    k8s_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>,
+    argocd_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>,
+    general_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>,
+) -> impl Responder {
+    let k8s = k8s_cache.stats().await;
+    let argocd = argocd_cache.stats().await;
+    let general = general_cache.stats().await;
+    
+    HttpResponse::Ok().json(json!({
+        "k8s": {
+            "entries": k8s.entries,
+            "expired": k8s.expired,
+            "memory_bytes": k8s.memory_bytes,
+            "ttl_seconds": 30
+        },
+        "argocd": {
+            "entries": argocd.entries,
+            "expired": argocd.expired,
+            "memory_bytes": argocd.memory_bytes,
+            "ttl_seconds": 300
+        },
+        "general": {
+            "entries": general.entries,
+            "expired": general.expired,
+            "memory_bytes": general.memory_bytes,
+            "ttl_seconds": 60
+        },
+        "total": {
+            "entries": k8s.entries + argocd.entries + general.entries,
+            "expired": k8s.expired + argocd.expired + general.expired,
+            "memory_bytes": k8s.memory_bytes + argocd.memory_bytes + general.memory_bytes
+        }
+    }))
 }
 
 async fn news() -> impl Responder {
