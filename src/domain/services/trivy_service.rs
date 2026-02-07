@@ -62,12 +62,12 @@ pub async fn get_vulnerabilities() -> Result<Value, String> {
             Ok(summary)
         }
         Err(e) => {
-            tracing::warn!("Failed to fetch from Trivy server: {}, trying S3 cache", e);
+            tracing::debug!("Trivy server unavailable: {}, trying S3 cache", e);
             // Fallback to S3 cached reports
             match fetch_from_s3_cache().await {
                 Ok(cached_data) => Ok(cached_data),
                 Err(s3_err) => {
-                    tracing::error!("Failed to fetch from S3 cache: {}", s3_err);
+                    tracing::debug!("S3 cache unavailable: {}", s3_err);
                     Err(format!("Trivy service unavailable: {} (S3 cache: {})", e, s3_err))
                 }
             }

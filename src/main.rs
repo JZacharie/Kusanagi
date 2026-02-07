@@ -829,7 +829,7 @@ async fn security_vulnerabilities() -> impl Responder {
     match trivy_service::get_vulnerabilities().await {
         Ok(vulns) => HttpResponse::Ok().json(vulns),
         Err(e) => {
-            tracing::warn!("Failed to fetch vulnerabilities: {}", e);
+            tracing::debug!("Trivy vulnerabilities unavailable: {}", e);
             HttpResponse::Ok().json(json!({
                 "critical": 0,
                 "high": 0,
@@ -847,7 +847,7 @@ async fn security_reports() -> impl Responder {
     match trivy_service::list_reports().await {
         Ok(reports) => HttpResponse::Ok().json(reports),
         Err(e) => {
-            tracing::warn!("Failed to list reports: {}", e);
+            tracing::debug!("Trivy reports unavailable: {}", e);
             HttpResponse::Ok().json(json!({
                 "reports": [],
                 "total": 0,
