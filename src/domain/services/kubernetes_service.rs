@@ -80,13 +80,13 @@ pub async fn get_pods_status() -> Result<Value, String> {
                 .unwrap_or_default();
 
             pods_in_error.push(json!({
-                "name": pod.metadata.name.clone().unwrap_or_default(),
-                "namespace": pod.metadata.namespace.clone().unwrap_or_default(),
+                "name": pod.metadata.name.as_deref().unwrap_or(""),
+                "namespace": pod.metadata.namespace.as_deref().unwrap_or(""),
                 "status": phase,
                 "reason": if reason.is_empty() { phase } else { &reason },
                 "restart_count": restart_count,
                 "age": age,
-                "node": pod.spec.as_ref().and_then(|s| s.node_name.clone()).unwrap_or_default(),
+                "node": pod.spec.as_ref().and_then(|s| s.node_name.as_deref()).unwrap_or(""),
                 "cpu_usage": 0,
                 "memory_usage": 0,
                 "cpu_limit": 0,
@@ -123,7 +123,7 @@ pub async fn get_nodes_status() -> Result<Value, String> {
 
     for node in list {
         total += 1;
-        let name = node.metadata.name.clone().unwrap_or_default();
+        let name = node.metadata.name.as_deref().unwrap_or("");
         let mut is_ready = false;
         let mut conditions_map = std::collections::HashMap::new();
 

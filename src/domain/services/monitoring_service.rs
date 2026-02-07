@@ -125,9 +125,9 @@ pub async fn get_backups() -> Result<Value, String> {
                 .unwrap_or(false)
         })
         .map(|job| {
-            let name = job.metadata.name.clone().unwrap_or_default();
-            let namespace = job.metadata.namespace.clone().unwrap_or_default();
-            let schedule = job.spec.as_ref().map(|s| s.schedule.clone()).unwrap_or_default();
+            let name = job.metadata.name.as_deref().unwrap_or("");
+            let namespace = job.metadata.namespace.as_deref().unwrap_or("");
+            let schedule = job.spec.as_ref().map(|s| s.schedule.as_str()).unwrap_or("");
             let suspend = job.spec.as_ref().map(|s| s.suspend.unwrap_or(false)).unwrap_or(false);
 
             // Calculate last schedule age

@@ -1,4 +1,5 @@
 //! Kusanagi Doctor - Self-Diagnostic Tool
+use crate::utils::MutexExt;
 //!
 //! Comprehensive diagnostic endpoint that checks all system components
 //! and provides actionable recommendations.
@@ -286,7 +287,7 @@ async fn check_database_connection() -> CheckResult {
 async fn check_mqtt_connection() -> CheckResult {
     let start = Instant::now();
     
-    let state = crate::legacy::mqtt::MQTT_STATE.lock().unwrap();
+    let state = crate::legacy::mqtt::MQTT_STATE.lock_safe();
     let connected = state.connected;
     drop(state);
     

@@ -7,6 +7,7 @@ use k8s_openapi::api::apps::v1::Deployment;
 use tracing::{info, error, warn};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use crate::utils::MutexExt;
 
 #[derive(Serialize, Clone)]
 pub struct SystemStatus {
@@ -35,7 +36,7 @@ impl SystemManager {
     }
 
     pub fn get_status(&self) -> SystemStatus {
-        let mut sys = self.sys.lock().unwrap();
+        let mut sys = self.sys.lock_safe();
         sys.refresh_all();
         
         // Get current process metrics

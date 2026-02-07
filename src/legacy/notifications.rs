@@ -1,4 +1,5 @@
 //! Unified Notifications System
+use crate::utils::MutexExt;
 //!
 //! Multi-channel notifications: Slack, Email, Webhook, In-app.
 //! Supports templates, rate limiting, and batching.
@@ -302,7 +303,7 @@ impl InAppStore {
     }
 
     pub fn get_recent(&self, limit: usize) -> Vec<Notification> {
-        let notifications = self.notifications.lock().unwrap();
+        let notifications = self.notifications.lock_safe();
         notifications.iter().rev().take(limit).cloned().collect()
     }
 }
@@ -316,7 +317,7 @@ impl Default for InAppStore {
 #[async_trait::async_trait]
 impl NotificationSender for InAppStore {
     async fn send(&self, notification: &Notification) -> Result<(), String> {
-        let mut notifications = self.notifications.lock().unwrap();
+        let mut notifications = self.notifications.lock_safe();
         notifications.push(notification.clone());
         
         // Keep only last 1000 notifications
