@@ -160,12 +160,22 @@ pub async fn get_nodes_status() -> Result<Value, String> {
 }
 
 pub async fn get_cluster_overview() -> Result<Value, String> {
-    let pods = get_pods_status().await?;
-    let nodes = get_nodes_status().await?;
+    let pods = get_pods_status().await.unwrap_or_else(|_| json!({
+        "total": 0,
+        "running": 0,
+        "pending": 0,
+        "failed": 0
+    }));
+    
+    let nodes = get_nodes_status().await.unwrap_or_else(|_| json!({
+        "total": 0,
+        "ready": 0,
+        "not_ready": 0
+    }));
     
     let services_count = match get_services().await {
         Ok(json) => json.as_array().map(|v| v.len()).unwrap_or(0),
-        Err(_) => 4
+        Err(_) => 0
     };
     
     Ok(json!({
