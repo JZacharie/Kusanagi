@@ -76,7 +76,7 @@ pub async fn get_pods_status() -> Result<Value, String> {
                 .metadata
                 .creation_timestamp
                 .as_ref()
-                .map(|ts| calculate_age_from_timestamp(ts))
+                .map(calculate_age_from_timestamp)
                 .unwrap_or_default();
 
             pods_in_error.push(json!({
@@ -219,7 +219,7 @@ pub async fn get_nodes_status() -> Result<Value, String> {
             .metadata
             .creation_timestamp
             .as_ref()
-            .map(|ts| calculate_age_from_timestamp(ts))
+            .map(calculate_age_from_timestamp)
             .unwrap_or_default();
 
         total_cpu += cpu_capacity;
@@ -444,8 +444,8 @@ pub fn parse_k8s_quantity(q: &str) -> u64 {
         return 0;
     }
 
-    let digits: String = q.chars().take_while(|c| c.is_digit(10)).collect();
-    let suffix: String = q.chars().skip_while(|c| c.is_digit(10)).collect();
+    let digits: String = q.chars().take_while(|c| c.is_ascii_digit()).collect();
+    let suffix: String = q.chars().skip_while(|c| c.is_ascii_digit()).collect();
 
     let value = digits.parse::<u64>().unwrap_or(0);
 

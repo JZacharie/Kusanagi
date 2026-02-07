@@ -59,6 +59,12 @@ pub struct AlertsCache {
     pub alerts: RwLock<Option<(AlertsResponse, Instant)>>,
 }
 
+impl Default for AlertsCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AlertsCache {
     pub fn new() -> Self {
         Self {
@@ -70,7 +76,7 @@ impl AlertsCache {
 static ALERTS_CACHE: OnceLock<AlertsCache> = OnceLock::new();
 
 fn get_alerts_cache() -> &'static AlertsCache {
-    ALERTS_CACHE.get_or_init(|| AlertsCache::new())
+    ALERTS_CACHE.get_or_init(AlertsCache::new)
 }
 
 /// Get cached active alerts

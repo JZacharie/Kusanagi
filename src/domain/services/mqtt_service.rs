@@ -36,6 +36,12 @@ pub struct MqttState {
     inner: Arc<Mutex<InnerState>>,
 }
 
+impl Default for MqttState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MqttState {
     pub fn new() -> Self {
         MqttState {

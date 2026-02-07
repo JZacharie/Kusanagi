@@ -48,7 +48,7 @@ pub async fn get_alerts() -> Result<Value, String> {
 
 pub async fn get_quotas() -> Result<Value, String> {
     let output = Command::new("kubectl")
-        .args(&["get", "resourcequota", "--all-namespaces", "-o", "json"])
+        .args(["get", "resourcequota", "--all-namespaces", "-o", "json"])
         .output()
         .await;
 
@@ -192,8 +192,8 @@ pub async fn get_backups() -> Result<Value, String> {
 }
 
 fn parse_cpu_value(cpu_str: &str) -> i64 {
-    if cpu_str.ends_with('m') {
-        cpu_str[..cpu_str.len() - 1].parse::<i64>().unwrap_or(0)
+    if let Some(stripped) = cpu_str.strip_suffix('m') {
+        stripped.parse::<i64>().unwrap_or(0)
     } else {
         cpu_str.parse::<i64>().unwrap_or(0) * 1000
     }
@@ -201,24 +201,12 @@ fn parse_cpu_value(cpu_str: &str) -> i64 {
 
 fn parse_memory_value(memory_str: &str) -> i64 {
     let memory_str = memory_str.trim();
-    if memory_str.ends_with("Gi") {
-        memory_str[..memory_str.len() - 2]
-            .parse::<i64>()
-            .unwrap_or(0)
-            * 1024
-            * 1024
-            * 1024
-    } else if memory_str.ends_with("Mi") {
-        memory_str[..memory_str.len() - 2]
-            .parse::<i64>()
-            .unwrap_or(0)
-            * 1024
-            * 1024
-    } else if memory_str.ends_with("Ki") {
-        memory_str[..memory_str.len() - 2]
-            .parse::<i64>()
-            .unwrap_or(0)
-            * 1024
+    if let Some(stripped) = memory_str.strip_suffix("Gi") {
+        stripped.parse::<i64>().unwrap_or(0) * 1024 * 1024 * 1024
+    } else if let Some(stripped) = memory_str.strip_suffix("Mi") {
+        stripped.parse::<i64>().unwrap_or(0) * 1024 * 1024
+    } else if let Some(stripped) = memory_str.strip_suffix("Ki") {
+        stripped.parse::<i64>().unwrap_or(0) * 1024
     } else {
         memory_str.parse::<i64>().unwrap_or(0)
     }

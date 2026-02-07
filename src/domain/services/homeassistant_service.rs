@@ -5,7 +5,7 @@ use tracing::info;
 pub async fn get_ha_devices() -> Result<Value, String> {
     // Essayer l'API Home Assistant
     let ha_api_output = Command::new("curl")
-        .args(&[
+        .args([
             "-s",
             "-H",
             "Authorization: Bearer LONG_LIVED_ACCESS_TOKEN",
@@ -49,7 +49,7 @@ pub async fn get_ha_devices() -> Result<Value, String> {
     // Fallback: essayer différents ports HA
     for port in [8123, 8124, 8125] {
         let ha_check = Command::new("curl")
-            .args(&["-s", "-m", "2", &format!("http://localhost:{}/api/", port)])
+            .args(["-s", "-m", "2", &format!("http://localhost:{}/api/", port)])
             .output()
             .await;
 
@@ -71,7 +71,7 @@ pub async fn get_ha_devices() -> Result<Value, String> {
     }
 
     // Fallback: chercher des processus Home Assistant
-    let ha_process = Command::new("ps").args(&["aux"]).output().await;
+    let ha_process = Command::new("ps").args(["aux"]).output().await;
 
     if let Ok(result) = ha_process {
         if result.status.success() {
@@ -93,7 +93,7 @@ pub async fn get_ha_devices() -> Result<Value, String> {
 pub async fn get_ha_sensors() -> Result<Value, String> {
     // Essayer l'API Home Assistant pour les sensors
     let ha_api_output = Command::new("curl")
-        .args(&[
+        .args([
             "-s",
             "-H",
             "Authorization: Bearer LONG_LIVED_ACCESS_TOKEN",
@@ -172,7 +172,7 @@ pub async fn get_ha_sensors() -> Result<Value, String> {
 pub async fn get_ha_automations() -> Result<Value, String> {
     // Essayer l'API Home Assistant pour les automations
     let ha_api_output = Command::new("curl")
-        .args(&[
+        .args([
             "-s",
             "-H",
             "Authorization: Bearer LONG_LIVED_ACCESS_TOKEN",
@@ -206,7 +206,7 @@ pub async fn get_ha_automations() -> Result<Value, String> {
 
     // Fallback: essayer les états automation.*
     let ha_states_output = Command::new("curl")
-        .args(&[
+        .args([
             "-s",
             "-H",
             "Authorization: Bearer LONG_LIVED_ACCESS_TOKEN",
@@ -246,7 +246,7 @@ pub async fn get_ha_automations() -> Result<Value, String> {
 
     // Fallback: chercher des fichiers de configuration HA
     let ha_config_check = Command::new("find")
-        .args(&[
+        .args([
             "/",
             "-name",
             "configuration.yaml",

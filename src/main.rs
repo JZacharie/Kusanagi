@@ -1,6 +1,5 @@
 // Kusanagi - Hexagonal Architecture Entry Point
 use actix::{Actor, StreamHandler};
-use actix_files;
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_actors::ws;
 use kusanagi::domain::services::{
@@ -702,7 +701,7 @@ async fn metrics() -> impl Responder {
 async fn logs_endpoint() -> impl Responder {
     // Get logs from kubectl (last 100 lines) - async version
     let output = tokio::process::Command::new("kubectl")
-        .args(&[
+        .args([
             "logs",
             "-n",
             "kusanagi",
