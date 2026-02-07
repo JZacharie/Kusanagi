@@ -9,7 +9,7 @@ import os
 
 # Source image
 SOURCE = "logo.png"
-OUTPUT_DIR = "."
+OUTPUT_DIR = "static/images"
 
 # Favicon sizes
 FAVICON_SIZES = {

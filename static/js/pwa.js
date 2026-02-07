@@ -25,6 +25,12 @@ window.addEventListener('beforeinstallprompt', (e) => {
     // Store the event for later use
     deferredPrompt = e;
     console.log('👍 PWA install prompt ready');
+
+    // Show install button
+    const installBtn = document.getElementById('pwa-install-item');
+    if (installBtn) {
+        installBtn.style.display = 'block';
+    }
 });
 
 // Function to trigger install (can be called from a button)
@@ -33,10 +39,10 @@ function installPWA() {
         console.log('Install prompt not available');
         return;
     }
-    
+
     // Show the install prompt
     deferredPrompt.prompt();
-    
+
     // Wait for the user to respond
     deferredPrompt.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === 'accepted') {
@@ -45,6 +51,12 @@ function installPWA() {
             console.log('❌ User dismissed PWA install');
         }
         deferredPrompt = null;
+
+        // Hide button
+        const installBtn = document.getElementById('pwa-install-item');
+        if (installBtn) {
+            installBtn.style.display = 'none';
+        }
     });
 }
 
@@ -59,7 +71,7 @@ function getDisplayMode() {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
     const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
     const isMinimalUi = window.matchMedia('(display-mode: minimal-ui)').matches;
-    
+
     if (isFullscreen) return 'fullscreen';
     if (isStandalone) return 'standalone';
     if (isMinimalUi) return 'minimal-ui';
