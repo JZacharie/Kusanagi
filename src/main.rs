@@ -107,6 +107,7 @@ async fn main() -> std::io::Result<()> {
             .route("/", web::get().to(web_index))
             .route("/api", web::get().to(service_info))
             .route("/health", web::get().to(health_check))
+            .route("/metrics", web::get().to(prometheus_metrics))
             .route("/docs", web::get().to(web_docs))
             // API endpoints for frontend
             .route("/api/system/status", web::get().to(system_status))
@@ -437,6 +438,66 @@ async fn web_index() -> impl Responder {
             }))
         }
     }
+}
+
+// Prometheus metrics endpoint
+async fn prometheus_metrics() -> impl Responder {
+    let uptime_secs = START_TIME.get()
+        .map(|t| t.elapsed().as_secs())
+        .unwrap_or(0);
+    
+    // Read process stats
+    let (memory_mb, cpu_usage) = match tokio::fs::read_to_string("/proc/self/stat").await {
+        Ok(stat) => {
+            let fields: Vec<&str> = stat.split_whitespace().collect();
+            let utime = fields.get(13).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+            let stime = fields.get(14).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+            let total_time = utime + stime;
+            let cpu_percent = if uptime_secs > 0 {
+                (total_time as f64 / 100.0) / uptime_secs as f64 * 100.0
+            } else {
+                0.0
+            };
+            
+            let mem = tokio::fs::read_to_string("/proc/self/status").await
+                .ok()
+                .and_then(|status| {
+                    status.lines()
+                        .find(|line| line.starts_with("VmRSS:"))
+                        .and_then(|line| line.split_whitespace().nth(1))
+                        .and_then(|kb| kb.parse::<f64>().ok())
+                        .map(|kb_val| kb_val / 1024.0)
+                })
+                .unwrap_or(0.0);
+            
+            (mem, cpu_percent.min(100.0))
+        }
+        Err(_) => (0.0, 0.0)
+    };
+
+    // Prometheus text format
+    let metrics = format!(
+        "# HELP kusanagi_uptime_seconds Kusanagi uptime in seconds\n\
+         # TYPE kusanagi_uptime_seconds gauge\n\
+         kusanagi_uptime_seconds {}\n\
+         # HELP kusanagi_memory_usage_mb Kusanagi memory usage in MB\n\
+         # TYPE kusanagi_memory_usage_mb gauge\n\
+         kusanagi_memory_usage_mb {:.2}\n\
+         # HELP kusanagi_cpu_usage_percent Kusanagi CPU usage percentage\n\
+         # TYPE kusanagi_cpu_usage_percent gauge\n\
+         kusanagi_cpu_usage_percent {:.2}\n\
+         # HELP kusanagi_build_info Kusanagi build information\n\
+         # TYPE kusanagi_build_info gauge\n\
+         kusanagi_build_info{{version=\"0.2.0\",build_timestamp=\"{}\"}} 1\n",
+        uptime_secs,
+        memory_mb,
+        cpu_usage,
+        env!("BUILD_TIMESTAMP")
+    );
+
+    HttpResponse::Ok()
+        .content_type("text/plain; version=0.0.4")
+        .body(metrics)
 }
 
 // API endpoints for frontend
