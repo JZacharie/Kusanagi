@@ -110,6 +110,7 @@ async fn main() -> std::io::Result<()> {
             .route("/docs", web::get().to(web_docs))
             // API endpoints for frontend
             .route("/api/system/status", web::get().to(system_status))
+            .route("/api/system/logs", web::get().to(system_logs))
             .route("/api/alerts", web::get().to(alerts))
             .route("/api/metrics", web::get().to(metrics))
             .route("/api/news", web::get().to(news))
@@ -484,6 +485,33 @@ async fn system_status() -> impl Responder {
         "memory_usage_mb": memory_mb,
         "memory_total_mb": 0.0
     }))
+}
+
+async fn system_logs(client: web::Data<kube::Client>) -> impl Responder {
+    use kube::Api;
+    use k8s_openapi::api::core::v1::Pod;
+    use kube::api::LogParams;
+    
+    let hostname = std::env::var("HOSTNAME").unwrap_or_else(|_| "kusanagi".to_string());
+    let namespace = std::env::var("POD_NAMESPACE").unwrap_or_else(|_| "kusanagi".to_string());
+    
+    let pods: Api<Pod> = Api::namespaced(client.get_ref().clone(), &namespace);
+    
+    match pods.logs(&hostname, &LogParams {
+        tail_lines: Some(1000),
+        ..Default::default()
+    }).await {
+        Ok(logs) => HttpResponse::Ok().body(logs),
+        Err(_) => {
+            let error_msg = format!(
+                "=== Kusanagi Logs Unavailable ===\n\n\
+                Could not fetch logs from pod {} in namespace {}\n\n\
+                Try: kubectl logs -n {} {}",
+                hostname, namespace, namespace, hostname
+            );
+            HttpResponse::Ok().body(error_msg)
+        }
+    }
 }
 
 async fn metrics() -> impl Responder {
