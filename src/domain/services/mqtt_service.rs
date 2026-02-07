@@ -78,9 +78,21 @@ impl MqttState {
                 id: device_id.clone(),
                 name: device_id,
                 last_seen: now,
-                last_topic: topic,
+                last_topic: topic.clone(),
                 message_count: 1,
             });
+            
+            // Limit devices to 100 to prevent memory leak
+            if inner.devices.len() > 100 {
+                // Remove oldest device (least recently seen)
+                if let Some(oldest_idx) = inner.devices.iter()
+                    .enumerate()
+                    .min_by_key(|(_, d)| d.last_seen)
+                    .map(|(idx, _)| idx)
+                {
+                    inner.devices.remove(oldest_idx);
+                }
+            }
         }
     }
 
