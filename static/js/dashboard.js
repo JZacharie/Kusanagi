@@ -596,25 +596,26 @@ const AlertsManager = {
     },
 
     /**
-     * Load alerts from Alertmanager
+     * Load alerts from Alertmanager and Kubernetes events
      */
     async loadAlerts() {
         try {
-            const response = await fetch('/api/alerts');
-            if (!response.ok) {
-                let errorMsg = `Server returned ${response.status}`;
-                try {
-                    const errorData = await response.json();
-                    if (errorData.error) errorMsg = errorData.error;
-                } catch (e) {
-                    // Not JSON, use status
-                }
-                throw new Error(errorMsg);
-            }
+            // Fetch both alerts and events concurrently
+            const [alertsResponse, eventsResponse] = await Promise.all([
+                fetch('/api/alerts'),
+                fetch('/api/events')
+            ]);
 
-            const alerts = await response.json();
-            this.renderAlerts(alerts);
-            this.updateAlertBadge(alerts.total);
+            const alerts = alertsResponse.ok ? await alertsResponse.json() : { total: 0, critical: [], warning: [], info: [] };
+            const events = eventsResponse.ok ? await eventsResponse.json() : [];
+
+            // Filter events to only show Warning and Error types
+            const k8sAlerts = Array.isArray(events)
+                ? events.filter(e => e.type === 'Warning' || e.type === 'Error').slice(0, 20)
+                : [];
+
+            this.renderAlerts(alerts, k8sAlerts);
+            this.updateAlertBadge(alerts.total + k8sAlerts.length);
         } catch (error) {
             console.error('Alerts error:', error);
             this.renderAlertsError(error.message);
@@ -624,7 +625,7 @@ const AlertsManager = {
     /**
      * Render alerts to UI
      */
-    renderAlerts(data) {
+    renderAlerts(data, k8sEvents = []) {
         const container = document.getElementById('alerts-content');
         if (!container) return;
 
@@ -637,7 +638,7 @@ const AlertsManager = {
         // Check if there's a warning from the backend (e.g., Alertmanager unavailable)
         const warningMsg = data._warning || data.warning_message;
 
-        if (data.total === 0) {
+        if (data.total === 0 && k8sEvents.length === 0) {
             container.innerHTML = `
                 <div class="no-alerts">
                     <span class="success-icon">✅</span>
@@ -649,6 +650,16 @@ const AlertsManager = {
         }
 
         let html = '<div class="alerts-list">';
+
+        // Kubernetes Events Section (NEW)
+        if (k8sEvents && k8sEvents.length > 0) {
+            html += '<div class="alert-group k8s-events">';
+            html += `<h4>🔔 Kubernetes Events (${k8sEvents.length})</h4>`;
+            k8sEvents.forEach(event => {
+                html += this.renderK8sEventCard(event);
+            });
+            html += '</div>';
+        }
 
         // Critical alerts
         if (data.critical && data.critical.length > 0) {
@@ -700,6 +711,31 @@ const AlertsManager = {
                     ${alert.namespace ? `<span class="alert-ns">📁 ${alert.namespace}</span>` : ''}
                     ${alert.pod ? `<span class="alert-pod">📦 ${alert.pod}</span>` : ''}
                     <span class="alert-age">⏱️ ${age}</span>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Render Kubernetes event card
+     */
+    renderK8sEventCard(event) {
+        const severity = event.type === 'Error' ? 'critical' : 'warning';
+        const icon = event.type === 'Error' ? '🔴' : '🟠';
+        const age = this.formatAge(new Date(event.last_timestamp || event.first_timestamp));
+
+        return `
+            <div class="alert-card ${severity}">
+                <div class="alert-header">
+                    <span class="alert-name">${icon} ${event.reason || 'Unknown'}</span>
+                    <span class="alert-state">${event.type}</span>
+                </div>
+                <div class="alert-summary">${event.message || 'No message'}</div>
+                <div class="alert-meta">
+                    ${event.namespace ? `<span class="alert-ns">📁 ${event.namespace}</span>` : ''}
+                    ${event.involved_object?.name ? `<span class="alert-pod">📦 ${event.involved_object.name}</span>` : ''}
+                    <span class="alert-age">⏱️ ${age}</span>
+                    ${event.count ? `<span class="alert-count">🔄 ${event.count}x</span>` : ''}
                 </div>
             </div>
         `;
@@ -951,14 +987,14 @@ const NewsManager = {
             const hnEl = document.getElementById('news-hn');
             const korbenEl = document.getElementById('news-korben');
             const ghEl = document.getElementById('news-github');
-            
+
             if (totalEl) totalEl.textContent = '0';
             if (hnEl) hnEl.textContent = '0';
             if (korbenEl) korbenEl.textContent = '0';
             if (ghEl) ghEl.textContent = '0';
             return;
         }
-        
+
         const hnCount = data.items.filter(n => n.source === 'hackernews').length;
         const korbenCount = data.items.filter(n => n.source === 'korben').length;
         const ghCount = data.items.filter(n => n.source === 'github').length;
