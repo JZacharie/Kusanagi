@@ -1,17 +1,16 @@
-use std::process::Command;
-
 fn main() {
-    // Get current timestamp for build
-    let output = Command::new("date")
-        .arg("+%Y-%m-%d %H:%M:%S UTC")
-        .env("TZ", "UTC")
-        .output()
-        .expect("Failed to get date");
+    // Get current timestamp using Rust std
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("Time went backwards");
     
-    let build_time = String::from_utf8(output.stdout)
-        .expect("Invalid UTF-8")
-        .trim()
-        .to_string();
+    // Format as human-readable UTC timestamp
+    let secs = now.as_secs();
+    let datetime = chrono::NaiveDateTime::from_timestamp_opt(secs as i64, 0)
+        .expect("Invalid timestamp");
+    
+    let build_time = datetime.format("%Y-%m-%d %H:%M:%S UTC").to_string();
     
     println!("cargo:rustc-env=BUILD_TIMESTAMP={}", build_time);
+    println!("cargo:rerun-if-changed=build.rs");
 }
