@@ -3,133 +3,151 @@ use chrono::Utc;
 use reqwest::Client;
 
 pub async fn get_news() -> Result<Value, String> {
-    let client = Client::new();
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| e.to_string())?;
     
-    // Tech/DevOps sources
-    let sources = vec![
-        "https://feeds.feedburner.com/oreilly/radar",
-        "https://kubernetes.io/feed.xml",
-        "https://blog.docker.com/feed/",
-        "https://www.cncf.io/feed/",
-    ];
+    let mut all_news = Vec::new();
     
-    // Try RSS feeds first
-    for source in sources {
-        if let Ok(news) = fetch_rss_feed(&client, source).await {
-            if !news.is_empty() {
-                return Ok(json!({
-                    "items": news,
-                    "cached_at": Utc::now().to_rfc3339(),
-                    "source": "rss"
-                }));
-            }
-        }
+    // Fetch from all sources concurrently
+    let (hn_news, korben_news, github_news, cncf_news) = tokio::join!(
+        fetch_hackernews(&client),
+        fetch_korben(&client),
+        fetch_github_trending(&client),
+        fetch_cncf(&client)
+    );
+    
+    // Aggregate results
+    if let Ok(mut items) = hn_news {
+        all_news.append(&mut items);
+    }
+    if let Ok(mut items) = korben_news {
+        all_news.append(&mut items);
+    }
+    if let Ok(mut items) = github_news {
+        all_news.append(&mut items);
+    }
+    if let Ok(mut items) = cncf_news {
+        all_news.append(&mut items);
     }
     
-    // Fallback: Hacker News API via reqwest
-    if let Ok(response) = client.get("https://hacker-news.firebaseio.com/v0/topstories.json")
-        .send().await 
-    {
-        if let Ok(story_ids) = response.json::<Vec<u64>>().await {
-            let mut news_items = Vec::new();
-            
-            // Take top 5
-            for &story_id in story_ids.iter().take(5) {
-                if let Ok(story_res) = client.get(&format!("https://hacker-news.firebaseio.com/v0/item/{}.json", story_id))
-                    .send().await 
-                {
-                    if let Ok(story) = story_res.json::<Value>().await {
-                        news_items.push(json!({
-                            "title": story["title"],
-                            "url": story["url"],
-                            "score": story["score"],
-                            "time": story["time"],
-                            "source": "hackernews"
-                        }));
-                    }
-                }
-            }
-            
-            if !news_items.is_empty() {
-                return Ok(json!({
-                    "items": news_items,
-                    "cached_at": Utc::now().to_rfc3339(),
-                    "source": "hackernews"
-                }));
-            }
-        }
+    if all_news.is_empty() {
+        return Ok(json!({
+            "items": get_fallback_news(),
+            "cached_at": Utc::now().to_rfc3339(),
+            "source": "fallback"
+        }));
     }
     
-    // Fallback: Static news
     Ok(json!({
-        "items": [
-            {
-                "title": "Kubernetes 1.29 Released with Enhanced Security Features",
-                "url": "https://kubernetes.io/blog/2024/12/11/kubernetes-v1-29-release/",
-                "source": "kubernetes.io",
-                "category": "kubernetes",
-                "time": "2024-12-11"
-            },
-            {
-                "title": "Docker Desktop 4.26 Introduces New Container Management Tools",
-                "url": "https://www.docker.com/blog/docker-desktop-4-26/",
-                "source": "docker.com",
-                "category": "docker",
-                "time": "2024-12-10"
-            }
-        ],
+        "items": all_news,
         "cached_at": Utc::now().to_rfc3339(),
-        "source": "static"
+        "sources": ["hackernews", "korben", "github", "cncf"]
     }))
 }
 
-async fn fetch_rss_feed(client: &Client, url: &str) -> Result<Vec<Value>, String> {
+async fn fetch_hackernews(client: &Client) -> Result<Vec<Value>, String> {
+    let response = client.get("https://hacker-news.firebaseio.com/v0/topstories.json")
+        .send().await
+        .map_err(|e| e.to_string())?;
+    
+    let story_ids = response.json::<Vec<u64>>().await
+        .map_err(|e| e.to_string())?;
+    
+    let mut news_items = Vec::new();
+    
+    // Take top 5
+    for &story_id in story_ids.iter().take(5) {
+        if let Ok(story_res) = client.get(&format!("https://hacker-news.firebaseio.com/v0/item/{}.json", story_id))
+            .send().await 
+        {
+            if let Ok(story) = story_res.json::<Value>().await {
+                news_items.push(json!({
+                    "title": story["title"],
+                    "url": story["url"],
+                    "score": story["score"],
+                    "time": story["time"],
+                    "source": "hackernews",
+                    "icon": "🟠"
+                }));
+            }
+        }
+    }
+    
+    Ok(news_items)
+}
+
+async fn fetch_korben(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://korben.info/feed", "korben", "🔵").await
+}
+
+async fn fetch_github_trending(client: &Client) -> Result<Vec<Value>, String> {
+    // GitHub trending doesn't have an official RSS, using a community service
+    fetch_rss_feed(client, "https://mshibanami.github.io/GitHubTrendingRSS/daily/all.xml", "github", "🟣").await
+}
+
+async fn fetch_cncf(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.cncf.io/feed/", "cncf", "📰").await
+}
+
+async fn fetch_rss_feed(client: &Client, url: &str, source_name: &str, icon: &str) -> Result<Vec<Value>, String> {
     let response = client.get(url)
-        .timeout(std::time::Duration::from_secs(3))
         .send()
         .await
         .map_err(|e| e.to_string())?;
 
-    if response.status().is_success() {
-        let xml_content = response.text().await.map_err(|e| e.to_string())?;
+    if !response.status().is_success() {
+        return Err(format!("HTTP {}", response.status()));
+    }
+
+    let xml_content = response.text().await.map_err(|e| e.to_string())?;
+    
+    let mut news_items = Vec::new();
+    let lines: Vec<&str> = xml_content.lines().collect();
+    
+    let mut current_item = json!({});
+    let mut in_item = false;
+    
+    for line in lines {
+        let line = line.trim();
         
-        let mut news_items = Vec::new();
-        let lines: Vec<&str> = xml_content.lines().collect();
-        
-        let mut current_item = json!({});
-        let mut in_item = false;
-        
-        for line in lines {
-            let line = line.trim();
-            
-            if line.contains("<item>") || line.contains("<entry>") {
-                in_item = true;
-                current_item = json!({});
-            } else if (line.contains("</item>") || line.contains("</entry>")) && in_item {
-                if !current_item["title"].is_null() {
-                    current_item["source"] = json!(extract_domain(url));
-                    news_items.push(current_item.clone());
-                }
-                in_item = false;
-            } else if in_item {
-                if let Some(title) = extract_xml_content(line, "title") {
-                    current_item["title"] = json!(title);
-                } else if let Some(link) = extract_xml_content(line, "link") {
-                    current_item["url"] = json!(link);
-                } else if let Some(pub_date) = extract_xml_content(line, "pubDate") {
-                    current_item["time"] = json!(pub_date);
-                }
+        if line.contains("<item>") || line.contains("<entry>") {
+            in_item = true;
+            current_item = json!({});
+        } else if (line.contains("</item>") || line.contains("</entry>")) && in_item {
+            if !current_item["title"].is_null() {
+                current_item["source"] = json!(source_name);
+                current_item["icon"] = json!(icon);
+                news_items.push(current_item.clone());
             }
-            
-            if news_items.len() >= 5 {
-                break;
+            in_item = false;
+        } else if in_item {
+            if let Some(title) = extract_xml_content(line, "title") {
+                current_item["title"] = json!(clean_html(&title));
+            } else if let Some(link) = extract_xml_content(line, "link") {
+                current_item["url"] = json!(link);
+            } else if line.contains("<link") && line.contains("href=") {
+                // Atom feed link format
+                if let Some(href_start) = line.find("href=\"") {
+                    let after_href = &line[href_start + 6..];
+                    if let Some(href_end) = after_href.find('"') {
+                        current_item["url"] = json!(&after_href[..href_end]);
+                    }
+                }
+            } else if let Some(pub_date) = extract_xml_content(line, "pubDate") {
+                current_item["time"] = json!(pub_date);
+            } else if let Some(published) = extract_xml_content(line, "published") {
+                current_item["time"] = json!(published);
             }
         }
         
-        return Ok(news_items);
+        if news_items.len() >= 5 {
+            break;
+        }
     }
     
-    Err("Failed to fetch RSS feed".to_string())
+    Ok(news_items)
 }
 
 fn extract_xml_content(line: &str, tag: &str) -> Option<String> {
@@ -147,15 +165,35 @@ fn extract_xml_content(line: &str, tag: &str) -> Option<String> {
     None
 }
 
-fn extract_domain(url: &str) -> String {
-    if let Some(start) = url.find("://") {
-        let after_protocol = &url[start + 3..];
-        if let Some(end) = after_protocol.find('/') {
-            after_protocol[..end].to_string()
-        } else {
-            after_protocol.to_string()
-        }
-    } else {
-        url.to_string()
-    }
+fn clean_html(text: &str) -> String {
+    // Remove CDATA
+    let text = text.replace("<![CDATA[", "").replace("]]>", "");
+    
+    // Basic HTML entity decoding
+    text.replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#039;", "'")
+        .trim()
+        .to_string()
+}
+
+fn get_fallback_news() -> Vec<Value> {
+    vec![
+        json!({
+            "title": "Kubernetes 1.29 Released with Enhanced Security Features",
+            "url": "https://kubernetes.io/blog/2024/12/11/kubernetes-v1-29-release/",
+            "source": "kubernetes",
+            "icon": "📰",
+            "time": "2024-12-11"
+        }),
+        json!({
+            "title": "Docker Desktop 4.26 Introduces New Container Management Tools",
+            "url": "https://www.docker.com/blog/docker-desktop-4-26/",
+            "source": "docker",
+            "icon": "🐳",
+            "time": "2024-12-10"
+        })
+    ]
 }
