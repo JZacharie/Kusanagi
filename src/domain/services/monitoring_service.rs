@@ -4,61 +4,46 @@ use kube::{Client, Api, api::ListParams};
 use k8s_openapi::api::batch::v1::CronJob;
 
 pub async fn get_alerts() -> Result<Value, String> {
-    // Essayer Prometheus AlertManager
-    let alertmanager_output = Command::new("curl")
-        .args(&["-s", "http://localhost:9093/api/v1/alerts"])
-        .output()
-        .await;
+    use crate::legacy::alertmanager::get_cached_active_alerts;
     
-    if let Ok(result) = alertmanager_output {
-        if result.status.success() {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(alerts_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(alerts) = alerts_data["data"].as_array() {
-                    let active_alerts: Vec<Value> = alerts.iter().map(|alert| {
-                        json!({
-                            "alertname": alert["labels"]["alertname"],
-                            "severity": alert["labels"]["severity"],
-                            "instance": alert["labels"]["instance"],
-                            "summary": alert["annotations"]["summary"],
-                            "status": alert["status"]["state"]
-                        })
-                    }).collect();
-                    
-                    return Ok(json!(active_alerts));
-                }
+    match get_cached_active_alerts().await {
+        Ok(alerts_response) => {
+            let mut all_alerts = Vec::new();
+            
+            for alert in &alerts_response.critical {
+                all_alerts.push(json!({
+                    "alertname": alert.name,
+                    "severity": "critical",
+                    "instance": alert.pod.as_ref().or(alert.namespace.as_ref()).unwrap_or(&"unknown".to_string()),
+                    "summary": alert.summary,
+                    "status": alert.state
+                }));
             }
-        }
-    }
-    
-    // Fallback: vérifier les pods en erreur comme "alertes"
-    let pods_output = Command::new("kubectl")
-        .args(&["get", "pods", "--all-namespaces", "--field-selector=status.phase!=Running,status.phase!=Succeeded", "-o", "json"])
-        .output()
-        .await;
-    
-    if let Ok(result) = pods_output {
-        if result.status.success() {
-            let json_str = String::from_utf8_lossy(&result.stdout);
-            if let Ok(pods_data) = serde_json::from_str::<Value>(&json_str) {
-                if let Some(items) = pods_data["items"].as_array() {
-                    let pod_alerts: Vec<Value> = items.iter().map(|pod| {
-                        json!({
-                            "alertname": "PodNotRunning",
-                            "severity": "warning",
-                            "instance": format!("{}/{}", pod["metadata"]["namespace"], pod["metadata"]["name"]),
-                            "summary": format!("Pod {} is in {} state", pod["metadata"]["name"], pod["status"]["phase"]),
-                            "status": "firing"
-                        })
-                    }).collect();
-                    
-                    return Ok(json!(pod_alerts));
-                }
+            
+            for alert in &alerts_response.warning {
+                all_alerts.push(json!({
+                    "alertname": alert.name,
+                    "severity": "warning",
+                    "instance": alert.pod.as_ref().or(alert.namespace.as_ref()).unwrap_or(&"unknown".to_string()),
+                    "summary": alert.summary,
+                    "status": alert.state
+                }));
             }
-        }
+            
+            for alert in &alerts_response.info {
+                all_alerts.push(json!({
+                    "alertname": alert.name,
+                    "severity": "info",
+                    "instance": alert.pod.as_ref().or(alert.namespace.as_ref()).unwrap_or(&"unknown".to_string()),
+                    "summary": alert.summary,
+                    "status": alert.state
+                }));
+            }
+            
+            Ok(json!(all_alerts))
+        },
+        Err(_) => Ok(json!([]))
     }
-    
-    Ok(json!([]))
 }
 
 pub async fn get_quotas() -> Result<Value, String> {
