@@ -76,3 +76,42 @@ impl Cache for InMemoryCache {
         self.stats.read().await.clone()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_cache_set_get() {
+        let cache = InMemoryCache::new();
+        cache.set("key1", "value1".to_string()).await;
+        assert_eq!(cache.get("key1").await, Some("value1".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_cache_miss() {
+        let cache = InMemoryCache::new();
+        assert_eq!(cache.get("nonexistent").await, None);
+    }
+
+    #[tokio::test]
+    async fn test_cache_delete() {
+        let cache = InMemoryCache::new();
+        cache.set("key1", "value1".to_string()).await;
+        cache.delete("key1").await;
+        assert_eq!(cache.get("key1").await, None);
+    }
+
+    #[tokio::test]
+    async fn test_cache_stats() {
+        let cache = InMemoryCache::new();
+        cache.set("key1", "value1".to_string()).await;
+        cache.get("key1").await;
+        cache.get("missing").await;
+        
+        let stats = cache.stats().await;
+        assert_eq!(stats.entries, 1);
+        assert_eq!(stats.hits, 1);
+        assert_eq!(stats.misses, 1);
+    }
+}

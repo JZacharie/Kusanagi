@@ -33,3 +33,17 @@ impl Default for MqttConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_defaults() {
+        let config = Config::default();
+        assert_eq!(config.server.host, "0.0.0.0");
+        assert_eq!(config.server.port, 8080);
+        assert_eq!(config.mqtt.host, "localhost");
+        assert_eq!(config.mqtt.port, 1883);
+    }
+}

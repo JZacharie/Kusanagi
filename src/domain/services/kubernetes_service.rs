@@ -392,4 +392,26 @@ fn calculate_age_from_timestamp(ts: &k8s_openapi::apimachinery::pkg::apis::meta:
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_k8s_quantity() {
+        assert_eq!(parse_k8s_quantity("1024"), 1024);
+        assert_eq!(parse_k8s_quantity("1Ki"), 1024);
+        assert_eq!(parse_k8s_quantity("1Mi"), 1048576);
+        assert_eq!(parse_k8s_quantity("1Gi"), 1073741824);
+        assert_eq!(parse_k8s_quantity(""), 0);
+    }
+
+    #[test]
+    fn test_format_bytes() {
+        assert_eq!(format_bytes(0), "0 B");
+        assert_eq!(format_bytes(1024), "1.0 KiB");
+        assert_eq!(format_bytes(1048576), "1.0 MiB");
+        assert_eq!(format_bytes(1073741824), "1.0 GiB");
+    }
+}
+
 // End of file
