@@ -49,6 +49,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsNotifications {
 async fn main() -> std::io::Result<()> {
     // Configure logger with timestamps
     env_logger::Builder::from_default_env()
+        .filter_module("kusanagi::domain::services::proxmox_service", log::LevelFilter::Error)
         .format_timestamp_millis()
         .init();
     

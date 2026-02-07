@@ -1616,6 +1616,7 @@ dependencies = [
  "env_logger",
  "k8s-openapi",
  "kube",
+ "log",
  "reqwest",
  "rumqttc",
  "serde",
