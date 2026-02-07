@@ -445,17 +445,33 @@ async fn system_status() -> impl Responder {
         .map(|t| t.elapsed().as_secs())
         .unwrap_or(0);
     
-    // Read Kusanagi process memory from /proc/self/status asynchronously
-    let memory_mb = match tokio::fs::read_to_string("/proc/self/status").await {
-        Ok(status) => {
-            status.lines()
-                .find(|line| line.starts_with("VmRSS:"))
-                .and_then(|line| line.split_whitespace().nth(1))
-                .and_then(|kb| kb.parse::<f64>().ok())
-                .map(|kb_val| kb_val / 1024.0) // KB to MB
-                .unwrap_or(0.0)
+    // Read Kusanagi process memory and CPU from /proc/self/status
+    let (memory_mb, cpu_usage) = match tokio::fs::read_to_string("/proc/self/stat").await {
+        Ok(stat) => {
+            let fields: Vec<&str> = stat.split_whitespace().collect();
+            let utime = fields.get(13).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+            let stime = fields.get(14).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+            let total_time = utime + stime;
+            let cpu_percent = if uptime_secs > 0 {
+                (total_time as f64 / 100.0) / uptime_secs as f64 * 100.0
+            } else {
+                0.0
+            };
+            
+            let mem = tokio::fs::read_to_string("/proc/self/status").await
+                .ok()
+                .and_then(|status| {
+                    status.lines()
+                        .find(|line| line.starts_with("VmRSS:"))
+                        .and_then(|line| line.split_whitespace().nth(1))
+                        .and_then(|kb| kb.parse::<f64>().ok())
+                        .map(|kb_val| kb_val / 1024.0)
+                })
+                .unwrap_or(0.0);
+            
+            (mem, cpu_percent.min(100.0))
         }
-        Err(_) => 0.0
+        Err(_) => (0.0, 0.0)
     };
     
     HttpResponse::Ok().json(json!({
@@ -464,9 +480,9 @@ async fn system_status() -> impl Responder {
         "uptime": format!("{}h {}m", uptime_secs / 3600, (uptime_secs % 3600) / 60),
         "version": "0.2.0",
         "build_timestamp": env!("BUILD_TIMESTAMP"),
-        "cpu_usage": 0.0,  // Can add CPU tracking if needed
+        "cpu_usage": cpu_usage,
         "memory_usage_mb": memory_mb,
-        "memory_total_mb": 0.0  // Pod-specific, not relevant
+        "memory_total_mb": 0.0
     }))
 }
 
