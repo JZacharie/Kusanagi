@@ -64,41 +64,8 @@ async fn main() -> std::io::Result<()> {
         .build()
         .unwrap_or_default();
 
-    // Deferred cache warming - runs AFTER server starts, one service at a time
-    println!("🔥 Cache warming scheduled (deferred)...");
-    let cache_clone = cache.clone();
-    let client_clone = client.clone();
-    actix_web::rt::spawn(async move {
-        // Wait for server to fully start before warming cache
-        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-        log_memory_usage("Before Cache Warming");
-        
-        // 1. Kubernetes Warmup
-        println!("📦 Warming: Kubernetes cluster overview...");
-        if let Ok(overview) = kubernetes_service::get_cluster_overview().await {
-            cache_clone.set("cluster_overview", overview.to_string()).await;
-            println!("✅ Cache warmed: Cluster Overview");
-        }
-        log_memory_usage("After Kubernetes Warmup");
-        // Allow GC / memory release
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-        
-        // 2. Proxmox VMs (one host at a time is handled internally)
-        println!("🖥️ Warming: Proxmox VMs...");
-        let _ = proxmox_service::get_proxmox_vms(&client_clone).await;
-        println!("✅ Cache warmed: Proxmox VMs");
-        log_memory_usage("After Proxmox VMs Warmup");
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-        
-        // 3. Proxmox Nodes
-        println!("🖥️ Warming: Proxmox Nodes...");
-        let _ = proxmox_service::get_proxmox_nodes(&client_clone).await;
-        println!("✅ Cache warmed: Proxmox Nodes");
-        log_memory_usage("After Proxmox Nodes Warmup");
-        
-        println!("🎉 All caches warmed!");
-        log_memory_usage("Cache Warming Complete");
-    });
+    // Cache warming removed - cache disabled to prevent memory leaks
+    // Data is fetched fresh on each request now
 
     let sys = web::Data::new(Mutex::new(System::new()));
 
