@@ -125,7 +125,7 @@ pub fn start_mqtt_client(
         // Generate random client id
         let client_id = format!("kusanagi-{}", std::process::id());
         let mut mqttoptions = MqttOptions::new(client_id, host.clone(), port);
-        mqttoptions.set_keep_alive(Duration::from_secs(5));
+        mqttoptions.set_keep_alive(Duration::from_secs(30)); // Augmenté de 5s à 30s
 
         if let (Some(u), Some(p)) = (username, password) {
             mqttoptions.set_credentials(u, p);

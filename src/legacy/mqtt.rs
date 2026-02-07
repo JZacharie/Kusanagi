@@ -115,7 +115,7 @@ pub async fn init_mqtt() {
     }
 
     let mut mqttoptions = MqttOptions::new(client_id, &host, port);
-    mqttoptions.set_keep_alive(Duration::from_secs(5));
+    mqttoptions.set_keep_alive(Duration::from_secs(30)); // Augmenté de 5s à 30s
 
     if let (Some(u), Some(p)) = (user, pass) {
         mqttoptions.set_credentials(u, p);

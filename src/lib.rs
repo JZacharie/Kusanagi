@@ -5,6 +5,7 @@ pub mod config;
 pub mod error;
 pub mod event_bus;
 pub mod legacy;
+pub mod perf_monitor;
 
 // Hexagonal Layers
 pub mod application;

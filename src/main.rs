@@ -77,15 +77,15 @@ async fn main() -> std::io::Result<()> {
 
     let config = Config::default();
 
-    // Advanced caches with TTL
+    // Advanced caches with TTL - Augmenté pour réduire les requêtes
     let k8s_cache = Arc::new(kusanagi::AdvancedCache::<String>::new(
-        std::time::Duration::from_secs(30),
+        std::time::Duration::from_secs(60), // Augmenté de 30s à 60s
     ));
     let argocd_cache = Arc::new(kusanagi::AdvancedCache::<String>::new(
-        std::time::Duration::from_secs(300),
+        std::time::Duration::from_secs(600), // Augmenté de 300s à 600s
     ));
     let general_cache = Arc::new(kusanagi::AdvancedCache::<String>::new(
-        std::time::Duration::from_secs(60),
+        std::time::Duration::from_secs(120), // Augmenté de 60s à 120s
     ));
 
     log_memory_usage("After Config + Cache Init");
@@ -781,19 +781,19 @@ async fn cache_stats(
             "entries": k8s.entries,
             "expired": k8s.expired,
             "memory_bytes": k8s.memory_bytes,
-            "ttl_seconds": 30
+            "ttl_seconds": 60
         },
         "argocd": {
             "entries": argocd.entries,
             "expired": argocd.expired,
             "memory_bytes": argocd.memory_bytes,
-            "ttl_seconds": 300
+            "ttl_seconds": 600
         },
         "general": {
             "entries": general.entries,
             "expired": general.expired,
             "memory_bytes": general.memory_bytes,
-            "ttl_seconds": 60
+            "ttl_seconds": 120
         },
         "total": {
             "entries": k8s.entries + argocd.entries + general.entries,

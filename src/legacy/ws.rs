@@ -9,11 +9,11 @@ use crate::event_bus::integration::subscribe_pod_notifications;
 // use crate::legacy:: // Disabled for core version{argocd, events, pods};
 
 /// How often heartbeat pings are sent
-const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(10); // Augmenté de 5s à 10s
 /// How long before lack of client response causes a timeout
-const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
+const CLIENT_TIMEOUT: Duration = Duration::from_secs(20); // Augmenté de 10s à 20s
 /// How often to check for new alerts
-const ALERT_CHECK_INTERVAL: Duration = Duration::from_secs(30);
+const ALERT_CHECK_INTERVAL: Duration = Duration::from_secs(60); // Augmenté de 30s à 60s
 
 /// WebSocket notification message types
 #[derive(Clone, Debug, Serialize, Deserialize)]
