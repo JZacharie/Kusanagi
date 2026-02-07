@@ -2,8 +2,7 @@ use serde_json::{json, Value};
 use tokio::process::Command;
 
 pub async fn get_argocd_status() -> Result<Value, String> {
-    let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
-    eprintln!("[{}] 🔍 Fetching ArgoCD status...", now);
+    tracing::info!("🔍 Fetching ArgoCD status...");
     
     // OPTIMIZATION: Use custom-columns to avoid parsing massive JSON with history/managedFields
     // Columns: NAME, NAMESPACE, HEALTH, SYNC, REVISION
@@ -19,7 +18,7 @@ pub async fn get_argocd_status() -> Result<Value, String> {
             return parse_argocd_apps_text(&stdout);
         } else {
             let stderr = String::from_utf8_lossy(&result.stderr);
-            eprintln!("⚠️ ArgoCD kubectl error: {}", stderr.trim());
+            tracing::warn!("⚠️ ArgoCD kubectl error: {}", stderr.trim());
         }
     }
     
@@ -39,7 +38,7 @@ pub async fn get_argocd_status() -> Result<Value, String> {
                     .filter(|line| line.contains("Running"))
                     .count();
                 
-                eprintln!("⚠️ ArgoCD installed ({}/{} pods running) but no apps found", running_pods, pod_lines.len());
+                tracing::warn!("⚠️ ArgoCD installed ({}/{} pods running) but no apps found", running_pods, pod_lines.len());
                 return Ok(json!({
                     "total": 0,
                     "healthy": 0,
@@ -56,7 +55,7 @@ pub async fn get_argocd_status() -> Result<Value, String> {
         }
     }
     
-    eprintln!("❌ ArgoCD not detected or not accessible");
+    tracing::error!("❌ ArgoCD not detected or not accessible");
     Ok(json!({
         "total": 0,
         "healthy": 0,
