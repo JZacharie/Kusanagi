@@ -4,8 +4,12 @@ pub mod cache;
 pub mod config;
 pub mod error;
 pub mod event_bus;
+pub mod handlers;
+pub mod init;
 pub mod legacy;
 pub mod perf_monitor;
+pub mod routes;
+pub mod utils;
 
 // Hexagonal Layers
 pub mod application;

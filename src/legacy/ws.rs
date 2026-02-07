@@ -1,4 +1,5 @@
 use actix::{Actor, ActorContext, AsyncContext, Handler, Message, StreamHandler};
+use crate::utils::MutexExt;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use serde::{Deserialize, Serialize};
@@ -134,7 +135,7 @@ impl Actor for NotificationSession {
 
         // Subscribe to MQTT broadcast
         let addr_mqtt = ctx.address();
-        let mut mqtt_rx = crate::legacy::mqtt::MQTT_STATE.lock().unwrap().tx.subscribe();
+        let mut mqtt_rx = crate::legacy::mqtt::MQTT_STATE.lock_safe().tx.subscribe();
         actix::spawn(async move {
             while let Ok(msg) = mqtt_rx.recv().await {
                 addr_mqtt.do_send(SendNotification(NotificationMessage::MqttMessage {

@@ -8,6 +8,7 @@ use tokio::sync::broadcast;
 use tokio::time::interval;
 use tracing::{debug, error, info};
 use actix_web::{web, HttpResponse, Result};
+use crate::utils::MutexExt;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MqttMessage {
@@ -102,7 +103,7 @@ pub async fn init_mqtt() {
 
     // Update state with broker info
     {
-        let mut state = MQTT_STATE.lock().unwrap();
+        let mut state = MQTT_STATE.lock_safe();
         state.broker_host = host.clone();
         state.broker_port = port;
     }
@@ -110,7 +111,7 @@ pub async fn init_mqtt() {
     let client_id = format!("kusanagi-backend-{}", chrono::Utc::now().timestamp() % 1000);
     
     {
-        let mut state = MQTT_STATE.lock().unwrap();
+        let mut state = MQTT_STATE.lock_safe();
         state.client_id = client_id.clone();
     }
 
@@ -125,7 +126,7 @@ pub async fn init_mqtt() {
     
     // Store client in state
     {
-        let mut state = MQTT_STATE.lock().unwrap();
+        let mut state = MQTT_STATE.lock_safe();
         state.client = Some(client.clone());
     }
 
@@ -134,7 +135,7 @@ pub async fn init_mqtt() {
         if let Err(e) = client.subscribe("#", QoS::AtMostOnce).await {
             error!("Failed to subscribe to MQTT topics: {}", e);
             {
-                let mut state = MQTT_STATE.lock().unwrap();
+                let mut state = MQTT_STATE.lock_safe();
                 state.last_error = Some(format!("Subscribe failed: {}", e));
             }
             return;
@@ -142,7 +143,7 @@ pub async fn init_mqtt() {
 
         // Mark as connected
         {
-            let mut state = MQTT_STATE.lock().unwrap();
+            let mut state = MQTT_STATE.lock_safe();
             state.connected = true;
             state.connection_time = Some(Instant::now());
         }
@@ -168,7 +169,7 @@ pub async fn init_mqtt() {
                 Err(e) => {
                     error!("MQTT EventLoop error: {}", e);
                     {
-                        let mut state = MQTT_STATE.lock().unwrap();
+                        let mut state = MQTT_STATE.lock_safe();
                         state.connected = false;
                         state.last_error = Some(e.to_string());
                     }
@@ -183,7 +184,7 @@ pub async fn init_mqtt() {
 }
 
 fn handle_incoming_message(msg: MqttMessage) {
-    let mut state = MQTT_STATE.lock().unwrap();
+    let mut state = MQTT_STATE.lock_safe();
     
     // Update message count
     state.message_count += 1;
@@ -255,7 +256,7 @@ async fn start_stats_task() {
     loop {
         interval.tick().await;
         
-        let state = MQTT_STATE.lock().unwrap();
+        let state = MQTT_STATE.lock_safe();
         let current_count = state.message_count;
         let rate = (current_count - last_count) as f64;
         last_count = current_count;
@@ -266,7 +267,7 @@ async fn start_stats_task() {
 
 pub async fn publish_message(topic: &str, payload: &str) -> Result<(), Box<dyn std::error::Error>> {
     let client = {
-        let state = MQTT_STATE.lock().unwrap();
+        let state = MQTT_STATE.lock_safe();
         state.client.clone()
     };
 
@@ -281,19 +282,19 @@ pub async fn publish_message(topic: &str, payload: &str) -> Result<(), Box<dyn s
 
 // API Handlers
 pub async fn get_mqtt_messages() -> Result<HttpResponse> {
-    let state = MQTT_STATE.lock().unwrap();
+    let state = MQTT_STATE.lock_safe();
     let messages: Vec<MqttMessage> = state.recent_messages.iter().cloned().collect();
     Ok(HttpResponse::Ok().json(messages))
 }
 
 pub async fn get_mqtt_devices() -> Result<HttpResponse> {
-    let state = MQTT_STATE.lock().unwrap();
+    let state = MQTT_STATE.lock_safe();
     let devices: Vec<MqttDevice> = state.devices.values().cloned().collect();
     Ok(HttpResponse::Ok().json(devices))
 }
 
 pub async fn get_mqtt_topics() -> Result<HttpResponse> {
-    let state = MQTT_STATE.lock().unwrap();
+    let state = MQTT_STATE.lock_safe();
     
     // Build topic tree
     let mut topic_tree: HashMap<String, MqttTopic> = HashMap::new();
@@ -316,7 +317,7 @@ pub async fn get_mqtt_topics() -> Result<HttpResponse> {
 }
 
 pub async fn get_mqtt_stats() -> Result<HttpResponse> {
-    let state = MQTT_STATE.lock().unwrap();
+    let state = MQTT_STATE.lock_safe();
     
     let uptime = state.connection_time.map(|t| t.elapsed().as_secs()).unwrap_or(0);
     let messages_per_minute = if uptime > 0 {
@@ -337,7 +338,7 @@ pub async fn get_mqtt_stats() -> Result<HttpResponse> {
 }
 
 pub async fn get_mqtt_health() -> Result<HttpResponse> {
-    let state = MQTT_STATE.lock().unwrap();
+    let state = MQTT_STATE.lock_safe();
     
     let health = MqttHealth {
         status: if state.connected { "healthy".to_string() } else { "unhealthy".to_string() },

@@ -1,4 +1,5 @@
 //! OpenObserve Telemetry Module
+use crate::utils::MutexExt;
 //! Sends APM metrics and logs to OpenObserve for performance monitoring
 //!
 //! Configuration via environment variables or Kubernetes secrets:
@@ -107,7 +108,7 @@ pub async fn init_telemetry(client: &Client) {
         warn!("⚠️ OpenObserve auth token not configured");
     }
     
-    *TELEMETRY_CONFIG.lock().unwrap() = config;
+    *TELEMETRY_CONFIG.lock_safe() = config;
 }
 
 /// Load credentials from Kubernetes secret
@@ -338,16 +339,16 @@ fn queue_event(event: TelemetryEvent) {
     }
 
     // Sample rate check
-    let config = TELEMETRY_CONFIG.lock().unwrap();
+    let config = TELEMETRY_CONFIG.lock_safe();
     if config.sample_rate < 1.0 && rand::random::<f64>() > config.sample_rate {
         return;
     }
     drop(config);
 
-    let mut queue = EVENT_QUEUE.lock().unwrap();
+    let mut queue = EVENT_QUEUE.lock_safe();
     queue.push(event);
     
-    let batch_size = TELEMETRY_CONFIG.lock().unwrap().batch_size;
+    let batch_size = TELEMETRY_CONFIG.lock_safe().batch_size;
     if queue.len() >= batch_size {
         let events: Vec<_> = queue.drain(..).collect();
         drop(queue);
@@ -362,7 +363,7 @@ async fn flush_events(events: Vec<TelemetryEvent>) {
         return;
     }
 
-    let config = TELEMETRY_CONFIG.lock().unwrap().clone();
+    let config = TELEMETRY_CONFIG.lock_safe().clone();
     
     let auth_token = match config.auth_token {
         Some(token) => token,
@@ -420,7 +421,7 @@ pub fn start_span(name: &str) -> SpanTimer {
 
 /// Force flush all pending events
 pub fn flush() {
-    let mut queue = EVENT_QUEUE.lock().unwrap();
+    let mut queue = EVENT_QUEUE.lock_safe();
     if !queue.is_empty() {
         let events: Vec<_> = queue.drain(..).collect();
         drop(queue);

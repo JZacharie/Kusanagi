@@ -53,12 +53,14 @@ impl MqttState {
     }
 
     pub fn handle_message(&self, topic: String, payload: String) {
+        use crate::utils::MutexExt;
+        
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_millis();
 
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock_safe();
 
         // Add to buffer
         if inner.messages.len() >= 500 {
@@ -104,12 +106,14 @@ impl MqttState {
     }
 
     pub fn get_devices(&self) -> Value {
-        let inner = self.inner.lock().unwrap();
+        use crate::utils::MutexExt;
+        let inner = self.inner.lock_safe();
         json!(inner.devices)
     }
 
     pub fn get_messages(&self) -> Value {
-        let inner = self.inner.lock().unwrap();
+        use crate::utils::MutexExt;
+        let inner = self.inner.lock_safe();
         json!(inner.messages)
     }
 }
