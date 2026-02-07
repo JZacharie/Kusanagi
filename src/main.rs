@@ -126,7 +126,6 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(client.clone()))
             .app_data(web::Data::new(mqtt_state.clone()))
-            .wrap(Logger::default().exclude("/health"))
             .route("/", web::get().to(web_index))
             .route("/api", web::get().to(service_info))
             .route("/health", web::get().to(health_check))
