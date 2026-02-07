@@ -1,5 +1,5 @@
 
-use tracing::{info, error};
+use tracing::{info, error, debug};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -138,7 +138,7 @@ pub fn start_mqtt_client(state: MqttState, host: String, port: u16, username: Op
                     }
                 },
                 Err(e) => {
-                    error!("❌ MQTT: Connection error: {:?}", e);
+                    debug!("MQTT connection error: {:?}", e);
                     tokio::time::sleep(Duration::from_secs(5)).await;
                 }
             }
