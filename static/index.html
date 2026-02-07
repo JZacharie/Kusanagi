@@ -453,7 +453,33 @@
 
             <!-- Kubernetes Events Section -->
             <section class="argocd-section tab-content" data-tab="events" style="display: none;">
-                <div class="loading">Loading...</div>
+                <h2 class="section-title">Cluster Events</h2>
+
+                <div class="argocd-stats">
+                    <div class="stat-box info">
+                        <div class="stat-value" id="events-total">-</div>
+                        <div class="stat-label">Total Events</div>
+                    </div>
+                    <div class="stat-box warning">
+                        <div class="stat-value" id="events-warnings">-</div>
+                        <div class="stat-label">Warnings</div>
+                    </div>
+                    <div class="stat-box healthy">
+                        <div class="stat-value" id="events-normal">-</div>
+                        <div class="stat-label">Normal</div>
+                    </div>
+                </div>
+
+                <div class="image-controls" style="margin: 1rem 0; display: flex; gap: 10px;">
+                    <button id="btn-show-all" class="cyber-btn active" onclick="K8sManager.filterEvents('all')">All
+                        Events</button>
+                    <button id="btn-show-warnings" class="cyber-btn"
+                        onclick="K8sManager.filterEvents('Warning')">Warnings Only</button>
+                </div>
+
+                <div id="events-content">
+                    <div class="loading">Loading events...</div>
+                </div>
             </section>
 
             <!-- Pods Error Monitoring Section -->
