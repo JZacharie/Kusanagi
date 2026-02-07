@@ -3,7 +3,7 @@ use tokio::process::Command;
 
 pub async fn get_argocd_status() -> Result<Value, String> {
     tracing::info!("🔍 Fetching ArgoCD status...");
-    
+
     // OPTIMIZATION: Use custom-columns to avoid parsing massive JSON with history/managedFields
     // Columns: NAME, NAMESPACE, HEALTH, SYNC, REVISION
     let kubectl_output = Command::new("kubectl")
@@ -11,7 +11,7 @@ pub async fn get_argocd_status() -> Result<Value, String> {
                 "-o", "custom-columns=NAME:.metadata.name,NS:.metadata.namespace,HEALTH:.status.health.status,SYNC:.status.sync.status,REV:.status.sync.revision"])
         .output()
         .await;
-    
+
     if let Ok(result) = kubectl_output {
         if result.status.success() {
             let stdout = String::from_utf8_lossy(&result.stdout);
@@ -21,24 +21,32 @@ pub async fn get_argocd_status() -> Result<Value, String> {
             tracing::warn!("⚠️ ArgoCD kubectl error: {}", stderr.trim());
         }
     }
-    
+
     // Check if ArgoCD is installed if app fetch failed
     let argocd_pods_output = Command::new("kubectl")
         .args(&["get", "pods", "-n", "argocd", "--no-headers"])
         .output()
         .await;
-    
+
     if let Ok(result) = argocd_pods_output {
         if result.status.success() {
             let pods_output = String::from_utf8_lossy(&result.stdout);
-            let pod_lines: Vec<&str> = pods_output.lines().filter(|line| !line.trim().is_empty()).collect();
-            
+            let pod_lines: Vec<&str> = pods_output
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .collect();
+
             if !pod_lines.is_empty() {
-                let running_pods = pod_lines.iter()
+                let running_pods = pod_lines
+                    .iter()
                     .filter(|line| line.contains("Running"))
                     .count();
-                
-                tracing::warn!("⚠️ ArgoCD installed ({}/{} pods running) but no apps found", running_pods, pod_lines.len());
+
+                tracing::warn!(
+                    "⚠️ ArgoCD installed ({}/{} pods running) but no apps found",
+                    running_pods,
+                    pod_lines.len()
+                );
                 return Ok(json!({
                     "total": 0,
                     "healthy": 0,
@@ -54,7 +62,7 @@ pub async fn get_argocd_status() -> Result<Value, String> {
             }
         }
     }
-    
+
     tracing::error!("❌ ArgoCD not detected or not accessible");
     Ok(json!({
         "total": 0,
@@ -79,32 +87,34 @@ fn parse_argocd_apps_text(stdout: &str) -> Result<Value, String> {
     let mut apps_with_issues = Vec::new();
     let mut apps_with_upgrades = Vec::new();
     let mut total = 0;
-    
+
     for line in stdout.lines() {
         let parts: Vec<&str> = line.split_whitespace().collect();
         // Expecting at least 4 columns: NAME, NS, HEALTH, SYNC. REV is optional/might be empty but split_whitespace handles it.
-        if parts.len() < 4 { continue; }
-        
+        if parts.len() < 4 {
+            continue;
+        }
+
         total += 1;
         let name = parts[0];
         let namespace = parts[1];
         let health_status = parts[2];
         let sync_status = parts[3];
         let revision = if parts.len() > 4 { parts[4] } else { "" };
-        
+
         match health_status {
             "Healthy" => healthy += 1,
             "Degraded" | "Missing" | "Unknown" => unhealthy += 1,
             "Progressing" => progressing += 1,
             _ => {} // Handle custom statuses if any
         }
-        
+
         match sync_status {
             "Synced" => synced += 1,
             "OutOfSync" => out_of_sync += 1,
             _ => {}
         }
-        
+
         let app_obj = json!({
             "name": name,
             "namespace": namespace,
@@ -115,16 +125,16 @@ fn parse_argocd_apps_text(stdout: &str) -> Result<Value, String> {
             "message": "", // Omitted for performance/safety with custom-columns
             "can_sync": sync_status == "OutOfSync"
         });
-        
+
         if health_status != "Healthy" || sync_status == "OutOfSync" {
             apps_with_issues.push(app_obj.clone());
         }
-        
+
         if sync_status == "OutOfSync" && health_status == "Healthy" {
             apps_with_upgrades.push(app_obj);
         }
     }
-    
+
     Ok(json!({
         "total": total,
         "healthy": healthy,

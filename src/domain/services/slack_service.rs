@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use tracing::{error, info, warn};
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
 use std::env;
+use tracing::{error, info, warn};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SlackMessage {
@@ -22,7 +22,7 @@ impl SlackService {
     pub fn new() -> Self {
         let token = env::var("SLACK_BOT_TOKEN").unwrap_or_default();
         let channel_id = env::var("SLACK_CHANNEL_ID").unwrap_or_default();
-        
+
         if token.is_empty() {
             warn!("⚠️ Slack: Token not set. Integration disabled.");
         } else {
@@ -51,7 +51,13 @@ impl SlackService {
             _ => "🔵",
         };
 
-        let text = format!("{} *{} Alert*\n*{}*\n{}", emoji, severity.to_uppercase(), title, message);
+        let text = format!(
+            "{} *{} Alert*\n*{}*\n{}",
+            emoji,
+            severity.to_uppercase(),
+            title,
+            message
+        );
         self.post_message(&text).await
     }
 
@@ -66,11 +72,13 @@ impl SlackService {
             thread_ts: None,
         };
 
-        match self.client.post("https://slack.com/api/chat.postMessage")
+        match self
+            .client
+            .post("https://slack.com/api/chat.postMessage")
             .header("Authorization", format!("Bearer {}", self.token))
             .json(&msg)
             .send()
-            .await 
+            .await
         {
             Ok(res) => {
                 if res.status().is_success() {
@@ -79,7 +87,7 @@ impl SlackService {
                     error!("Slack API returned error: {:?}", res.status());
                     false
                 }
-            },
+            }
             Err(e) => {
                 error!("Failed to send Slack message: {}", e);
                 false

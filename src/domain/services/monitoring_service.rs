@@ -1,15 +1,15 @@
+use k8s_openapi::api::batch::v1::CronJob;
+use kube::{api::ListParams, Api, Client};
 use serde_json::{json, Value};
 use tokio::process::Command;
-use kube::{Client, Api, api::ListParams};
-use k8s_openapi::api::batch::v1::CronJob;
 
 pub async fn get_alerts() -> Result<Value, String> {
     use crate::legacy::alertmanager::get_cached_active_alerts;
-    
+
     match get_cached_active_alerts().await {
         Ok(alerts_response) => {
             let mut all_alerts = Vec::new();
-            
+
             for alert in &alerts_response.critical {
                 all_alerts.push(json!({
                     "alertname": alert.name,
@@ -19,7 +19,7 @@ pub async fn get_alerts() -> Result<Value, String> {
                     "status": alert.state
                 }));
             }
-            
+
             for alert in &alerts_response.warning {
                 all_alerts.push(json!({
                     "alertname": alert.name,
@@ -29,7 +29,7 @@ pub async fn get_alerts() -> Result<Value, String> {
                     "status": alert.state
                 }));
             }
-            
+
             for alert in &alerts_response.info {
                 all_alerts.push(json!({
                     "alertname": alert.name,
@@ -39,10 +39,10 @@ pub async fn get_alerts() -> Result<Value, String> {
                     "status": alert.state
                 }));
             }
-            
+
             Ok(json!(all_alerts))
-        },
-        Err(_) => Ok(json!([]))
+        }
+        Err(_) => Ok(json!([])),
     }
 }
 
@@ -51,7 +51,7 @@ pub async fn get_quotas() -> Result<Value, String> {
         .args(&["get", "resourcequota", "--all-namespaces", "-o", "json"])
         .output()
         .await;
-    
+
     match output {
         Ok(result) if result.status.success() => {
             let json_str = String::from_utf8_lossy(&result.stdout);
@@ -61,7 +61,7 @@ pub async fn get_quotas() -> Result<Value, String> {
                     let mut used_cpu = 0;
                     let mut total_memory_limit = 0;
                     let mut used_memory = 0;
-                    
+
                     for quota in items {
                         if let Some(status) = quota["status"].as_object() {
                             if let Some(hard) = status["hard"].as_object() {
@@ -82,7 +82,7 @@ pub async fn get_quotas() -> Result<Value, String> {
                             }
                         }
                     }
-                    
+
                     return Ok(json!({
                         "cpu": {
                             "used": used_cpu,
@@ -98,10 +98,10 @@ pub async fn get_quotas() -> Result<Value, String> {
                     }));
                 }
             }
-        },
+        }
         _ => {}
     }
-    
+
     Ok(json!({
         "cpu": {"used": 50, "total": 100, "percentage": 50},
         "memory": {"used": 60, "total": 100, "percentage": 60},
@@ -113,7 +113,10 @@ pub async fn get_backups() -> Result<Value, String> {
     // We primarily look for CronJobs with "backup" or "dump" in the name
     let client = Client::try_default().await.map_err(|e| e.to_string())?;
     let cronjobs_api: Api<CronJob> = Api::all(client);
-    let list = cronjobs_api.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
+    let list = cronjobs_api
+        .list(&ListParams::default())
+        .await
+        .map_err(|e| e.to_string())?;
 
     let backup_jobs: Vec<Value> = list.items.iter()
         .filter(|job| {
@@ -126,7 +129,7 @@ pub async fn get_backups() -> Result<Value, String> {
             let namespace = job.metadata.namespace.clone().unwrap_or_default();
             let schedule = job.spec.as_ref().map(|s| s.schedule.clone()).unwrap_or_default();
             let suspend = job.spec.as_ref().map(|s| s.suspend.unwrap_or(false)).unwrap_or(false);
-            
+
             // Calculate last schedule age
             let last_schedule_age = if let Some(status) = &job.status {
                 if let Some(last_time) = &status.last_schedule_time {
@@ -150,7 +153,7 @@ pub async fn get_backups() -> Result<Value, String> {
             } else {
                 "-".to_string()
             };
-            
+
             // Active jobs count
             let active_jobs_count = job.status.as_ref()
                 .and_then(|s| s.active.as_ref())
@@ -160,7 +163,7 @@ pub async fn get_backups() -> Result<Value, String> {
             // Recent jobs - simplified placeholder as listing all Jobs is expensive just for this
             // To be accurate we would need to list Jobs filtered by ownerReference=CronJob
             // For now, let's just return mostly static info or what we have.
-            
+
             json!({
                 "name": name,
                 "namespace": namespace,
@@ -172,10 +175,13 @@ pub async fn get_backups() -> Result<Value, String> {
                 "recent_jobs": [] // Placeholder
             })
         }).collect();
-    
+
     let total = backup_jobs.len();
-    let active = backup_jobs.iter().filter(|j| j["active_jobs"].as_u64().unwrap_or(0) > 0).count();
-    
+    let active = backup_jobs
+        .iter()
+        .filter(|j| j["active_jobs"].as_u64().unwrap_or(0) > 0)
+        .count();
+
     Ok(json!({
         "total_cronjobs": total,
         "active_jobs": active,
@@ -187,7 +193,7 @@ pub async fn get_backups() -> Result<Value, String> {
 
 fn parse_cpu_value(cpu_str: &str) -> i64 {
     if cpu_str.ends_with('m') {
-        cpu_str[..cpu_str.len()-1].parse::<i64>().unwrap_or(0)
+        cpu_str[..cpu_str.len() - 1].parse::<i64>().unwrap_or(0)
     } else {
         cpu_str.parse::<i64>().unwrap_or(0) * 1000
     }
@@ -196,11 +202,23 @@ fn parse_cpu_value(cpu_str: &str) -> i64 {
 fn parse_memory_value(memory_str: &str) -> i64 {
     let memory_str = memory_str.trim();
     if memory_str.ends_with("Gi") {
-        memory_str[..memory_str.len()-2].parse::<i64>().unwrap_or(0) * 1024 * 1024 * 1024
+        memory_str[..memory_str.len() - 2]
+            .parse::<i64>()
+            .unwrap_or(0)
+            * 1024
+            * 1024
+            * 1024
     } else if memory_str.ends_with("Mi") {
-        memory_str[..memory_str.len()-2].parse::<i64>().unwrap_or(0) * 1024 * 1024
+        memory_str[..memory_str.len() - 2]
+            .parse::<i64>()
+            .unwrap_or(0)
+            * 1024
+            * 1024
     } else if memory_str.ends_with("Ki") {
-        memory_str[..memory_str.len()-2].parse::<i64>().unwrap_or(0) * 1024
+        memory_str[..memory_str.len() - 2]
+            .parse::<i64>()
+            .unwrap_or(0)
+            * 1024
     } else {
         memory_str.parse::<i64>().unwrap_or(0)
     }

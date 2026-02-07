@@ -1,19 +1,19 @@
-use kusanagi::{Config, InMemoryCache, cache::Cache};
+use kusanagi::{cache::Cache, Config, InMemoryCache};
 
 #[tokio::test]
 async fn test_cache_integration() {
     let cache = InMemoryCache::new();
-    
+
     // Test multiple operations
     cache.set("user:1", "Alice".to_string()).await;
     cache.set("user:2", "Bob".to_string()).await;
-    
+
     assert_eq!(cache.get("user:1").await, Some("Alice".to_string()));
     assert_eq!(cache.get("user:2").await, Some("Bob".to_string()));
-    
+
     cache.delete("user:1").await;
     assert_eq!(cache.get("user:1").await, None);
-    
+
     let stats = cache.stats().await;
     assert_eq!(stats.entries, 1);
 }

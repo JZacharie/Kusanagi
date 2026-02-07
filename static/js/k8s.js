@@ -206,7 +206,7 @@ const K8sManager = {
     async fetchPodsStatus() {
         console.log('📦 Fetching pods status...');
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
         const startTime = performance.now();
 
         try {

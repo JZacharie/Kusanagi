@@ -1,9 +1,9 @@
+pub mod argocd_service;
+pub mod homeassistant_service;
 pub mod kubernetes_service;
 pub mod monitoring_service;
-pub mod argocd_service;
-pub mod proxmox_service;
-pub mod news_service;
-pub mod homeassistant_service;
 pub mod mqtt_service;
+pub mod news_service;
+pub mod proxmox_service;
 pub mod slack_service;
 pub mod trivy_service;

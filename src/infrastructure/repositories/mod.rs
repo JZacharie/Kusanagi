@@ -1,8 +1,8 @@
 // Repository Implementations
-use async_trait::async_trait;
-use crate::domain::ports::ClusterRepository;
 use crate::domain::entities::{ClusterInfo, NodeInfo};
+use crate::domain::ports::ClusterRepository;
 use crate::error::Result;
+use async_trait::async_trait;
 
 pub struct MockClusterRepository;
 
@@ -16,7 +16,7 @@ impl ClusterRepository for MockClusterRepository {
             nodes: 3,
         })
     }
-    
+
     async fn get_nodes(&self) -> Result<Vec<NodeInfo>> {
         Ok(vec![
             NodeInfo {

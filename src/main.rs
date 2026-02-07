@@ -1,15 +1,18 @@
 // Kusanagi - Hexagonal Architecture Entry Point
-use actix_web::{web, App, HttpServer, HttpResponse, Responder, HttpRequest};
-use actix_files;
-use actix_web_actors::ws;
 use actix::{Actor, StreamHandler};
+use actix_files;
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web_actors::ws;
+use kusanagi::domain::services::{
+    argocd_service, homeassistant_service, kubernetes_service, monitoring_service, mqtt_service,
+    news_service, proxmox_service, slack_service, trivy_service,
+};
+use kusanagi::{legacy, Config};
 use serde::Deserialize;
 use serde_json::json;
-use kusanagi::{Config, legacy};
-use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service, mqtt_service, slack_service, trivy_service};
-use sysinfo::System;
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
+use sysinfo::System;
 
 // Track process startup time
 static START_TIME: OnceLock<Instant> = OnceLock::new();
@@ -21,7 +24,13 @@ fn log_memory_usage(label: &str) {
     let used_mb = sys.used_memory() as f64 / 1024.0 / 1024.0;
     let total_mb = sys.total_memory() as f64 / 1024.0 / 1024.0;
     let percent = (used_mb / total_mb) * 100.0;
-    tracing::warn!("🔍 RAM [{}]: {:.2} MB / {:.2} MB ({:.1}%)", label, used_mb, total_mb, percent);
+    tracing::warn!(
+        "🔍 RAM [{}]: {:.2} MB / {:.2} MB ({:.1}%)",
+        label,
+        used_mb,
+        total_mb,
+        percent
+    );
 }
 
 // WebSocket Actor
@@ -29,7 +38,7 @@ struct WsNotifications;
 
 impl Actor for WsNotifications {
     type Context = ws::WebsocketContext<Self>;
-    
+
     fn started(&mut self, ctx: &mut Self::Context) {
         ctx.text(r#"{"type":"connected","message":"WebSocket connected"}"#);
     }
@@ -39,7 +48,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsNotifications {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         match msg {
             Ok(ws::Message::Ping(msg)) => ctx.pong(&msg),
-            Ok(ws::Message::Text(_)) => {},
+            Ok(ws::Message::Text(_)) => {}
             Ok(ws::Message::Close(reason)) => ctx.close(reason),
             _ => {}
         }
@@ -52,30 +61,39 @@ async fn main() -> std::io::Result<()> {
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
         .ok();
-    
+
     // Configure logger with timestamps
     env_logger::Builder::from_default_env()
-        .filter_module("kusanagi::domain::services::proxmox_service", log::LevelFilter::Error)
+        .filter_module(
+            "kusanagi::domain::services::proxmox_service",
+            log::LevelFilter::Error,
+        )
         .format_timestamp_millis()
         .init();
-    
+
     println!("🚀 Kusanagi Hexagonal Architecture + Legacy");
-    
+
     // Initialize startup time
     START_TIME.set(Instant::now()).ok();
-    
+
     let config = Config::default();
-    
+
     // Advanced caches with TTL
-    let k8s_cache = Arc::new(kusanagi::AdvancedCache::<String>::new(std::time::Duration::from_secs(30)));
-    let argocd_cache = Arc::new(kusanagi::AdvancedCache::<String>::new(std::time::Duration::from_secs(300)));
-    let general_cache = Arc::new(kusanagi::AdvancedCache::<String>::new(std::time::Duration::from_secs(60)));
-    
+    let k8s_cache = Arc::new(kusanagi::AdvancedCache::<String>::new(
+        std::time::Duration::from_secs(30),
+    ));
+    let argocd_cache = Arc::new(kusanagi::AdvancedCache::<String>::new(
+        std::time::Duration::from_secs(300),
+    ));
+    let general_cache = Arc::new(kusanagi::AdvancedCache::<String>::new(
+        std::time::Duration::from_secs(60),
+    ));
+
     log_memory_usage("After Config + Cache Init");
-    
+
     let bind_addr = format!("{}:{}", config.server.host, config.server.port);
     println!("🌐 Server: {}", bind_addr);
-    
+
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
         .timeout(std::time::Duration::from_secs(5))
@@ -102,11 +120,17 @@ async fn main() -> std::io::Result<()> {
         .ok()
         .and_then(|p| p.parse().ok())
         .unwrap_or(config.mqtt.port);
-    
+
     let mqtt_user = std::env::var("MQTT_USER").ok();
     let mqtt_password = std::env::var("MQTT_PASSWORD").ok();
-    
-    mqtt_service::start_mqtt_client(mqtt_state.clone(), mqtt_host, mqtt_port, mqtt_user, mqtt_password);
+
+    mqtt_service::start_mqtt_client(
+        mqtt_state.clone(),
+        mqtt_host,
+        mqtt_port,
+        mqtt_user,
+        mqtt_password,
+    );
 
     // Slack Monitoring Init
     let slack = slack_service::SlackService::new();
@@ -120,14 +144,13 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(client.clone()))
             .app_data(web::Data::new(mqtt_state.clone()));
-        
+
         // Inject Kubernetes client if available
         if let Some(ref kube_client) = kube_client {
             app = app.app_data(web::Data::new(kube_client.clone()));
         }
-        
-        app
-            .route("/", web::get().to(web_index))
+
+        app.route("/", web::get().to(web_index))
             .route("/api", web::get().to(service_info))
             .route("/health", web::get().to(health_check))
             .route("/metrics", web::get().to(prometheus_metrics))
@@ -142,7 +165,10 @@ async fn main() -> std::io::Result<()> {
             .route("/api/quotas", web::get().to(quotas))
             .route("/api/pods/status", web::get().to(pods_status))
             .route("/api/pods/force-delete", web::post().to(force_delete_pod))
-            .route("/api/pods/delete-error-pods", web::post().to(delete_error_pods_handler))
+            .route(
+                "/api/pods/delete-error-pods",
+                web::post().to(delete_error_pods_handler),
+            )
             .route("/api/cluster/overview", web::get().to(cluster_overview))
             .route("/api/backups", web::get().to(backups))
             .route("/api/services", web::get().to(services))
@@ -162,9 +188,15 @@ async fn main() -> std::io::Result<()> {
             .route("/status", web::get().to(system_status))
             .route("/api/logs", web::get().to(logs_endpoint))
             // Security endpoints (Trivy)
-            .route("/api/security/vulnerabilities", web::get().to(security_vulnerabilities))
+            .route(
+                "/api/security/vulnerabilities",
+                web::get().to(security_vulnerabilities),
+            )
             .route("/api/security/reports", web::get().to(security_reports))
-            .route("/api/security/reports/{report_id}", web::get().to(security_report_by_id))
+            .route(
+                "/api/security/reports/{report_id}",
+                web::get().to(security_report_by_id),
+            )
             // WebSocket endpoint
             .route("/api/ws/notifications", web::get().to(websocket_handler))
             // Static files (including manifest.json) - no auth required
@@ -182,7 +214,7 @@ async fn main() -> std::io::Result<()> {
                     .route("/legacy/services", web::get().to(legacy_services))
                     .route("/legacy/storage", web::get().to(legacy_storage))
                     .route("/legacy/ingress", web::get().to(legacy_ingress))
-                    .route("/legacy/health", web::get().to(legacy_health))
+                    .route("/legacy/health", web::get().to(legacy_health)),
             )
     })
     .bind(&bind_addr)?
@@ -215,7 +247,7 @@ async fn service_info(config: web::Data<Config>) -> impl Responder {
             ],
             "legacy": [
                 "GET /api/v1/legacy/cluster",
-                "GET /api/v1/legacy/nodes", 
+                "GET /api/v1/legacy/nodes",
                 "GET /api/v1/legacy/pods",
                 "GET /api/v1/legacy/argocd",
                 "GET /api/v1/legacy/metrics",
@@ -254,7 +286,7 @@ async fn legacy_cluster() -> impl Responder {
         })),
         Err(e) => HttpResponse::InternalServerError().json(json!({
             "error": e.to_string()
-        }))
+        })),
     }
 }
 
@@ -266,7 +298,7 @@ async fn legacy_nodes() -> impl Responder {
         })),
         Err(e) => HttpResponse::InternalServerError().json(json!({
             "error": e.to_string()
-        }))
+        })),
     }
 }
 
@@ -278,7 +310,7 @@ async fn legacy_pods() -> impl Responder {
         })),
         Err(e) => HttpResponse::InternalServerError().json(json!({
             "error": e.to_string()
-        }))
+        })),
     }
 }
 
@@ -290,7 +322,7 @@ async fn legacy_argocd() -> impl Responder {
         })),
         Err(e) => HttpResponse::InternalServerError().json(json!({
             "error": e.to_string()
-        }))
+        })),
     }
 }
 
@@ -302,7 +334,7 @@ async fn legacy_metrics() -> impl Responder {
         })),
         Err(e) => HttpResponse::InternalServerError().json(json!({
             "error": e.to_string()
-        }))
+        })),
     }
 }
 
@@ -314,7 +346,7 @@ async fn legacy_events() -> impl Responder {
         })),
         Err(e) => HttpResponse::InternalServerError().json(json!({
             "error": e.to_string()
-        }))
+        })),
     }
 }
 
@@ -326,7 +358,7 @@ async fn legacy_services() -> impl Responder {
         })),
         Err(e) => HttpResponse::InternalServerError().json(json!({
             "error": e.to_string()
-        }))
+        })),
     }
 }
 
@@ -338,7 +370,7 @@ async fn legacy_storage() -> impl Responder {
         })),
         Err(e) => HttpResponse::InternalServerError().json(json!({
             "error": e.to_string()
-        }))
+        })),
     }
 }
 
@@ -350,7 +382,7 @@ async fn legacy_ingress() -> impl Responder {
         })),
         Err(e) => HttpResponse::InternalServerError().json(json!({
             "error": e.to_string()
-        }))
+        })),
     }
 }
 
@@ -362,7 +394,7 @@ async fn legacy_health() -> impl Responder {
         })),
         Err(e) => HttpResponse::InternalServerError().json(json!({
             "error": e.to_string()
-        }))
+        })),
     }
 }
 
@@ -452,17 +484,13 @@ async fn web_docs() -> impl Responder {
 
 async fn web_index() -> impl Responder {
     match std::fs::read_to_string("./static/index.html") {
-        Ok(content) => HttpResponse::Ok()
-            .content_type("text/html")
-            .body(content),
+        Ok(content) => HttpResponse::Ok().content_type("text/html").body(content),
         Err(_) => match std::fs::read_to_string("/app/static/index.html") {
-            Ok(content) => HttpResponse::Ok()
-                .content_type("text/html")
-                .body(content),
+            Ok(content) => HttpResponse::Ok().content_type("text/html").body(content),
             Err(_) => HttpResponse::NotFound().json(json!({
                 "error": "Index page not found"
-            }))
-        }
+            })),
+        },
     }
 }
 
@@ -472,37 +500,43 @@ async fn prometheus_metrics(
     argocd_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>,
     general_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>,
 ) -> impl Responder {
-    let uptime_secs = START_TIME.get()
-        .map(|t| t.elapsed().as_secs())
-        .unwrap_or(0);
-    
+    let uptime_secs = START_TIME.get().map(|t| t.elapsed().as_secs()).unwrap_or(0);
+
     // Read process stats
     let (memory_mb, cpu_usage) = match tokio::fs::read_to_string("/proc/self/stat").await {
         Ok(stat) => {
             let fields: Vec<&str> = stat.split_whitespace().collect();
-            let utime = fields.get(13).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
-            let stime = fields.get(14).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+            let utime = fields
+                .get(13)
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or(0);
+            let stime = fields
+                .get(14)
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or(0);
             let total_time = utime + stime;
             let cpu_percent = if uptime_secs > 0 {
                 (total_time as f64 / 100.0) / uptime_secs as f64 * 100.0
             } else {
                 0.0
             };
-            
-            let mem = tokio::fs::read_to_string("/proc/self/status").await
+
+            let mem = tokio::fs::read_to_string("/proc/self/status")
+                .await
                 .ok()
                 .and_then(|status| {
-                    status.lines()
+                    status
+                        .lines()
                         .find(|line| line.starts_with("VmRSS:"))
                         .and_then(|line| line.split_whitespace().nth(1))
                         .and_then(|kb| kb.parse::<f64>().ok())
                         .map(|kb_val| kb_val / 1024.0)
                 })
                 .unwrap_or(0.0);
-            
+
             (mem, cpu_percent.min(100.0))
         }
-        Err(_) => (0.0, 0.0)
+        Err(_) => (0.0, 0.0),
     };
 
     // Get cache stats
@@ -562,39 +596,45 @@ async fn prometheus_metrics(
 // API endpoints for frontend
 async fn system_status() -> impl Responder {
     // Lightweight - only Kusanagi process metrics
-    let uptime_secs = START_TIME.get()
-        .map(|t| t.elapsed().as_secs())
-        .unwrap_or(0);
-    
+    let uptime_secs = START_TIME.get().map(|t| t.elapsed().as_secs()).unwrap_or(0);
+
     // Read Kusanagi process memory and CPU from /proc/self/status
     let (memory_mb, cpu_usage) = match tokio::fs::read_to_string("/proc/self/stat").await {
         Ok(stat) => {
             let fields: Vec<&str> = stat.split_whitespace().collect();
-            let utime = fields.get(13).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
-            let stime = fields.get(14).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+            let utime = fields
+                .get(13)
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or(0);
+            let stime = fields
+                .get(14)
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or(0);
             let total_time = utime + stime;
             let cpu_percent = if uptime_secs > 0 {
                 (total_time as f64 / 100.0) / uptime_secs as f64 * 100.0
             } else {
                 0.0
             };
-            
-            let mem = tokio::fs::read_to_string("/proc/self/status").await
+
+            let mem = tokio::fs::read_to_string("/proc/self/status")
+                .await
                 .ok()
                 .and_then(|status| {
-                    status.lines()
+                    status
+                        .lines()
                         .find(|line| line.starts_with("VmRSS:"))
                         .and_then(|line| line.split_whitespace().nth(1))
                         .and_then(|kb| kb.parse::<f64>().ok())
                         .map(|kb_val| kb_val / 1024.0)
                 })
                 .unwrap_or(0.0);
-            
+
             (mem, cpu_percent.min(100.0))
         }
-        Err(_) => (0.0, 0.0)
+        Err(_) => (0.0, 0.0),
     };
-    
+
     HttpResponse::Ok().json(json!({
         "status": "operational",
         "uptime_secs": uptime_secs,
@@ -609,10 +649,10 @@ async fn system_status() -> impl Responder {
 }
 
 async fn system_logs(client: Option<web::Data<kube::Client>>) -> impl Responder {
-    use kube::Api;
     use k8s_openapi::api::core::v1::Pod;
     use kube::api::LogParams;
-    
+    use kube::Api;
+
     // Check if Kubernetes client is available
     let Some(kube_client) = client else {
         let error_msg = "=== Kubernetes Client Unavailable ===\n\n\
@@ -621,16 +661,22 @@ async fn system_logs(client: Option<web::Data<kube::Client>>) -> impl Responder 
                         Logs are only available when running inside Kubernetes.";
         return HttpResponse::Ok().body(error_msg);
     };
-    
+
     let hostname = std::env::var("HOSTNAME").unwrap_or_else(|_| "kusanagi".to_string());
     let namespace = std::env::var("POD_NAMESPACE").unwrap_or_else(|_| "kusanagi".to_string());
-    
+
     let pods: Api<Pod> = Api::namespaced(kube_client.get_ref().clone(), &namespace);
-    
-    match pods.logs(&hostname, &LogParams {
-        tail_lines: Some(1000),
-        ..Default::default()
-    }).await {
+
+    match pods
+        .logs(
+            &hostname,
+            &LogParams {
+                tail_lines: Some(1000),
+                ..Default::default()
+            },
+        )
+        .await
+    {
         Ok(logs) => HttpResponse::Ok().body(logs),
         Err(_) => {
             let error_msg = format!(
@@ -656,22 +702,27 @@ async fn metrics() -> impl Responder {
 async fn logs_endpoint() -> impl Responder {
     // Get logs from kubectl (last 100 lines) - async version
     let output = tokio::process::Command::new("kubectl")
-        .args(&["logs", "-n", "kusanagi", "-l", "app.kubernetes.io/name=kusanagi", "--tail=100"])
+        .args(&[
+            "logs",
+            "-n",
+            "kusanagi",
+            "-l",
+            "app.kubernetes.io/name=kusanagi",
+            "--tail=100",
+        ])
         .output()
         .await;
-    
+
     match output {
         Ok(result) if result.status.success() => {
             let logs = String::from_utf8_lossy(&result.stdout).to_string();
             HttpResponse::Ok().json(json!({
                 "logs": logs
             }))
-        },
-        _ => {
-            HttpResponse::Ok().json(json!({
-                "logs": "Unable to fetch logs"
-            }))
         }
+        _ => HttpResponse::Ok().json(json!({
+            "logs": "Unable to fetch logs"
+        })),
     }
 }
 
@@ -680,24 +731,25 @@ async fn alerts() -> impl Responder {
     match monitoring_service::get_alerts().await {
         Ok(alerts) => {
             let alerts_array = alerts.as_array().unwrap_or(&vec![]).clone();
-            
+
             // Group alerts by severity
             let mut critical = vec![];
             let mut warning = vec![];
             let mut info = vec![];
-            
+
             for alert in &alerts_array {
-                let severity = alert.get("severity")
+                let severity = alert
+                    .get("severity")
                     .and_then(|s| s.as_str())
                     .unwrap_or("info");
-                
+
                 match severity {
                     "critical" => critical.push(alert.clone()),
                     "warning" => warning.push(alert.clone()),
                     _ => info.push(alert.clone()),
                 }
             }
-            
+
             HttpResponse::Ok().json(json!({
                 "total": alerts_array.len(),
                 "critical": critical,
@@ -705,14 +757,14 @@ async fn alerts() -> impl Responder {
                 "info": info,
                 "status": "success"
             }))
-        },
+        }
         Err(_) => HttpResponse::Ok().json(json!({
             "total": 0,
             "critical": [],
             "warning": [],
             "info": [],
             "status": "error"
-        }))
+        })),
     }
 }
 
@@ -724,7 +776,7 @@ async fn cache_stats(
     let k8s = k8s_cache.stats().await;
     let argocd = argocd_cache.stats().await;
     let general = general_cache.stats().await;
-    
+
     HttpResponse::Ok().json(json!({
         "k8s": {
             "entries": k8s.entries,
@@ -755,14 +807,14 @@ async fn cache_stats(
 async fn news() -> impl Responder {
     match news_service::get_news().await {
         Ok(news) => HttpResponse::Ok().json(news),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
 
 async fn quotas() -> impl Responder {
     match monitoring_service::get_quotas().await {
         Ok(quotas) => HttpResponse::Ok().json(quotas),
-        Err(_) => HttpResponse::Ok().json(json!({"used": 50, "total": 100}))
+        Err(_) => HttpResponse::Ok().json(json!({"used": 50, "total": 100})),
     }
 }
 
@@ -772,7 +824,7 @@ async fn pods_status() -> impl Responder {
         Err(_) => HttpResponse::Ok().json(json!({
             "running": 0, "pending": 0, "failed": 0, "total": 0,
             "total_pods": 0, "running_pods": 0, "error_pods": 0, "pods_in_error": []
-        }))
+        })),
     }
 }
 
@@ -785,91 +837,91 @@ struct DeletePodRequest {
 async fn force_delete_pod(params: web::Json<DeletePodRequest>) -> impl Responder {
     match kubernetes_service::delete_pod(&params.namespace, &params.pod_name).await {
         Ok(res) => HttpResponse::Ok().json(res),
-        Err(e) => HttpResponse::InternalServerError().json(json!({"success": false, "message": e}))
+        Err(e) => HttpResponse::InternalServerError().json(json!({"success": false, "message": e})),
     }
 }
 
 async fn delete_error_pods_handler() -> impl Responder {
-     match kubernetes_service::delete_error_pods().await {
+    match kubernetes_service::delete_error_pods().await {
         Ok(res) => HttpResponse::Ok().json(res),
-        Err(e) => HttpResponse::InternalServerError().json(json!({"success": false, "message": e}))
+        Err(e) => HttpResponse::InternalServerError().json(json!({"success": false, "message": e})),
     }
 }
 
 async fn cluster_overview() -> impl Responder {
     match kubernetes_service::get_cluster_overview().await {
         Ok(overview) => HttpResponse::Ok().json(overview),
-        Err(_) => HttpResponse::Ok().json(json!({"nodes": 0, "pods": 0, "services": 0}))
+        Err(_) => HttpResponse::Ok().json(json!({"nodes": 0, "pods": 0, "services": 0})),
     }
 }
 
 async fn backups() -> impl Responder {
     match monitoring_service::get_backups().await {
         Ok(backups) => HttpResponse::Ok().json(backups),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
 
 async fn services() -> impl Responder {
     match kubernetes_service::get_services().await {
         Ok(services) => HttpResponse::Ok().json(services),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
 
 async fn ingress() -> impl Responder {
     match kubernetes_service::get_ingress().await {
         Ok(ingress) => HttpResponse::Ok().json(ingress),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
 
 async fn nodes_status() -> impl Responder {
     match kubernetes_service::get_nodes_status().await {
         Ok(status) => HttpResponse::Ok().json(status),
-        Err(_) => HttpResponse::Ok().json(json!({"ready": 0, "not_ready": 0}))
+        Err(_) => HttpResponse::Ok().json(json!({"ready": 0, "not_ready": 0})),
     }
 }
 
 async fn storage() -> impl Responder {
     match kubernetes_service::get_storage().await {
         Ok(storage) => HttpResponse::Ok().json(storage),
-        Err(_) => HttpResponse::Ok().json(json!({"total": "0GB", "used": "0GB"}))
+        Err(_) => HttpResponse::Ok().json(json!({"total": "0GB", "used": "0GB"})),
     }
 }
 
 async fn events() -> impl Responder {
     match kubernetes_service::get_events().await {
         Ok(events) => HttpResponse::Ok().json(events),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
 
 async fn argocd_status() -> impl Responder {
     match argocd_service::get_argocd_status().await {
         Ok(status) => HttpResponse::Ok().json(status),
-        Err(_) => HttpResponse::Ok().json(json!({"healthy": false, "apps": 0}))
+        Err(_) => HttpResponse::Ok().json(json!({"healthy": false, "apps": 0})),
     }
 }
 
 async fn proxmox_vms(client: web::Data<reqwest::Client>) -> impl Responder {
     match proxmox_service::get_proxmox_vms(&client).await {
         Ok(vms) => HttpResponse::Ok().json(vms),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
 
 async fn proxmox_containers(client: web::Data<reqwest::Client>) -> impl Responder {
     match proxmox_service::get_proxmox_containers(&client).await {
         Ok(containers) => HttpResponse::Ok().json(containers),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
 
 async fn proxmox_nodes(client: web::Data<reqwest::Client>) -> impl Responder {
     match proxmox_service::get_proxmox_nodes(&client).await {
         Ok(nodes) => HttpResponse::Ok().json(nodes),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
 
@@ -886,7 +938,7 @@ async fn ha_devices() -> impl Responder {
                 "online": 0,
                 "offline": 0
             }))
-        },
+        }
         Err(_) => HttpResponse::Ok().json(json!({
             "devices": [],
             "data": [],
@@ -895,21 +947,21 @@ async fn ha_devices() -> impl Responder {
             "total": 0,
             "online": 0,
             "offline": 0
-        }))
+        })),
     }
 }
 
 async fn ha_sensors() -> impl Responder {
     match homeassistant_service::get_ha_sensors().await {
         Ok(sensors) => HttpResponse::Ok().json(sensors),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
 
 async fn ha_automations() -> impl Responder {
     match homeassistant_service::get_ha_automations().await {
         Ok(automations) => HttpResponse::Ok().json(automations),
-        Err(_) => HttpResponse::Ok().json(json!([]))
+        Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
 
@@ -928,57 +980,62 @@ async fn mqtt_messages(state: web::Data<mqtt_service::MqttState>) -> impl Respon
 // Slack Monitoring Background Task
 async fn start_slack_monitoring(slack: slack_service::SlackService) {
     use std::time::Duration;
-    
+
     let mut last_error_pods = 0u64;
     let mut last_unhealthy_apps = 0u64;
-    
+
     // Wait 30s before starting to allow services to initialize
     tokio::time::sleep(Duration::from_secs(30)).await;
-    
+
     loop {
         tokio::time::sleep(Duration::from_secs(60)).await;
-        
+
         let prev_error_pods = last_error_pods;
         let prev_unhealthy_apps = last_unhealthy_apps;
-        
+
         let mut pods_checked = false;
         let mut apps_checked = false;
-        
+
         // Check Pods
         if let Ok(pods_status) = kubernetes_service::get_pods_status().await {
             pods_checked = true;
             let error_pods = pods_status["error_pods"].as_u64().unwrap_or(0);
-            
+
             if error_pods > last_error_pods {
                 let mut message = format!("Detected {} pods in error state:\n", error_pods);
-                
+
                 if let Some(pods_in_error) = pods_status["pods_in_error"].as_array() {
                     for pod in pods_in_error.iter().take(10) {
                         let name = pod["name"].as_str().unwrap_or("unknown");
                         let namespace = pod["namespace"].as_str().unwrap_or("unknown");
                         let status = pod["status"].as_str().unwrap_or("unknown");
                         let reason = pod["reason"].as_str().unwrap_or("Unknown");
-                        message.push_str(&format!("• *{}/{}*: {} ({})\n", namespace, name, status, reason));
+                        message.push_str(&format!(
+                            "• *{}/{}*: {} ({})\n",
+                            namespace, name, status, reason
+                        ));
                     }
-                    
+
                     if error_pods > 10 {
                         message.push_str(&format!("...and {} more.", error_pods - 10));
                     }
                 }
-                
-                let _ = slack.send_alert("Infrastructure Issue", &message, "error").await;
+
+                let _ = slack
+                    .send_alert("Infrastructure Issue", &message, "error")
+                    .await;
             }
             last_error_pods = error_pods;
         }
-        
+
         // Check ArgoCD
         if let Ok(argocd_status) = argocd_service::get_argocd_status().await {
             apps_checked = true;
             let unhealthy = argocd_status["unhealthy"].as_u64().unwrap_or(0);
-            
+
             if unhealthy > last_unhealthy_apps {
                 let mut message = format!("Detected {} unhealthy applications:\n", unhealthy);
-                
+
                 if let Some(apps) = argocd_status["apps_with_issues"].as_array() {
                     for app in apps.iter().take(10) {
                         let name = app["name"].as_str().unwrap_or("unknown");
@@ -986,28 +1043,32 @@ async fn start_slack_monitoring(slack: slack_service::SlackService) {
                         let sync = app["sync_status"].as_str().unwrap_or("unknown");
                         message.push_str(&format!("• *{}*: {} ({})\n", name, health, sync));
                     }
-                    
+
                     if unhealthy > 10 {
                         message.push_str(&format!("...and {} more.", unhealthy - 10));
                     }
                 }
-                
-                let _ = slack.send_alert("ArgoCD Sync Alert", &message, "warning").await;
+
+                let _ = slack
+                    .send_alert("ArgoCD Sync Alert", &message, "warning")
+                    .await;
             }
             last_unhealthy_apps = unhealthy;
         }
-        
+
         // Check for recovery
         if pods_checked && apps_checked {
             let was_unhealthy = prev_error_pods > 0 || prev_unhealthy_apps > 0;
             let is_now_healthy = last_error_pods == 0 && last_unhealthy_apps == 0;
-            
+
             if was_unhealthy && is_now_healthy {
-                let _ = slack.send_alert(
-                    "System Recovered",
-                    "All pods and applications are now healthy! 🎉",
-                    "success"
-                ).await;
+                let _ = slack
+                    .send_alert(
+                        "System Recovered",
+                        "All pods and applications are now healthy! 🎉",
+                        "success",
+                    )
+                    .await;
             }
         }
     }

@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheStats {
@@ -45,21 +45,21 @@ impl Cache for InMemoryCache {
     async fn get(&self, key: &str) -> Option<String> {
         let data = self.data.read().await;
         let result = data.get(key).cloned();
-        
+
         let mut stats = self.stats.write().await;
         if result.is_some() {
             stats.hits += 1;
         } else {
             stats.misses += 1;
         }
-        
+
         result
     }
 
     async fn set(&self, key: &str, value: String) {
         let mut data = self.data.write().await;
         data.insert(key.to_string(), value);
-        
+
         let mut stats = self.stats.write().await;
         stats.entries = data.len();
     }
@@ -67,11 +67,11 @@ impl Cache for InMemoryCache {
     async fn delete(&self, key: &str) {
         let mut data = self.data.write().await;
         data.remove(key);
-        
+
         let mut stats = self.stats.write().await;
         stats.entries = data.len();
     }
-    
+
     async fn stats(&self) -> CacheStats {
         self.stats.read().await.clone()
     }
@@ -108,7 +108,7 @@ mod tests {
         cache.set("key1", "value1".to_string()).await;
         cache.get("key1").await;
         cache.get("missing").await;
-        
+
         let stats = cache.stats().await;
         assert_eq!(stats.entries, 1);
         assert_eq!(stats.hits, 1);
