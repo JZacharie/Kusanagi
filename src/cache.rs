@@ -4,21 +4,13 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct CacheStats {
     pub entries: usize,
     pub hits: u64,
     pub misses: u64,
 }
 
-impl Default for CacheStats {
-    fn default() -> Self {
-        Self {
-            entries: 0,
-            hits: 0,
-            misses: 0,
-        }
-    }
-}
 
 #[async_trait::async_trait]
 pub trait Cache: Send + Sync {

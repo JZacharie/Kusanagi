@@ -7,7 +7,7 @@ pub async fn get_argocd_status() -> Result<Value, String> {
     // OPTIMIZATION: Use custom-columns to avoid parsing massive JSON with history/managedFields
     // Columns: NAME, NAMESPACE, HEALTH, SYNC, REVISION
     let kubectl_output = Command::new("kubectl")
-        .args(&["get", "applications", "-n", "argocd", "--no-headers", 
+        .args(["get", "applications", "-n", "argocd", "--no-headers", 
                 "-o", "custom-columns=NAME:.metadata.name,NS:.metadata.namespace,HEALTH:.status.health.status,SYNC:.status.sync.status,REV:.status.sync.revision"])
         .output()
         .await;
@@ -24,7 +24,7 @@ pub async fn get_argocd_status() -> Result<Value, String> {
 
     // Check if ArgoCD is installed if app fetch failed
     let argocd_pods_output = Command::new("kubectl")
-        .args(&["get", "pods", "-n", "argocd", "--no-headers"])
+        .args(["get", "pods", "-n", "argocd", "--no-headers"])
         .output()
         .await;
 

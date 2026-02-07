@@ -18,6 +18,12 @@ pub struct SlackService {
     client: Client,
 }
 
+impl Default for SlackService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SlackService {
     pub fn new() -> Self {
         let token = env::var("SLACK_BOT_TOKEN").unwrap_or_default();

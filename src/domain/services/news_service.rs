@@ -48,7 +48,7 @@ pub async fn get_news() -> Result<Value, String> {
     );
 
     // Aggregate all results
-    for result in [
+    for mut items in [
         hn_news,
         korben_news,
         github_news,
@@ -62,10 +62,8 @@ pub async fn get_news() -> Result<Value, String> {
         rust_news,
         inside_rust_news,
         twir_news,
-    ] {
-        if let Ok(mut items) = result {
-            all_news.append(&mut items);
-        }
+    ].into_iter().flatten() {
+        all_news.append(&mut items);
     }
 
     let response = if all_news.is_empty() {
@@ -179,7 +177,7 @@ async fn fetch_hackernews(client: &Client) -> Result<Vec<Value>, String> {
     // Take top 5
     for &story_id in story_ids.iter().take(5) {
         if let Ok(story_res) = client
-            .get(&format!(
+            .get(format!(
                 "https://hacker-news.firebaseio.com/v0/item/{}.json",
                 story_id
             ))
