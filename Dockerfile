@@ -8,6 +8,7 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && r
 
 COPY src ./src
 COPY static ./static
+COPY build.rs ./
 RUN cargo build --release
 
 FROM debian:bookworm-slim
