@@ -543,6 +543,7 @@ async fn system_status() -> impl Responder {
         "version": "0.2.0",
         "build_timestamp": env!("BUILD_TIMESTAMP"),
         "cpu_usage": cpu_usage,
+        "memory_usage": memory_mb,
         "memory_usage_mb": memory_mb,
         "memory_total_mb": 0.0
     }))
@@ -611,17 +612,37 @@ async fn alerts() -> impl Responder {
     match monitoring_service::get_alerts().await {
         Ok(alerts) => {
             let alerts_array = alerts.as_array().unwrap_or(&vec![]).clone();
+            
+            // Group alerts by severity
+            let mut critical = vec![];
+            let mut warning = vec![];
+            let mut info = vec![];
+            
+            for alert in &alerts_array {
+                let severity = alert.get("severity")
+                    .and_then(|s| s.as_str())
+                    .unwrap_or("info");
+                
+                match severity {
+                    "critical" => critical.push(alert.clone()),
+                    "warning" => warning.push(alert.clone()),
+                    _ => info.push(alert.clone()),
+                }
+            }
+            
             HttpResponse::Ok().json(json!({
-                "alerts": alerts_array,
-                "data": alerts_array,
-                "count": alerts_array.len(),
+                "total": alerts_array.len(),
+                "critical": critical,
+                "warning": warning,
+                "info": info,
                 "status": "success"
             }))
         },
         Err(_) => HttpResponse::Ok().json(json!({
-            "alerts": [],
-            "data": [],
-            "count": 0,
+            "total": 0,
+            "critical": [],
+            "warning": [],
+            "info": [],
             "status": "error"
         }))
     }
