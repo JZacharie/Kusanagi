@@ -53,20 +53,35 @@ async fn main() -> std::io::Result<()> {
         .build()
         .unwrap_or_default();
 
-    println!("🔥 Warming up cache...");
+    // Deferred cache warming - runs AFTER server starts, one service at a time
+    println!("🔥 Cache warming scheduled (deferred)...");
     let cache_clone = cache.clone();
     let client_clone = client.clone();
     actix_web::rt::spawn(async move {
-        // Kubernetes Warmup
+        // Wait for server to fully start before warming cache
+        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        
+        // 1. Kubernetes Warmup
+        println!("📦 Warming: Kubernetes cluster overview...");
         if let Ok(overview) = kubernetes_service::get_cluster_overview().await {
             cache_clone.set("cluster_overview", overview.to_string()).await;
             println!("✅ Cache warmed: Cluster Overview");
         }
+        // Allow GC / memory release
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
         
-        // Proxmox Warmup
+        // 2. Proxmox VMs (one host at a time is handled internally)
+        println!("🖥️ Warming: Proxmox VMs...");
         let _ = proxmox_service::get_proxmox_vms(&client_clone).await;
-        // Nodes and Containers are less critical for initial render but good to have
+        println!("✅ Cache warmed: Proxmox VMs");
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        
+        // 3. Proxmox Nodes
+        println!("🖥️ Warming: Proxmox Nodes...");
         let _ = proxmox_service::get_proxmox_nodes(&client_clone).await;
+        println!("✅ Cache warmed: Proxmox Nodes");
+        
+        println!("🎉 All caches warmed!");
     });
 
     let sys = web::Data::new(Mutex::new(System::new()));
