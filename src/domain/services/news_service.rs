@@ -1,8 +1,19 @@
 use serde_json::{json, Value};
-use chrono::Utc;
+use chrono::{Utc, DateTime, Duration};
 use reqwest::Client;
+use aws_sdk_s3::Client as S3Client;
+use aws_config::BehaviorVersion;
+
+const CACHE_KEY: &str = "news/cache.json";
+const CACHE_DAYS: i64 = 7;
 
 pub async fn get_news() -> Result<Value, String> {
+    // Try to get from S3 cache first
+    if let Ok(cached) = get_cached_news().await {
+        return Ok(cached);
+    }
+    
+    // Cache miss or expired, fetch fresh news
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()
@@ -10,7 +21,8 @@ pub async fn get_news() -> Result<Value, String> {
     
     let mut all_news = Vec::new();
     
-    // Fetch from all sources concurrently
+    // Fetch from all sources concurrently (3 batches to avoid overwhelming)
+    // Batch 1: Original sources
     let (hn_news, korben_news, github_news, cncf_news) = tokio::join!(
         fetch_hackernews(&client),
         fetch_korben(&client),
@@ -18,34 +30,126 @@ pub async fn get_news() -> Result<Value, String> {
         fetch_cncf(&client)
     );
     
-    // Aggregate results
-    if let Ok(mut items) = hn_news {
-        all_news.append(&mut items);
-    }
-    if let Ok(mut items) = korben_news {
-        all_news.append(&mut items);
-    }
-    if let Ok(mut items) = github_news {
-        all_news.append(&mut items);
-    }
-    if let Ok(mut items) = cncf_news {
-        all_news.append(&mut items);
+    // Batch 2: Cloud providers
+    let (aws_news, aws_new_news, gcp_news, azure_news) = tokio::join!(
+        fetch_aws_blog(&client),
+        fetch_aws_new(&client),
+        fetch_gcp(&client),
+        fetch_azure(&client)
+    );
+    
+    // Batch 3: Kubernetes & Rust
+    let (k8s_news, fluxcd_news, rust_news, inside_rust_news, twir_news) = tokio::join!(
+        fetch_kubernetes(&client),
+        fetch_fluxcd(&client),
+        fetch_rust_blog(&client),
+        fetch_inside_rust(&client),
+        fetch_this_week_in_rust(&client)
+    );
+    
+    // Aggregate all results
+    for result in [
+        hn_news, korben_news, github_news, cncf_news,
+        aws_news, aws_new_news, gcp_news, azure_news,
+        k8s_news, fluxcd_news, rust_news, inside_rust_news, twir_news
+    ] {
+        if let Ok(mut items) = result {
+            all_news.append(&mut items);
+        }
     }
     
-    if all_news.is_empty() {
-        return Ok(json!({
+    let response = if all_news.is_empty() {
+        json!({
             "items": get_fallback_news(),
             "cached_at": Utc::now().to_rfc3339(),
             "source": "fallback"
-        }));
+        })
+    } else {
+        json!({
+            "items": all_news,
+            "cached_at": Utc::now().to_rfc3339(),
+            "sources": [
+                "hackernews", "korben", "github", "cncf",
+                "aws", "gcp", "azure",
+                "kubernetes", "fluxcd", "rust"
+            ]
+        })
+    };
+    
+    // Store in S3 cache (fire and forget)
+    let response_clone = response.clone();
+    tokio::spawn(async move {
+        let _ = store_cached_news(response_clone).await;
+    });
+    
+    Ok(response)
+}
+
+async fn get_cached_news() -> Result<Value, String> {
+    let s3_client = create_s3_client().await?;
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+    
+    let result = s3_client
+        .get_object()
+        .bucket(&bucket)
+        .key(CACHE_KEY)
+        .send()
+        .await
+        .map_err(|e| format!("S3 get error: {}", e))?;
+    
+    let body = result.body.collect().await
+        .map_err(|e| format!("Body read error: {}", e))?;
+    
+    let cached: Value = serde_json::from_slice(&body.into_bytes())
+        .map_err(|e| format!("JSON parse error: {}", e))?;
+    
+    // Check if cache is still valid (7 days)
+    if let Some(cached_at_str) = cached["cached_at"].as_str() {
+        if let Ok(cached_at) = DateTime::parse_from_rfc3339(cached_at_str) {
+            let age = Utc::now().signed_duration_since(cached_at.with_timezone(&Utc));
+            if age < Duration::days(CACHE_DAYS) {
+                return Ok(cached);
+            }
+        }
     }
     
-    Ok(json!({
-        "items": all_news,
-        "cached_at": Utc::now().to_rfc3339(),
-        "sources": ["hackernews", "korben", "github", "cncf"]
-    }))
+    Err("Cache expired".to_string())
 }
+
+async fn store_cached_news(data: Value) -> Result<(), String> {
+    let s3_client = create_s3_client().await?;
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+    
+    let json_bytes = serde_json::to_vec(&data)
+        .map_err(|e| format!("JSON serialize error: {}", e))?;
+    
+    s3_client
+        .put_object()
+        .bucket(&bucket)
+        .key(CACHE_KEY)
+        .body(json_bytes.into())
+        .content_type("application/json")
+        .send()
+        .await
+        .map_err(|e| format!("S3 put error: {}", e))?;
+    
+    Ok(())
+}
+
+async fn create_s3_client() -> Result<S3Client, String> {
+    let endpoint = std::env::var("S3_ENDPOINT").map_err(|_| "S3_ENDPOINT not set")?;
+    let region = std::env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".to_string());
+    
+    let config = aws_config::defaults(BehaviorVersion::latest())
+        .region(aws_sdk_s3::config::Region::new(region))
+        .endpoint_url(endpoint)
+        .load()
+        .await;
+    
+    Ok(S3Client::new(&config))
+}
+
+
 
 async fn fetch_hackernews(client: &Client) -> Result<Vec<Value>, String> {
     let response = client.get("https://hacker-news.firebaseio.com/v0/topstories.json")
@@ -89,6 +193,45 @@ async fn fetch_github_trending(client: &Client) -> Result<Vec<Value>, String> {
 
 async fn fetch_cncf(client: &Client) -> Result<Vec<Value>, String> {
     fetch_rss_feed(client, "https://www.cncf.io/feed/", "cncf", "📰").await
+}
+
+// Cloud Providers
+async fn fetch_aws_blog(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://aws.amazon.com/blogs/aws/feed/", "aws", "☁️").await
+}
+
+async fn fetch_aws_new(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://aws.amazon.com/new/feed/", "aws-new", "🆕").await
+}
+
+async fn fetch_gcp(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://blog.google/products/google-cloud/rss/", "gcp", "☁️").await
+}
+
+async fn fetch_azure(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://azurecomcdn.azureedge.net/en-us/blog/feed/", "azure", "☁️").await
+}
+
+// Kubernetes & Cloud Native
+async fn fetch_kubernetes(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://kubernetes.io/feed.xml", "kubernetes", "☸️").await
+}
+
+async fn fetch_fluxcd(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://fluxcd.io/blog/index.xml", "fluxcd", "🔄").await
+}
+
+// Rust Programming
+async fn fetch_rust_blog(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://blog.rust-lang.org/feed.xml", "rust", "🦀").await
+}
+
+async fn fetch_inside_rust(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://blog.rust-lang.org/inside-rust/feed.xml", "inside-rust", "🔧").await
+}
+
+async fn fetch_this_week_in_rust(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://this-week-in-rust.org/rss.xml", "twir", "📰").await
 }
 
 async fn fetch_rss_feed(client: &Client, url: &str, source_name: &str, icon: &str) -> Result<Vec<Value>, String> {
