@@ -263,6 +263,11 @@ async function switchTab(tabName) {
             window.ProxmoxDashboard.deactivate();
         }
     }
+    if (currentTab === 'system' && tabName !== 'system' && window.KusanagiSystem) {
+        if (typeof window.KusanagiSystem.deactivate === 'function') {
+            window.KusanagiSystem.deactivate();
+        }
+    }
 
     // Update buttons
     document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -316,7 +321,7 @@ async function switchTab(tabName) {
     } else if (tabName === "alerts" && window.AlertsManager) {
         AlertsManager.init();
     } else if (tabName === "system" && window.KusanagiSystem) {
-        KusanagiSystem.init();
+        KusanagiSystem.activate();
     }
 }
 
