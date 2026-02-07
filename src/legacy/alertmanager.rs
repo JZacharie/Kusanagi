@@ -98,7 +98,8 @@ pub async fn get_cached_active_alerts() -> Result<AlertsResponse, String> {
     {
         let cache = get_alerts_cache().alerts.read().await;
         if let Some((ref alerts, timestamp)) = *cache {
-            if timestamp.elapsed() < Duration::from_secs(120) { // Augmenté de 60s à 120s
+            if timestamp.elapsed() < Duration::from_secs(120) {
+                // Augmenté de 60s à 120s
                 return Ok(alerts.clone());
             }
         }
