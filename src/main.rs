@@ -67,7 +67,7 @@ async fn main() -> std::io::Result<()> {
     // Cache warming removed - cache disabled to prevent memory leaks
     // Data is fetched fresh on each request now
 
-    let sys = web::Data::new(Mutex::new(System::new()));
+    // System removed - was causing 7GB memory usage at startup
 
     // MQTT Init
     let mqtt_state = mqtt_service::MqttState::new();
@@ -88,7 +88,6 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .app_data(sys.clone())
             .app_data(web::Data::new(cache.clone()))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(client.clone()))
@@ -425,58 +424,25 @@ async fn web_index() -> impl Responder {
 }
 
 // API endpoints for frontend
-async fn system_status(sys: web::Data<Mutex<System>>) -> impl Responder {
-    let mut sys = sys.lock().unwrap();
-    sys.refresh_all();
-
-    let uptime = System::uptime();
-    let cpu_usage = sys.global_cpu_info().cpu_usage();
-    let total_mem = sys.total_memory();
-    let used_mem = sys.used_memory();
-    
-    // Convert to MB
-    let memory_usage_mb = used_mem as f64 / 1024.0 / 1024.0;
-    
+async fn system_status() -> impl Responder {
+    // Stubbed - System removed to save 7GB RAM
     HttpResponse::Ok().json(json!({
         "status": "operational",
-        "uptime_secs": uptime,
-        "uptime": format!("{}h", uptime / 3600),
+        "uptime_secs": 0,
+        "uptime": "0h",
         "version": "0.2.0",
-        "cpu_usage": cpu_usage,
-        "memory_usage_mb": memory_usage_mb,
-        "memory_total_mb": total_mem as f64 / 1024.0 / 1024.0
+        "cpu_usage": 0.0,
+        "memory_usage_mb": 0.0,
+        "memory_total_mb": 0.0
     }))
 }
 
-async fn metrics(sys: web::Data<Mutex<System>>) -> impl Responder {
-    let mut sys = sys.lock().unwrap();
-    sys.refresh_all();
-    
-    let load = sys.global_cpu_info().cpu_usage(); // Use cpu usage as load approx or use sys.load_average() if available?
-    // sysinfo 0.30 removed load_average() from SystemExt? It's usually in SystemExt.
-    // Let's stick to using what we have.
-    
-    let total_mem = sys.total_memory();
-    let used_mem = sys.used_memory();
-    let memory_usage = if total_mem > 0 { (used_mem * 100) / total_mem } else { 0 };
-
-    // Calculate real disk usage
-    let disks = Disks::new_with_refreshed_list();
-    let mut total_disk = 0;
-    let mut available_disk = 0;
-    
-    for disk in &disks {
-        total_disk += disk.total_space();
-        available_disk += disk.available_space();
-    }
-    
-    let used_disk = total_disk - available_disk;
-    let disk_usage = if total_disk > 0 { (used_disk * 100) / total_disk } else { 0 };
-
+async fn metrics() -> impl Responder {
+    // Stubbed - System removed to save 7GB RAM
     HttpResponse::Ok().json(json!({
-        "cpu_load": load,
-        "memory_usage": memory_usage,
-        "disk_usage": disk_usage
+        "cpu_load": 0.0,
+        "memory_usage": 0,
+        "disk_usage": 0
     }))
 }
 
