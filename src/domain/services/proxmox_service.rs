@@ -100,6 +100,7 @@ pub async fn get_proxmox_vms(client: &reqwest::Client) -> Result<Value, String> 
                     if let Some(items) = data["data"].as_array() {
                         let vms: Vec<Value> = items
                             .iter()
+                            .filter(|vm| vm["type"].as_str() == Some("qemu"))
                             .map(|vm| {
                                 json!({
                                     "vmid": vm["vmid"],
@@ -152,7 +153,7 @@ pub async fn get_proxmox_containers(client: &reqwest::Client) -> Result<Value, S
             continue;
         };
 
-        let api_url = format!("{}/api2/json/cluster/resources?type=lxc", url);
+        let api_url = format!("{}/api2/json/cluster/resources?type=vm", url);
 
         match client
             .get(&api_url)
@@ -165,6 +166,7 @@ pub async fn get_proxmox_containers(client: &reqwest::Client) -> Result<Value, S
                     if let Some(items) = data["data"].as_array() {
                         let containers: Vec<Value> = items
                             .iter()
+                            .filter(|ct| ct["type"].as_str() == Some("lxc"))
                             .map(|ct| {
                                 json!({
                                     "vmid": ct["vmid"],

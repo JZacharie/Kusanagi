@@ -19,6 +19,14 @@ if ('serviceWorker' in navigator) {
 // Handle Install Prompt for Android
 let deferredPrompt;
 
+function showInstallButton() {
+    if (!deferredPrompt) return;
+    const installBtn = document.getElementById('pwa-install-item');
+    if (installBtn) {
+        installBtn.style.display = 'block';
+    }
+}
+
 window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent the mini-infobar from appearing on mobile
     e.preventDefault();
@@ -26,12 +34,12 @@ window.addEventListener('beforeinstallprompt', (e) => {
     deferredPrompt = e;
     console.log('👍 PWA install prompt ready');
 
-    // Show install button
-    const installBtn = document.getElementById('pwa-install-item');
-    if (installBtn) {
-        installBtn.style.display = 'block';
-    }
+    // Attempt to show install button
+    showInstallButton();
 });
+
+// Ensure button shows if event fired before DOM was ready
+window.addEventListener('DOMContentLoaded', showInstallButton);
 
 // Function to trigger install (can be called from a button)
 function installPWA() {
