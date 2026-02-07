@@ -9,6 +9,12 @@ pub struct PerfMonitor {
     pub k8s_queries: AtomicU64,
 }
 
+impl Default for PerfMonitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PerfMonitor {
     pub fn new() -> Self {
         Self {
