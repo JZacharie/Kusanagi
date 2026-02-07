@@ -643,24 +643,7 @@ async fn quotas() -> impl Responder {
 
 async fn pods_status() -> impl Responder {
     match kubernetes_service::get_pods_status().await {
-        Ok(status) => {
-            let running = status["running"].as_u64().unwrap_or(0);
-            let pending = status["pending"].as_u64().unwrap_or(0);
-            let failed = status["failed"].as_u64().unwrap_or(0);
-            let total = status["total"].as_u64().unwrap_or(0);
-            
-            HttpResponse::Ok().json(json!({
-                "running": running,
-                "pending": pending,
-                "failed": failed,
-                "total": total,
-                // Champs attendus par le frontend
-                "total_pods": total,
-                "running_pods": running,
-                "error_pods": failed,
-                "pods_in_error": failed
-            }))
-        },
+        Ok(status) => HttpResponse::Ok().json(status),
         Err(_) => HttpResponse::Ok().json(json!({
             "running": 0, "pending": 0, "failed": 0, "total": 0,
             "total_pods": 0, "running_pods": 0, "error_pods": 0, "pods_in_error": []
