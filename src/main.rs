@@ -1,13 +1,13 @@
 // Kusanagi - Hexagonal Architecture Entry Point
-use actix_web::{web, App, HttpServer, HttpResponse, Responder, middleware::Logger, HttpRequest};
+use actix_web::{web, App, HttpServer, HttpResponse, Responder, HttpRequest};
 use actix_files;
 use actix_web_actors::ws;
-use actix::{Actor, StreamHandler, ActorContext};
+use actix::{Actor, StreamHandler};
 use serde_json::json;
-use kusanagi::{Config, Cache, InMemoryCache, legacy};
+use kusanagi::{Config, InMemoryCache, legacy};
 use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service, mqtt_service, slack_service};
-use sysinfo::{System, Networks, CpuRefreshKind, MemoryRefreshKind, Disks};
-use std::sync::{Arc, Mutex, OnceLock};
+use sysinfo::System;
+use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 
 // Track process startup time
@@ -674,35 +674,8 @@ async fn ha_automations() -> impl Responder {
     }
 }
 
-async fn websocket_stub() -> impl Responder {
-    HttpResponse::NotImplemented().json(json!({
-        "error": "WebSocket not implemented",
-        "message": "WebSocket notifications endpoint not available"
-    }))
-}
-
 async fn websocket_handler(req: HttpRequest, stream: web::Payload) -> impl Responder {
     ws::start(WsNotifications, &req, stream)
-}
-
-async fn manifest_handler() -> impl Responder {
-    match std::fs::read_to_string("./static/manifest.json") {
-        Ok(content) => HttpResponse::Ok()
-            .content_type("application/json")
-            .body(content),
-        Err(_) => HttpResponse::Ok()
-            .content_type("application/json")
-            .json(json!({
-                "name": "Kusanagi",
-                "short_name": "Kusanagi",
-                "description": "Kubernetes Monitoring Platform",
-                "start_url": "/",
-                "display": "standalone",
-                "background_color": "#0a0f1e",
-                "theme_color": "#0a0f1e",
-                "icons": []
-            }))
-    }
 }
 
 async fn mqtt_devices(state: web::Data<mqtt_service::MqttState>) -> impl Responder {
