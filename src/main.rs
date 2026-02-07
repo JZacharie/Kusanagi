@@ -3,7 +3,8 @@ use actix_web::{web, App, HttpServer, HttpResponse, Responder, HttpRequest};
 use actix_files;
 use actix_web_actors::ws;
 use actix::{Actor, StreamHandler};
-use serde_json::json;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use kusanagi::{Config, InMemoryCache, legacy};
 use kusanagi::domain::services::{kubernetes_service, monitoring_service, argocd_service, proxmox_service, news_service, homeassistant_service, mqtt_service, slack_service, trivy_service};
 use sysinfo::System;
@@ -117,6 +118,8 @@ async fn main() -> std::io::Result<()> {
             .route("/api/news", web::get().to(news))
             .route("/api/quotas", web::get().to(quotas))
             .route("/api/pods/status", web::get().to(pods_status))
+            .route("/api/pods/force-delete", web::post().to(force_delete_pod))
+            .route("/api/pods/delete-error-pods", web::post().to(delete_error_pods_handler))
             .route("/api/cluster/overview", web::get().to(cluster_overview))
             .route("/api/backups", web::get().to(backups))
             .route("/api/services", web::get().to(services))
@@ -669,6 +672,26 @@ async fn pods_status() -> impl Responder {
             "running": 0, "pending": 0, "failed": 0, "total": 0,
             "total_pods": 0, "running_pods": 0, "error_pods": 0, "pods_in_error": []
         }))
+    }
+}
+
+#[derive(Deserialize)]
+struct DeletePodRequest {
+    namespace: String,
+    pod_name: String,
+}
+
+async fn force_delete_pod(params: web::Json<DeletePodRequest>) -> impl Responder {
+    match kubernetes_service::delete_pod(&params.namespace, &params.pod_name).await {
+        Ok(res) => HttpResponse::Ok().json(res),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"success": false, "message": e}))
+    }
+}
+
+async fn delete_error_pods_handler() -> impl Responder {
+     match kubernetes_service::delete_error_pods().await {
+        Ok(res) => HttpResponse::Ok().json(res),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"success": false, "message": e}))
     }
 }
 

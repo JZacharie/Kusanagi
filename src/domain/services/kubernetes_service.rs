@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-use kube::{Client, Api, api::ListParams};
+use kube::{Client, Api, api::{ListParams, DeleteParams}};
 use k8s_openapi::api::core::v1::{Pod, Node, Service, PersistentVolumeClaim, Event};
 use k8s_openapi::api::networking::v1::Ingress;
 
@@ -425,3 +425,69 @@ mod tests {
 }
 
 // End of file
+
+pub async fn delete_pod(namespace: &str, name: &str) -> Result<Value, String> {
+    let client = Client::try_default().await.map_err(|e| e.to_string())?;
+    let pods: Api<Pod> = Api::namespaced(client, namespace);
+    let dp = kube::api::DeleteParams::default();
+    
+    pods.delete(name, &dp).await.map_err(|e| e.to_string())?;
+    
+    Ok(json!({
+        "success": true,
+        "message": format!("Pod {}/{} deleted", namespace, name)
+    }))
+}
+
+pub async fn delete_error_pods() -> Result<Value, String> {
+    let client = Client::try_default().await.map_err(|e| e.to_string())?;
+    let pods: Api<Pod> = Api::all(client.clone());
+    let list = pods.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
+    
+    let mut deleted_count = 0;
+    let mut errors = Vec::new();
+
+    for pod in list {
+        let name = pod.metadata.name.clone().unwrap_or_default();
+        let namespace = pod.metadata.namespace.clone().unwrap_or_default();
+        let phase = pod.status.as_ref().and_then(|s| s.phase.as_deref()).unwrap_or("Unknown");
+        
+        let mut should_delete = false;
+        
+        if phase == "Failed" || phase == "Unknown" {
+            should_delete = true;
+        } else if phase == "Pending" {
+             if let Some(status) = &pod.status {
+                if let Some(container_statuses) = &status.container_statuses {
+                    for cs in container_statuses {
+                        if let Some(state) = &cs.state {
+                            if let Some(waiting) = &state.waiting {
+                                if let Some(reason) = &waiting.reason {
+                                    if reason == "ImagePullBackOff" || reason == "ErrImagePull" || reason == "CrashLoopBackOff" {
+                                        should_delete = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if should_delete {
+             let pods_ns: Api<Pod> = Api::namespaced(client.clone(), &namespace);
+             let dp = kube::api::DeleteParams::default();
+             match pods_ns.delete(&name, &dp).await {
+                 Ok(_) => deleted_count += 1,
+                 Err(e) => errors.push(format!("Failed to delete {}/{}: {}", namespace, name, e))
+             }
+        }
+    }
+
+    Ok(json!({
+        "success": true,
+        "deleted": deleted_count,
+        "errors": errors
+    }))
+}
