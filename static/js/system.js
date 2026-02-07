@@ -1,25 +1,36 @@
 const KusanagiSystem = {
     refreshInterval: null,
-    isInitialized: false,
 
     init: function () {
-        if (this.isInitialized) return;
-        this.isInitialized = true;
-
         console.log("KusanagiSystem initialized");
+        // Initial setup only, actual data fetching happens in activate()
+    },
+
+    activate: function () {
+        console.log("KusanagiSystem activated");
         this.fetchSystemStatus();
         this.fetchSystemLogs();
         this.fetchDatabaseHealth();
 
-        // Refresh logs every 10 seconds
+        // Clear any existing interval
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+        }
+
+        // Refresh every 10 seconds while active
         this.refreshInterval = setInterval(() => {
-            const systemTab = document.querySelector('.tab-content[data-tab="system"]');
-            if (systemTab && systemTab.style.display !== 'none') {
-                this.fetchSystemStatus();
-                this.fetchSystemLogs();
-                this.fetchDatabaseHealth();
-            }
+            this.fetchSystemStatus();
+            this.fetchSystemLogs();
+            this.fetchDatabaseHealth();
         }, 10000);
+    },
+
+    deactivate: function () {
+        console.log("KusanagiSystem deactivated");
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+            this.refreshInterval = null;
+        }
     },
 
     fetchSystemStatus: async function () {
