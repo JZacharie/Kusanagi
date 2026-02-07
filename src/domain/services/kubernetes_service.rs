@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-use kube::{Client, Api, api::{ListParams, DeleteParams}};
+use kube::{Client, Api, api::ListParams};
 use k8s_openapi::api::core::v1::{Pod, Node, Service, PersistentVolumeClaim, Event};
 use k8s_openapi::api::networking::v1::Ingress;
 
@@ -124,22 +124,29 @@ pub async fn get_pods_status() -> Result<Value, String> {
 
 pub async fn get_nodes_status() -> Result<Value, String> {
     let client = Client::try_default().await.map_err(|e| e.to_string())?;
-    let nodes: Api<Node> = Api::all(client);
-    let list = nodes.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
+    let nodes_api: Api<Node> = Api::all(client);
+    let list = nodes_api.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
     
     let mut ready = 0;
     let mut not_ready = 0;
     let mut total = 0;
+    let mut total_cpu = 0.0;
+    let mut total_memory_gb = 0.0;
+    let mut nodes_data = Vec::new();
 
     for node in list {
         total += 1;
+        let name = node.metadata.name.clone().unwrap_or_default();
         let mut is_ready = false;
-        if let Some(status) = node.status {
-            if let Some(conditions) = status.conditions {
+        let mut conditions_map = std::collections::HashMap::new();
+        
+        // Extract status and conditions
+        if let Some(status) = &node.status {
+            if let Some(conditions) = &status.conditions {
                 for cond in conditions {
+                    conditions_map.insert(cond.type_.clone(), cond.status.clone());
                     if cond.type_ == "Ready" && cond.status == "True" {
                         is_ready = true;
-                        break;
                     }
                 }
             }
@@ -150,12 +157,93 @@ pub async fn get_nodes_status() -> Result<Value, String> {
         } else {
             not_ready += 1;
         }
+        
+        // Extract node info
+        let architecture = node.status.as_ref()
+            .and_then(|s| s.node_info.as_ref())
+            .map(|ni| ni.architecture.clone())
+            .unwrap_or_default();
+            
+        let os = node.status.as_ref()
+            .and_then(|s| s.node_info.as_ref())
+            .map(|ni| format!("{} {}", ni.operating_system, ni.os_image))
+            .unwrap_or_default();
+            
+        let kernel = node.status.as_ref()
+            .and_then(|s| s.node_info.as_ref())
+            .map(|ni| ni.kernel_version.clone())
+            .unwrap_or_default();
+            
+        let kubelet = node.status.as_ref()
+            .and_then(|s| s.node_info.as_ref())
+            .map(|ni| ni.kubelet_version.clone())
+            .unwrap_or_default();
+        
+        // Extract capacity
+        let cpu_capacity = node.status.as_ref()
+            .and_then(|s| s.capacity.as_ref())
+            .and_then(|c| c.get("cpu"))
+            .and_then(|q| q.0.parse::<f64>().ok())
+            .unwrap_or(0.0);
+            
+        let memory_capacity = node.status.as_ref()
+            .and_then(|s| s.capacity.as_ref())
+            .and_then(|c| c.get("memory"))
+            .map(|q| {
+                let kb = parse_k8s_quantity(&q.0) as f64;
+                kb / 1024.0 / 1024.0 // Convert KB to GB
+            })
+            .unwrap_or(0.0);
+            
+        let pod_capacity = node.status.as_ref()
+            .and_then(|s| s.capacity.as_ref())
+            .and_then(|c| c.get("pods"))
+            .and_then(|q| q.0.parse::<i32>().ok())
+            .unwrap_or(0);
+        
+        // Extract allocatable
+        let memory_allocatable = node.status.as_ref()
+            .and_then(|s| s.allocatable.as_ref())
+            .and_then(|a| a.get("memory"))
+            .map(|q| {
+                let kb = parse_k8s_quantity(&q.0);
+                format_bytes(kb * 1024)
+            })
+            .unwrap_or_default();
+        
+        // Calculate age
+        let age = node.metadata.creation_timestamp.as_ref()
+            .map(|ts| calculate_age_from_timestamp(ts))
+            .unwrap_or_default();
+        
+        total_cpu += cpu_capacity;
+        total_memory_gb += memory_capacity / 1024.0;
+        
+        nodes_data.push(json!({
+            "name": name,
+            "status": if is_ready { "Ready" } else { "NotReady" },
+            "architecture": architecture,
+            "os": os,
+            "kernel_version": kernel,
+            "kubelet_version": kubelet,
+            "cpu_capacity": format!("{} cores", cpu_capacity),
+            "cpu_usage_percent": 0.0,
+            "memory_allocatable": memory_allocatable,
+            "memory_usage_percent": 0.0,
+            "pod_capacity": pod_capacity,
+            "pod_count": 0,
+            "age": age,
+            "conditions": conditions_map
+        }));
     }
     
     Ok(json!({
-        "ready": ready,
-        "not_ready": not_ready,
-        "total": total
+        "total_nodes": total,
+        "ready_nodes": ready,
+        "not_ready_nodes": not_ready,
+        "total_cpu": format!("{} cores", total_cpu),
+        "total_memory": format!("{:.1} GB", total_memory_gb),
+        "nodes": nodes_data
     }))
 }
 

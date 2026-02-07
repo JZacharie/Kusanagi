@@ -1,0 +1,35 @@
+[build]
+# Exclude generated files
+exclude = ["build.rs"]
+
+[report]
+# Output formats
+out = ["Html", "Xml"]
+
+[run]
+# Test timeout in seconds
+timeout = 300
+
+# Run tests with all features
+all-features = true
+
+# Exclude paths from coverage
+exclude-files = [
+    "tests/*",
+    "target/*",
+    "*/build.rs",
+]
+
+# Exclude specific functions/modules
+exclude = [
+    "main",
+]
+
+# Follow symbolic links
+follow-exec = true
+
+# Count hits in tests
+count = true
+
+# Verbose output
+verbose = true

@@ -15,6 +15,14 @@
         <div class="stat-value" id="node-notready">-</div>
         <div class="stat-label">Not Ready</div>
     </div>
+    <div class="stat-box info">
+        <div class="stat-value" id="node-cpu-total">-</div>
+        <div class="stat-label">Total CPU</div>
+    </div>
+    <div class="stat-box info">
+        <div class="stat-value" id="node-memory-total">-</div>
+        <div class="stat-label">Total Memory</div>
+    </div>
 </div>
 
 <!-- Diagnostic Button (Hidden by default, shown on error) -->
@@ -35,3 +43,147 @@
 <div class="nodes-container" id="nodes-container">
     <div class="loading">Loading nodes status...</div>
 </div>
+
+<style>
+.node-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.node-card:hover {
+    border-color: var(--neon-green);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.node-card.ready {
+    border-left: 4px solid var(--neon-green);
+}
+
+.node-card.not-ready {
+    border-left: 4px solid var(--neon-orange);
+}
+
+.node-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.node-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--neon-cyan);
+}
+
+.node-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.node-status.ready {
+    background: rgba(0, 255, 0, 0.2);
+    color: var(--neon-green);
+}
+
+.node-status.not-ready {
+    background: rgba(255, 165, 0, 0.2);
+    color: var(--neon-orange);
+}
+
+.node-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.node-info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.node-info-label {
+    font-size: 0.75rem;
+    color: #888;
+    margin-bottom: 0.25rem;
+}
+
+.node-info-value {
+    font-size: 0.95rem;
+    color: #fff;
+}
+
+.node-resources {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.resource-bar {
+    margin-bottom: 0.5rem;
+}
+
+.resource-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+.progress-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.progress-fill.low {
+    background: var(--neon-green);
+}
+
+.progress-fill.medium {
+    background: var(--neon-cyan);
+}
+
+.progress-fill.high {
+    background: var(--neon-orange);
+}
+
+.node-conditions {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.condition-item {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    margin: 0.25rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.condition-item.true {
+    background: rgba(0, 255, 0, 0.1);
+    color: var(--neon-green);
+}
+
+.condition-item.false {
+    background: rgba(255, 0, 0, 0.1);
+    color: var(--neon-orange);
+}
+</style>

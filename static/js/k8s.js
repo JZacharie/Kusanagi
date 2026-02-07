@@ -523,11 +523,18 @@ const K8sManager = {
                 this.renderNodesError(data.error);
                 return;
             }
-            // Check if there's a warning from the backend
             if (data._warning) {
                 console.warn('Nodes warning:', data._warning);
             }
-            const stats = { 'node-total': data.total_nodes, 'node-ready': data.ready_nodes, 'node-notready': data.not_ready_nodes };
+            
+            // Update stats
+            const stats = { 
+                'node-total': data.total_nodes, 
+                'node-ready': data.ready_nodes, 
+                'node-notready': data.not_ready_nodes,
+                'node-cpu-total': data.total_cpu || '-',
+                'node-memory-total': data.total_memory || '-'
+            };
             for (const [id, value] of Object.entries(stats)) {
                 const el = document.getElementById(id);
                 if (el) el.textContent = value;
@@ -557,36 +564,95 @@ const K8sManager = {
             `;
             return;
         }
+        
         nodes.sort((a, b) => a.name.localeCompare(b.name));
+        
         container.innerHTML = nodes.map(node => {
-            const archClass = node.architecture === 'arm64' ? 'arch-arm' : 'arch-amd';
-            const statusClass = node.status === 'Ready' ? 'node-ready' : 'node-notready';
-            const nodeType = node.labels?.type || node.labels?.['node.kubernetes.io/instance-type'] || 'node';
-            const podPercent = Math.round((node.pod_count / parseInt(node.pod_capacity)) * 100);
-            const podBarClass = podPercent > 80 ? 'bar-danger' : podPercent > 60 ? 'bar-warning' : 'bar-ok';
+            const isReady = node.status === 'Ready';
             const cpuPercent = node.cpu_usage_percent || 0;
-            const cpuBarClass = cpuPercent > 80 ? 'bar-danger' : cpuPercent > 60 ? 'bar-warning' : 'bar-ok';
-            const cpuDisplay = node.cpu_usage_percent != null ? `${node.cpu_usage_percent.toFixed(1)}%` : 'N/A';
             const memPercent = node.memory_usage_percent || 0;
-            const memBarClass = memPercent > 80 ? 'bar-danger' : memPercent > 60 ? 'bar-warning' : 'bar-ok';
-            const memDisplay = node.memory_usage_percent != null ? `${node.memory_usage_percent.toFixed(1)}%` : 'N/A';
+            const podPercent = node.pod_capacity ? Math.round((node.pod_count / parseInt(node.pod_capacity)) * 100) : 0;
+            
+            const getCpuClass = (p) => p > 80 ? 'high' : p > 60 ? 'medium' : 'low';
+            const getMemClass = (p) => p > 80 ? 'high' : p > 60 ? 'medium' : 'low';
+            const getPodClass = (p) => p > 80 ? 'high' : p > 60 ? 'medium' : 'low';
+            
             return `
-                <div class="node-card ${statusClass} ${node.pods_in_error > 0 ? 'has-errors' : ''}">
+                <div class="node-card ${isReady ? 'ready' : 'not-ready'}">
                     <div class="node-header">
-                        <div class="node-title"><span class="node-name">${node.name}</span><span class="node-type">${nodeType}</span></div>
-                        <span class="arch-badge ${archClass}">${node.architecture}</span>
+                        <div class="node-name">${node.name}</div>
+                        <div class="node-status ${isReady ? 'ready' : 'not-ready'}">${node.status}</div>
                     </div>
+                    
+                    <div class="node-info-grid">
+                        <div class="node-info-item">
+                            <div class="node-info-label">Architecture</div>
+                            <div class="node-info-value">${node.architecture || 'N/A'}</div>
+                        </div>
+                        <div class="node-info-item">
+                            <div class="node-info-label">OS</div>
+                            <div class="node-info-value">${node.os || 'N/A'}</div>
+                        </div>
+                        <div class="node-info-item">
+                            <div class="node-info-label">Kernel</div>
+                            <div class="node-info-value">${node.kernel_version || 'N/A'}</div>
+                        </div>
+                        <div class="node-info-item">
+                            <div class="node-info-label">Kubelet</div>
+                            <div class="node-info-value">${node.kubelet_version || 'N/A'}</div>
+                        </div>
+                    </div>
+                    
                     <div class="node-resources">
-                        <div class="resource-row"><span class="resource-icon">⚡</span><span class="resource-label">CPU</span>
-                            <div class="pod-bar-container" title="Capacity: ${node.cpu_capacity} cores"><div class="pod-bar ${cpuBarClass}" style="width: ${Math.min(cpuPercent, 100)}%"></div><span class="pod-text">${cpuDisplay}</span></div>
+                        <div>
+                            <div class="resource-bar">
+                                <div class="resource-label">
+                                    <span>CPU</span>
+                                    <span>${cpuPercent.toFixed(1)}% (${node.cpu_capacity || 'N/A'})</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill ${getCpuClass(cpuPercent)}" style="width: ${Math.min(cpuPercent, 100)}%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="resource-bar">
+                                <div class="resource-label">
+                                    <span>Pods</span>
+                                    <span>${node.pod_count || 0} / ${node.pod_capacity || 'N/A'}</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill ${getPodClass(podPercent)}" style="width: ${Math.min(podPercent, 100)}%"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="resource-row"><span class="resource-icon">🧠</span><span class="resource-label">RAM</span>
-                            <div class="pod-bar-container" title="Allocatable: ${node.memory_allocatable}"><div class="pod-bar ${memBarClass}" style="width: ${Math.min(memPercent, 100)}%"></div><span class="pod-text">${memDisplay}</span></div>
-                        </div>
-                        <div class="resource-row pods-row"><span class="resource-icon">📦</span><span class="resource-label">Pods</span>
-                            <div class="pod-bar-container"><div class="pod-bar ${podBarClass}" style="width: ${podPercent}%"></div><span class="pod-text">${node.pod_count} / ${node.pod_capacity}</span></div>
+                        
+                        <div>
+                            <div class="resource-bar">
+                                <div class="resource-label">
+                                    <span>Memory</span>
+                                    <span>${memPercent.toFixed(1)}% (${node.memory_allocatable || 'N/A'})</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill ${getMemClass(memPercent)}" style="width: ${Math.min(memPercent, 100)}%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="resource-bar">
+                                <div class="resource-label">
+                                    <span>Age</span>
+                                    <span>${node.age || 'N/A'}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    
+                    ${node.conditions ? `
+                    <div class="node-conditions">
+                        ${Object.entries(node.conditions).map(([key, value]) => 
+                            `<span class="condition-item ${value === 'True' ? 'true' : 'false'}">${key}: ${value}</span>`
+                        ).join('')}
+                    </div>
+                    ` : ''}
                 </div>
             `;
         }).join('');
