@@ -205,7 +205,17 @@ async fn cache_report_to_s3(report_id: &str, report: &TrivyReport) -> Result<(),
         .unwrap_or_else(|_| "kusanagi-security-reports".to_string());
 
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
-    let s3_client = aws_sdk_s3::Client::new(&config);
+    
+    // Use custom endpoint if S3_ENDPOINT is set (for MinIO)
+    let s3_client = if let Ok(endpoint) = env::var("S3_ENDPOINT") {
+        let s3_config = aws_sdk_s3::config::Builder::from(&config)
+            .endpoint_url(endpoint)
+            .force_path_style(true)
+            .build();
+        aws_sdk_s3::Client::from_conf(s3_config)
+    } else {
+        aws_sdk_s3::Client::new(&config)
+    };
 
     let report_json = serde_json::to_string(report)
         .map_err(|e| format!("Failed to serialize report: {}", e))?;
@@ -232,7 +242,17 @@ async fn fetch_from_s3_cache() -> Result<Value, String> {
         .unwrap_or_else(|_| "kusanagi-security-reports".to_string());
 
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
-    let s3_client = aws_sdk_s3::Client::new(&config);
+    
+    // Use custom endpoint if S3_ENDPOINT is set (for MinIO)
+    let s3_client = if let Ok(endpoint) = env::var("S3_ENDPOINT") {
+        let s3_config = aws_sdk_s3::config::Builder::from(&config)
+            .endpoint_url(endpoint)
+            .force_path_style(true)
+            .build();
+        aws_sdk_s3::Client::from_conf(s3_config)
+    } else {
+        aws_sdk_s3::Client::new(&config)
+    };
 
     // List objects in the bucket
     let objects = s3_client
@@ -284,7 +304,17 @@ pub async fn list_reports() -> Result<Value, String> {
         .unwrap_or_else(|_| "kusanagi-security-reports".to_string());
 
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
-    let s3_client = aws_sdk_s3::Client::new(&config);
+    
+    // Use custom endpoint if S3_ENDPOINT is set (for MinIO)
+    let s3_client = if let Ok(endpoint) = env::var("S3_ENDPOINT") {
+        let s3_config = aws_sdk_s3::config::Builder::from(&config)
+            .endpoint_url(endpoint)
+            .force_path_style(true)
+            .build();
+        aws_sdk_s3::Client::from_conf(s3_config)
+    } else {
+        aws_sdk_s3::Client::new(&config)
+    };
 
     let objects = s3_client
         .list_objects_v2()
@@ -325,7 +355,17 @@ pub async fn get_report_by_id(report_id: &str) -> Result<Value, String> {
         .unwrap_or_else(|_| "kusanagi-security-reports".to_string());
 
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
-    let s3_client = aws_sdk_s3::Client::new(&config);
+    
+    // Use custom endpoint if S3_ENDPOINT is set (for MinIO)
+    let s3_client = if let Ok(endpoint) = env::var("S3_ENDPOINT") {
+        let s3_config = aws_sdk_s3::config::Builder::from(&config)
+            .endpoint_url(endpoint)
+            .force_path_style(true)
+            .build();
+        aws_sdk_s3::Client::from_conf(s3_config)
+    } else {
+        aws_sdk_s3::Client::new(&config)
+    };
 
     let key = format!("trivy-reports/{}.json", report_id);
 
