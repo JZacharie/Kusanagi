@@ -1,14 +1,13 @@
+use tracing::{debug, error, info};
 
-use tracing::{info, error, debug};
-
+use rumqttc::{AsyncClient, Event, MqttOptions, Packet, QoS};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
-use std::time::{SystemTime, UNIX_EPOCH};
-use rumqttc::{AsyncClient, MqttOptions, QoS, Event, Packet};
-use tokio::task;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::time::{SystemTime, UNIX_EPOCH};
+use tokio::task;
 // Removed
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -68,7 +67,7 @@ impl MqttState {
         // Update Device
         // Assumption: topic format is "deviceId/..." or just match first part
         let device_id = topic.split('/').next().unwrap_or("unknown").to_string();
-        
+
         if let Some(device) = inner.devices.iter_mut().find(|d| d.id == device_id) {
             device.last_seen = now;
             device.last_topic = topic;
@@ -81,11 +80,13 @@ impl MqttState {
                 last_topic: topic.clone(),
                 message_count: 1,
             });
-            
+
             // Limit devices to 100 to prevent memory leak
             if inner.devices.len() > 100 {
                 // Remove oldest device (least recently seen)
-                if let Some(oldest_idx) = inner.devices.iter()
+                if let Some(oldest_idx) = inner
+                    .devices
+                    .iter()
                     .enumerate()
                     .min_by_key(|(_, d)| d.last_seen)
                     .map(|(idx, _)| idx)
@@ -107,7 +108,13 @@ impl MqttState {
     }
 }
 
-pub fn start_mqtt_client(state: MqttState, host: String, port: u16, username: Option<String>, password: Option<String>) {
+pub fn start_mqtt_client(
+    state: MqttState,
+    host: String,
+    port: u16,
+    username: Option<String>,
+    password: Option<String>,
+) {
     task::spawn(async move {
         // Generate random client id
         let client_id = format!("kusanagi-{}", std::process::id());
@@ -119,11 +126,11 @@ pub fn start_mqtt_client(state: MqttState, host: String, port: u16, username: Op
         }
 
         let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
-        
+
         // Subscribe to everything
         if let Err(e) = client.subscribe("#", QoS::AtMostOnce).await {
-             error!("❌ MQTT: Error subscribing: {:?}", e);
-             return;
+            error!("❌ MQTT: Error subscribing: {:?}", e);
+            return;
         }
 
         info!("📡 MQTT: Connected to {}", host);
@@ -136,7 +143,7 @@ pub fn start_mqtt_client(state: MqttState, host: String, port: u16, username: Op
                         // println!("Received: {} = {}", publish.topic, payload);
                         state.handle_message(publish.topic, payload);
                     }
-                },
+                }
                 Err(e) => {
                     debug!("MQTT connection error: {:?}", e);
                     tokio::time::sleep(Duration::from_secs(5)).await;

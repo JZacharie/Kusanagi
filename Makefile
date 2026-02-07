@@ -25,6 +25,10 @@ fmt: ## Format code
 fmt-check: ## Check code formatting
 	cargo fmt -- --check
 
+fmt-fix: ## Format code and remove trailing whitespace
+	find src -name "*.rs" -type f -exec sed -i 's/[[:space:]]*$$//' {} \;
+	cargo fmt
+
 build: ## Build release binary
 	cargo build --release
 

@@ -1,5 +1,5 @@
 // Legacy cluster module - minimal
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ClusterInfo {
