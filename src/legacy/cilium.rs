@@ -184,7 +184,7 @@ pub async fn get_hubble_flows(namespace: Option<&str>, limit: usize) -> Result<H
 pub async fn start_background_refresh(client: kube::Client) {
     info!("🚀 Starting Cilium background refresh task");
     
-    let mut interval = tokio::time::interval(Duration::from_secs(45));
+    let mut interval = tokio::time::interval(Duration::from_secs(120)); // Réduit de 45s à 120s
     
     loop {
         interval.tick().await;
