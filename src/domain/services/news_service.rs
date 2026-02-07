@@ -62,7 +62,10 @@ pub async fn get_news() -> Result<Value, String> {
         rust_news,
         inside_rust_news,
         twir_news,
-    ].into_iter().flatten() {
+    ]
+    .into_iter()
+    .flatten()
+    {
         all_news.append(&mut items);
     }
 
