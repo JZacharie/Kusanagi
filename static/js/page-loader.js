@@ -30,7 +30,6 @@ const PageLoader = {
         'proxmox': 'proxmox.html',
         'homeassistant': 'homeassistant.html',
         'weather': 'weather.html',
-        'calendar': 'calendar.html',
         'setup': 'setup.html',
         'docs': 'docs.html'
     },
@@ -110,9 +109,6 @@ const PageLoader = {
                 break;
             case 'weather':
                 if (window.WeatherDashboard) WeatherDashboard.init();
-                break;
-            case 'calendar':
-                if (window.CalendarDashboard) CalendarDashboard.init();
                 break;
             case 'security':
                 if (window.SecurityDashboard) SecurityDashboard.init();
