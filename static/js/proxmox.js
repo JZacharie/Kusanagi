@@ -1,8 +1,14 @@
-// Proxmox Dashboard Module
+// Proxmox Dashboard Module with Caching
 const ProxmoxDashboard = {
     refreshInterval: null,
     debug: false,
     initialized: false,
+    cache: {
+        data: null,
+        timestamp: null,
+        maxAge: 30000 // 30 seconds
+    },
+    isActive: false,
 
     init() {
         if (this.initialized) {
@@ -10,14 +16,11 @@ const ProxmoxDashboard = {
             return;
         }
         this.initialized = true;
-        this.log('Initializing Proxmox Dashboard...');
-        
-        requestAnimationFrame(() => {
-            this.fetchAndRender();
-            if (this.refreshInterval) clearInterval(this.refreshInterval);
-            this.refreshInterval = setInterval(() => this.fetchAndRender(), 30000);
-            this.log('✅ Proxmox Dashboard initialized');
-        });
+        this.log('🔧 Proxmox Dashboard initializing with cache...');
+
+        // Load initial data in background
+        this.loadDataToCache();
+        this.log('✅ Proxmox Dashboard initialized (data loading in background)');
     },
 
     log(message, data = null) {
@@ -26,33 +29,83 @@ const ProxmoxDashboard = {
         }
     },
 
+    async loadDataToCache() {
+        try {
+            const data = await this.fetchProxmoxData();
+            this.cache.data = data;
+            this.cache.timestamp = Date.now();
+            this.log('📦 Proxmox data cached');
+        } catch (error) {
+            this.log('Failed to cache Proxmox data:', error);
+            console.error('Failed to cache Proxmox data:', error);
+        }
+    },
+
+    async fetchProxmoxData() {
+        this.log('Fetching Proxmox data...');
+
+        const [vmsResponse, containersResponse, nodesResponse] = await Promise.all([
+            fetch('/api/proxmox/vms'),
+            fetch('/api/proxmox/containers'),
+            fetch('/api/proxmox/nodes')
+        ]);
+
+        this.log('Response status:', {
+            vms: vmsResponse.status,
+            containers: containersResponse.status,
+            nodes: nodesResponse.status
+        });
+
+        const vms = vmsResponse.ok ? await vmsResponse.json() : [];
+        const containers = containersResponse.ok ? await containersResponse.json() : [];
+        const nodes = nodesResponse.ok ? await nodesResponse.json() : [];
+
+        this.log('Fetched data:', { vms: vms.length, containers: containers.length, nodes: nodes.length });
+
+        return { vms, containers, nodes };
+    },
+
+    async activate() {
+        this.isActive = true;
+        this.log('🔄 Proxmox tab activated');
+
+        // Check if cache is still valid
+        const cacheAge = this.cache.timestamp ? Date.now() - this.cache.timestamp : Infinity;
+
+        if (this.cache.data && cacheAge < this.cache.maxAge) {
+            // Use cached data
+            this.log('✨ Using cached Proxmox data');
+            this.renderAll(this.cache.data);
+        } else {
+            // Fetch fresh data
+            this.log('🔄 Cache expired, fetching fresh data');
+            await this.fetchAndRender();
+        }
+
+        // Start auto-refresh while tab is active
+        if (this.refreshInterval) clearInterval(this.refreshInterval);
+        this.refreshInterval = setInterval(() => {
+            if (this.isActive) {
+                this.fetchAndRender();
+            }
+        }, 30000);
+    },
+
+    deactivate() {
+        this.isActive = false;
+        this.log('⏸️ Proxmox tab deactivated');
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+            this.refreshInterval = null;
+        }
+    },
+
     async fetchAndRender() {
         try {
-            this.log('Fetching Proxmox data...');
-            
-            // Fetch all data in parallel
-            const [vmsResponse, containersResponse, nodesResponse] = await Promise.all([
-                fetch('/api/proxmox/vms'),
-                fetch('/api/proxmox/containers'), 
-                fetch('/api/proxmox/nodes')
-            ]);
-
-            this.log('Response status:', {
-                vms: vmsResponse.status,
-                containers: containersResponse.status,
-                nodes: nodesResponse.status
-            });
-
-            // Parse JSON only if response is OK
-            const vms = vmsResponse.ok ? await vmsResponse.json() : [];
-            const containers = containersResponse.ok ? await containersResponse.json() : [];
-            const nodes = nodesResponse.ok ? await nodesResponse.json() : [];
-
-            this.log('Fetched data:', { vms: vms.length, containers: containers.length, nodes: nodes.length });
-
-            this.renderStats(vms, containers, nodes);
-            this.renderVMs(vms);
-            this.renderContainers(containers);
+            const data = await this.fetchProxmoxData();
+            this.cache.data = data;
+            this.cache.timestamp = Date.now();
+            this.renderAll(data);
         } catch (error) {
             this.log('Fetch error:', error);
             console.error('Failed to fetch Proxmox data:', error);
@@ -62,6 +115,12 @@ const ProxmoxDashboard = {
             if (vmsContent) vmsContent.innerHTML = `<div class="error">${errorMsg}</div>`;
             if (containersContent) containersContent.innerHTML = `<div class="error">${errorMsg}</div>`;
         }
+    },
+
+    renderAll(data) {
+        this.renderStats(data.vms, data.containers, data.nodes);
+        this.renderVMs(data.vms);
+        this.renderContainers(data.containers);
     },
 
     renderStats(vms, containers, nodes) {
@@ -83,7 +142,7 @@ const ProxmoxDashboard = {
     renderVMs(vms) {
         const container = document.getElementById('proxmox-vms-content');
         const countEl = document.getElementById('proxmox-vms-count');
-        
+
         if (!Array.isArray(vms)) {
             this.log('VMs data is not an array:', vms);
             if (container) container.innerHTML = '<div class="error">Invalid VMs data received</div>';
@@ -290,5 +349,5 @@ const ProxmoxDashboard = {
     }
 };
 
-// Auto-load when tab is switched
+// Global export
 window.ProxmoxDashboard = ProxmoxDashboard;
