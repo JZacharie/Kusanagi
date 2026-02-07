@@ -29,6 +29,8 @@ base64 = "0.22"
 sysinfo = "0.30"
 rumqttc = "0.24"
 tracing = "0.1"
+aws-config = "1.1"
+aws-sdk-s3 = "1.13"
 
 [build-dependencies]
 chrono = "0.4"
