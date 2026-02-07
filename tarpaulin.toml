@@ -1,6 +1,6 @@
 [build]
 # Exclude generated files
-exclude = ["build.rs"]
+workspace = true
 
 [report]
 # Output formats
@@ -18,11 +18,6 @@ exclude-files = [
     "tests/*",
     "target/*",
     "*/build.rs",
-]
-
-# Exclude specific functions/modules
-exclude = [
-    "main",
 ]
 
 # Follow symbolic links
