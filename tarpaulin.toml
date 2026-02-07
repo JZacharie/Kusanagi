@@ -8,7 +8,7 @@ out = ["Html", "Xml"]
 
 [run]
 # Test timeout in seconds
-timeout = 300
+timeout = "300s"
 
 # Run tests with all features
 all-features = true
