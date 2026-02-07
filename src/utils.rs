@@ -1,4 +1,4 @@
-use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::sync::{Mutex, MutexGuard};
 
 /// Helper trait to handle poisoned mutexes gracefully
 pub trait MutexExt<T> {
