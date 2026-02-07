@@ -77,6 +77,19 @@ async fn main() -> std::io::Result<()> {
         .build()
         .unwrap_or_default();
 
+    // Initialize Kubernetes client
+    let kube_client = match kube::Client::try_default().await {
+        Ok(client) => {
+            println!("✅ Kubernetes client initialized");
+            Some(client)
+        }
+        Err(e) => {
+            eprintln!("⚠️  Failed to initialize Kubernetes client: {}", e);
+            eprintln!("   Logs endpoint will be unavailable");
+            None
+        }
+    };
+
     // Cache warming removed - cache disabled to prevent memory leaks
     // Data is fetched fresh on each request now
 
@@ -100,11 +113,18 @@ async fn main() -> std::io::Result<()> {
     tokio::spawn(start_slack_monitoring(slack));
 
     HttpServer::new(move || {
-        App::new()
+        let mut app = App::new()
             .app_data(web::Data::new(cache.clone()))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(client.clone()))
-            .app_data(web::Data::new(mqtt_state.clone()))
+            .app_data(web::Data::new(mqtt_state.clone()));
+        
+        // Inject Kubernetes client if available
+        if let Some(ref kube_client) = kube_client {
+            app = app.app_data(web::Data::new(kube_client.clone()));
+        }
+        
+        app
             .route("/", web::get().to(web_index))
             .route("/api", web::get().to(service_info))
             .route("/health", web::get().to(health_check))
@@ -552,15 +572,24 @@ async fn system_status() -> impl Responder {
     }))
 }
 
-async fn system_logs(client: web::Data<kube::Client>) -> impl Responder {
+async fn system_logs(client: Option<web::Data<kube::Client>>) -> impl Responder {
     use kube::Api;
     use k8s_openapi::api::core::v1::Pod;
     use kube::api::LogParams;
     
+    // Check if Kubernetes client is available
+    let Some(kube_client) = client else {
+        let error_msg = "=== Kubernetes Client Unavailable ===\n\n\
+                        The Kubernetes client could not be initialized.\n\
+                        This usually means Kusanagi is running outside a Kubernetes cluster.\n\n\
+                        Logs are only available when running inside Kubernetes.";
+        return HttpResponse::Ok().body(error_msg);
+    };
+    
     let hostname = std::env::var("HOSTNAME").unwrap_or_else(|_| "kusanagi".to_string());
     let namespace = std::env::var("POD_NAMESPACE").unwrap_or_else(|_| "kusanagi".to_string());
     
-    let pods: Api<Pod> = Api::namespaced(client.get_ref().clone(), &namespace);
+    let pods: Api<Pod> = Api::namespaced(kube_client.get_ref().clone(), &namespace);
     
     match pods.logs(&hostname, &LogParams {
         tail_lines: Some(1000),
