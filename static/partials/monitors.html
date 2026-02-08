@@ -1,0 +1,52 @@
+<!-- Monitors section -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2 class="section-title" style="margin-bottom: 0;">🛡️ Unified Monitors</h2>
+    <div style="display: flex; gap: 1rem;">
+        <button class="cyber-btn" onclick="MonitorsManager.fetchMonitors()" title="Refresh">
+            🔄
+        </button>
+        <button class="cyber-btn" onclick="MonitorsManager.exportMonitors()"
+            style="border-color: var(--neon-cyan); color: var(--neon-cyan);">
+            📥 Export
+        </button>
+    </div>
+</div>
+
+<div class="argocd-stats" id="monitors-stats-grid" style="margin-bottom: 1.5rem;">
+    <div class="stat-box info">
+        <div class="stat-value" id="monitors-total">-</div>
+        <div class="stat-label">Total Events</div>
+    </div>
+    <div class="stat-box error" style="border-color: #ff4444; color: #ff4444;">
+        <div class="stat-value" id="monitors-critical">-</div>
+        <div class="stat-label">Critical</div>
+    </div>
+    <div class="stat-box warning">
+        <div class="stat-value" id="monitors-warning">-</div>
+        <div class="stat-label">Warning</div>
+    </div>
+    <div class="stat-box healthy">
+        <div class="stat-value" id="monitors-info">-</div>
+        <div class="stat-label">Info/Normal</div>
+    </div>
+</div>
+
+<!-- Filter Controls -->
+<div class="filter-controls" style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
+    <button class="cyber-btn active" id="btn-monitor-all" onclick="MonitorsManager.filter('all')">Show All</button>
+    <button class="cyber-btn" id="btn-monitor-critical" onclick="MonitorsManager.filter('critical')"
+        style="border-color: #ff4444;">🔴 Critical</button>
+    <button class="cyber-btn" id="btn-monitor-warning" onclick="MonitorsManager.filter('warning')"
+        style="border-color: #ffaa00;">🟠 Warning</button>
+    <button class="cyber-btn" id="btn-monitor-info" onclick="MonitorsManager.filter('info')">🔵 Info</button>
+</div>
+
+<div class="issues-table-container" id="monitors-container" style="border-color: var(--neon-cyan);">
+    <div class="issues-table-header" style="background: rgba(0, 255, 249, 0.1); border-color: var(--neon-cyan);">
+        <span class="issues-table-title" style="color: var(--neon-cyan);">Live Feed</span>
+        <span class="issues-count" id="monitors-table-count" style="background: var(--neon-cyan);">0</span>
+    </div>
+    <div id="monitors-content">
+        <div class="loading">Loading monitors...</div>
+    </div>
+</div>
