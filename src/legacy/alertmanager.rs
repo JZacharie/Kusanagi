@@ -149,6 +149,15 @@ pub async fn get_active_alerts() -> Result<AlertsResponse, String> {
         ("silenced", "false"),
         ("inhibited", "false"),
     ]);
+
+    // Add Basic Auth if credentials are provided
+    if let (Ok(username), Ok(password)) = (
+        std::env::var("ALERTMANAGER_USERNAME"),
+        std::env::var("ALERTMANAGER_PASSWORD"),
+    ) {
+        request = request.basic_auth(username, Some(password));
+    }
+
     let response = request
         .timeout(std::time::Duration::from_secs(10))
         .send()
