@@ -318,8 +318,8 @@ async function switchTab(tabName) {
         WeatherDashboard.init();
     } else if (tabName === "security" && window.SecurityDashboard) {
         SecurityDashboard.init();
-    } else if (tabName === "alerts" && window.AlertsManager) {
-        AlertsManager.init();
+    } else if (tabName === "monitors" && window.MonitorsManager) {
+        MonitorsManager.init();
     } else if (tabName === "system" && window.KusanagiSystem) {
         KusanagiSystem.activate();
     }
@@ -351,7 +351,8 @@ function refreshAllKusanagiData() {
         if (K8sManager.fetchArgoStatus) K8sManager.fetchArgoStatus();
         if (K8sManager.fetchNodesStatus) K8sManager.fetchNodesStatus();
         if (K8sManager.fetchClusterOverview) K8sManager.fetchClusterOverview();
-        if (K8sManager.fetchEvents) K8sManager.fetchEvents(window.currentEventFilter || 'all', 1);
+        if (K8sManager.fetchClusterOverview) K8sManager.fetchClusterOverview();
+        // if (K8sManager.fetchEvents) K8sManager.fetchEvents(window.currentEventFilter || 'all', 1); // REPLACED BY MONITORS
         if (K8sManager.fetchBackupsStatus) K8sManager.fetchBackupsStatus();
         if (K8sManager.fetchStorageStatus) K8sManager.fetchStorageStatus();
         if (K8sManager.fetchServices) K8sManager.fetchServices();
@@ -361,7 +362,7 @@ function refreshAllKusanagiData() {
 
     // Component Managers
     if (window.MetricsManager && MetricsManager.init) MetricsManager.init();
-    if (window.AlertsManager && AlertsManager.init) AlertsManager.init();
+    if (window.MonitorsManager && MonitorsManager.fetchMonitors) MonitorsManager.fetchMonitors();
     if (window.NewsManager && NewsManager.fetchNews) NewsManager.fetchNews();
     if (window.QuotasManager && QuotasManager.fetchQuotas) {
         // QuotasManager.fetchQuotas(); // Disabled

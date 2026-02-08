@@ -117,12 +117,15 @@ const SystemStatusManager = {
         const cpuEl = document.getElementById('kusanagi-cpu');
         const ramEl = document.getElementById('kusanagi-ram');
         const versionEl = document.getElementById('kusanagi-version');
+        const dbEl = document.getElementById('kusanagi-db-status');
         const indicator = document.getElementById('kusanagi-refresh-indicator');
 
-        if (uptimeEl) uptimeEl.textContent = this.formatUptime(data.uptime_secs ?? 0);
-        if (cpuEl) cpuEl.textContent = `${(data.cpu_usage_percent ?? 0).toFixed(1)}%`;
-        if (ramEl) ramEl.textContent = `${((data.memory_usage_bytes ?? 0) / (1024 * 1024)).toFixed(0)} MB`;
-        if (versionEl) versionEl.textContent = data.version ?? '0.0.0';
+        if (uptimeEl) uptimeEl.textContent = data.uptime || this.formatUptime(data.uptime_secs ?? 0);
+        // Backend returns cpu_usage (percent) and memory_usage_mb (MB)
+        if (cpuEl) cpuEl.textContent = `${(data.cpu_usage ?? data.cpu_usage_percent ?? 0).toFixed(1)}%`;
+        if (ramEl) ramEl.textContent = `${(data.memory_usage_mb ?? (data.memory_usage_bytes / 1048576) ?? 0).toFixed(0)} MB`;
+        if (versionEl) versionEl.textContent = data.version ?? '0.2.0';
+        if (dbEl) dbEl.textContent = 'SQLite'; // Hardcoded for now as Kusanagi uses embedded/cache
 
         // Visual flash on update
         if (indicator) {
@@ -145,11 +148,13 @@ const DashboardManager = {
         argocd: { name: 'ArgoCD', icon: '🚀', enabled: true, order: 0 },
         nodes: { name: 'Nodes', icon: '🖥️', enabled: true, order: 1 },
         storage: { name: 'Storage', icon: '💾', enabled: true, order: 2 },
-        events: { name: 'Events', icon: '🔔', enabled: true, order: 3 },
+        storage: { name: 'Storage', icon: '💾', enabled: true, order: 2 },
+        monitors: { name: 'Monitors', icon: '🛡️', enabled: true, order: 3 },
         pods: { name: 'Pods', icon: '📦', enabled: true, order: 4 },
         network: { name: 'Network', icon: '🌐', enabled: true, order: 5 },
         metrics: { name: 'Metrics', icon: '📊', enabled: true, order: 6 },
-        alerts: { name: 'Alerts', icon: '⚠️', enabled: true, order: 7 },
+        // alerts/events deprecated
+
         chat: { name: 'Chat', icon: '💬', enabled: true, order: 8 },
         proxmox: { name: 'Proxmox', icon: '🖥️', enabled: true, order: 9 },
         homeassistant: { name: 'Home Assistant', icon: '🏠', enabled: true, order: 10 },
@@ -583,206 +588,7 @@ const MetricsManager = {
 /**
  * Alerts display manager
  */
-const AlertsManager = {
-    refreshInterval: null,
-
-    /**
-     * Initialize alerts display
-     */
-    init() {
-        this.loadAlerts();
-        // Refresh every 30 seconds
-        this.refreshInterval = setInterval(() => this.loadAlerts(), 30000);
-    },
-
-    /**
-     * Load alerts from Alertmanager and Kubernetes events
-     */
-    async loadAlerts() {
-        try {
-            // Fetch both alerts and events concurrently
-            const [alertsResponse, eventsResponse] = await Promise.all([
-                fetch('/api/alerts'),
-                fetch('/api/events')
-            ]);
-
-            const alerts = alertsResponse.ok ? await alertsResponse.json() : { total: 0, critical: [], warning: [], info: [] };
-            const events = eventsResponse.ok ? await eventsResponse.json() : [];
-
-            // Filter events to only show Warning and Error types
-            const k8sAlerts = Array.isArray(events)
-                ? events.filter(e => e.type === 'Warning' || e.type === 'Error').slice(0, 20)
-                : [];
-
-            this.renderAlerts(alerts, k8sAlerts);
-            this.updateAlertBadge(alerts.total + k8sAlerts.length);
-        } catch (error) {
-            console.error('Alerts error:', error);
-            this.renderAlertsError(error.message);
-        }
-    },
-
-    /**
-     * Render alerts to UI
-     */
-    renderAlerts(data, k8sEvents = []) {
-        const container = document.getElementById('alerts-content');
-        if (!container) return;
-
-        // Validate data structure
-        if (!data || typeof data !== 'object') {
-            this.renderAlertsError('Invalid alerts data');
-            return;
-        }
-
-        // Check if there's a warning from the backend (e.g., Alertmanager unavailable)
-        const warningMsg = data._warning || data.warning_message;
-
-        if (data.total === 0 && k8sEvents.length === 0) {
-            container.innerHTML = `
-                <div class="no-alerts">
-                    <span class="success-icon">✅</span>
-                    <p>No active alerts</p>
-                    ${warningMsg ? `<p class="alert-warning-message" style="color: var(--neon-orange); margin-top: 1rem; font-size: 0.9rem;">⚠️ ${warningMsg}</p>` : ''}
-                </div>
-            `;
-            return;
-        }
-
-        let html = '<div class="alerts-list">';
-
-        // Kubernetes Events Section (NEW)
-        if (k8sEvents && k8sEvents.length > 0) {
-            html += '<div class="alert-group k8s-events">';
-            html += `<h4>🔔 Kubernetes Events (${k8sEvents.length})</h4>`;
-            k8sEvents.forEach(event => {
-                html += this.renderK8sEventCard(event);
-            });
-            html += '</div>';
-        }
-
-        // Critical alerts
-        if (data.critical && data.critical.length > 0) {
-            html += '<div class="alert-group critical">';
-            html += `<h4>🔴 Critical (${data.critical.length})</h4>`;
-            data.critical.forEach(alert => {
-                html += this.renderAlertCard(alert, 'critical');
-            });
-            html += '</div>';
-        }
-
-        // Warning alerts
-        if (data.warning && data.warning.length > 0) {
-            html += '<div class="alert-group warning">';
-            html += `<h4>🟠 Warning (${data.warning.length})</h4>`;
-            data.warning.forEach(alert => {
-                html += this.renderAlertCard(alert, 'warning');
-            });
-            html += '</div>';
-        }
-
-        // Info alerts
-        if (data.info && data.info.length > 0) {
-            html += '<div class="alert-group info">';
-            html += `<h4>🔵 Info (${data.info.length})</h4>`;
-            data.info.forEach(alert => {
-                html += this.renderAlertCard(alert, 'info');
-            });
-            html += '</div>';
-        }
-
-        html += '</div>';
-        container.innerHTML = html;
-    },
-
-    /**
-     * Render single alert card
-     */
-    renderAlertCard(alert, severity) {
-        const age = this.formatAge(new Date(alert.started_at));
-        return `
-            <div class="alert-card ${severity}">
-                <div class="alert-header">
-                    <span class="alert-name">${alert.name}</span>
-                    <span class="alert-state ${alert.state}">${alert.state}</span>
-                </div>
-                <div class="alert-summary">${alert.summary}</div>
-                <div class="alert-meta">
-                    ${alert.namespace ? `<span class="alert-ns">📁 ${alert.namespace}</span>` : ''}
-                    ${alert.pod ? `<span class="alert-pod">📦 ${alert.pod}</span>` : ''}
-                    <span class="alert-age">⏱️ ${age}</span>
-                </div>
-            </div>
-        `;
-    },
-
-    /**
-     * Render Kubernetes event card
-     */
-    renderK8sEventCard(event) {
-        const severity = event.type === 'Error' ? 'critical' : 'warning';
-        const icon = event.type === 'Error' ? '🔴' : '🟠';
-        const age = this.formatAge(new Date(event.last_timestamp || event.first_timestamp));
-
-        return `
-            <div class="alert-card ${severity}">
-                <div class="alert-header">
-                    <span class="alert-name">${icon} ${event.reason || 'Unknown'}</span>
-                    <span class="alert-state">${event.type}</span>
-                </div>
-                <div class="alert-summary">${event.message || 'No message'}</div>
-                <div class="alert-meta">
-                    ${event.namespace ? `<span class="alert-ns">📁 ${event.namespace}</span>` : ''}
-                    ${event.involved_object?.name ? `<span class="alert-pod">📦 ${event.involved_object.name}</span>` : ''}
-                    <span class="alert-age">⏱️ ${age}</span>
-                    ${event.count ? `<span class="alert-count">🔄 ${event.count}x</span>` : ''}
-                </div>
-            </div>
-        `;
-    },
-
-    /**
-     * Format alert age
-     */
-    formatAge(date) {
-        const now = new Date();
-        const diff = now - date;
-        const minutes = Math.floor(diff / 60000);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
-
-        if (days > 0) return `${days}d ${hours % 24}h`;
-        if (hours > 0) return `${hours}h ${minutes % 60}m`;
-        return `${minutes}m`;
-    },
-
-    /**
-     * Update alert badge in navigation
-     */
-    updateAlertBadge(count) {
-        const badge = document.getElementById('alerts-badge');
-        if (badge) {
-            badge.textContent = count;
-            badge.style.display = count > 0 ? 'inline-block' : 'none';
-        }
-    },
-
-    /**
-     * Render error state
-     */
-    renderAlertsError(message) {
-        const container = document.getElementById('alerts-content');
-        if (!container) return;
-
-        container.innerHTML = `
-            <div class="error-state">
-                <span class="error-icon">⚠️</span>
-                <p>Failed to load alerts: ${message}</p>
-                <button onclick="AlertsManager.loadAlerts()" class="retry-btn">Retry</button>
-            </div>
-        `;
-    }
-};
+// AlertsManager removed (replaced by MonitorsManager)
 
 /**
  * Quotas display manager

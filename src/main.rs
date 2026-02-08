@@ -3,7 +3,7 @@ use actix::{Actor, StreamHandler};
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_actors::ws;
 use kusanagi::domain::services::{
-    argocd_service, homeassistant_service, kubernetes_service, monitoring_service, mqtt_service,
+    argocd_service, fusion_service, homeassistant_service, kubernetes_service, monitoring_service, mqtt_service,
     news_service, proxmox_service, slack_service, trivy_service,
 };
 use kusanagi::{legacy, Config};
@@ -199,6 +199,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/nodes/status", web::get().to(nodes_status))
             .route("/api/storage", web::get().to(storage))
             .route("/api/events", web::get().to(events))
+            .route("/api/fusion", web::get().to(fusion_service::fusion_handler))
             .route("/api/mqtt/devices", web::get().to(mqtt_devices))
             .route("/api/mqtt/messages", web::get().to(mqtt_messages))
             .route("/api/argocd/status", web::get().to(argocd_status))

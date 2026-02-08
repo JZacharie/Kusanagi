@@ -1,4 +1,5 @@
 pub mod argocd_service;
+pub mod fusion_service;
 pub mod homeassistant_service;
 pub mod kubernetes_service;
 pub mod monitoring_service;

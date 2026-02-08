@@ -6,10 +6,10 @@
 const PageLoader = {
     // Cache for loaded partials
     cache: new Map(),
-    
+
     // Base path for partials
     partialsBase: '/static/partials/',
-    
+
     // Mapping of tab names to partial files
     partials: {
         'nodes': 'nodes.html',
@@ -31,6 +31,7 @@ const PageLoader = {
         'homeassistant': 'homeassistant.html',
         'weather': 'weather.html',
         'setup': 'setup.html',
+        'monitors': 'monitors.html',
         'docs': 'docs.html'
     },
 
@@ -73,7 +74,7 @@ const PageLoader = {
             }
 
             const html = await response.text();
-            
+
             // Cache and inject
             this.cache.set(tabName, html);
             section.innerHTML = html;
@@ -100,7 +101,7 @@ const PageLoader = {
      */
     initScripts(tabName) {
         // Trigger initialization based on tab
-        switch(tabName) {
+        switch (tabName) {
             case 'proxmox':
                 if (window.ProxmoxDashboard) ProxmoxDashboard.init();
                 break;
@@ -144,6 +145,9 @@ const PageLoader = {
                     K8sManager.fetchBackupsStatus();
                 }
                 break;
+            case 'monitors':
+                if (window.MonitorsManager) MonitorsManager.init();
+                break;
         }
     },
 
@@ -158,7 +162,7 @@ const PageLoader = {
                 fetch(`${this.partialsBase}${this.partials[tab]}`)
                     .then(r => r.text())
                     .then(html => this.cache.set(tab, html))
-                    .catch(() => {});
+                    .catch(() => { });
             }
         });
     },

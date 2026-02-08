@@ -25,7 +25,9 @@ const K8sManager = {
         this.fetchNodesStatus();
         this.fetchPodsStatus();
         this.fetchClusterOverview();
-        this.fetchEvents(this.currentEventFilter, this.currentEventPage);
+        this.fetchClusterOverview();
+        // this.fetchEvents(this.currentEventFilter, this.currentEventPage); // REPLACED BY MONITORS
+        this.fetchBackupsStatus();
         this.fetchBackupsStatus();
         this.fetchStorageStatus();
         this.fetchServices();
@@ -851,89 +853,9 @@ const K8sManager = {
     changeStoragePage(delta) { this.storagePage += delta; this.renderStorageTable(); },
 
     // === EVENTS ===
-    async fetchEvents(typeFilter = 'all', page = 1) {
-        try {
-            this.currentEventFilter = typeFilter; this.currentEventPage = page;
-            const url = new URL('/api/events', window.location.origin);
-            if (typeFilter !== 'all') url.searchParams.append('event_type', typeFilter);
-            url.searchParams.append('page', page); url.searchParams.append('per_page', this.eventPerPage);
-            const response = await fetch(url.toString());
-            const data = await response.json();
-            if (!data.error) {
-                const stats = { 'events-total': data.total_events, 'events-warnings': data.warning_count, 'events-normal': data.normal_count, 'events-table-count': data.total_events };
-                for (const [id, value] of Object.entries(stats)) { const el = document.getElementById(id); if (el) el.textContent = value; }
-                this.renderEventsTable(data);
-            } else {
-                this.renderEventsError(data.error);
-            }
-        } catch (error) {
-            console.error('Failed to fetch events:', error);
-            this.renderEventsError('Failed to fetch events from server');
-        }
-    },
+    // === EVENTS (MOVED TO MONITORS) ===
+    // fetchEvents, filterEvents, renderEventsTable removed.
 
-    filterEvents(type) {
-        document.getElementById('btn-show-all')?.classList.toggle('active', type === 'all');
-        document.getElementById('btn-show-warnings')?.classList.toggle('active', type === 'Warning');
-        this.fetchEvents(type, 1);
-    },
-
-    changeEventsPage(delta) { const newPage = this.currentEventPage + delta; if (newPage >= 1) this.fetchEvents(this.currentEventFilter, newPage); },
-
-    renderEventsTable(data) {
-        const container = document.getElementById('events-content');
-        if (!container) return;
-
-        // Check if there's a warning from the backend (e.g., Kubernetes unavailable)
-        const warningMsg = data._warning || data.warning_message;
-
-        // Handle empty events
-        if (!data.events || data.events.length === 0) {
-            container.innerHTML = `
-                <div class="no-issues" style="padding: 2rem; text-align: center;">
-                    <span style="font-size: 2rem;">📭</span>
-                    <p>No events found</p>
-                    ${warningMsg ? `<p style="color: var(--neon-orange); margin-top: 1rem; font-size: 0.9rem;">⚠️ ${warningMsg}</p>` : ''}
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = `
-            <table class="issues-table">
-                <thead><tr><th>Type</th><th>Object</th><th>Reason</th><th>Message</th><th>Age</th><th>Count</th></tr></thead>
-                <tbody>${data.events.map(evt => `
-                    <tr class="${evt.event_type.toLowerCase()}">
-                        <td><span class="event-type ${evt.event_type.toLowerCase()}">${evt.event_type}</span></td>
-                        <td class="event-object">${evt.involved_object_kind}/${evt.involved_object_name.substring(0, 30)}</td>
-                        <td class="event-reason">${evt.reason}</td>
-                        <td class="event-message" title="${evt.message}">${evt.message.substring(0, 60)}</td>
-                        <td class="event-age">${evt.age || '-'}</td><td class="event-count">${evt.count}</td>
-                    </tr>
-                `).join('')}</tbody>
-            </table>
-            <div class="pagination-controls">
-                <button class="cyber-btn" onclick="K8sManager.changeEventsPage(-1)">PREV</button>
-                <span>Page ${data.page} of ${data.total_pages}</span>
-                <button class="cyber-btn" onclick="K8sManager.changeEventsPage(1)">NEXT</button>
-            </div>
-            ${warningMsg ? `<div style="text-align: center; padding: 0.5rem; color: var(--neon-orange); font-size: 0.85rem;">⚠️ ${warningMsg}</div>` : ''}
-        `;
-    },
-
-    renderEventsError(message) {
-        const container = document.getElementById('events-content');
-        if (!container) return;
-        container.innerHTML = `
-            <div class="error-state" style="padding: 2rem; text-align: center;">
-                <span style="font-size: 2rem;">⚠️</span>
-                <p style="color: #ff4444;">Failed to load events</p>
-                <p style="color: var(--text-secondary); font-size: 0.9rem;">${message}</p>
-                <button onclick="K8sManager.fetchEvents(K8sManager.currentEventFilter || 'all', K8sManager.currentEventPage || 1)" 
-                    class="cyber-btn" style="margin-top: 1rem;">Retry</button>
-            </div>
-        `;
-    },
 
     // === BACKUPS ===
     async fetchBackupsStatus() {
