@@ -259,12 +259,19 @@ const K8sManager = {
                 { key: 'node', label: 'Node' },
                 { key: 'actions', label: 'Actions' }
             ];
+
+            // Combine error pods and pending pods
+            const allIssues = [
+                ...(data.pods_in_error || []),
+                ...(data.pending_pods_list || [])
+            ];
+
             if (window.TableManager && typeof TableManager.init === 'function') {
-                TableManager.init('pods', data.pods_in_error, (pods) => this.renderPodsTableContent(pods), podsColumns);
-                this.renderPodsTable(data.pods_in_error);
+                TableManager.init('pods', allIssues, (pods) => this.renderPodsTableContent(pods), podsColumns);
+                this.renderPodsTable(allIssues);
             } else {
                 // Fallback rendering if TableManager is missing
-                this.renderPodsTable(data.pods_in_error);
+                this.renderPodsTable(allIssues);
             }
             console.log('Pods status fetched successfully');
         } catch (error) {
@@ -288,7 +295,7 @@ const K8sManager = {
         const container = document.getElementById('pods-content');
         if (!container) return;
         if (!pods || pods.length === 0) {
-            container.innerHTML = '<div class="no-issues" style="color: var(--neon-green);">✓ No pods in error state!</div>';
+            container.innerHTML = '<div class="no-issues" style="color: var(--neon-green);">✓ No pods in error or pending state!</div>';
             return;
         }
         const podsColumns = [

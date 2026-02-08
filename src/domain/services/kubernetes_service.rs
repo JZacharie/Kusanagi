@@ -20,6 +20,7 @@ pub async fn get_pods_status() -> Result<Value, String> {
     let mut pending = 0;
     let mut total = 0;
     let mut pods_in_error = Vec::new();
+    let mut pending_pods_list = Vec::new();
 
     for pod in list {
         total += 1;
@@ -35,7 +36,29 @@ pub async fn get_pods_status() -> Result<Value, String> {
 
         match phase {
             "Running" | "Succeeded" => running += 1,
-            "Pending" => pending += 1,
+            "Pending" => {
+                pending += 1;
+                let age = pod
+                    .metadata
+                    .creation_timestamp
+                    .as_ref()
+                    .map(calculate_age_from_timestamp)
+                    .unwrap_or_default();
+
+                pending_pods_list.push(json!({
+                    "name": pod.metadata.name.as_deref().unwrap_or(""),
+                    "namespace": pod.metadata.namespace.as_deref().unwrap_or(""),
+                    "status": phase,
+                    "reason": "Pending",
+                    "restart_count": 0, // Pending pods usually have 0 restarts unless they are crashing loop
+                    "age": age,
+                    "node": pod.spec.as_ref().and_then(|s| s.node_name.as_deref()).unwrap_or(""),
+                    "cpu_usage": 0,
+                    "memory_usage": 0,
+                    "cpu_limit": 0,
+                    "memory_limit": 0
+                }));
+            }
             _ => {
                 is_error = true;
                 reason = phase.to_string();
@@ -100,7 +123,8 @@ pub async fn get_pods_status() -> Result<Value, String> {
         "running_pods": running,
         "pending_pods": pending,
         "error_pods": pods_in_error.len(),
-        "pods_in_error": pods_in_error
+        "pods_in_error": pods_in_error,
+        "pending_pods_list": pending_pods_list
     }))
 }
 
