@@ -50,6 +50,7 @@ impl IrcService {
             server: Some(self.server.clone()),
             port: Some(self.port),
             channels: vec![self.channel.clone()],
+            use_tls: Some(false), // Disable TLS for simple IRC server
             ..Default::default()
         };
 
