@@ -985,12 +985,16 @@ const NewsManager = {
     /**
      * Update news statistics dynamically
      */
+    /**
+     * Update news statistics dynamically
+     */
     updateStats(data) {
         const statsGrid = document.getElementById('news-stats-grid');
         if (!statsGrid) return;
 
-        // Always keep the total box
-        const totalCount = data.total || (data.items ? data.items.length : 0);
+        // Calculate total from items if available, otherwise use provided total
+        const items = data.items || [];
+        const totalCount = items.length || data.total || 0;
 
         let html = `
             <div class="stat-box info">
@@ -999,31 +1003,56 @@ const NewsManager = {
             </div>
         `;
 
-        if (data.items && Array.isArray(data.items)) {
-            // Count per source
-            const counts = {};
-            data.items.forEach(item => {
-                counts[item.source] = (counts[item.source] || 0) + 1;
-            });
+        // Count per source
+        const counts = {};
+        items.forEach(item => {
+            counts[item.source] = (counts[item.source] || 0) + 1;
+        });
 
-            // Generate boxes for top sources or all sources
-            // Let's show top 5 sources to avoid cluttering
-            const sortedSources = Object.entries(counts)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 5);
+        // Get all configured sources to ensure we show 0 counts for important sources
+        const allConfigs = this.getAllSourceConfigs();
 
-            sortedSources.forEach(([source, count]) => {
-                const config = this.getSourceConfig(source);
-                html += `
-                    <div class="stat-box" style="border-color: ${config.color};">
-                        <div class="stat-value">${count}</div>
-                        <div class="stat-label">${config.label}</div>
-                    </div>
-                `;
-            });
-        }
+        // Sort sources: high count first, then alphabetical
+        const sortedSources = Object.keys(allConfigs).sort((a, b) => {
+            const countA = counts[a] || 0;
+            const countB = counts[b] || 0;
+            if (countB !== countA) return countB - countA;
+            return a.localeCompare(b);
+        });
+
+        sortedSources.forEach(source => {
+            const count = counts[source] || 0;
+            const config = allConfigs[source];
+            html += `
+                <div class="stat-box" style="border-color: ${config.color};">
+                    <div class="stat-value">${count}</div>
+                    <div class="stat-label">${config.label}</div>
+                </div>
+            `;
+        });
 
         statsGrid.innerHTML = html;
+    },
+
+    /**
+     * Get all source configurations
+     */
+    getAllSourceConfigs() {
+        return {
+            hackernews: { color: '#ff6600', icon: '🟠', label: 'Hacker News' },
+            korben: { color: '#4a9eff', icon: '🔵', label: 'Korben' },
+            github: { color: '#a371f7', icon: '🟣', label: 'GitHub' },
+            cncf: { color: '#0086FF', icon: '📰', label: 'CNCF' },
+            aws: { color: '#FF9900', icon: '☁️', label: 'AWS' },
+            'aws-new': { color: '#FF9900', icon: '🆕', label: 'AWS New' },
+            gcp: { color: '#4285F4', icon: '☁️', label: 'GCP' },
+            azure: { color: '#0078D4', icon: '☁️', label: 'Azure' },
+            kubernetes: { color: '#326CE5', icon: '☸️', label: 'K8s' },
+            fluxcd: { color: '#2d343a', icon: '🔄', label: 'FluxCD' },
+            rust: { color: '#DEA584', icon: '🦀', label: 'Rust' },
+            'inside-rust': { color: '#DEA584', icon: '🔧', label: 'Inside Rust' },
+            twir: { color: '#DEA584', icon: '📰', label: 'This Week in Rust' }
+        };
     },
 
     /**
