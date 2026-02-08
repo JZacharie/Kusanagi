@@ -5,14 +5,14 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UnifiedEvent {
-    pub source: String,          // "alertmanager" or "kubernetes"
-    pub event_type: String,      // "alert" or "event"
-    pub severity: String,        // "critical", "warning", "info", "normal"
-    pub name: String,            // alertname or Reason
+    pub source: String,     // "alertmanager" or "kubernetes"
+    pub event_type: String, // "alert" or "event"
+    pub severity: String,   // "critical", "warning", "info", "normal"
+    pub name: String,       // alertname or Reason
     pub namespace: String,
-    pub message: String,         // summary or message
-    pub timestamp: String,       // ISO8601
-    pub details: Value,          // Original payload
+    pub message: String,   // summary or message
+    pub timestamp: String, // ISO8601
+    pub details: Value,    // Original payload
 }
 
 pub async fn get_fusion_events() -> Result<Vec<UnifiedEvent>, String> {
@@ -96,12 +96,12 @@ pub async fn get_fusion_events() -> Result<Vec<UnifiedEvent>, String> {
                     let timestamp = event
                         .get("timestamp")
                         .and_then(|t| t.as_str())
-                        .unwrap_or_else(|| "")
+                        .unwrap_or("")
                         .to_string();
-                        
+
                     // Convert timestamp to string if it's an object (k8s Time)
                     let timestamp_str = if timestamp.is_empty() {
-                         chrono::Utc::now().to_rfc3339()
+                        chrono::Utc::now().to_rfc3339()
                     } else {
                         timestamp
                     };
