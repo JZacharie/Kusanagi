@@ -71,6 +71,11 @@ async fn main() -> std::io::Result<()> {
         .init();
 
     println!("🚀 Kusanagi Hexagonal Architecture + Legacy");
+    
+    let version = env!("CARGO_PKG_VERSION");
+    let build_time = env!("BUILD_TIMESTAMP");
+    println!("📅 Version: {}", version);
+    println!("⏰ Build Time: {}", build_time);
 
     // Initialize startup time
     START_TIME.set(Instant::now()).ok();
@@ -139,6 +144,19 @@ async fn main() -> std::io::Result<()> {
     tokio::spawn(async {
         kusanagi::legacy::alertmanager::start_background_refresh().await;
     });
+
+    // Start News background refresh
+    tokio::spawn(async {
+        println!("📰 Starting background news refresh...");
+        if let Err(e) = news_service::force_refresh().await {
+            eprintln!("❌ Failed to refresh news at startup: {}", e);
+        } else {
+            println!("✅ News refreshed and cached successfully");
+        }
+    });
+
+    // Check Proxmox connectivity
+    proxmox_service::check_proxmox_health(&client).await;
 
     HttpServer::new(move || {
         let mut app = App::new()

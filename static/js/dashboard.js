@@ -996,10 +996,13 @@ const NewsManager = {
         const items = data.items || [];
         const totalCount = items.length || data.total || 0;
 
+        // "All" filter box
         let html = `
-            <div class="stat-box info">
+            <div class="stat-box info ${this.currentFilter === 'all' ? 'active-filter' : ''}" 
+                 onclick="filterNews('all')" 
+                 style="cursor: pointer; transition: all 0.2s; border: 1px solid var(--neon-cyan);">
                 <div class="stat-value" id="news-total">${totalCount}</div>
-                <div class="stat-label">Total News</div>
+                <div class="stat-label">All News</div>
             </div>
         `;
 
@@ -1023,10 +1026,18 @@ const NewsManager = {
         sortedSources.forEach(source => {
             const count = counts[source] || 0;
             const config = allConfigs[source];
+            const isActive = this.currentFilter === source;
+
+            // Only show sources with count > 0 or if important (e.g. Korben)
+            // Or just show all? The previous logic showed 0 counts.
+            // Let's keep showing 0 counts so user knows it's checked but empty.
+
             html += `
-                <div class="stat-box" style="border-color: ${config.color};">
+                <div class="stat-box ${isActive ? 'active-filter' : ''}" 
+                     onclick="filterNews('${source}')"
+                     style="cursor: pointer; transition: all 0.2s; border-color: ${config.color}; ${isActive ? 'background: rgba(255,255,255,0.1); box-shadow: 0 0 10px ' + config.color : ''}">
                     <div class="stat-value">${count}</div>
-                    <div class="stat-label">${config.label}</div>
+                    <div class="stat-label">${config.icon} ${config.label}</div>
                 </div>
             `;
         });
@@ -1059,27 +1070,11 @@ const NewsManager = {
      * Render dynamic filter buttons
      */
     renderFilterButtons() {
+        // Buttons removed - filtering is now done via the stats boxes
         const container = document.getElementById('news-filter-buttons');
-        if (!container) return;
-
-        let html = `<button class="cyber-btn ${this.currentFilter === 'all' ? 'active' : ''}" id="btn-news-all" onclick="filterNews('all')">All Sources</button>`;
-
-        if (this.sources) {
-            this.sources.forEach(source => {
-                const config = this.getSourceConfig(source);
-                const isActive = this.currentFilter === source;
-                html += `
-                    <button class="cyber-btn ${isActive ? 'active' : ''}" 
-                            id="btn-news-${source}" 
-                            onclick="filterNews('${source}')" 
-                            style="border-color: ${config.color};">
-                        ${config.icon} ${config.label}
-                    </button>
-                `;
-            });
+        if (container) {
+            container.style.display = 'none';
         }
-
-        container.innerHTML = html;
     },
 
     /**
@@ -1127,8 +1122,8 @@ const NewsManager = {
     filterBySource(source) {
         this.currentFilter = source;
 
-        // Re-render buttons to update active state
-        this.renderFilterButtons();
+        // Re-render stats to update active state (highlight selected box)
+        this.updateStats({ items: this.allNews }); // We pass full list to re-calc counts correctly
         this.applyFilters();
     },
 

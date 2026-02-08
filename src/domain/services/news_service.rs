@@ -5,7 +5,7 @@ use reqwest::Client;
 use serde_json::{json, Value};
 
 const CACHE_KEY: &str = "news/cache.json";
-const CACHE_DAYS: i64 = 7;
+const CACHE_DAYS: i64 = 15;
 
 pub async fn get_news() -> Result<Value, String> {
     // Try to get from S3 cache first
@@ -213,8 +213,8 @@ async fn fetch_hackernews(client: &Client) -> Result<Vec<Value>, String> {
 
     let mut news_items = Vec::new();
 
-    // Take top 10
-    for &story_id in story_ids.iter().take(10) {
+    // Take top 50
+    for &story_id in story_ids.iter().take(50) {
         if let Ok(story_res) = client
             .get(format!(
                 "https://hacker-news.firebaseio.com/v0/item/{}.json",
@@ -411,7 +411,7 @@ async fn fetch_rss_feed(
             }
         }
 
-        if news_items.len() >= 10 {
+        if news_items.len() >= 50 {
             // Increased limit for better filtering
             break;
         }
