@@ -1,5 +1,5 @@
-use irc::client::prelude::*;
 use futures::StreamExt;
+use irc::client::prelude::*;
 use std::env;
 use tokio::sync::mpsc;
 use tracing::{error, info, warn};
@@ -21,7 +21,8 @@ impl Default for IrcService {
 
 impl IrcService {
     pub fn new() -> Self {
-        let server = env::var("IRC_SERVER").unwrap_or_else(|_| "simple-irc-server.productivity.svc".to_string());
+        let server = env::var("IRC_SERVER")
+            .unwrap_or_else(|_| "simple-irc-server.productivity.svc".to_string());
         let port = env::var("IRC_PORT")
             .unwrap_or_else(|_| "6667".to_string())
             .parse()
@@ -29,7 +30,10 @@ impl IrcService {
         let channel = env::var("IRC_CHANNEL").unwrap_or_else(|_| "#posekafe".to_string());
         let nickname = env::var("IRC_NICKNAME").unwrap_or_else(|_| "kusanagi".to_string());
 
-        info!("💬 IRC: Configured for {}:{} channel {} as {}", server, port, channel, nickname);
+        info!(
+            "💬 IRC: Configured for {}:{} channel {} as {}",
+            server, port, channel, nickname
+        );
 
         Self {
             server,
@@ -53,7 +57,7 @@ impl IrcService {
         self.tx = Some(tx);
 
         let channel = self.channel.clone();
-        let nickname = self.nickname.clone();
+        let _nickname = self.nickname.clone();
 
         tokio::spawn(async move {
             match Client::from_config(config).await {
