@@ -5,30 +5,20 @@ set -e
 MODIFIED_FILES=$(git diff --name-only origin/main | grep '^src/.*\.rs$' || true)
 
 if [ -z "$MODIFIED_FILES" ]; then
-    echo "No .rs files modified in src/. Running full coverage..."
-    # Fallback to full coverage if no specific src files modified, or maybe just exit?
-    # For safe optimization, let's just exit or run everything? 
-    # The user asked to ignore unmodified files, so exiting with a message is appropriate for "incremental" feel.
-    # But if they want to run *something*, maybe we should run all?
-    # Let's stick to the plan: reduce time. If nothing modified, nothing to test.
-    echo "No changes detected in source code. Exiting."
-    exit 0
+    echo "No .rs files modified in src/. Running full coverage to ensure report generation..."
+    INCLUDE_ARGS=""
+else
+    echo "Modified files:"
+    echo "$MODIFIED_FILES"
+
+    # Build inclusions
+    INCLUDE_ARGS=""
+    for file in $MODIFIED_FILES; do
+        INCLUDE_ARGS="$INCLUDE_ARGS --include-files $file"
+    done
+    
+    echo "Running coverage on modified files..."
 fi
-
-echo "Modified files:"
-echo "$MODIFIED_FILES"
-
-# Build inclusions and test filters
-INCLUDE_ARGS=""
-# We need to find the packages/binaries/libraries corresponding to these files.
-# For a simple project structure, we can try to guess the test targets.
-# However, tarpaulin's --include-files works on file paths.
-
-for file in $MODIFIED_FILES; do
-    INCLUDE_ARGS="$INCLUDE_ARGS --include-files $file"
-done
-
-echo "Running coverage on modified files..."
 # We don't strictly filter the *tests* to run (cargo test args) in this simple version 
 # because mapping file -> test is hard in Rust without more complex logic.
 # However, we DO filter the *instrumentation* with --include-files, which speeds up tarpaulin significantly.
