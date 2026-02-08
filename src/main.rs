@@ -70,12 +70,12 @@ async fn main() -> std::io::Result<()> {
         .format_timestamp_millis()
         .init();
 
-    println!("🚀 Kusanagi Hexagonal Architecture + Legacy");
-
     let version = env!("CARGO_PKG_VERSION");
     let build_time = env!("BUILD_TIMESTAMP");
-    println!("📅 Version: {}", version);
-    println!("⏰ Build Time: {}", build_time);
+    
+    log::info!("🚀 Kusanagi Hexagonal Architecture + Legacy");
+    log::info!("📅 Version: {}", version);
+    log::info!("⏰ Build Time: {}", build_time);
 
     // Initialize startup time
     START_TIME.set(Instant::now()).ok();
@@ -96,7 +96,7 @@ async fn main() -> std::io::Result<()> {
     log_memory_usage("After Config + Cache Init");
 
     let bind_addr = format!("{}:{}", config.server.host, config.server.port);
-    println!("🌐 Server: {}", bind_addr);
+    log::info!("🌐 Server: {}", bind_addr);
 
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
@@ -107,12 +107,12 @@ async fn main() -> std::io::Result<()> {
     // Initialize Kubernetes client
     let kube_client = match kube::Client::try_default().await {
         Ok(client) => {
-            println!("✅ Kubernetes client initialized");
+            log::info!("✅ Kubernetes client initialized");
             Some(client)
         }
         Err(e) => {
-            eprintln!("⚠️  Failed to initialize Kubernetes client: {}", e);
-            eprintln!("   Logs endpoint will be unavailable");
+            log::warn!("⚠️  Failed to initialize Kubernetes client: {}", e);
+            log::warn!("   Logs endpoint will be unavailable");
             None
         }
     };
@@ -143,7 +143,7 @@ async fn main() -> std::io::Result<()> {
     // IRC Monitoring Init
     let mut irc = irc_service::IrcService::new();
     if let Err(e) = irc.connect().await {
-        eprintln!("⚠️  Failed to connect to IRC: {}", e);
+        log::warn!("⚠️  Failed to connect to IRC: {}", e);
     }
     tokio::spawn(start_irc_monitoring(irc, slack));
 
@@ -154,11 +154,11 @@ async fn main() -> std::io::Result<()> {
 
     // Start News background refresh
     tokio::spawn(async {
-        println!("📰 Starting background news refresh...");
+        log::info!("📰 Starting background news refresh...");
         if let Err(e) = news_service::force_refresh().await {
-            eprintln!("❌ Failed to refresh news at startup: {}", e);
+            log::error!("❌ Failed to refresh news at startup: {}", e);
         } else {
-            println!("✅ News refreshed and cached successfully");
+            log::info!("✅ News refreshed and cached successfully");
         }
     });
 
