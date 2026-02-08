@@ -2,7 +2,7 @@
 set -e
 
 # Get list of files modified compared to origin/main (includes uncommitted changes)
-MODIFIED_FILES=$(git diff --name-only origin/main | grep '^src/.*\.rs$')
+MODIFIED_FILES=$(git diff --name-only origin/main | grep '^src/.*\.rs$' || true)
 
 if [ -z "$MODIFIED_FILES" ]; then
     echo "No .rs files modified in src/. Running full coverage..."
@@ -37,4 +37,11 @@ echo "Running coverage on modified files..."
 
 # Current approach: Limit instrumentation to modified files. 
 # This reduces the overhead of coverage tracking.
+
+if ! command -v cargo-tarpaulin &> /dev/null && ! cargo --list | grep -q "tarpaulin"; then
+    echo "Error: cargo-tarpaulin is not installed."
+    echo "Please install it with: cargo install cargo-tarpaulin"
+    exit 1
+fi
+
 cargo tarpaulin $INCLUDE_ARGS --out Html --out Xml --output-dir coverage-fast
