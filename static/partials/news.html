@@ -1,5 +1,5 @@
 <!-- news section -->
-<h2 class="section-title">📰 Tech News Feed</h2>
+<h2 class="section-title">📰 Tech News Feed (Last 7 Days)</h2>
 
 <!-- News Stats -->
 <div class="argocd-stats" id="news-stats-grid" style="margin-bottom: 1.5rem;">
@@ -7,32 +7,16 @@
         <div class="stat-value" id="news-total">-</div>
         <div class="stat-label">Total News</div>
     </div>
-    <div class="stat-box" style="border-color: #ff6600;">
-        <div class="stat-value" id="news-hn">-</div>
-        <div class="stat-label">Hacker News</div>
-    </div>
-    <div class="stat-box" style="border-color: #4a9eff;">
-        <div class="stat-value" id="news-korben">-</div>
-        <div class="stat-label">Korben</div>
-    </div>
-    <div class="stat-box" style="border-color: #a371f7;">
-        <div class="stat-value" id="news-github">-</div>
-        <div class="stat-label">GitHub Trending</div>
-    </div>
+    <!-- Dynamic source stats will be injected here -->
 </div>
 
 <!-- Filter Controls -->
 <div class="filter-controls" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-    <button class="cyber-btn active" id="btn-news-all" onclick="filterNews('all')">All Sources</button>
-    <button class="cyber-btn" id="btn-news-hn" onclick="filterNews('hackernews')" style="border-color: #ff6600;">
-        🟠 Hacker News
-    </button>
-    <button class="cyber-btn" id="btn-news-korben" onclick="filterNews('korben')" style="border-color: #4a9eff;">
-        🔵 Korben
-    </button>
-    <button class="cyber-btn" id="btn-news-github" onclick="filterNews('github')" style="border-color: #a371f7;">
-        🟣 GitHub
-    </button>
+    <div id="news-filter-buttons" style="display: contents;">
+        <!-- Dynamic filter buttons will be injected here -->
+        <button class="cyber-btn active" id="btn-news-all" onclick="filterNews('all')">All Sources</button>
+    </div>
+
     <button class="cyber-btn" id="btn-news-refresh" onclick="NewsManager.manualRefresh()" style="margin-left: auto;">
         🔄 REFRESH & TRANSLATE
     </button>
