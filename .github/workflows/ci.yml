@@ -52,30 +52,6 @@ jobs:
       - name: Run all tests
         run: make test
 
-  coverage:
-    name: Code Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - uses: dtolnay/rust-toolchain@stable
-      
-      - uses: swatinem/rust-cache@v2
-      
-      - name: Install tarpaulin
-        run: cargo install cargo-tarpaulin
-        
-      - name: Generate coverage report
-        run: make coverage-fast
-        
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage-fast/cobertura.xml
-          fail_ci_if_error: false
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
