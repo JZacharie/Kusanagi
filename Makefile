@@ -16,6 +16,10 @@ coverage: ## Generate test coverage report
 	cargo tarpaulin --out Html --output-dir coverage
 	@echo "Coverage report generated in coverage/index.html"
 
+coverage-fast: ## Generate optimized test coverage report for modified files
+	./scripts/test_coverage_optimized.sh
+	@echo "Fast coverage report generated in coverage-fast/index.html"
+
 lint: ## Run clippy linter
 	cargo clippy -- -D warnings
 
