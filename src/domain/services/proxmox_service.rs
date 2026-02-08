@@ -260,3 +260,30 @@ pub async fn get_proxmox_nodes(client: &reqwest::Client) -> Result<Value, String
 
     Ok(json!(all_nodes))
 }
+
+pub async fn check_proxmox_health(client: &reqwest::Client) {
+    let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
+    let proxmox_user = std::env::var("PROXMOX_USER").unwrap_or_default();
+    let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
+
+    if proxmox_urls.is_empty() {
+        println!("⚠️  Proxmox health check skipped: PROXMOX_URLS not set");
+        return;
+    }
+
+    println!("🔍 Checking Proxmox servers connectivity...");
+    
+    let urls: Vec<&str> = proxmox_urls.split(',').collect();
+
+    for url in urls {
+        let url = url.trim();
+        if url.is_empty() {
+            continue;
+        }
+
+        match get_proxmox_ticket(client, url, &proxmox_user, &proxmox_password).await {
+            Some(_) => println!("✅ Proxmox Server [{}]: ONLINE", url),
+            None => println!("❌ Proxmox Server [{}]: OFFLINE", url),
+        }
+    }
+}
