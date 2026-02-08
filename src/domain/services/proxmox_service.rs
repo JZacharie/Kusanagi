@@ -282,8 +282,102 @@ pub async fn check_proxmox_health(client: &reqwest::Client) {
         }
 
         match get_proxmox_ticket(client, url, &proxmox_user, &proxmox_password).await {
-            Some(_) => log::info!("✅ Proxmox Server [{}]: ONLINE", url),
+            Some(_) => log::debug!("✅ Proxmox Server [{}]: ONLINE", url),
             None => log::warn!("❌ Proxmox Server [{}]: OFFLINE", url),
         }
+    }
+}
+
+pub async fn vm_control(
+    client: &reqwest::Client,
+    server: &str,
+    node: &str,
+    vmid: u64,
+    action: &str,
+) -> Result<String, String> {
+    let proxmox_user = std::env::var("PROXMOX_USER").unwrap_or_default();
+    let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
+
+    // Validate action
+    match action {
+        "start" | "stop" | "reset" | "shutdown" | "reboot" => {}
+        _ => return Err(format!("Invalid action: {}", action)),
+    }
+
+    let Some((ticket, csrf)) =
+        get_proxmox_ticket(client, server, &proxmox_user, &proxmox_password).await
+    else {
+        return Err(format!("Auth failed for server {}", server));
+    };
+
+    let api_url = format!("{}/api2/json/nodes/{}/qemu/{}/status/{}", server, node, vmid, action);
+
+    match client
+        .post(&api_url)
+        .header("Cookie", format!("PVEAuthCookie={}", ticket))
+        .header("CSRFPreventionToken", csrf)
+        .send()
+        .await
+    {
+        Ok(response) => {
+            if response.status().is_success() {
+                if let Ok(data) = response.json::<Value>().await {
+                    if let Some(upid) = data["data"].as_str() {
+                        return Ok(upid.to_string());
+                    }
+                }
+                Ok("Command sent".to_string())
+            } else {
+                Err(format!("Proxmox API error: {}", response.status()))
+            }
+        }
+        Err(e) => Err(format!("Network error: {}", e)),
+    }
+}
+
+pub async fn ct_control(
+    client: &reqwest::Client,
+    server: &str,
+    node: &str,
+    vmid: u64,
+    action: &str,
+) -> Result<String, String> {
+    let proxmox_user = std::env::var("PROXMOX_USER").unwrap_or_default();
+    let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
+
+    // Validate action
+    match action {
+        "start" | "stop" | "reset" | "shutdown" | "reboot" => {}
+        _ => return Err(format!("Invalid action: {}", action)),
+    }
+
+    let Some((ticket, csrf)) =
+        get_proxmox_ticket(client, server, &proxmox_user, &proxmox_password).await
+    else {
+        return Err(format!("Auth failed for server {}", server));
+    };
+
+    let api_url = format!("{}/api2/json/nodes/{}/lxc/{}/status/{}", server, node, vmid, action);
+
+    match client
+        .post(&api_url)
+        .header("Cookie", format!("PVEAuthCookie={}", ticket))
+        .header("CSRFPreventionToken", csrf)
+        .send()
+        .await
+    {
+        Ok(response) => {
+            if response.status().is_success() {
+                if let Ok(data) = response.json::<Value>().await {
+                    if let Some(upid) = data["data"].as_str() {
+                        return Ok(upid.to_string());
+                    }
+                }
+                Ok("Command sent".to_string())
+            } else {
+                Err(format!("Proxmox API error: {}", response.status()))
+            }
+        }
+        Err(e) => Err(format!("Network error: {}", e)),
     }
 }
