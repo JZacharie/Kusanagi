@@ -4,8 +4,7 @@ use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_actors::ws;
 use kusanagi::domain::services::{
     argocd_service, fusion_service, homeassistant_service, irc_service, kubernetes_service,
-    monitoring_service, mqtt_service, news_service, proxmox_service, slack_service,
-    trivy_service,
+    monitoring_service, mqtt_service, news_service, proxmox_service, slack_service, trivy_service,
 };
 use kusanagi::{legacy, Config};
 use serde::Deserialize;
@@ -1121,10 +1120,7 @@ async fn start_slack_monitoring(slack: slack_service::SlackService) {
 }
 
 // IRC Monitoring Background Task - mirrors Slack alerts to IRC
-async fn start_irc_monitoring(
-    irc: irc_service::IrcService,
-    slack: slack_service::SlackService,
-) {
+async fn start_irc_monitoring(irc: irc_service::IrcService, slack: slack_service::SlackService) {
     use std::time::Duration;
 
     let mut last_error_pods = 0u64;
@@ -1227,7 +1223,6 @@ async fn start_irc_monitoring(
         }
     }
 }
-
 
 // Security endpoints (Trivy)
 async fn security_vulnerabilities() -> impl Responder {
