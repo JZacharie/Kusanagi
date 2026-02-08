@@ -72,7 +72,7 @@ async fn main() -> std::io::Result<()> {
 
     let version = env!("CARGO_PKG_VERSION");
     let build_time = env!("BUILD_TIMESTAMP");
-    
+
     log::info!("🚀 Kusanagi Hexagonal Architecture + Legacy");
     log::info!("📅 Version: {}", version);
     log::info!("⏰ Build Time: {}", build_time);
