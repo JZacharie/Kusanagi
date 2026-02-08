@@ -3,8 +3,9 @@ use actix::{Actor, StreamHandler};
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_actors::ws;
 use kusanagi::domain::services::{
-    argocd_service, fusion_service, homeassistant_service, kubernetes_service, monitoring_service,
-    mqtt_service, news_service, proxmox_service, slack_service, trivy_service,
+    argocd_service, fusion_service, homeassistant_service, irc_service, kubernetes_service,
+    monitoring_service, mqtt_service, news_service, proxmox_service, slack_service,
+    trivy_service,
 };
 use kusanagi::{legacy, Config};
 use serde::Deserialize;
@@ -138,7 +139,14 @@ async fn main() -> std::io::Result<()> {
 
     // Slack Monitoring Init
     let slack = slack_service::SlackService::new();
-    tokio::spawn(start_slack_monitoring(slack));
+    tokio::spawn(start_slack_monitoring(slack.clone()));
+
+    // IRC Monitoring Init
+    let mut irc = irc_service::IrcService::new();
+    if let Err(e) = irc.connect().await {
+        eprintln!("⚠️  Failed to connect to IRC: {}", e);
+    }
+    tokio::spawn(start_irc_monitoring(irc, slack));
 
     // Start Alertmanager background cache refresh
     tokio::spawn(async {
@@ -1111,6 +1119,115 @@ async fn start_slack_monitoring(slack: slack_service::SlackService) {
         }
     }
 }
+
+// IRC Monitoring Background Task - mirrors Slack alerts to IRC
+async fn start_irc_monitoring(
+    irc: irc_service::IrcService,
+    slack: slack_service::SlackService,
+) {
+    use std::time::Duration;
+
+    let mut last_error_pods = 0u64;
+    let mut last_unhealthy_apps = 0u64;
+
+    // Wait 30s before starting to allow services to initialize
+    tokio::time::sleep(Duration::from_secs(30)).await;
+
+    loop {
+        tokio::time::sleep(Duration::from_secs(60)).await;
+
+        let prev_error_pods = last_error_pods;
+        let prev_unhealthy_apps = last_unhealthy_apps;
+
+        let mut pods_checked = false;
+        let mut apps_checked = false;
+
+        // Check Pods
+        if let Ok(pods_status) = kubernetes_service::get_pods_status().await {
+            pods_checked = true;
+            let error_pods = pods_status["error_pods"].as_u64().unwrap_or(0);
+
+            if error_pods > last_error_pods {
+                let mut message = format!("Detected {} pods in error state:\n", error_pods);
+
+                if let Some(pods_in_error) = pods_status["pods_in_error"].as_array() {
+                    for pod in pods_in_error.iter().take(10) {
+                        let name = pod["name"].as_str().unwrap_or("unknown");
+                        let namespace = pod["namespace"].as_str().unwrap_or("unknown");
+                        let status = pod["status"].as_str().unwrap_or("unknown");
+                        let reason = pod["reason"].as_str().unwrap_or("Unknown");
+                        message.push_str(&format!(
+                            "• {}/{}: {} ({})\n",
+                            namespace, name, status, reason
+                        ));
+                    }
+
+                    if error_pods > 10 {
+                        message.push_str(&format!("...and {} more.", error_pods - 10));
+                    }
+                }
+
+                // Send to both Slack and IRC
+                let _ = slack
+                    .send_alert("Infrastructure Issue", &message, "error")
+                    .await;
+                let _ = irc
+                    .send_alert("Infrastructure Issue", &message, "error")
+                    .await;
+            }
+            last_error_pods = error_pods;
+        }
+
+        // Check ArgoCD
+        if let Ok(argocd_status) = argocd_service::get_argocd_status().await {
+            apps_checked = true;
+            let unhealthy = argocd_status["unhealthy"].as_u64().unwrap_or(0);
+
+            if unhealthy > last_unhealthy_apps {
+                let mut message = format!("Detected {} unhealthy applications:\n", unhealthy);
+
+                if let Some(apps) = argocd_status["apps_with_issues"].as_array() {
+                    for app in apps.iter().take(10) {
+                        let name = app["name"].as_str().unwrap_or("unknown");
+                        let health = app["health_status"].as_str().unwrap_or("unknown");
+                        let sync = app["sync_status"].as_str().unwrap_or("unknown");
+                        message.push_str(&format!("• {}: {} ({})\n", name, health, sync));
+                    }
+
+                    if unhealthy > 10 {
+                        message.push_str(&format!("...and {} more.", unhealthy - 10));
+                    }
+                }
+
+                // Send to both Slack and IRC
+                let _ = slack
+                    .send_alert("ArgoCD Sync Alert", &message, "warning")
+                    .await;
+                let _ = irc
+                    .send_alert("ArgoCD Sync Alert", &message, "warning")
+                    .await;
+            }
+            last_unhealthy_apps = unhealthy;
+        }
+
+        // Check for recovery
+        if pods_checked && apps_checked {
+            let was_unhealthy = prev_error_pods > 0 || prev_unhealthy_apps > 0;
+            let is_now_healthy = last_error_pods == 0 && last_unhealthy_apps == 0;
+
+            if was_unhealthy && is_now_healthy {
+                let recovery_msg = "All pods and applications are now healthy! 🎉";
+                let _ = slack
+                    .send_alert("System Recovered", recovery_msg, "success")
+                    .await;
+                let _ = irc
+                    .send_alert("System Recovered", recovery_msg, "success")
+                    .await;
+            }
+        }
+    }
+}
+
 
 // Security endpoints (Trivy)
 async fn security_vulnerabilities() -> impl Responder {

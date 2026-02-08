@@ -13,6 +13,7 @@ chrono = { version = "0.4", features = ["serde"] }
 env_logger = "0.11"
 log = "0.4"
 async-trait = "0.1"
+futures = "0.3"
 actix-files = "0.6"
 actix-web-actors = "4.3"
 actix = "0.13"
@@ -28,6 +29,7 @@ reqwest = { version = "0.12", features = ["json"] }
 base64 = "0.22"
 sysinfo = "0.38"
 rumqttc = "0.25"
+irc = "0.15"
 rustls-pemfile = "2.2" # Force version to avoid unmaintained warning
 tracing = "0.1"
 rustls = { version = "0.23", features = ["aws-lc-rs"] }
