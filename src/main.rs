@@ -213,6 +213,14 @@ async fn main() -> std::io::Result<()> {
             .route("/api/proxmox/vms", web::get().to(proxmox_vms))
             .route("/api/proxmox/containers", web::get().to(proxmox_containers))
             .route("/api/proxmox/nodes", web::get().to(proxmox_nodes))
+            .route(
+                "/api/proxmox/vm/{vmid}/node/{node}/status/{action}",
+                web::post().to(proxmox_vm_control),
+            )
+            .route(
+                "/api/proxmox/ct/{vmid}/node/{node}/status/{action}",
+                web::post().to(proxmox_ct_control),
+            )
             .route("/api/ha/devices", web::get().to(ha_devices))
             .route("/api/ha/sensors", web::get().to(ha_sensors))
             .route("/api/ha/automations", web::get().to(ha_automations))
@@ -967,6 +975,47 @@ async fn proxmox_nodes(client: web::Data<reqwest::Client>) -> impl Responder {
     match proxmox_service::get_proxmox_nodes(&client).await {
         Ok(nodes) => HttpResponse::Ok().json(nodes),
         Err(_) => HttpResponse::Ok().json(json!([])),
+    }
+}
+
+#[derive(Deserialize)]
+struct ProxmoxControlQuery {
+    server: String,
+}
+
+async fn proxmox_vm_control(
+    client: web::Data<reqwest::Client>,
+    path: web::Path<(u64, String, String)>,
+    query: web::Query<ProxmoxControlQuery>,
+) -> impl Responder {
+    let (vmid, node, action) = path.into_inner();
+    match proxmox_service::vm_control(&client, &query.server, &node, vmid, &action).await {
+        Ok(msg) => HttpResponse::Ok().json(json!({
+            "status": "success",
+            "message": format!("VM {} {} initiated: {}", vmid, action, msg)
+        })),
+        Err(e) => HttpResponse::InternalServerError().json(json!({
+            "status": "error",
+            "message": e
+        })),
+    }
+}
+
+async fn proxmox_ct_control(
+    client: web::Data<reqwest::Client>,
+    path: web::Path<(u64, String, String)>,
+    query: web::Query<ProxmoxControlQuery>,
+) -> impl Responder {
+    let (vmid, node, action) = path.into_inner();
+    match proxmox_service::ct_control(&client, &query.server, &node, vmid, &action).await {
+        Ok(msg) => HttpResponse::Ok().json(json!({
+            "status": "success",
+            "message": format!("Container {} {} initiated: {}", vmid, action, msg)
+        })),
+        Err(e) => HttpResponse::InternalServerError().json(json!({
+            "status": "error",
+            "message": e
+        })),
     }
 }
 

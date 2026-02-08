@@ -188,6 +188,7 @@ const ProxmoxDashboard = {
                             <th>CPU</th>
                             <th>Memory</th>
                             <th>Uptime</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -200,6 +201,13 @@ const ProxmoxDashboard = {
                                 <td>${vm.cpu ? (vm.cpu * 100).toFixed(1) + '%' : 'N/A'}</td>
                                 <td>${vm.mem && vm.maxmem ? this.formatBytes(vm.mem) + ' / ' + this.formatBytes(vm.maxmem) : 'N/A'}</td>
                                 <td>${vm.uptime ? this.formatUptime(vm.uptime) : 'N/A'}</td>
+                                <td>
+                                    <div style="display: flex; gap: 5px;">
+                                        <button class="cyber-btn sm" onclick="ProxmoxDashboard.vmAction(${vm.vmid}, '${vm.node}', '${server}', 'start')" title="Start" ${vm.status === 'running' ? 'disabled' : ''}>▶️</button>
+                                        <button class="cyber-btn sm" onclick="ProxmoxDashboard.vmAction(${vm.vmid}, '${vm.node}', '${server}', 'stop')" title="Stop" ${vm.status !== 'running' ? 'disabled' : ''}>⏹️</button>
+                                        <button class="cyber-btn sm" onclick="ProxmoxDashboard.vmAction(${vm.vmid}, '${vm.node}', '${server}', 'reset')" title="Reset" style="border-color: #ffaa00; color: #ffaa00;">🔄</button>
+                                    </div>
+                                </td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -283,6 +291,7 @@ const ProxmoxDashboard = {
                             <th>CPU</th>
                             <th>Memory</th>
                             <th>Uptime</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -295,6 +304,13 @@ const ProxmoxDashboard = {
                                 <td>${ct.cpu ? (ct.cpu * 100).toFixed(1) + '%' : 'N/A'}</td>
                                 <td>${ct.mem && ct.maxmem ? this.formatBytes(ct.mem) + ' / ' + this.formatBytes(ct.maxmem) : 'N/A'}</td>
                                 <td>${ct.uptime ? this.formatUptime(ct.uptime) : 'N/A'}</td>
+                                <td>
+                                    <div style="display: flex; gap: 5px;">
+                                        <button class="cyber-btn sm" onclick="ProxmoxDashboard.ctAction(${ct.vmid}, '${ct.node}', '${server}', 'start')" title="Start" ${ct.status === 'running' ? 'disabled' : ''}>▶️</button>
+                                        <button class="cyber-btn sm" onclick="ProxmoxDashboard.ctAction(${ct.vmid}, '${ct.node}', '${server}', 'stop')" title="Stop" ${ct.status !== 'running' ? 'disabled' : ''}>⏹️</button>
+                                        <button class="cyber-btn sm" onclick="ProxmoxDashboard.ctAction(${ct.vmid}, '${ct.node}', '${server}', 'reset')" title="Reset" style="border-color: #ffaa00; color: #ffaa00;">🔄</button>
+                                    </div>
+                                </td>
                             </tr>
                         `).join('')}
                     </tbody>
