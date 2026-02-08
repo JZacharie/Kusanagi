@@ -1,7 +1,7 @@
 FROM rust:1.93-slim AS builder
 
 WORKDIR /app
-RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y pkg-config libssl-dev git && rm -rf /var/lib/apt/lists/*
 
 COPY Cargo.toml ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && rm src/main.rs
@@ -9,6 +9,8 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && r
 COPY src ./src
 COPY static ./static
 COPY build.rs ./
+COPY scripts ./scripts
+RUN chmod +x scripts/*.sh
 RUN cargo build --release
 
 FROM debian:trixie-slim
