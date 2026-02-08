@@ -166,6 +166,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/alerts", web::get().to(alerts))
             .route("/api/metrics", web::get().to(metrics))
             .route("/api/news", web::get().to(news))
+            .route("/api/news/refresh", web::post().to(refresh_news))
             .route("/api/quotas", web::get().to(quotas))
             .route("/api/pods/status", web::get().to(pods_status))
             .route("/api/pods/force-delete", web::post().to(force_delete_pod))
@@ -812,6 +813,20 @@ async fn news() -> impl Responder {
     match news_service::get_news().await {
         Ok(news) => HttpResponse::Ok().json(news),
         Err(_) => HttpResponse::Ok().json(json!([])),
+    }
+}
+
+async fn refresh_news() -> impl Responder {
+    match news_service::force_refresh().await {
+        Ok(news) => HttpResponse::Ok().json(json!({
+            "status": "success",
+            "message": "News refreshed successfully",
+            "items": news["items"]
+        })),
+        Err(e) => HttpResponse::InternalServerError().json(json!({
+            "status": "error",
+            "message": e
+        })),
     }
 }
 

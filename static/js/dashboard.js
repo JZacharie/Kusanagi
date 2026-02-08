@@ -934,6 +934,11 @@ const NewsManager = {
 
             const data = await response.json();
             this.allNews = data.items || [];
+
+            // Extract sources if available, otherwise derive from items
+            this.sources = data.sources || [...new Set(this.allNews.map(item => item.source))].sort();
+
+            this.renderFilterButtons();
             this.updateStats(data);
             this.updateTimestamp(data.cached_at);
             this.applyFilters();
@@ -978,36 +983,101 @@ const NewsManager = {
     },
 
     /**
-     * Update news statistics
+     * Update news statistics dynamically
      */
     updateStats(data) {
-        if (!data || !data.items || !Array.isArray(data.items)) {
-            // Silently set zeros without warning spam
-            const totalEl = document.getElementById('news-total');
-            const hnEl = document.getElementById('news-hn');
-            const korbenEl = document.getElementById('news-korben');
-            const ghEl = document.getElementById('news-github');
+        const statsGrid = document.getElementById('news-stats-grid');
+        if (!statsGrid) return;
 
-            if (totalEl) totalEl.textContent = '0';
-            if (hnEl) hnEl.textContent = '0';
-            if (korbenEl) korbenEl.textContent = '0';
-            if (ghEl) ghEl.textContent = '0';
-            return;
+        // Always keep the total box
+        const totalCount = data.total || (data.items ? data.items.length : 0);
+
+        let html = `
+            <div class="stat-box info">
+                <div class="stat-value" id="news-total">${totalCount}</div>
+                <div class="stat-label">Total News</div>
+            </div>
+        `;
+
+        if (data.items && Array.isArray(data.items)) {
+            // Count per source
+            const counts = {};
+            data.items.forEach(item => {
+                counts[item.source] = (counts[item.source] || 0) + 1;
+            });
+
+            // Generate boxes for top sources or all sources
+            // Let's show top 5 sources to avoid cluttering
+            const sortedSources = Object.entries(counts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            sortedSources.forEach(([source, count]) => {
+                const config = this.getSourceConfig(source);
+                html += `
+                    <div class="stat-box" style="border-color: ${config.color};">
+                        <div class="stat-value">${count}</div>
+                        <div class="stat-label">${config.label}</div>
+                    </div>
+                `;
+            });
         }
 
-        const hnCount = data.items.filter(n => n.source === 'hackernews').length;
-        const korbenCount = data.items.filter(n => n.source === 'korben').length;
-        const ghCount = data.items.filter(n => n.source === 'github').length;
+        statsGrid.innerHTML = html;
+    },
 
-        const totalEl = document.getElementById('news-total');
-        const hnEl = document.getElementById('news-hn');
-        const korbenEl = document.getElementById('news-korben');
-        const ghEl = document.getElementById('news-github');
+    /**
+     * Render dynamic filter buttons
+     */
+    renderFilterButtons() {
+        const container = document.getElementById('news-filter-buttons');
+        if (!container) return;
 
-        if (totalEl) totalEl.textContent = data.total || 0;
-        if (hnEl) hnEl.textContent = hnCount;
-        if (korbenEl) korbenEl.textContent = korbenCount;
-        if (ghEl) ghEl.textContent = ghCount;
+        let html = `<button class="cyber-btn ${this.currentFilter === 'all' ? 'active' : ''}" id="btn-news-all" onclick="filterNews('all')">All Sources</button>`;
+
+        if (this.sources) {
+            this.sources.forEach(source => {
+                const config = this.getSourceConfig(source);
+                const isActive = this.currentFilter === source;
+                html += `
+                    <button class="cyber-btn ${isActive ? 'active' : ''}" 
+                            id="btn-news-${source}" 
+                            onclick="filterNews('${source}')" 
+                            style="border-color: ${config.color};">
+                        ${config.icon} ${config.label}
+                    </button>
+                `;
+            });
+        }
+
+        container.innerHTML = html;
+    },
+
+    /**
+     * Get source configuration (color, icon, label)
+     */
+    getSourceConfig(source) {
+        const configs = {
+            hackernews: { color: '#ff6600', icon: '🟠', label: 'Hacker News' },
+            korben: { color: '#4a9eff', icon: '🔵', label: 'Korben' },
+            github: { color: '#a371f7', icon: '🟣', label: 'GitHub' },
+            cncf: { color: '#0086FF', icon: '📰', label: 'CNCF' },
+            aws: { color: '#FF9900', icon: '☁️', label: 'AWS' },
+            'aws-new': { color: '#FF9900', icon: '🆕', label: 'AWS New' },
+            gcp: { color: '#4285F4', icon: '☁️', label: 'GCP' },
+            azure: { color: '#0078D4', icon: '☁️', label: 'Azure' },
+            kubernetes: { color: '#326CE5', icon: '☸️', label: 'K8s' },
+            fluxcd: { color: '#2d343a', icon: '🔄', label: 'FluxCD' },
+            rust: { color: '#DEA584', icon: '🦀', label: 'Rust' },
+            'inside-rust': { color: '#DEA584', icon: '🔧', label: 'Inside Rust' },
+            twir: { color: '#DEA584', icon: '📰', label: 'This Week in Rust' }
+        };
+
+        return configs[source] || {
+            color: '#00ff88',
+            icon: '📰',
+            label: source.charAt(0).toUpperCase() + source.slice(1)
+        };
     },
 
     /**
@@ -1028,14 +1098,8 @@ const NewsManager = {
     filterBySource(source) {
         this.currentFilter = source;
 
-        // Update button states
-        document.querySelectorAll('.filter-controls .cyber-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-
-        const btnId = source === 'all' ? 'btn-news-all' : `btn-news-${source}`;
-        document.getElementById(btnId)?.classList.add('active');
-
+        // Re-render buttons to update active state
+        this.renderFilterButtons();
         this.applyFilters();
     },
 
@@ -1121,27 +1185,11 @@ const NewsManager = {
      * Render single news card
      */
     renderNewsCard(item) {
-        const sourceColors = {
-            hackernews: '#ff6600',
-            korben: '#4a9eff',
-            github: '#a371f7'
-        };
+        const config = this.getSourceConfig(item.source);
 
-        const sourceIcons = {
-            hackernews: '🟠',
-            korben: '🔵',
-            github: '🟣'
-        };
-
-        const sourceLabels = {
-            hackernews: 'Hacker News',
-            korben: 'Korben',
-            github: 'GitHub'
-        };
-
-        const color = sourceColors[item.source] || '#00ff88';
-        const icon = sourceIcons[item.source] || '📰';
-        const label = sourceLabels[item.source] || item.source;
+        const color = config.color;
+        const icon = config.icon;
+        const label = config.label;
 
         const date = new Date(item.published_at);
         const timeAgo = this.formatTimeAgo(date);

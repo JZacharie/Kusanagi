@@ -14,6 +14,14 @@ pub async fn get_news() -> Result<Value, String> {
     }
 
     // Cache miss or expired, fetch fresh news
+    fetch_fresh_news().await
+}
+
+pub async fn force_refresh() -> Result<Value, String> {
+    fetch_fresh_news().await
+}
+
+async fn fetch_fresh_news() -> Result<Value, String> {
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()
@@ -69,6 +77,30 @@ pub async fn get_news() -> Result<Value, String> {
         all_news.append(&mut items);
     }
 
+    // Filter news older than 7 days
+    let now = Utc::now();
+    all_news.retain(|item| {
+        if let Some(published_at_str) = item["published_at"].as_str() {
+            if let Ok(published_at) = DateTime::parse_from_rfc3339(published_at_str) {
+                let age = now.signed_duration_since(published_at.with_timezone(&Utc));
+                return age < Duration::days(CACHE_DAYS);
+            }
+        }
+        // Keep items without date or with invalid date to avoid empty feed,
+        // but ideally everything should have a date.
+        // For now, let's keep them and assume they are recent enough if fetch succeeded.
+        // Actually, let's be strict if we can, but fallback to keeping if parsing fails?
+        // Let's keep them if we can't parse, just in case.
+        true
+    });
+    
+    // Sort by date descending
+    all_news.sort_by(|a, b| {
+        let date_a = a["published_at"].as_str().unwrap_or("");
+        let date_b = b["published_at"].as_str().unwrap_or("");
+        date_b.cmp(date_a)
+    });
+
     let response = if all_news.is_empty() {
         json!({
             "items": get_fallback_news(),
@@ -76,14 +108,18 @@ pub async fn get_news() -> Result<Value, String> {
             "source": "fallback"
         })
     } else {
+        // Collect unique sources from items for dynamic frontend
+        let mut sources: Vec<String> = all_news
+            .iter()
+            .filter_map(|item| item["source"].as_str().map(|s| s.to_string()))
+            .collect();
+        sources.sort();
+        sources.dedup();
+
         json!({
             "items": all_news,
             "cached_at": Utc::now().to_rfc3339(),
-            "sources": [
-                "hackernews", "korben", "github", "cncf",
-                "aws", "gcp", "azure",
-                "kubernetes", "fluxcd", "rust"
-            ]
+            "sources": sources
         })
     };
 
@@ -117,11 +153,11 @@ async fn get_cached_news() -> Result<Value, String> {
     let cached: Value = serde_json::from_slice(&body.into_bytes())
         .map_err(|e| format!("JSON parse error: {}", e))?;
 
-    // Check if cache is still valid (7 days)
+    // Check if cache is still valid (1 hour instead of 7 days to keep it fresh)
     if let Some(cached_at_str) = cached["cached_at"].as_str() {
         if let Ok(cached_at) = DateTime::parse_from_rfc3339(cached_at_str) {
             let age = Utc::now().signed_duration_since(cached_at.with_timezone(&Utc));
-            if age < Duration::days(CACHE_DAYS) {
+            if age < Duration::hours(1) {
                 return Ok(cached);
             }
         }
@@ -177,8 +213,8 @@ async fn fetch_hackernews(client: &Client) -> Result<Vec<Value>, String> {
 
     let mut news_items = Vec::new();
 
-    // Take top 5
-    for &story_id in story_ids.iter().take(5) {
+    // Take top 10
+    for &story_id in story_ids.iter().take(10) {
         if let Ok(story_res) = client
             .get(format!(
                 "https://hacker-news.firebaseio.com/v0/item/{}.json",
@@ -188,11 +224,19 @@ async fn fetch_hackernews(client: &Client) -> Result<Vec<Value>, String> {
             .await
         {
             if let Ok(story) = story_res.json::<Value>().await {
+                // Convert unix timestamp to RFC3339
+                let time = story["time"].as_i64().unwrap_or(0);
+                let published_at = if let Some(dt) = DateTime::from_timestamp(time, 0) {
+                    dt.to_rfc3339()
+                } else {
+                    Utc::now().to_rfc3339()
+                };
+
                 news_items.push(json!({
                     "title": story["title"],
                     "url": story["url"],
                     "score": story["score"],
-                    "time": story["time"],
+                    "published_at": published_at,
                     "source": "hackernews",
                     "icon": "🟠"
                 }));
@@ -321,6 +365,12 @@ async fn fetch_rss_feed(
             if !current_item["title"].is_null() {
                 current_item["source"] = json!(source_name);
                 current_item["icon"] = json!(icon);
+                
+                // Ensure published_at exists
+                if current_item["published_at"].is_null() {
+                     current_item["published_at"] = json!(Utc::now().to_rfc3339());
+                }
+                
                 news_items.push(current_item.clone());
             }
             in_item = false;
@@ -338,13 +388,30 @@ async fn fetch_rss_feed(
                     }
                 }
             } else if let Some(pub_date) = extract_xml_content(line, "pubDate") {
-                current_item["time"] = json!(pub_date);
+                // Parse RSS pubDate (RFC 2822)
+                if let Ok(dt) = DateTime::parse_from_rfc2822(&pub_date) {
+                    current_item["published_at"] = json!(dt.to_rfc3339());
+                } else {
+                    current_item["published_at"] = json!(Utc::now().to_rfc3339());
+                }
             } else if let Some(published) = extract_xml_content(line, "published") {
-                current_item["time"] = json!(published);
+                 // Parse Atom published (RFC 3339)
+                if let Ok(dt) = DateTime::parse_from_rfc3339(&published) {
+                    current_item["published_at"] = json!(dt.to_rfc3339());
+                } else {
+                    current_item["published_at"] = json!(Utc::now().to_rfc3339());
+                }
+            } else if let Some(updated) = extract_xml_content(line, "updated") {
+                 // Fallback to updated for Atom
+                if current_item["published_at"].is_null() {
+                    if let Ok(dt) = DateTime::parse_from_rfc3339(&updated) {
+                         current_item["published_at"] = json!(dt.to_rfc3339());
+                    }
+                }
             }
         }
 
-        if news_items.len() >= 5 {
+        if news_items.len() >= 10 { // Increased limit for better filtering
             break;
         }
     }
@@ -355,6 +422,9 @@ async fn fetch_rss_feed(
 fn extract_xml_content(line: &str, tag: &str) -> Option<String> {
     let start_tag = format!("<{}>", tag);
     let end_tag = format!("</{}>", tag);
+    
+    // Also handle simple tags with attributes like <title type="text">
+    let start_tag_attr = format!("<{} ", tag);
 
     if let Some(start) = line.find(&start_tag) {
         if let Some(end) = line.find(&end_tag) {
@@ -363,6 +433,15 @@ fn extract_xml_content(line: &str, tag: &str) -> Option<String> {
                 return Some(line[content_start..end].trim().to_string());
             }
         }
+    } else if let Some(start) = line.find(&start_tag_attr) {
+         if let Some(end) = line.find(&end_tag) {
+             if let Some(content_start_idx) = line[start..].find('>') {
+                 let content_start = start + content_start_idx + 1;
+                 if content_start < end {
+                     return Some(line[content_start..end].trim().to_string());
+                 }
+             }
+         }
     }
     None
 }
@@ -388,14 +467,14 @@ fn get_fallback_news() -> Vec<Value> {
             "url": "https://kubernetes.io/blog/2024/12/11/kubernetes-v1-29-release/",
             "source": "kubernetes",
             "icon": "📰",
-            "time": "2024-12-11"
+            "published_at": "2024-12-11T12:00:00Z"
         }),
         json!({
             "title": "Docker Desktop 4.26 Introduces New Container Management Tools",
             "url": "https://www.docker.com/blog/docker-desktop-4-26/",
             "source": "docker",
             "icon": "🐳",
-            "time": "2024-12-10"
+            "published_at": "2024-12-10T14:30:00Z"
         }),
     ]
 }
