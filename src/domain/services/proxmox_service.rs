@@ -272,7 +272,7 @@ pub async fn check_proxmox_health(client: &reqwest::Client) {
     }
 
     println!("🔍 Checking Proxmox servers connectivity...");
-    
+
     let urls: Vec<&str> = proxmox_urls.split(',').collect();
 
     for url in urls {
