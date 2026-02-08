@@ -310,7 +310,10 @@ pub async fn vm_control(
         return Err(format!("Auth failed for server {}", server));
     };
 
-    let api_url = format!("{}/api2/json/nodes/{}/qemu/{}/status/{}", server, node, vmid, action);
+    let api_url = format!(
+        "{}/api2/json/nodes/{}/qemu/{}/status/{}",
+        server, node, vmid, action
+    );
 
     match client
         .post(&api_url)
@@ -357,7 +360,10 @@ pub async fn ct_control(
         return Err(format!("Auth failed for server {}", server));
     };
 
-    let api_url = format!("{}/api2/json/nodes/{}/lxc/{}/status/{}", server, node, vmid, action);
+    let api_url = format!(
+        "{}/api2/json/nodes/{}/lxc/{}/status/{}",
+        server, node, vmid, action
+    );
 
     match client
         .post(&api_url)
