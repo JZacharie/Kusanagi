@@ -3,8 +3,8 @@ use actix::{Actor, StreamHandler};
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_actors::ws;
 use kusanagi::domain::services::{
-    argocd_service, fusion_service, homeassistant_service, kubernetes_service, monitoring_service, mqtt_service,
-    news_service, proxmox_service, slack_service, trivy_service,
+    argocd_service, fusion_service, homeassistant_service, kubernetes_service, monitoring_service,
+    mqtt_service, news_service, proxmox_service, slack_service, trivy_service,
 };
 use kusanagi::{legacy, Config};
 use serde::Deserialize;
