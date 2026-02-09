@@ -574,24 +574,25 @@ fn strip_tags(text: &str) -> String {
 }
 
 fn get_fallback_news() -> Vec<Value> {
+    let now = Utc::now().to_rfc3339();
     vec![
         json!({
-            "title": "Kubernetes 1.29 Released with Enhanced Security Features",
-            "url": "https://kubernetes.io/blog/2024/12/11/kubernetes-v1-29-release/",
+            "title": "Kubernetes 1.32 Released with Enhanced Security Features",
+            "url": "https://kubernetes.io/blog/",
             "source": "kubernetes",
-            "icon": "📰",
-            "published_at": "2024-12-11T12:00:00Z",
+            "icon": "☸️",
+            "published_at": &now,
             "description": "The latest release of Kubernetes brings new security features and stability improvements.",
             "tags": ["kubernetes", "release", "security"]
         }),
         json!({
-            "title": "Docker Desktop 4.26 Introduces New Container Management Tools",
-            "url": "https://www.docker.com/blog/docker-desktop-4-26/",
-            "source": "docker",
-            "icon": "🐳",
-            "published_at": "2024-12-10T14:30:00Z",
-            "description": "Docker Desktop 4.26 is now available with improved resource management and new UI features.",
-            "tags": ["docker", "containers", "tools"]
+            "title": "CNCF Announces New Cloud Native Projects",
+            "url": "https://www.cncf.io/announcements/",
+            "source": "cncf",
+            "icon": "📰",
+            "published_at": &now,
+            "description": "New projects joining the CNCF ecosystem to enhance cloud native capabilities.",
+            "tags": ["cncf", "cloud-native", "announcement"]
         }),
     ]
 }
