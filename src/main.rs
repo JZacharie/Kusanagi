@@ -166,7 +166,10 @@ async fn main() -> std::io::Result<()> {
     tokio::spawn(async {
         log::info!("☁️ Starting background weather refresh...");
         if let Err(e) = legacy::weather::force_refresh().await {
-            log::warn!("⚠️ Failed to refresh weather at startup (might be expected if offline): {}", e);
+            log::warn!(
+                "⚠️ Failed to refresh weather at startup (might be expected if offline): {}",
+                e
+            );
         } else {
             log::info!("✅ Weather refreshed and cached successfully");
         }

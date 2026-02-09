@@ -84,12 +84,19 @@ impl WeatherClient {
                 if let Ok(cached_time) =
                     chrono::NaiveDateTime::parse_from_str(&cached.cached_at, "%Y-%m-%d %H:%M:%S")
                 {
-                   let six_hours_ago = chrono::Local::now().naive_local() - chrono::Duration::hours(6);
+                    let six_hours_ago =
+                        chrono::Local::now().naive_local() - chrono::Duration::hours(6);
                     if cached_time > six_hours_ago {
-                        debug!("Returning cached weather data from S3 (cached at {})", cached.cached_at);
+                        debug!(
+                            "Returning cached weather data from S3 (cached at {})",
+                            cached.cached_at
+                        );
                         return Ok(cached);
                     } else {
-                        debug!("S3 cache expired (cached at {}), refreshing...", cached.cached_at);
+                        debug!(
+                            "S3 cache expired (cached at {}), refreshing...",
+                            cached.cached_at
+                        );
                     }
                 }
             }
@@ -140,8 +147,14 @@ impl WeatherClient {
 
     async fn fetch_from_s3(&self) -> Option<WeatherResponse> {
         let client = self.s3_client.as_ref()?;
-        
-        match client.get_object().bucket(S3_BUCKET).key(S3_KEY).send().await {
+
+        match client
+            .get_object()
+            .bucket(S3_BUCKET)
+            .key(S3_KEY)
+            .send()
+            .await
+        {
             Ok(resp) => {
                 let data = resp.body.collect().await.ok()?.into_bytes();
                 match serde_json::from_slice::<WeatherResponse>(&data) {
@@ -153,7 +166,10 @@ impl WeatherClient {
                 }
             }
             Err(e) => {
-                debug!("Available buckets: {:?}", client.list_buckets().send().await);
+                debug!(
+                    "Available buckets: {:?}",
+                    client.list_buckets().send().await
+                );
                 warn!("Failed to fetch from S3 (might apply first run): {}", e);
                 None
             }
