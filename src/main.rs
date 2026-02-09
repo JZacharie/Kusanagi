@@ -162,6 +162,16 @@ async fn main() -> std::io::Result<()> {
         }
     });
 
+    // Start Weather background refresh
+    tokio::spawn(async {
+        log::info!("☁️ Starting background weather refresh...");
+        if let Err(e) = legacy::weather::force_refresh().await {
+            log::warn!("⚠️ Failed to refresh weather at startup (might be expected if offline): {}", e);
+        } else {
+            log::info!("✅ Weather refreshed and cached successfully");
+        }
+    });
+
     // Check Proxmox connectivity
     proxmox_service::check_proxmox_health(&client).await;
 
