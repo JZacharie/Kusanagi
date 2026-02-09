@@ -10,8 +10,10 @@ const K8sManager = {
     storageSortField: 'usage_percent',
     storageSortDir: 'desc',
     currentEventFilter: 'all',
+    currentEventFilter: 'all',
     currentEventPage: 1,
     eventPerPage: 20,
+    lastServicesFetch: 0,
 
     init() {
         this.fetchAll();
@@ -957,6 +959,17 @@ const K8sManager = {
 
     // === SERVICES & INGRESS ===
     async fetchServices() {
+        const now = Date.now();
+        // Allow initial fetch (lastServicesFetch === 0)
+        // Otherwise, check if 3 minutes (180000ms) have passed AND we are on the services tab
+        if (this.lastServicesFetch !== 0) {
+            const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
+            if (activeTab !== 'services') return;
+            if (now - this.lastServicesFetch < 180000) return;
+        }
+
+        this.lastServicesFetch = now;
+
         try {
             const response = await fetch('/api/services');
             const data = await response.json();

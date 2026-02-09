@@ -165,6 +165,20 @@ async fn main() -> std::io::Result<()> {
     // Check Proxmox connectivity
     proxmox_service::check_proxmox_health(&client).await;
 
+    // Preload services cache
+    let k8s_cache_clone = k8s_cache.clone();
+    tokio::spawn(async move {
+        log::info!("↻ Preloading Services cache...");
+        match kubernetes_service::get_services().await {
+            Ok(services) => {
+                let json = serde_json::to_string(&services).unwrap_or_default();
+                k8s_cache_clone.set("services".to_string(), json, None).await;
+                log::info!("✅ Services cache warmed up");
+            }
+            Err(e) => log::error!("⚠️ Failed to preload services cache: {}", e),
+        }
+    });
+
     HttpServer::new(move || {
         let mut app = App::new()
             .app_data(web::Data::new(k8s_cache.clone()))
@@ -915,9 +929,19 @@ async fn backups() -> impl Responder {
     }
 }
 
-async fn services() -> impl Responder {
+async fn services(k8s_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>) -> impl Responder {
+    if let Some(cached) = k8s_cache.get("services").await {
+        return HttpResponse::Ok()
+            .content_type("application/json")
+            .body(cached);
+    }
+
     match kubernetes_service::get_services().await {
-        Ok(services) => HttpResponse::Ok().json(services),
+        Ok(services) => {
+            let json = serde_json::to_string(&services).unwrap_or_default();
+            k8s_cache.set("services".to_string(), json, None).await;
+            HttpResponse::Ok().json(services)
+        },
         Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
