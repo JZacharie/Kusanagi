@@ -172,7 +172,9 @@ async fn main() -> std::io::Result<()> {
         match kubernetes_service::get_services().await {
             Ok(services) => {
                 let json = serde_json::to_string(&services).unwrap_or_default();
-                k8s_cache_clone.set("services".to_string(), json, None).await;
+                k8s_cache_clone
+                    .set("services".to_string(), json, None)
+                    .await;
                 log::info!("✅ Services cache warmed up");
             }
             Err(e) => log::error!("⚠️ Failed to preload services cache: {}", e),
@@ -941,7 +943,7 @@ async fn services(k8s_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>) ->
             let json = serde_json::to_string(&services).unwrap_or_default();
             k8s_cache.set("services".to_string(), json, None).await;
             HttpResponse::Ok().json(services)
-        },
+        }
         Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
