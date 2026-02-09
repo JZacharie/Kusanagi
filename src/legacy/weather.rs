@@ -50,7 +50,7 @@ impl WeatherClient {
         let api_key = env::var("OPENWEATHER_API_KEY").unwrap_or_else(|_| "".to_string());
 
         if api_key.is_empty() {
-            warn!("OPENWEATHER_API_KEY not set, using mock weather data");
+            info!("OPENWEATHER_API_KEY not set, using mock weather data");
         }
 
         let client = reqwest::Client::builder()
@@ -58,9 +58,10 @@ impl WeatherClient {
             .build()?;
 
         // Initialize S3 Client (MinIO)
+        let endpoint = std::env::var("S3_ENDPOINT").unwrap_or_else(|_| MINIO_ENDPOINT.to_string());
         let config = aws_config::defaults(BehaviorVersion::latest())
             .region(Region::new(S3_REGION))
-            .endpoint_url(MINIO_ENDPOINT)
+            .endpoint_url(endpoint)
             .load()
             .await;
 
