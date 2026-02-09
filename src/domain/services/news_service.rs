@@ -349,71 +349,52 @@ async fn fetch_rss_feed(
     }
 
     let xml_content = response.text().await.map_err(|e| e.to_string())?;
-
+    // Remove BOM if present
+    let xml_content = xml_content.trim_start_matches('\u{feff}');
+    
     let mut news_items = Vec::new();
-    let lines: Vec<&str> = xml_content.lines().collect();
 
-    let mut current_item = json!({});
-    let mut in_item = false;
-
-    for line in lines {
-        let line = line.trim();
-
-        if line.contains("<item>") || line.contains("<entry>") {
-            in_item = true;
-            current_item = json!({});
-        } else if (line.contains("</item>") || line.contains("</entry>")) && in_item {
-            if !current_item["title"].is_null() {
-                current_item["source"] = json!(source_name);
-                current_item["icon"] = json!(icon);
-
-                // Ensure published_at exists
-                if current_item["published_at"].is_null() {
-                    current_item["published_at"] = json!(Utc::now().to_rfc3339());
-                }
-
-                news_items.push(current_item.clone());
-            }
-            in_item = false;
-        } else if in_item {
-            if let Some(title) = extract_xml_content(line, "title") {
-                current_item["title"] = json!(clean_html(&title));
-            } else if let Some(link) = extract_xml_content(line, "link") {
-                current_item["url"] = json!(link);
-            } else if line.contains("<link") && line.contains("href=") {
-                // Atom feed link format
-                if let Some(href_start) = line.find("href=\"") {
-                    let after_href = &line[href_start + 6..];
-                    if let Some(href_end) = after_href.find('"') {
-                        current_item["url"] = json!(&after_href[..href_end]);
-                    }
-                }
-            } else if let Some(pub_date) = extract_xml_content(line, "pubDate") {
-                // Parse RSS pubDate (RFC 2822)
-                if let Ok(dt) = DateTime::parse_from_rfc2822(&pub_date) {
-                    current_item["published_at"] = json!(dt.to_rfc3339());
-                } else {
-                    current_item["published_at"] = json!(Utc::now().to_rfc3339());
-                }
-            } else if let Some(published) = extract_xml_content(line, "published") {
-                // Parse Atom published (RFC 3339)
-                if let Ok(dt) = DateTime::parse_from_rfc3339(&published) {
-                    current_item["published_at"] = json!(dt.to_rfc3339());
-                } else {
-                    current_item["published_at"] = json!(Utc::now().to_rfc3339());
-                }
-            } else if let Some(updated) = extract_xml_content(line, "updated") {
-                // Fallback to updated for Atom
-                if current_item["published_at"].is_null() {
-                    if let Ok(dt) = DateTime::parse_from_rfc3339(&updated) {
-                        current_item["published_at"] = json!(dt.to_rfc3339());
-                    }
-                }
-            }
+    // Determine if RSS or Atom
+    // This is a naive heuristic but works for most standard feeds
+    let is_atom = xml_content.contains("<feed") || xml_content.contains("xmlns=\"http://www.w3.org/2005/Atom\"");
+    let item_tag = if is_atom { "entry" } else { "item" };
+    
+    // Find all items
+    // We scan the parsing manually to handle multi-line and minified XML
+    let mut current_pos = 0;
+    while let Some(start_tag_pos) = xml_content[current_pos..].find(&format!("<{}", item_tag)) {
+        let absolute_start = current_pos + start_tag_pos;
+        
+        // Find the closure of the opening tag (could be <item> or <item attributes...>)
+        if let Some(open_tag_end) = xml_content[absolute_start..].find('>') {
+             let _content_start = absolute_start + open_tag_end + 1;
+             
+             // Find end tag
+             let end_tag = format!("</{}>", item_tag);
+             if let Some(end_tag_pos) = xml_content[absolute_start..].find(&end_tag) {
+                 let absolute_end = absolute_start + end_tag_pos;
+                 
+                 // Extract the full item content block
+                 let item_block = &xml_content[absolute_start..absolute_end];
+                 
+                 // Parse fields within this block
+                 if let Some(item) = parse_item_block(item_block, source_name, icon, is_atom) {
+                     news_items.push(item);
+                 }
+                 
+                 // Move past this item
+                 current_pos = absolute_end + end_tag.len();
+             } else {
+                 // Malformed or truncated, break, or try to continue?
+                 // If we can't find the end tag, we can't parse this item safely.
+                 // Just advance past the start tag to avoid infinite loop
+                 current_pos = absolute_start + 1;
+             }
+        } else {
+            break;
         }
 
         if news_items.len() >= 50 {
-            // Increased limit for better filtering
             break;
         }
     }
@@ -421,45 +402,169 @@ async fn fetch_rss_feed(
     Ok(news_items)
 }
 
-fn extract_xml_content(line: &str, tag: &str) -> Option<String> {
-    let start_tag = format!("<{}>", tag);
-    let end_tag = format!("</{}>", tag);
+fn parse_item_block(block: &str, source_name: &str, icon: &str, is_atom: bool) -> Option<Value> {
+    let title = extract_tag_content(block, "title").map(|s| clean_html(&s))?; // Title is required
+    
+    let url = if is_atom {
+        // Atom links: <link href="..." />
+        extract_attr(block, "link", "href").or_else(|| extract_tag_content(block, "id"))
+    } else {
+        // RSS links: <link>...</link>
+        extract_tag_content(block, "link")
+    };
+    
+    // Attempt to extract description/summary
+    let description = if is_atom {
+        extract_tag_content(block, "summary").or_else(|| extract_tag_content(block, "content"))
+    } else {
+        extract_tag_content(block, "description")
+    };
+    
+    // Clean description (strip HTML tags for safety and UI consistency)
+    let clean_desc = description.map(|d| strip_tags(&clean_html(&d)));
 
-    // Also handle simple tags with attributes like <title type="text">
-    let start_tag_attr = format!("<{} ", tag);
-
-    if let Some(start) = line.find(&start_tag) {
-        if let Some(end) = line.find(&end_tag) {
-            let content_start = start + start_tag.len();
-            if content_start < end {
-                return Some(line[content_start..end].trim().to_string());
-            }
-        }
-    } else if let Some(start) = line.find(&start_tag_attr) {
-        if let Some(end) = line.find(&end_tag) {
-            if let Some(content_start_idx) = line[start..].find('>') {
-                let content_start = start + content_start_idx + 1;
-                if content_start < end {
-                    return Some(line[content_start..end].trim().to_string());
+    // Extract tags/categories
+    let mut tags = Vec::new();
+    // Simple scan for all <category> tags
+    let mut tag_scan_pos = 0;
+    while let Some(cat_pos) = block[tag_scan_pos..].find("<category") {
+        let absolute_cat = tag_scan_pos + cat_pos;
+        // Check if it's self closing or textual
+        // Atom: <category term="foo" />
+        // RSS: <category>foo</category>
+        
+        if is_atom {
+            // Find end of this tag
+            if let Some(tag_end) = block[absolute_cat..].find('>') {
+                let tag_fragment = &block[absolute_cat..absolute_cat + tag_end + 1];
+                if let Some(term) = extract_attr_from_fragment(tag_fragment, "term") {
+                    if !term.trim().is_empty() {
+                        tags.push(term);
+                    }
                 }
+                tag_scan_pos = absolute_cat + tag_end;
+            } else {
+                 tag_scan_pos = absolute_cat + 1;
             }
+        } else {
+            if let Some(content) = extract_tag_content(&block[absolute_cat..], "category") {
+                 let content = clean_html(&content);
+                 if !content.is_empty() {
+                    tags.push(content);
+                 }
+            }
+            tag_scan_pos = absolute_cat + 9; // Skip <category
         }
+    }
+
+    // Date parsing
+    let date_str = if is_atom {
+        extract_tag_content(block, "published").or_else(|| extract_tag_content(block, "updated"))
+    } else {
+        extract_tag_content(block, "pubDate")
+    };
+
+    let published_at = if let Some(d) = date_str {
+        if let Ok(dt) = DateTime::parse_from_rfc2822(&d) {
+            dt.to_rfc3339()
+        } else if let Ok(dt) = DateTime::parse_from_rfc3339(&d) {
+            dt.to_rfc3339()
+        } else {
+             Utc::now().to_rfc3339()
+        }
+    } else {
+        Utc::now().to_rfc3339()
+    };
+
+    Some(json!({
+        "title": title,
+        "url": url.unwrap_or_default(),
+        "description": clean_desc,
+        "published_at": published_at,
+        "source": source_name,
+        "icon": icon,
+        "tags": tags
+    }))
+}
+
+// Helper to extract content between <tag> and </tag>
+fn extract_tag_content(xml: &str, tag_name: &str) -> Option<String> {
+    let start_tag = format!("<{}", tag_name);
+    // We need to handle <tag> and <tag attr="...">
+    
+    let start_pos = xml.find(&start_tag)?;
+    
+    // Find the end of the opening tag >
+    let open_tag_end = xml[start_pos..].find('>')?;
+    let content_start = start_pos + open_tag_end + 1;
+    
+    let end_tag = format!("</{}>", tag_name);
+    let end_pos = xml[content_start..].find(&end_tag)?;
+    
+    Some(xml[content_start..content_start + end_pos].trim().to_string())
+}
+
+// Helper to extract attribute value: <tag ... attr="value" ...>
+fn extract_attr(xml: &str, tag_name: &str, attr_name: &str) -> Option<String> {
+    let start_tag = format!("<{}", tag_name);
+    let start_pos = xml.find(&start_tag)?;
+    
+    // Find end of this tag
+    let tag_end_pos = xml[start_pos..].find('>')?;
+    let tag_fragment = &xml[start_pos..start_pos + tag_end_pos + 1];
+    
+    extract_attr_from_fragment(tag_fragment, attr_name)
+}
+
+fn extract_attr_from_fragment(fragment: &str, attr_name: &str) -> Option<String> {
+    let attr_search = format!("{}=\"", attr_name);
+    if let Some(attr_pos) = fragment.find(&attr_search) {
+        let val_start = attr_pos + attr_search.len();
+        if let Some(val_end) = fragment[val_start..].find('"') {
+            return Some(fragment[val_start..val_start + val_end].to_string());
+        }
+    }
+    // Try single quotes
+    let attr_search_sq = format!("{}='", attr_name);
+    if let Some(attr_pos) = fragment.find(&attr_search_sq) {
+         let val_start = attr_pos + attr_search_sq.len();
+         if let Some(val_end) = fragment[val_start..].find('\'') {
+             return Some(fragment[val_start..val_start + val_end].to_string());
+         }
     }
     None
 }
 
 fn clean_html(text: &str) -> String {
-    // Remove CDATA
+    // Remove CDATA wrappers
     let text = text.replace("<![CDATA[", "").replace("]]>", "");
-
-    // Basic HTML entity decoding
-    text.replace("&amp;", "&")
+    
+    // Decode entities
+    let text = text.replace("&amp;", "&")
         .replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
+        .replace("&#39;", "'")
         .replace("&#039;", "'")
-        .trim()
-        .to_string()
+        .replace("&nbsp;", " ");
+        
+    text.trim().to_string()
+}
+
+fn strip_tags(text: &str) -> String {
+    let mut result = String::new();
+    let mut inside_tag = false;
+    
+    for c in text.chars() {
+        if c == '<' {
+            inside_tag = true;
+        } else if c == '>' {
+            inside_tag = false;
+        } else if !inside_tag {
+            result.push(c);
+        }
+    }
+    result
 }
 
 fn get_fallback_news() -> Vec<Value> {
@@ -469,14 +574,18 @@ fn get_fallback_news() -> Vec<Value> {
             "url": "https://kubernetes.io/blog/2024/12/11/kubernetes-v1-29-release/",
             "source": "kubernetes",
             "icon": "📰",
-            "published_at": "2024-12-11T12:00:00Z"
+            "published_at": "2024-12-11T12:00:00Z",
+            "description": "The latest release of Kubernetes brings new security features and stability improvements.",
+            "tags": ["kubernetes", "release", "security"]
         }),
         json!({
             "title": "Docker Desktop 4.26 Introduces New Container Management Tools",
             "url": "https://www.docker.com/blog/docker-desktop-4-26/",
             "source": "docker",
             "icon": "🐳",
-            "published_at": "2024-12-10T14:30:00Z"
+            "published_at": "2024-12-10T14:30:00Z",
+            "description": "Docker Desktop 4.26 is now available with improved resource management and new UI features.",
+            "tags": ["docker", "containers", "tools"]
         }),
     ]
 }
