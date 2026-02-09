@@ -351,45 +351,46 @@ async fn fetch_rss_feed(
     let xml_content = response.text().await.map_err(|e| e.to_string())?;
     // Remove BOM if present
     let xml_content = xml_content.trim_start_matches('\u{feff}');
-    
+
     let mut news_items = Vec::new();
 
     // Determine if RSS or Atom
     // This is a naive heuristic but works for most standard feeds
-    let is_atom = xml_content.contains("<feed") || xml_content.contains("xmlns=\"http://www.w3.org/2005/Atom\"");
+    let is_atom = xml_content.contains("<feed")
+        || xml_content.contains("xmlns=\"http://www.w3.org/2005/Atom\"");
     let item_tag = if is_atom { "entry" } else { "item" };
-    
+
     // Find all items
     // We scan the parsing manually to handle multi-line and minified XML
     let mut current_pos = 0;
     while let Some(start_tag_pos) = xml_content[current_pos..].find(&format!("<{}", item_tag)) {
         let absolute_start = current_pos + start_tag_pos;
-        
+
         // Find the closure of the opening tag (could be <item> or <item attributes...>)
         if let Some(open_tag_end) = xml_content[absolute_start..].find('>') {
-             let _content_start = absolute_start + open_tag_end + 1;
-             
-             // Find end tag
-             let end_tag = format!("</{}>", item_tag);
-             if let Some(end_tag_pos) = xml_content[absolute_start..].find(&end_tag) {
-                 let absolute_end = absolute_start + end_tag_pos;
-                 
-                 // Extract the full item content block
-                 let item_block = &xml_content[absolute_start..absolute_end];
-                 
-                 // Parse fields within this block
-                 if let Some(item) = parse_item_block(item_block, source_name, icon, is_atom) {
-                     news_items.push(item);
-                 }
-                 
-                 // Move past this item
-                 current_pos = absolute_end + end_tag.len();
-             } else {
-                 // Malformed or truncated, break, or try to continue?
-                 // If we can't find the end tag, we can't parse this item safely.
-                 // Just advance past the start tag to avoid infinite loop
-                 current_pos = absolute_start + 1;
-             }
+            let _content_start = absolute_start + open_tag_end + 1;
+
+            // Find end tag
+            let end_tag = format!("</{}>", item_tag);
+            if let Some(end_tag_pos) = xml_content[absolute_start..].find(&end_tag) {
+                let absolute_end = absolute_start + end_tag_pos;
+
+                // Extract the full item content block
+                let item_block = &xml_content[absolute_start..absolute_end];
+
+                // Parse fields within this block
+                if let Some(item) = parse_item_block(item_block, source_name, icon, is_atom) {
+                    news_items.push(item);
+                }
+
+                // Move past this item
+                current_pos = absolute_end + end_tag.len();
+            } else {
+                // Malformed or truncated, break, or try to continue?
+                // If we can't find the end tag, we can't parse this item safely.
+                // Just advance past the start tag to avoid infinite loop
+                current_pos = absolute_start + 1;
+            }
         } else {
             break;
         }
@@ -404,7 +405,7 @@ async fn fetch_rss_feed(
 
 fn parse_item_block(block: &str, source_name: &str, icon: &str, is_atom: bool) -> Option<Value> {
     let title = extract_tag_content(block, "title").map(|s| clean_html(&s))?; // Title is required
-    
+
     let url = if is_atom {
         // Atom links: <link href="..." />
         extract_attr(block, "link", "href").or_else(|| extract_tag_content(block, "id"))
@@ -412,14 +413,14 @@ fn parse_item_block(block: &str, source_name: &str, icon: &str, is_atom: bool) -
         // RSS links: <link>...</link>
         extract_tag_content(block, "link")
     };
-    
+
     // Attempt to extract description/summary
     let description = if is_atom {
         extract_tag_content(block, "summary").or_else(|| extract_tag_content(block, "content"))
     } else {
         extract_tag_content(block, "description")
     };
-    
+
     // Clean description (strip HTML tags for safety and UI consistency)
     let clean_desc = description.map(|d| strip_tags(&clean_html(&d)));
 
@@ -432,7 +433,7 @@ fn parse_item_block(block: &str, source_name: &str, icon: &str, is_atom: bool) -
         // Check if it's self closing or textual
         // Atom: <category term="foo" />
         // RSS: <category>foo</category>
-        
+
         if is_atom {
             // Find end of this tag
             if let Some(tag_end) = block[absolute_cat..].find('>') {
@@ -444,14 +445,14 @@ fn parse_item_block(block: &str, source_name: &str, icon: &str, is_atom: bool) -
                 }
                 tag_scan_pos = absolute_cat + tag_end;
             } else {
-                 tag_scan_pos = absolute_cat + 1;
+                tag_scan_pos = absolute_cat + 1;
             }
         } else {
             if let Some(content) = extract_tag_content(&block[absolute_cat..], "category") {
-                 let content = clean_html(&content);
-                 if !content.is_empty() {
+                let content = clean_html(&content);
+                if !content.is_empty() {
                     tags.push(content);
-                 }
+                }
             }
             tag_scan_pos = absolute_cat + 9; // Skip <category
         }
@@ -470,7 +471,7 @@ fn parse_item_block(block: &str, source_name: &str, icon: &str, is_atom: bool) -
         } else if let Ok(dt) = DateTime::parse_from_rfc3339(&d) {
             dt.to_rfc3339()
         } else {
-             Utc::now().to_rfc3339()
+            Utc::now().to_rfc3339()
         }
     } else {
         Utc::now().to_rfc3339()
@@ -491,28 +492,32 @@ fn parse_item_block(block: &str, source_name: &str, icon: &str, is_atom: bool) -
 fn extract_tag_content(xml: &str, tag_name: &str) -> Option<String> {
     let start_tag = format!("<{}", tag_name);
     // We need to handle <tag> and <tag attr="...">
-    
+
     let start_pos = xml.find(&start_tag)?;
-    
+
     // Find the end of the opening tag >
     let open_tag_end = xml[start_pos..].find('>')?;
     let content_start = start_pos + open_tag_end + 1;
-    
+
     let end_tag = format!("</{}>", tag_name);
     let end_pos = xml[content_start..].find(&end_tag)?;
-    
-    Some(xml[content_start..content_start + end_pos].trim().to_string())
+
+    Some(
+        xml[content_start..content_start + end_pos]
+            .trim()
+            .to_string(),
+    )
 }
 
 // Helper to extract attribute value: <tag ... attr="value" ...>
 fn extract_attr(xml: &str, tag_name: &str, attr_name: &str) -> Option<String> {
     let start_tag = format!("<{}", tag_name);
     let start_pos = xml.find(&start_tag)?;
-    
+
     // Find end of this tag
     let tag_end_pos = xml[start_pos..].find('>')?;
     let tag_fragment = &xml[start_pos..start_pos + tag_end_pos + 1];
-    
+
     extract_attr_from_fragment(tag_fragment, attr_name)
 }
 
@@ -527,10 +532,10 @@ fn extract_attr_from_fragment(fragment: &str, attr_name: &str) -> Option<String>
     // Try single quotes
     let attr_search_sq = format!("{}='", attr_name);
     if let Some(attr_pos) = fragment.find(&attr_search_sq) {
-         let val_start = attr_pos + attr_search_sq.len();
-         if let Some(val_end) = fragment[val_start..].find('\'') {
-             return Some(fragment[val_start..val_start + val_end].to_string());
-         }
+        let val_start = attr_pos + attr_search_sq.len();
+        if let Some(val_end) = fragment[val_start..].find('\'') {
+            return Some(fragment[val_start..val_start + val_end].to_string());
+        }
     }
     None
 }
@@ -538,23 +543,24 @@ fn extract_attr_from_fragment(fragment: &str, attr_name: &str) -> Option<String>
 fn clean_html(text: &str) -> String {
     // Remove CDATA wrappers
     let text = text.replace("<![CDATA[", "").replace("]]>", "");
-    
+
     // Decode entities
-    let text = text.replace("&amp;", "&")
+    let text = text
+        .replace("&amp;", "&")
         .replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
         .replace("&#039;", "'")
         .replace("&nbsp;", " ");
-        
+
     text.trim().to_string()
 }
 
 fn strip_tags(text: &str) -> String {
     let mut result = String::new();
     let mut inside_tag = false;
-    
+
     for c in text.chars() {
         if c == '<' {
             inside_tag = true;
