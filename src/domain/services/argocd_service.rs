@@ -153,10 +153,15 @@ pub async fn sync_app(app_name: &str) -> Result<String, String> {
 
     let output = Command::new("kubectl")
         .args([
-            "patch", "application", app_name, 
-            "-n", "argocd", 
-            "--type", "merge", 
-            "-p", "{\"operation\": {\"sync\": {\"prune\": true}}}"
+            "patch",
+            "application",
+            app_name,
+            "-n",
+            "argocd",
+            "--type",
+            "merge",
+            "-p",
+            "{\"operation\": {\"sync\": {\"prune\": true}}}",
         ])
         .output()
         .await
