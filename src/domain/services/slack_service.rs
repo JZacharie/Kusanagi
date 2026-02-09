@@ -100,7 +100,7 @@ impl SlackService {
                 }
             }
             Err(e) => {
-                error!("Failed to send Slack message: {}", e);
+                error!("Failed to send Slack message: {:?}", e);
                 false
             }
         }
