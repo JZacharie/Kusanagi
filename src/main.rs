@@ -931,7 +931,11 @@ async fn cache_stats(
 async fn news() -> impl Responder {
     match news_service::get_news().await {
         Ok(news) => HttpResponse::Ok().json(news),
-        Err(_) => HttpResponse::Ok().json(json!([])),
+        Err(_) => HttpResponse::Ok().json(json!({
+            "items": [],
+            "cached_at": chrono::Utc::now().to_rfc3339(),
+            "source": "error"
+        })),
     }
 }
 
