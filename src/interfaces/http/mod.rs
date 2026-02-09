@@ -4,6 +4,8 @@ use actix_web::{web, HttpResponse, Responder};
 use serde_json::json;
 use std::sync::Arc;
 
+pub mod weather_handlers;
+
 pub async fn get_cluster_info(cluster_use_case: web::Data<Arc<ClusterUseCase>>) -> impl Responder {
     match cluster_use_case.get_cluster_status().await {
         Ok(cluster) => HttpResponse::Ok().json(cluster),
@@ -21,3 +23,6 @@ pub async fn get_nodes_info(cluster_use_case: web::Data<Arc<ClusterUseCase>>) ->
         })),
     }
 }
+
+// Re-export weather handlers
+pub use weather_handlers::{configure_weather_routes, create_weather_use_case};

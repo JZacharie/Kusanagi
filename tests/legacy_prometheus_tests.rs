@@ -36,26 +36,39 @@ fn parse_prometheus_text(text: &str) -> Vec<MetricFamily> {
     let mut i = 0;
     while i < lines.len() {
         let line = lines[i].trim();
+<<<<<<< HEAD
 
         // Skip empty lines and comments
         if line.is_empty() || line.starts_with('#') {
+=======
+        
+        // Skip empty lines
+        if line.is_empty() {
+>>>>>>> 83c5497 (feat: update Prometheus metric parsing to correctly extract help strings and metric types from HELP and TYPE lines.)
             i += 1;
             continue;
         }
 
         // Parse HELP
         if line.starts_with("# HELP ") {
-            let parts: Vec<&str> = line.splitn(3, ' ').collect();
+            let parts: Vec<&str> = line.splitn(4, ' ').collect();
             if parts.len() >= 3 {
                 let name = parts[2].to_string();
-                let help = if i + 1 < lines.len() && lines[i + 1].starts_with("# TYPE ") {
-                    let type_parts: Vec<&str> = lines[i + 1].splitn(3, ' ').collect();
-                    let metric_type = match type_parts.get(2) {
-                        Some(&"counter") => MetricType::Counter,
-                        Some(&"gauge") => MetricType::Gauge,
-                        Some(&"histogram") => MetricType::Histogram,
-                        Some(&"summary") => MetricType::Summary,
-                        _ => MetricType::Gauge,
+                let help = if parts.len() >= 4 { parts[3].to_string() } else { String::new() };
+                
+                if i + 1 < lines.len() && lines[i + 1].starts_with("# TYPE ") {
+                    let type_line = lines[i + 1];
+                    let type_parts: Vec<&str> = type_line.splitn(4, ' ').collect();
+                    let metric_type = if type_parts.len() >= 4 {
+                        match type_parts[3] {
+                            "counter" => MetricType::Counter,
+                            "gauge" => MetricType::Gauge,
+                            "histogram" => MetricType::Histogram,
+                            "summary" => MetricType::Summary,
+                            _ => MetricType::Gauge,
+                        }
+                    } else {
+                        MetricType::Gauge
                     };
 
                     // Skip TYPE line
@@ -75,13 +88,14 @@ fn parse_prometheus_text(text: &str) -> Vec<MetricFamily> {
                     }
 
                     families.push(MetricFamily {
-                        name: name.clone(),
-                        help: parts[2].to_string(),
+                        name,
+                        help,
                         metric_type,
                         metrics,
                     });
                     continue;
                 } else {
+<<<<<<< HEAD
                     parts[2].to_string()
                 };
 
@@ -91,6 +105,15 @@ fn parse_prometheus_text(text: &str) -> Vec<MetricFamily> {
                     metric_type: MetricType::Gauge,
                     metrics: vec![],
                 });
+=======
+                    families.push(MetricFamily {
+                        name,
+                        help,
+                        metric_type: MetricType::Gauge,
+                        metrics: vec![],
+                    });
+                }
+>>>>>>> 83c5497 (feat: update Prometheus metric parsing to correctly extract help strings and metric types from HELP and TYPE lines.)
             }
         }
 

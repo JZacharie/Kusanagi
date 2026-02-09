@@ -1,4 +1,8 @@
 // Legacy module - Extended working version
+// 
+// NOTE: The 'weather' module has been refactored to hexagonal architecture.
+// Use crate::interfaces::http::weather_handlers instead.
+
 pub mod alertmanager;
 pub mod argocd;
 pub mod cluster;
@@ -10,7 +14,6 @@ pub mod pods;
 pub mod prometheus;
 pub mod services;
 pub mod storage;
-pub mod weather;
 
 // Re-exports
 pub use alertmanager::*;
@@ -24,4 +27,3 @@ pub use pods::*;
 pub use prometheus::*;
 pub use services::*;
 pub use storage::*;
-pub use weather::*;

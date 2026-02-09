@@ -9,3 +9,4 @@ pub mod news_service;
 pub mod proxmox_service;
 pub mod slack_service;
 pub mod trivy_service;
+pub mod weather_service;

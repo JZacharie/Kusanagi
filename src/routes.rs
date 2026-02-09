@@ -1,5 +1,6 @@
 use actix_web::web;
 
+/// Configure API routes (hexagonal architecture)
 pub fn configure_api_routes(cfg: &mut web::ServiceConfig) {
     cfg
         // Health & Info
@@ -24,6 +25,7 @@ pub fn configure_api_routes(cfg: &mut web::ServiceConfig) {
         );
 }
 
+/// Configure Kubernetes routes
 pub fn configure_k8s_routes(cfg: &mut web::ServiceConfig) {
     cfg.route(
         "/api/k8s/cluster",
@@ -39,6 +41,7 @@ pub fn configure_k8s_routes(cfg: &mut web::ServiceConfig) {
     );
 }
 
+/// Configure monitoring routes
 pub fn configure_monitoring_routes(cfg: &mut web::ServiceConfig) {
     cfg.route(
         "/api/alerts",
@@ -48,4 +51,9 @@ pub fn configure_monitoring_routes(cfg: &mut web::ServiceConfig) {
         "/api/monitoring/quotas",
         web::get().to(crate::handlers::monitoring::quotas),
     );
+}
+
+/// Configure weather routes (hexagonal architecture)
+pub fn configure_weather_routes(cfg: &mut web::ServiceConfig) {
+    crate::interfaces::http::configure_weather_routes(cfg);
 }
