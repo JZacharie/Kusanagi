@@ -17,6 +17,7 @@ pub fn setup_logging() {
         .init();
 }
 
+#[allow(clippy::type_complexity)]
 pub fn setup_caches() -> (
     Arc<crate::AdvancedCache<String>>,
     Arc<crate::AdvancedCache<String>>,

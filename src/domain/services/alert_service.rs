@@ -46,6 +46,7 @@ impl AlertDomainService {
     }
 
     /// Build an Alert from raw data
+    #[allow(clippy::too_many_arguments)]
     pub fn build_alert(
         &self,
         name: String,

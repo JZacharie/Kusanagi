@@ -65,8 +65,12 @@ pub struct Alert {
 }
 
 /// Grouped alerts response
+<<<<<<< HEAD
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[derive(Default)]
+=======
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+>>>>>>> ffcad85 (refactor: derive `Default` for `AlertsResponse` and input structs, add `legacy::alertmanager` module, and include clippy suppressions.)
 pub struct AlertsResponse {
     pub critical: Vec<Alert>,
     pub warning: Vec<Alert>,
@@ -76,7 +80,10 @@ pub struct AlertsResponse {
     pub pending: i32,
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ffcad85 (refactor: derive `Default` for `AlertsResponse` and input structs, add `legacy::alertmanager` module, and include clippy suppressions.)
 // ==================== Backup Entities ====================
 
 /// Backups response for the API
