@@ -26,13 +26,20 @@ impl ClusterUseCase {
 // ==================== Weather Use Cases ====================
 
 /// Input data for weather queries
+<<<<<<< HEAD
 #[derive(Debug, Clone)]
 #[derive(Default)]
+=======
+#[derive(Debug, Clone, Default)]
+>>>>>>> ffcad85 (refactor: derive `Default` for `AlertsResponse` and input structs, add `legacy::alertmanager` module, and include clippy suppressions.)
 pub struct GetWeatherInput {
     pub force_refresh: bool,
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ffcad85 (refactor: derive `Default` for `AlertsResponse` and input structs, add `legacy::alertmanager` module, and include clippy suppressions.)
 /// Use case for retrieving weather information
 pub struct GetWeatherUseCase {
     repository: Arc<dyn WeatherRepository>,
@@ -62,13 +69,20 @@ use crate::domain::entities::AlertsResponse;
 use crate::domain::ports::AlertRepository;
 
 /// Input data for alert queries
+<<<<<<< HEAD
 #[derive(Debug, Clone)]
 #[derive(Default)]
+=======
+#[derive(Debug, Clone, Default)]
+>>>>>>> ffcad85 (refactor: derive `Default` for `AlertsResponse` and input structs, add `legacy::alertmanager` module, and include clippy suppressions.)
 pub struct GetAlertsInput {
     pub force_refresh: bool,
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ffcad85 (refactor: derive `Default` for `AlertsResponse` and input structs, add `legacy::alertmanager` module, and include clippy suppressions.)
 /// Use case for retrieving alerts
 pub struct GetAlertsUseCase {
     repository: Arc<dyn AlertRepository>,
@@ -177,13 +191,20 @@ use crate::domain::entities::{HomeAssistantDevicesResponse, HomeAssistantSensors
 use crate::domain::ports::HomeAssistantRepository;
 
 /// Input data for HomeAssistant queries
+<<<<<<< HEAD
 #[derive(Debug, Clone)]
 #[derive(Default)]
+=======
+#[derive(Debug, Clone, Default)]
+>>>>>>> ffcad85 (refactor: derive `Default` for `AlertsResponse` and input structs, add `legacy::alertmanager` module, and include clippy suppressions.)
 pub struct GetHomeAssistantInput {
     pub force_refresh: bool,
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ffcad85 (refactor: derive `Default` for `AlertsResponse` and input structs, add `legacy::alertmanager` module, and include clippy suppressions.)
 /// Use case for retrieving HomeAssistant information
 pub struct GetHomeAssistantUseCase {
     repository: Arc<dyn HomeAssistantRepository>,

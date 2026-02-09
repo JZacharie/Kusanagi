@@ -7,6 +7,7 @@
 // - 'security' -> Use crate::interfaces::http::security_handlers
 // - 'homeassistant' -> Use crate::interfaces::http::homeassistant_handlers
 
+pub mod alertmanager;
 pub mod argocd;
 pub mod cluster;
 pub mod events;
