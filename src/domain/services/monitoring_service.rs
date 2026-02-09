@@ -1,6 +1,9 @@
 use k8s_openapi::api::batch::v1::{CronJob, Job};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::OwnerReference;
-use kube::{api::{ListParams, PostParams}, Api, Client};
+use kube::{
+    api::{ListParams, PostParams},
+    Api, Client,
+};
 use serde_json::{json, Value};
 use tokio::process::Command;
 
@@ -129,12 +132,16 @@ pub async fn get_backups() -> Result<Value, String> {
         .map_err(|e| e.to_string())?;
 
     // Map Jobs by OwnerReference (UID)
-    let mut jobs_by_owner: std::collections::HashMap<String, Vec<Job>> = std::collections::HashMap::new();
+    let mut jobs_by_owner: std::collections::HashMap<String, Vec<Job>> =
+        std::collections::HashMap::new();
     for job in jobs_list {
         if let Some(owners) = &job.metadata.owner_references {
             for owner in owners {
                 if owner.kind == "CronJob" {
-                    jobs_by_owner.entry(owner.uid.clone()).or_default().push(job.clone());
+                    jobs_by_owner
+                        .entry(owner.uid.clone())
+                        .or_default()
+                        .push(job.clone());
                 }
             }
         }
@@ -204,7 +211,7 @@ pub async fn get_backups() -> Result<Value, String> {
                      } else {
                          "Unknown"
                      };
-                     
+
                      recent_jobs_json.push(json!({
                          "name": job.metadata.name.clone().unwrap_or_default(),
                          "status": status,
@@ -248,9 +255,14 @@ pub async fn trigger_cronjob(namespace: &str, cronjob_name: &str) -> Result<Stri
     let jobs: Api<Job> = Api::namespaced(client, namespace);
 
     // Get CronJob to fetch spec
-    let cronjob = cronjobs.get(cronjob_name).await.map_err(|e| format!("Failed to get CronJob: {}", e))?;
-    
-    let job_template = cronjob.spec.as_ref()
+    let cronjob = cronjobs
+        .get(cronjob_name)
+        .await
+        .map_err(|e| format!("Failed to get CronJob: {}", e))?;
+
+    let job_template = cronjob
+        .spec
+        .as_ref()
         .and_then(|s| s.job_template.spec.as_ref())
         .ok_or("CronJob has no job template spec")?;
 
@@ -265,22 +277,22 @@ pub async fn trigger_cronjob(namespace: &str, cronjob_name: &str) -> Result<Stri
         spec: Some(job_template.clone()),
         ..Default::default()
     };
-    
+
     // Add owner reference so it shows up in the list
     if let Some(uid) = cronjob.metadata.uid {
-        job.metadata.owner_references = Some(vec![
-            OwnerReference {
-                api_version: "batch/v1".to_string(),
-                kind: "CronJob".to_string(),
-                name: cronjob_name.to_string(),
-                uid: uid,
-                controller: Some(true),
-                block_owner_deletion: Some(true),
-            }
-        ]);
+        job.metadata.owner_references = Some(vec![OwnerReference {
+            api_version: "batch/v1".to_string(),
+            kind: "CronJob".to_string(),
+            name: cronjob_name.to_string(),
+            uid: uid,
+            controller: Some(true),
+            block_owner_deletion: Some(true),
+        }]);
     }
 
-    jobs.create(&PostParams::default(), &job).await.map_err(|e| format!("Failed to create Job: {}", e))?;
+    jobs.create(&PostParams::default(), &job)
+        .await
+        .map_err(|e| format!("Failed to create Job: {}", e))?;
 
     Ok(format!("Job {} created", job_name))
 }

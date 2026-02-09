@@ -39,9 +39,8 @@ pub struct WeatherClient {
 
 impl WeatherClient {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let api_key = env::var("OPENWEATHER_API_KEY")
-            .unwrap_or_else(|_| "".to_string());
-        
+        let api_key = env::var("OPENWEATHER_API_KEY").unwrap_or_else(|_| "".to_string());
+
         if api_key.is_empty() {
             warn!("OPENWEATHER_API_KEY not set, using mock weather data");
         }
@@ -50,13 +49,12 @@ impl WeatherClient {
             .timeout(std::time::Duration::from_secs(5))
             .build()?;
 
-        Ok(Self {
-            api_key,
-            client,
-        })
+        Ok(Self { api_key, client })
     }
 
-    pub async fn get_multi_city_weather(&self) -> Result<WeatherResponse, Box<dyn std::error::Error>> {
+    pub async fn get_multi_city_weather(
+        &self,
+    ) -> Result<WeatherResponse, Box<dyn std::error::Error>> {
         let cities = vec!["Lyon", "Mexico City", "New York"];
         let mut results = Vec::new();
 
@@ -66,7 +64,10 @@ impl WeatherClient {
                 match self.fetch_fallback_weather(city).await {
                     Ok(info) => results.push(info),
                     Err(e) => {
-                        warn!("wttr.in fallback failed for {}: {}, using final mock fallback", city, e);
+                        warn!(
+                            "wttr.in fallback failed for {}: {}, using final mock fallback",
+                            city, e
+                        );
                         results.push(self.get_mock_city_weather(city));
                     }
                 }
@@ -94,18 +95,33 @@ impl WeatherClient {
         })
     }
 
-    async fn fetch_city_weather(&self, city: &str) -> Result<WeatherInfo, Box<dyn std::error::Error>> {
+    async fn fetch_city_weather(
+        &self,
+        city: &str,
+    ) -> Result<WeatherInfo, Box<dyn std::error::Error>> {
         // Current weather
         let url = format!(
             "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}&units=metric",
             city, self.api_key
         );
         debug!("Fetching current weather for {} from URL: {}", city, url);
-        let resp = self.client.get(&url).send().await?.json::<serde_json::Value>().await?;
+        let resp = self
+            .client
+            .get(&url)
+            .send()
+            .await?
+            .json::<serde_json::Value>()
+            .await?;
 
         let temp = resp["main"]["temp"].as_f64().unwrap_or(0.0) as f32;
-        let description = resp["weather"][0]["description"].as_str().unwrap_or("unknown").to_string();
-        let icon_code = resp["weather"][0]["icon"].as_str().unwrap_or("01d").to_string();
+        let description = resp["weather"][0]["description"]
+            .as_str()
+            .unwrap_or("unknown")
+            .to_string();
+        let icon_code = resp["weather"][0]["icon"]
+            .as_str()
+            .unwrap_or("01d")
+            .to_string();
         let humidity = resp["main"]["humidity"].as_u64().unwrap_or(0) as u8;
         let wind_speed = resp["wind"]["speed"].as_f64().unwrap_or(0.0) as f32;
         let feels_like = resp["main"]["feels_like"].as_f64().unwrap_or(temp as f64) as f32;
@@ -117,8 +133,14 @@ impl WeatherClient {
             "https://api.openweathermap.org/data/2.5/forecast?q={}&appid={}&units=metric",
             city, self.api_key
         );
-        let forecast_resp = self.client.get(&forecast_url).send().await?.json::<serde_json::Value>().await?;
-        
+        let forecast_resp = self
+            .client
+            .get(&forecast_url)
+            .send()
+            .await?
+            .json::<serde_json::Value>()
+            .await?;
+
         let mut forecast = Vec::new();
         if let Some(list) = forecast_resp["list"].as_array() {
             // Pick one entry per day (roughly mid-day)
@@ -126,8 +148,14 @@ impl WeatherClient {
                 forecast.push(ForecastDay {
                     date: item["dt_txt"].as_str().unwrap_or("").to_string(),
                     temp: item["main"]["temp"].as_f64().unwrap_or(0.0) as f32,
-                    description: item["weather"][0]["description"].as_str().unwrap_or("").to_string(),
-                    icon: item["weather"][0]["icon"].as_str().unwrap_or("01d").to_string(),
+                    description: item["weather"][0]["description"]
+                        .as_str()
+                        .unwrap_or("")
+                        .to_string(),
+                    icon: item["weather"][0]["icon"]
+                        .as_str()
+                        .unwrap_or("01d")
+                        .to_string(),
                 });
             }
         }
@@ -147,18 +175,55 @@ impl WeatherClient {
         })
     }
 
-    async fn fetch_fallback_weather(&self, city: &str) -> Result<WeatherInfo, Box<dyn std::error::Error>> {
+    async fn fetch_fallback_weather(
+        &self,
+        city: &str,
+    ) -> Result<WeatherInfo, Box<dyn std::error::Error>> {
         let url = format!("https://wttr.in/{}?format=j1", city);
-        let resp = self.client.get(&url).send().await?.json::<serde_json::Value>().await?;
+        let resp = self
+            .client
+            .get(&url)
+            .send()
+            .await?
+            .json::<serde_json::Value>()
+            .await?;
 
         let current = &resp["current_condition"][0];
-        let temp = current["temp_C"].as_str().unwrap_or("0").parse::<f32>().unwrap_or(0.0);
-        let description = current["weatherDesc"][0]["value"].as_str().unwrap_or("unknown").to_string();
-        let humidity = current["humidity"].as_str().unwrap_or("0").parse::<u8>().unwrap_or(0);
-        let wind_speed = current["windspeedKmph"].as_str().unwrap_or("0").parse::<f32>().unwrap_or(0.0);
-        let feels_like = current["FeelsLikeC"].as_str().unwrap_or("0").parse::<f32>().unwrap_or(temp);
-        let pressure = current["pressure"].as_str().unwrap_or("1013").parse::<u32>().unwrap_or(1013);
-        let visibility = current["visibility"].as_str().unwrap_or("10").parse::<u32>().unwrap_or(10) * 1000;
+        let temp = current["temp_C"]
+            .as_str()
+            .unwrap_or("0")
+            .parse::<f32>()
+            .unwrap_or(0.0);
+        let description = current["weatherDesc"][0]["value"]
+            .as_str()
+            .unwrap_or("unknown")
+            .to_string();
+        let humidity = current["humidity"]
+            .as_str()
+            .unwrap_or("0")
+            .parse::<u8>()
+            .unwrap_or(0);
+        let wind_speed = current["windspeedKmph"]
+            .as_str()
+            .unwrap_or("0")
+            .parse::<f32>()
+            .unwrap_or(0.0);
+        let feels_like = current["FeelsLikeC"]
+            .as_str()
+            .unwrap_or("0")
+            .parse::<f32>()
+            .unwrap_or(temp);
+        let pressure = current["pressure"]
+            .as_str()
+            .unwrap_or("1013")
+            .parse::<u32>()
+            .unwrap_or(1013);
+        let visibility = current["visibility"]
+            .as_str()
+            .unwrap_or("10")
+            .parse::<u32>()
+            .unwrap_or(10)
+            * 1000;
 
         // Simple icon mapping for wttr.in condition codes or text
         let icon_code = match description.to_lowercase().as_str() {
@@ -178,8 +243,15 @@ impl WeatherClient {
                 let hourly = &day["hourly"][4]; // Mid-day roughly
                 forecast.push(ForecastDay {
                     date,
-                    temp: day["avgtempC"].as_str().unwrap_or("0").parse::<f32>().unwrap_or(0.0),
-                    description: hourly["weatherDesc"][0]["value"].as_str().unwrap_or("").to_string(),
+                    temp: day["avgtempC"]
+                        .as_str()
+                        .unwrap_or("0")
+                        .parse::<f32>()
+                        .unwrap_or(0.0),
+                    description: hourly["weatherDesc"][0]["value"]
+                        .as_str()
+                        .unwrap_or("")
+                        .to_string(),
                     icon: "03d".to_string(), // Default icon for forecast in fallback
                 });
             }
@@ -213,7 +285,7 @@ impl WeatherClient {
             let forecast_date = (chrono::Local::now() + chrono::Duration::days(i))
                 .format("%Y-%m-%d 12:00:00")
                 .to_string();
-            
+
             let (f_temp, f_desc, f_icon) = match i {
                 1 => (temp + 2.0, "Partly Cloudy", "02d"),
                 2 => (temp + 1.0, "Cloudy", "03d"),
@@ -253,19 +325,18 @@ pub async fn get_weather_handler() -> Result<HttpResponse> {
             Ok(weather) => Ok(HttpResponse::Ok().json(weather)),
             Err(e) => {
                 error!("Weather error: {}", e);
-                Ok(HttpResponse::InternalServerError().json(serde_json::json!({"error": e.to_string()})))
+                Ok(HttpResponse::InternalServerError()
+                    .json(serde_json::json!({"error": e.to_string()})))
             }
         },
         Err(e) => {
             error!("Failed to create weather client: {}", e);
-            Ok(HttpResponse::InternalServerError().json(serde_json::json!({"error": e.to_string()})))
+            Ok(HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": e.to_string()})))
         }
     }
 }
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/weather")
-            .route("/current", web::get().to(get_weather_handler)),
-    );
+    cfg.service(web::scope("/api/weather").route("/current", web::get().to(get_weather_handler)));
 }
