@@ -1,9 +1,12 @@
 // Legacy module - Extended working version
 // 
-// NOTE: The 'weather' module has been refactored to hexagonal architecture.
-// Use crate::interfaces::http::weather_handlers instead.
+// NOTE: The following modules have been refactored to hexagonal architecture:
+// - 'weather' -> Use crate::interfaces::http::weather_handlers
+// - 'alertmanager' -> Use crate::interfaces::http::alert_handlers
+// - 'backups' -> Use crate::interfaces::http::backup_handlers
+// - 'security' -> Use crate::interfaces::http::security_handlers
+// - 'homeassistant' -> Use crate::interfaces::http::homeassistant_handlers
 
-pub mod alertmanager;
 pub mod argocd;
 pub mod cluster;
 pub mod events;
@@ -16,7 +19,6 @@ pub mod services;
 pub mod storage;
 
 // Re-exports
-pub use alertmanager::*;
 pub use argocd::*;
 pub use cluster::*;
 pub use events::*;
