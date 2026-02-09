@@ -31,8 +31,8 @@ struct AlertGroup {
 
 /// Parse alert payload from Alertmanager
 fn parse_alert_payload(json: &str) -> Result<Vec<Alert>, String> {
-    let alerts: Vec<Alert> = serde_json::from_str(json)
-        .map_err(|e| format!("Failed to parse alerts: {}", e))?;
+    let alerts: Vec<Alert> =
+        serde_json::from_str(json).map_err(|e| format!("Failed to parse alerts: {}", e))?;
     Ok(alerts)
 }
 
@@ -40,7 +40,12 @@ fn parse_alert_payload(json: &str) -> Result<Vec<Alert>, String> {
 fn filter_alerts_by_severity(alerts: &[Alert], severity: &str) -> Vec<Alert> {
     alerts
         .iter()
-        .filter(|a| a.labels.get("severity").map(|s| s == severity).unwrap_or(false))
+        .filter(|a| {
+            a.labels
+                .get("severity")
+                .map(|s| s == severity)
+                .unwrap_or(false)
+        })
         .cloned()
         .collect()
 }
@@ -48,34 +53,45 @@ fn filter_alerts_by_severity(alerts: &[Alert], severity: &str) -> Vec<Alert> {
 /// Group alerts by label
 fn group_alerts_by_label(alerts: &[Alert], label: &str) -> HashMap<String, Vec<Alert>> {
     let mut groups: HashMap<String, Vec<Alert>> = HashMap::new();
-    
+
     for alert in alerts {
         if let Some(value) = alert.labels.get(label) {
             groups.entry(value.clone()).or_default().push(alert.clone());
         }
     }
-    
+
     groups
 }
 
 /// Get active alerts count
 fn get_active_alerts_count(alerts: &[Alert]) -> usize {
-    alerts.iter().filter(|a| a.status == AlertStatus::Firing).count()
+    alerts
+        .iter()
+        .filter(|a| a.status == AlertStatus::Firing)
+        .count()
 }
 
 /// Format alert for display
 fn format_alert_summary(alert: &Alert) -> String {
     let alertname = alert.labels.get("alertname").cloned().unwrap_or_default();
     let severity = alert.labels.get("severity").cloned().unwrap_or_default();
-    let summary = alert.annotations.get("summary").cloned().unwrap_or_default();
-    
+    let summary = alert
+        .annotations
+        .get("summary")
+        .cloned()
+        .unwrap_or_default();
+
     format!("[{}] {}: {}", severity.to_uppercase(), alertname, summary)
 }
 
 /// Check if alert is silenced
 fn is_silenced(alert: &Alert, silenced_alerts: &[String]) -> bool {
     silenced_alerts.iter().any(|fingerprint| {
-        alert.labels.get("alertname").map(|n| n.contains(fingerprint)).unwrap_or(false)
+        alert
+            .labels
+            .get("alertname")
+            .map(|n| n.contains(fingerprint))
+            .unwrap_or(false)
     })
 }
 
@@ -84,11 +100,11 @@ fn get_alerts_health_score(alerts: &[Alert]) -> u8 {
     if alerts.is_empty() {
         return 100;
     }
-    
+
     let critical_count = filter_alerts_by_severity(alerts, "critical").len();
     let warning_count = filter_alerts_by_severity(alerts, "warning").len();
     let total = alerts.len();
-    
+
     // Critical alerts reduce score more than warnings
     let score = 100 - (critical_count * 30 + warning_count * 10) / total.max(1);
     score.max(0) as u8
@@ -118,7 +134,10 @@ fn test_parse_alert_payload_valid() {
 
     let alerts = parse_alert_payload(json).unwrap();
     assert_eq!(alerts.len(), 1);
-    assert_eq!(alerts[0].labels.get("alertname").unwrap(), "HighMemoryUsage");
+    assert_eq!(
+        alerts[0].labels.get("alertname").unwrap(),
+        "HighMemoryUsage"
+    );
     assert_eq!(alerts[0].status, AlertStatus::Firing);
 }
 
@@ -140,7 +159,9 @@ fn test_filter_alerts_by_severity() {
 
     let critical = filter_alerts_by_severity(&alerts, "critical");
     assert_eq!(critical.len(), 2);
-    assert!(critical.iter().all(|a| a.labels.get("severity").unwrap() == "critical"));
+    assert!(critical
+        .iter()
+        .all(|a| a.labels.get("severity").unwrap() == "critical"));
 
     let warning = filter_alerts_by_severity(&alerts, "warning");
     assert_eq!(warning.len(), 1);
@@ -162,7 +183,7 @@ fn test_group_alerts_by_label() {
     ];
 
     let grouped = group_alerts_by_label(&alerts, "severity");
-    
+
     assert_eq!(grouped.len(), 2);
     assert_eq!(grouped.get("critical").unwrap().len(), 2);
     assert_eq!(grouped.get("warning").unwrap().len(), 1);
@@ -176,7 +197,7 @@ fn test_group_alerts_by_label_missing() {
     ];
 
     let grouped = group_alerts_by_label(&alerts, "severity");
-    
+
     assert_eq!(grouped.len(), 1); // Only alerts with the label are grouped
     assert_eq!(grouped.get("critical").unwrap().len(), 1);
 }
@@ -184,10 +205,34 @@ fn test_group_alerts_by_label_missing() {
 #[test]
 fn test_get_active_alerts_count() {
     let alerts = vec![
-        Alert { labels: HashMap::new(), annotations: HashMap::new(), starts_at: "2024-01-01".to_string(), ends_at: None, status: AlertStatus::Firing },
-        Alert { labels: HashMap::new(), annotations: HashMap::new(), starts_at: "2024-01-01".to_string(), ends_at: None, status: AlertStatus::Firing },
-        Alert { labels: HashMap::new(), annotations: HashMap::new(), starts_at: "2024-01-01".to_string(), ends_at: None, status: AlertStatus::Resolved },
-        Alert { labels: HashMap::new(), annotations: HashMap::new(), starts_at: "2024-01-01".to_string(), ends_at: None, status: AlertStatus::Pending },
+        Alert {
+            labels: HashMap::new(),
+            annotations: HashMap::new(),
+            starts_at: "2024-01-01".to_string(),
+            ends_at: None,
+            status: AlertStatus::Firing,
+        },
+        Alert {
+            labels: HashMap::new(),
+            annotations: HashMap::new(),
+            starts_at: "2024-01-01".to_string(),
+            ends_at: None,
+            status: AlertStatus::Firing,
+        },
+        Alert {
+            labels: HashMap::new(),
+            annotations: HashMap::new(),
+            starts_at: "2024-01-01".to_string(),
+            ends_at: None,
+            status: AlertStatus::Resolved,
+        },
+        Alert {
+            labels: HashMap::new(),
+            annotations: HashMap::new(),
+            starts_at: "2024-01-01".to_string(),
+            ends_at: None,
+            status: AlertStatus::Pending,
+        },
     ];
 
     assert_eq!(get_active_alerts_count(&alerts), 2);
@@ -260,7 +305,7 @@ fn test_get_alerts_health_score_good() {
         create_alert("Alert1", "warning"),
         create_alert("Alert2", "info"),
     ];
-    
+
     let score = get_alerts_health_score(&alerts);
     assert!(score > 50);
 }
@@ -278,7 +323,7 @@ fn test_get_alerts_health_score_bad() {
         create_alert("Alert4", "warning"),
         create_alert("Alert5", "info"),
     ];
-    
+
     let score = get_alerts_health_score(&alerts);
     // (3 * 30 + 1 * 10) / 5 = 100 / 5 = 20 => score = 80... still not < 50
     // Actually the formula is: score = 100 - penalty/total
@@ -314,7 +359,7 @@ fn create_alert_with_label(name: &str, label: &str, value: &str) -> Alert {
     let mut labels = HashMap::new();
     labels.insert("alertname".to_string(), name.to_string());
     labels.insert(label.to_string(), value.to_string());
-    
+
     Alert {
         labels,
         annotations: HashMap::new(),
@@ -328,7 +373,7 @@ fn create_alert_without_label(name: &str, _label: &str) -> Alert {
     let mut labels = HashMap::new();
     labels.insert("alertname".to_string(), name.to_string());
     // Intentionally not adding the specified label
-    
+
     Alert {
         labels,
         annotations: HashMap::new(),

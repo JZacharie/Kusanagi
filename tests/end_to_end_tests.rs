@@ -137,10 +137,14 @@ impl MockApplication {
             ("GET", "/api/pods") => self.get_pods().await,
             ("GET", "/api/nodes") => self.get_nodes().await,
             ("GET", "/api/services") => self.get_services().await,
-            ("GET", path) if path.starts_with("/api/pods/") => self.get_pod_detail(&path[10..]).await,
+            ("GET", path) if path.starts_with("/api/pods/") => {
+                self.get_pod_detail(&path[10..]).await
+            }
             ("GET", "/api/cluster/summary") => self.get_cluster_summary().await,
             ("POST", "/api/pods") => self.create_pod(&request.body).await,
-            ("DELETE", path) if path.starts_with("/api/pods/") => self.delete_pod(&path[10..]).await,
+            ("DELETE", path) if path.starts_with("/api/pods/") => {
+                self.delete_pod(&path[10..]).await
+            }
             _ => HttpResponse::not_found(),
         }
     }
@@ -152,19 +156,31 @@ impl MockApplication {
     async fn get_pods(&self) -> HttpResponse {
         let pods = self.pods.lock().await;
         let pod_list: Vec<String> = pods.iter().map(|p| p.name.clone()).collect();
-        HttpResponse::ok(&format!(r#"{{"pods": {:?}, "count": {}}}"#, pod_list, pods.len()))
+        HttpResponse::ok(&format!(
+            r#"{{"pods": {:?}, "count": {}}}"#,
+            pod_list,
+            pods.len()
+        ))
     }
 
     async fn get_nodes(&self) -> HttpResponse {
         let nodes = self.nodes.lock().await;
         let node_list: Vec<String> = nodes.iter().map(|n| n.name.clone()).collect();
-        HttpResponse::ok(&format!(r#"{{"nodes": {:?}, "count": {}}}"#, node_list, nodes.len()))
+        HttpResponse::ok(&format!(
+            r#"{{"nodes": {:?}, "count": {}}}"#,
+            node_list,
+            nodes.len()
+        ))
     }
 
     async fn get_services(&self) -> HttpResponse {
         let services = self.services.lock().await;
         let service_list: Vec<String> = services.iter().map(|s| s.name.clone()).collect();
-        HttpResponse::ok(&format!(r#"{{"services": {:?}, "count": {}}}"#, service_list, services.len()))
+        HttpResponse::ok(&format!(
+            r#"{{"services": {:?}, "count": {}}}"#,
+            service_list,
+            services.len()
+        ))
     }
 
     async fn get_pod_detail(&self, name: &str) -> HttpResponse {
@@ -270,7 +286,7 @@ async fn test_e2e_get_pods_empty() {
 #[tokio::test]
 async fn test_e2e_get_pods_with_data() {
     let app = MockApplication::new();
-    
+
     app.add_pod("pod-1", "default", "Running").await;
     app.add_pod("pod-2", "default", "Running").await;
 
@@ -286,7 +302,7 @@ async fn test_e2e_get_pods_with_data() {
 #[tokio::test]
 async fn test_e2e_get_pod_detail_found() {
     let app = MockApplication::new();
-    
+
     app.add_pod("test-pod", "default", "Running").await;
 
     let request = HttpRequest::get("/api/pods/test-pod");
@@ -362,7 +378,7 @@ async fn test_e2e_delete_pod_not_found() {
 #[tokio::test]
 async fn test_e2e_cluster_summary() {
     let app = MockApplication::new();
-    
+
     app.add_pod("pod-1", "default", "Running").await;
     app.add_pod("pod-2", "default", "Running").await;
     app.add_node("node-1", "Ready").await;
@@ -395,7 +411,12 @@ async fn test_e2e_complete_workflow() {
     assert!(response.body.contains("\"count\": 0"));
 
     // 2. Create a pod
-    let response = app.handle_request(HttpRequest::post("/api/pods", r#"{"name": "web-app", "namespace": "production"}"#)).await;
+    let response = app
+        .handle_request(HttpRequest::post(
+            "/api/pods",
+            r#"{"name": "web-app", "namespace": "production"}"#,
+        ))
+        .await;
     assert!(response.is_success());
 
     // 3. Verify pod exists
@@ -404,7 +425,9 @@ async fn test_e2e_complete_workflow() {
     assert!(response.body.contains("\"count\": 1"));
 
     // 4. Get specific pod details
-    let response = app.handle_request(HttpRequest::get("/api/pods/web-app")).await;
+    let response = app
+        .handle_request(HttpRequest::get("/api/pods/web-app"))
+        .await;
     assert!(response.is_success());
     assert!(response.body.contains("production"));
 
@@ -419,7 +442,9 @@ async fn test_e2e_complete_workflow() {
     assert!(response.is_success());
 
     // 6. Verify pod is gone
-    let response = app.handle_request(HttpRequest::get("/api/pods/web-app")).await;
+    let response = app
+        .handle_request(HttpRequest::get("/api/pods/web-app"))
+        .await;
     assert_eq!(response.status, 404);
 }
 
@@ -433,7 +458,8 @@ async fn test_e2e_performance_many_pods() {
 
     // Add 1000 pods
     for i in 0..1000 {
-        app.add_pod(&format!("pod-{}", i), "default", "Running").await;
+        app.add_pod(&format!("pod-{}", i), "default", "Running")
+            .await;
     }
 
     let start = std::time::Instant::now();
@@ -456,7 +482,9 @@ async fn test_e2e_concurrent_requests() {
     for _ in 0..10 {
         let app_clone = Arc::clone(&app);
         let handle = tokio::spawn(async move {
-            app_clone.handle_request(HttpRequest::get("/api/pods")).await
+            app_clone
+                .handle_request(HttpRequest::get("/api/pods"))
+                .await
         });
         handles.push(handle);
     }

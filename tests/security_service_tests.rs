@@ -147,7 +147,10 @@ impl SecurityService {
         critical
     }
 
-    async fn get_vulnerabilities_by_severity(&self, severity: Severity) -> Vec<VulnerabilityWithImage> {
+    async fn get_vulnerabilities_by_severity(
+        &self,
+        severity: Severity,
+    ) -> Vec<VulnerabilityWithImage> {
         let reports = self.repository.list_reports().await;
         let mut result = vec![];
 
@@ -172,7 +175,7 @@ impl SecurityService {
             .into_iter()
             .filter(|v| v.fixed_version.is_some())
             .collect();
-        
+
         if fixable.is_empty() {
             None
         } else {
@@ -184,7 +187,11 @@ impl SecurityService {
         let reports = self.repository.list_reports().await;
         reports
             .into_iter()
-            .filter(|r| r.vulnerabilities.iter().any(|v| v.severity == Severity::Critical))
+            .filter(|r| {
+                r.vulnerabilities
+                    .iter()
+                    .any(|v| v.severity == Severity::Critical)
+            })
             .map(|r| r.image)
             .collect()
     }
@@ -311,7 +318,8 @@ async fn test_get_critical_vulnerabilities() {
             },
         ],
         scanned_at: "2024-01-01".to_string(),
-    }).await;
+    })
+    .await;
 
     let service = SecurityService::new(repo);
     let critical = service.get_critical_vulnerabilities().await;
@@ -346,10 +354,13 @@ async fn test_get_vulnerabilities_by_severity() {
             },
         ],
         scanned_at: "2024-01-01".to_string(),
-    }).await;
+    })
+    .await;
 
     let service = SecurityService::new(repo);
-    let high_vulns = service.get_vulnerabilities_by_severity(Severity::High).await;
+    let high_vulns = service
+        .get_vulnerabilities_by_severity(Severity::High)
+        .await;
 
     assert_eq!(high_vulns.len(), 2);
 }
@@ -379,7 +390,8 @@ async fn test_has_fixable_vulnerabilities() {
             },
         ],
         scanned_at: "2024-01-01".to_string(),
-    }).await;
+    })
+    .await;
 
     let service = SecurityService::new(repo);
     let fixable = service.has_fixable_vulnerabilities("fixable-app:v1").await;
@@ -394,18 +406,17 @@ async fn test_has_fixable_vulnerabilities_none() {
 
     repo.save_report(SecurityReport {
         image: "no-fix-app:v1".to_string(),
-        vulnerabilities: vec![
-            Vulnerability {
-                id: "CVE-2023-0001".to_string(),
-                severity: Severity::High,
-                package_name: "pkg".to_string(),
-                installed_version: "1.0".to_string(),
-                fixed_version: None,
-                description: "No fix available".to_string(),
-            },
-        ],
+        vulnerabilities: vec![Vulnerability {
+            id: "CVE-2023-0001".to_string(),
+            severity: Severity::High,
+            package_name: "pkg".to_string(),
+            installed_version: "1.0".to_string(),
+            fixed_version: None,
+            description: "No fix available".to_string(),
+        }],
         scanned_at: "2024-01-01".to_string(),
-    }).await;
+    })
+    .await;
 
     let service = SecurityService::new(repo);
     let fixable = service.has_fixable_vulnerabilities("no-fix-app:v1").await;
@@ -419,33 +430,31 @@ async fn test_get_images_with_critical_vulns() {
 
     repo.save_report(SecurityReport {
         image: "critical-app:v1".to_string(),
-        vulnerabilities: vec![
-            Vulnerability {
-                id: "CVE-2023-0001".to_string(),
-                severity: Severity::Critical,
-                package_name: "openssl".to_string(),
-                installed_version: "1.0".to_string(),
-                fixed_version: None,
-                description: "Critical".to_string(),
-            },
-        ],
+        vulnerabilities: vec![Vulnerability {
+            id: "CVE-2023-0001".to_string(),
+            severity: Severity::Critical,
+            package_name: "openssl".to_string(),
+            installed_version: "1.0".to_string(),
+            fixed_version: None,
+            description: "Critical".to_string(),
+        }],
         scanned_at: "2024-01-01".to_string(),
-    }).await;
+    })
+    .await;
 
     repo.save_report(SecurityReport {
         image: "safe-app:v1".to_string(),
-        vulnerabilities: vec![
-            Vulnerability {
-                id: "CVE-2023-0002".to_string(),
-                severity: Severity::Low,
-                package_name: "pkg".to_string(),
-                installed_version: "1.0".to_string(),
-                fixed_version: None,
-                description: "Low".to_string(),
-            },
-        ],
+        vulnerabilities: vec![Vulnerability {
+            id: "CVE-2023-0002".to_string(),
+            severity: Severity::Low,
+            package_name: "pkg".to_string(),
+            installed_version: "1.0".to_string(),
+            fixed_version: None,
+            description: "Low".to_string(),
+        }],
         scanned_at: "2024-01-01".to_string(),
-    }).await;
+    })
+    .await;
 
     let service = SecurityService::new(repo);
     let images = service.get_images_with_critical_vulns().await;
@@ -461,18 +470,17 @@ async fn test_multiple_reports_summary() {
     // Report 1
     repo.save_report(SecurityReport {
         image: "app1:v1".to_string(),
-        vulnerabilities: vec![
-            Vulnerability {
-                id: "CVE-2023-0001".to_string(),
-                severity: Severity::Critical,
-                package_name: "pkg".to_string(),
-                installed_version: "1.0".to_string(),
-                fixed_version: None,
-                description: "Critical".to_string(),
-            },
-        ],
+        vulnerabilities: vec![Vulnerability {
+            id: "CVE-2023-0001".to_string(),
+            severity: Severity::Critical,
+            package_name: "pkg".to_string(),
+            installed_version: "1.0".to_string(),
+            fixed_version: None,
+            description: "Critical".to_string(),
+        }],
         scanned_at: "2024-01-01".to_string(),
-    }).await;
+    })
+    .await;
 
     // Report 2
     repo.save_report(SecurityReport {
@@ -496,7 +504,8 @@ async fn test_multiple_reports_summary() {
             },
         ],
         scanned_at: "2024-01-01".to_string(),
-    }).await;
+    })
+    .await;
 
     let service = SecurityService::new(repo);
     let summary = service.get_vulnerability_summary().await;

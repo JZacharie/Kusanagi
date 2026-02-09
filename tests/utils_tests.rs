@@ -1,6 +1,6 @@
 //! Tests for utility functions
 
-use chrono::{DateTime, Utc, Duration};
+use chrono::{DateTime, Duration, Utc};
 
 /// Calculate age from timestamp
 fn calculate_age_from_timestamp(timestamp: &DateTime<Utc>) -> String {
@@ -21,7 +21,7 @@ fn calculate_age_from_timestamp(timestamp: &DateTime<Utc>) -> String {
 /// Format bytes to human readable string
 fn format_bytes(bytes: u64) -> String {
     const UNITS: &[&str] = &["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
-    
+
     if bytes == 0 {
         return "0 B".to_string();
     }
@@ -39,7 +39,7 @@ fn format_bytes(bytes: u64) -> String {
 /// Parse memory string to bytes
 fn parse_memory_to_bytes(memory: &str) -> Result<u64, String> {
     let memory = memory.trim().to_uppercase();
-    
+
     if memory.ends_with("GI") || memory.ends_with("GIB") {
         let num: f64 = memory
             .trim_end_matches("GIB")
@@ -148,7 +148,10 @@ fn test_format_bytes_tib() {
 #[test]
 fn test_parse_memory_to_bytes_gib() {
     assert_eq!(parse_memory_to_bytes("1Gi").unwrap(), 1024 * 1024 * 1024);
-    assert_eq!(parse_memory_to_bytes("2GiB").unwrap(), 2 * 1024 * 1024 * 1024);
+    assert_eq!(
+        parse_memory_to_bytes("2GiB").unwrap(),
+        2 * 1024 * 1024 * 1024
+    );
     assert_eq!(parse_memory_to_bytes("0.5 Gi").unwrap(), 512 * 1024 * 1024);
 }
 

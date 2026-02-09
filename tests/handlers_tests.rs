@@ -144,7 +144,11 @@ impl PodsHandler for MockPodsHandler {
     }
 
     fn get_pod(&self, namespace: &str, name: &str) -> MockResponse {
-        match self.pods.iter().find(|p| p.namespace == namespace && p.name == name) {
+        match self
+            .pods
+            .iter()
+            .find(|p| p.namespace == namespace && p.name == name)
+        {
             Some(pod) => MockResponse::ok(&json!(pod).to_string()),
             None => MockResponse::not_found(),
         }
@@ -179,7 +183,7 @@ fn test_health_check_success() {
 
     assert!(response.is_success());
     assert_eq!(response.status, 200);
-    
+
     let body: serde_json::Value = response.json().unwrap();
     assert_eq!(body["status"], "healthy");
 }
@@ -191,7 +195,7 @@ fn test_health_check_failure() {
 
     assert!(!response.is_success());
     assert_eq!(response.status, 503);
-    
+
     let body: serde_json::Value = response.json().unwrap();
     assert_eq!(body["status"], "unhealthy");
 }
@@ -202,7 +206,7 @@ fn test_readiness_check() {
     let response = handler.readiness_check();
 
     assert!(response.is_success());
-    
+
     let body: serde_json::Value = response.json().unwrap();
     assert_eq!(body["ready"], true);
 }
@@ -211,16 +215,28 @@ fn test_readiness_check() {
 fn test_list_pods_all_namespaces() {
     let handler = MockPodsHandler {
         pods: vec![
-            MockPod { name: "pod-1".to_string(), namespace: "default".to_string(), status: "Running".to_string() },
-            MockPod { name: "pod-2".to_string(), namespace: "kube-system".to_string(), status: "Running".to_string() },
-            MockPod { name: "pod-3".to_string(), namespace: "default".to_string(), status: "Pending".to_string() },
+            MockPod {
+                name: "pod-1".to_string(),
+                namespace: "default".to_string(),
+                status: "Running".to_string(),
+            },
+            MockPod {
+                name: "pod-2".to_string(),
+                namespace: "kube-system".to_string(),
+                status: "Running".to_string(),
+            },
+            MockPod {
+                name: "pod-3".to_string(),
+                namespace: "default".to_string(),
+                status: "Pending".to_string(),
+            },
         ],
     };
 
     let response = handler.list_pods(None);
 
     assert!(response.is_success());
-    
+
     let body: serde_json::Value = response.json().unwrap();
     assert_eq!(body["count"], 3);
 }
@@ -229,16 +245,28 @@ fn test_list_pods_all_namespaces() {
 fn test_list_pods_filtered_namespace() {
     let handler = MockPodsHandler {
         pods: vec![
-            MockPod { name: "pod-1".to_string(), namespace: "default".to_string(), status: "Running".to_string() },
-            MockPod { name: "pod-2".to_string(), namespace: "kube-system".to_string(), status: "Running".to_string() },
-            MockPod { name: "pod-3".to_string(), namespace: "default".to_string(), status: "Pending".to_string() },
+            MockPod {
+                name: "pod-1".to_string(),
+                namespace: "default".to_string(),
+                status: "Running".to_string(),
+            },
+            MockPod {
+                name: "pod-2".to_string(),
+                namespace: "kube-system".to_string(),
+                status: "Running".to_string(),
+            },
+            MockPod {
+                name: "pod-3".to_string(),
+                namespace: "default".to_string(),
+                status: "Pending".to_string(),
+            },
         ],
     };
 
     let response = handler.list_pods(Some("default"));
 
     assert!(response.is_success());
-    
+
     let body: serde_json::Value = response.json().unwrap();
     assert_eq!(body["count"], 2);
 }
@@ -246,15 +274,17 @@ fn test_list_pods_filtered_namespace() {
 #[test]
 fn test_get_pod_found() {
     let handler = MockPodsHandler {
-        pods: vec![
-            MockPod { name: "pod-1".to_string(), namespace: "default".to_string(), status: "Running".to_string() },
-        ],
+        pods: vec![MockPod {
+            name: "pod-1".to_string(),
+            namespace: "default".to_string(),
+            status: "Running".to_string(),
+        }],
     };
 
     let response = handler.get_pod("default", "pod-1");
 
     assert!(response.is_success());
-    
+
     let pod: MockPod = response.json().unwrap();
     assert_eq!(pod.name, "pod-1");
     assert_eq!(pod.namespace, "default");
@@ -263,9 +293,11 @@ fn test_get_pod_found() {
 #[test]
 fn test_get_pod_not_found() {
     let handler = MockPodsHandler {
-        pods: vec![
-            MockPod { name: "pod-1".to_string(), namespace: "default".to_string(), status: "Running".to_string() },
-        ],
+        pods: vec![MockPod {
+            name: "pod-1".to_string(),
+            namespace: "default".to_string(),
+            status: "Running".to_string(),
+        }],
     };
 
     let response = handler.get_pod("default", "nonexistent");
@@ -280,7 +312,10 @@ fn test_get_metrics() {
     let response = handler.get_metrics();
 
     assert!(response.is_success());
-    assert!(response.headers.iter().any(|(k, v)| k == "Content-Type" && v == "text/plain"));
+    assert!(response
+        .headers
+        .iter()
+        .any(|(k, v)| k == "Content-Type" && v == "text/plain"));
     assert!(response.body.contains("http_requests_total"));
     assert!(response.body.contains("cache_hits_total"));
 }
@@ -347,12 +382,15 @@ fn test_request_validation() {
 
 #[test]
 fn test_response_serialization() {
-    let response = MockResponse::ok(&json!({
-        "pods": [
-            {"name": "pod-1", "status": "Running"},
-            {"name": "pod-2", "status": "Pending"}
-        ]
-    }).to_string());
+    let response = MockResponse::ok(
+        &json!({
+            "pods": [
+                {"name": "pod-1", "status": "Running"},
+                {"name": "pod-2", "status": "Pending"}
+            ]
+        })
+        .to_string(),
+    );
 
     let value: serde_json::Value = response.json().unwrap();
     assert!(value["pods"].is_array());

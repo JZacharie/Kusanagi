@@ -29,9 +29,9 @@ fn test_cache_delete_removes_key() {
     // Property: After deleting a key, it should not exist
     let mut cache = std::collections::HashMap::new();
     cache.insert("key", "value");
-    
+
     cache.remove("key");
-    
+
     assert!(!cache.contains_key("key"));
 }
 
@@ -42,9 +42,9 @@ fn test_cache_clear_removes_all() {
     cache.insert("key1", "value1");
     cache.insert("key2", "value2");
     cache.insert("key3", "value3");
-    
+
     cache.clear();
-    
+
     assert!(cache.is_empty());
 }
 
@@ -54,14 +54,14 @@ fn test_cache_clear_removes_all() {
 
 fn format_bytes(bytes: u64) -> String {
     const UNITS: &[&str] = &["B", "KiB", "MiB", "GiB", "TiB"];
-    
+
     if bytes == 0 {
         return "0 B".to_string();
     }
-    
+
     let exp = (bytes as f64).log(1024.0).min(UNITS.len() as f64 - 1.0) as usize;
     let value = bytes as f64 / 1024_f64.powi(exp as i32);
-    
+
     if exp == 0 {
         format!("{} {}", bytes, UNITS[exp])
     } else {
@@ -117,9 +117,18 @@ fn filter_pods_by_status(pods: &[Pod], status: &str) -> Vec<Pod> {
 fn test_filter_pods_is_consistent() {
     // Property: Filtering twice should give same result as filtering once
     let pods = vec![
-        Pod { name: "pod-1".to_string(), status: "Running".to_string() },
-        Pod { name: "pod-2".to_string(), status: "Pending".to_string() },
-        Pod { name: "pod-3".to_string(), status: "Running".to_string() },
+        Pod {
+            name: "pod-1".to_string(),
+            status: "Running".to_string(),
+        },
+        Pod {
+            name: "pod-2".to_string(),
+            status: "Pending".to_string(),
+        },
+        Pod {
+            name: "pod-3".to_string(),
+            status: "Running".to_string(),
+        },
     ];
 
     let filtered_once = filter_pods_by_status(&pods, "Running");
@@ -140,9 +149,10 @@ fn test_filter_pods_empty_input() {
 #[test]
 fn test_filter_pods_no_matches() {
     // Property: Filtering with non-existent status returns empty
-    let pods = vec![
-        Pod { name: "pod-1".to_string(), status: "Running".to_string() },
-    ];
+    let pods = vec![Pod {
+        name: "pod-1".to_string(),
+        status: "Running".to_string(),
+    }];
 
     let filtered = filter_pods_by_status(&pods, "NonExistent");
     assert!(filtered.is_empty());
@@ -309,9 +319,11 @@ fn test_truncate_no_change_needed() {
 // ============================================================================
 
 fn is_valid_namespace(name: &str) -> bool {
-    !name.is_empty() 
+    !name.is_empty()
         && name.len() <= 63
-        && name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+        && name
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
         && !name.starts_with('-')
         && !name.ends_with('-')
 }
@@ -327,7 +339,7 @@ fn test_namespace_validation_properties() {
     // Property: Valid characters only
     assert!(is_valid_namespace("valid-name"));
     assert!(is_valid_namespace("valid123"));
-    
+
     // Property: Invalid characters rejected
     assert!(!is_valid_namespace("Invalid_Name"));
     assert!(!is_valid_namespace("name with space"));
@@ -400,9 +412,9 @@ fn test_sorting_properties() {
     // Property: Sorted vec is in ascending order
     let mut v = vec![3, 1, 4, 1, 5, 9, 2, 6];
     v.sort();
-    
+
     for i in 1..v.len() {
-        assert!(v[i] >= v[i-1], "Not sorted: {:?}", v);
+        assert!(v[i] >= v[i - 1], "Not sorted: {:?}", v);
     }
 
     // Property: Sorting twice doesn't change result

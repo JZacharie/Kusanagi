@@ -5,9 +5,9 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 // Re-implementing the AdvancedCache for testing
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use tokio::sync::RwLock;
-use chrono::{DateTime, Utc};
 
 #[derive(Clone)]
 struct CacheEntry<T> {
@@ -31,7 +31,7 @@ impl<T: Clone + Send + Sync> AdvancedCache<T> {
 
     pub async fn get(&self, key: &str) -> Option<T> {
         let mut data = self.data.write().await;
-        
+
         if let Some(entry) = data.get_mut(key) {
             if Utc::now() < entry.expires_at {
                 entry.access_count += 1;
@@ -49,7 +49,7 @@ impl<T: Clone + Send + Sync> AdvancedCache<T> {
             expires_at: Utc::now() + chrono::Duration::from_std(self.ttl).unwrap(),
             access_count: 0,
         };
-        
+
         let mut data = self.data.write().await;
         data.insert(key.to_string(), entry);
     }
@@ -82,7 +82,7 @@ impl<T: Clone + Send + Sync> AdvancedCache<T> {
         let data = self.data.read().await;
         let total_entries = data.len();
         let total_accesses: u64 = data.values().map(|e| e.access_count).sum();
-        
+
         CacheStats {
             total_entries,
             total_accesses,
@@ -123,7 +123,7 @@ async fn test_cache_ttl_expiration() {
 
     // Wait for expiration
     sleep(Duration::from_millis(150)).await;
-    
+
     // Should be expired
     assert_eq!(cache.get("key1").await, None);
 }
@@ -135,7 +135,7 @@ async fn test_cache_delete() {
     cache.set("key1", "value1".to_string()).await;
     assert!(cache.delete("key1").await);
     assert_eq!(cache.get("key1").await, None);
-    
+
     // Delete non-existent key
     assert!(!cache.delete("nonexistent").await);
 }
@@ -164,7 +164,7 @@ async fn test_cache_len_and_is_empty() {
     assert_eq!(cache.len().await, 0);
 
     cache.set("key1", "value1".to_string()).await;
-    
+
     assert!(!cache.is_empty().await);
     assert_eq!(cache.len().await, 1);
 }
@@ -174,7 +174,7 @@ async fn test_cache_contains_key() {
     let cache = AdvancedCache::<String>::new(Duration::from_secs(60));
 
     cache.set("key1", "value1".to_string()).await;
-    
+
     assert!(cache.contains_key("key1").await);
     assert!(!cache.contains_key("nonexistent").await);
 }
@@ -224,7 +224,9 @@ async fn test_cache_concurrent_access() {
     for i in 0..10 {
         let cache_clone = Arc::clone(&cache);
         let handle = tokio::spawn(async move {
-            cache_clone.set(&format!("key{}", i), format!("value{}", i)).await;
+            cache_clone
+                .set(&format!("key{}", i), format!("value{}", i))
+                .await;
             cache_clone.get(&format!("key{}", i)).await
         });
         handles.push(handle);
@@ -280,11 +282,11 @@ async fn test_cache_partial_expiration() {
     let cache = AdvancedCache::<String>::new(Duration::from_millis(100));
 
     cache.set("key1", "value1".to_string()).await;
-    
+
     sleep(Duration::from_millis(50)).await;
-    
+
     cache.set("key2", "value2".to_string()).await;
-    
+
     sleep(Duration::from_millis(60)).await;
 
     // key1 should be expired, key2 should still be valid

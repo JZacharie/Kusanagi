@@ -43,7 +43,10 @@ impl ArgoCdRepository {
         self.applications.lock().await.push(app);
     }
 
-    fn sync_application(&self, name: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + '_>> {
+    fn sync_application(
+        &self,
+        name: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + '_>> {
         let apps = self.applications.clone();
         let name = name.to_string();
         Box::pin(async move {
@@ -154,14 +157,15 @@ async fn test_get_application_summary_empty() {
 #[tokio::test]
 async fn test_get_application_summary_with_apps() {
     let repo = Arc::new(ArgoCdRepository::new());
-    
+
     repo.add_application(ArgoCdApplication {
         name: "app-1".to_string(),
         namespace: "argocd".to_string(),
         sync_status: "Synced".to_string(),
         health_status: "Healthy".to_string(),
         target_revision: "main".to_string(),
-    }).await;
+    })
+    .await;
 
     repo.add_application(ArgoCdApplication {
         name: "app-2".to_string(),
@@ -169,7 +173,8 @@ async fn test_get_application_summary_with_apps() {
         sync_status: "Synced".to_string(),
         health_status: "Healthy".to_string(),
         target_revision: "v1.0".to_string(),
-    }).await;
+    })
+    .await;
 
     repo.add_application(ArgoCdApplication {
         name: "app-3".to_string(),
@@ -177,7 +182,8 @@ async fn test_get_application_summary_with_apps() {
         sync_status: "OutOfSync".to_string(),
         health_status: "Degraded".to_string(),
         target_revision: "main".to_string(),
-    }).await;
+    })
+    .await;
 
     let service = ArgoCdService::new(repo);
     let summary = service.get_application_summary().await;
@@ -192,14 +198,15 @@ async fn test_get_application_summary_with_apps() {
 #[tokio::test]
 async fn test_get_out_of_sync_apps() {
     let repo = Arc::new(ArgoCdRepository::new());
-    
+
     repo.add_application(ArgoCdApplication {
         name: "synced-app".to_string(),
         namespace: "argocd".to_string(),
         sync_status: "Synced".to_string(),
         health_status: "Healthy".to_string(),
         target_revision: "main".to_string(),
-    }).await;
+    })
+    .await;
 
     repo.add_application(ArgoCdApplication {
         name: "out-of-sync-app".to_string(),
@@ -207,7 +214,8 @@ async fn test_get_out_of_sync_apps() {
         sync_status: "OutOfSync".to_string(),
         health_status: "Degraded".to_string(),
         target_revision: "main".to_string(),
-    }).await;
+    })
+    .await;
 
     let service = ArgoCdService::new(repo);
     let out_of_sync = service.get_out_of_sync_apps().await;
@@ -219,14 +227,15 @@ async fn test_get_out_of_sync_apps() {
 #[tokio::test]
 async fn test_get_apps_by_health() {
     let repo = Arc::new(ArgoCdRepository::new());
-    
+
     repo.add_application(ArgoCdApplication {
         name: "healthy-1".to_string(),
         namespace: "argocd".to_string(),
         sync_status: "Synced".to_string(),
         health_status: "Healthy".to_string(),
         target_revision: "main".to_string(),
-    }).await;
+    })
+    .await;
 
     repo.add_application(ArgoCdApplication {
         name: "healthy-2".to_string(),
@@ -234,7 +243,8 @@ async fn test_get_apps_by_health() {
         sync_status: "Synced".to_string(),
         health_status: "Healthy".to_string(),
         target_revision: "main".to_string(),
-    }).await;
+    })
+    .await;
 
     repo.add_application(ArgoCdApplication {
         name: "degraded-1".to_string(),
@@ -242,7 +252,8 @@ async fn test_get_apps_by_health() {
         sync_status: "Synced".to_string(),
         health_status: "Degraded".to_string(),
         target_revision: "main".to_string(),
-    }).await;
+    })
+    .await;
 
     let service = ArgoCdService::new(repo);
     let healthy_apps = service.get_apps_by_health("Healthy").await;
@@ -254,14 +265,15 @@ async fn test_get_apps_by_health() {
 #[tokio::test]
 async fn test_sync_all() {
     let repo = Arc::new(ArgoCdRepository::new());
-    
+
     repo.add_application(ArgoCdApplication {
         name: "app-1".to_string(),
         namespace: "argocd".to_string(),
         sync_status: "OutOfSync".to_string(),
         health_status: "Degraded".to_string(),
         target_revision: "main".to_string(),
-    }).await;
+    })
+    .await;
 
     repo.add_application(ArgoCdApplication {
         name: "app-2".to_string(),
@@ -269,7 +281,8 @@ async fn test_sync_all() {
         sync_status: "OutOfSync".to_string(),
         health_status: "Degraded".to_string(),
         target_revision: "main".to_string(),
-    }).await;
+    })
+    .await;
 
     let service = ArgoCdService::new(repo.clone());
     let result = service.sync_all().await;
@@ -285,14 +298,15 @@ async fn test_sync_all() {
 #[tokio::test]
 async fn test_sync_single_app() {
     let repo = Arc::new(ArgoCdRepository::new());
-    
+
     repo.add_application(ArgoCdApplication {
         name: "app-1".to_string(),
         namespace: "argocd".to_string(),
         sync_status: "OutOfSync".to_string(),
         health_status: "Degraded".to_string(),
         target_revision: "main".to_string(),
-    }).await;
+    })
+    .await;
 
     let result = repo.sync_application("app-1").await;
     assert!(result.is_ok());
@@ -312,7 +326,7 @@ async fn test_sync_nonexistent_app() {
 #[tokio::test]
 async fn test_get_application() {
     let repo = Arc::new(ArgoCdRepository::new());
-    
+
     let app = ArgoCdApplication {
         name: "my-app".to_string(),
         namespace: "argocd".to_string(),
@@ -320,7 +334,7 @@ async fn test_get_application() {
         health_status: "Healthy".to_string(),
         target_revision: "main".to_string(),
     };
-    
+
     repo.add_application(app.clone()).await;
 
     let found = repo.get_application("my-app").await;
