@@ -158,7 +158,9 @@ pub async fn get_active_alerts() -> Result<AlertsResponse, String> {
         tracing::debug!("🔑 Using Alertmanager Basic Auth (User: {})", username);
         request = request.basic_auth(username, Some(password));
     } else {
-        tracing::warn!("⚠️ No Alertmanager credentials found in env vars (ALERTMANAGER_USERNAME/PASSWORD)");
+        tracing::warn!(
+            "⚠️ No Alertmanager credentials found in env vars (ALERTMANAGER_USERNAME/PASSWORD)"
+        );
     }
 
     let response = request
