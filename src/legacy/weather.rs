@@ -65,7 +65,10 @@ impl WeatherClient {
             .load()
             .await;
 
-        let s3_client = Some(S3Client::new(&config));
+        let s3_config = aws_sdk_s3::config::Builder::from(&config)
+            .force_path_style(true)
+            .build();
+        let s3_client = Some(S3Client::from_conf(s3_config));
 
         Ok(Self {
             api_key,
@@ -140,7 +143,7 @@ impl WeatherClient {
 
         // 2. Save to S3
         if let Err(e) = self.save_to_s3(&response).await {
-            error!("Failed to save weather to S3: {}", e);
+            error!("Failed to save weather to S3: {:?}", e);
         }
 
         Ok(response)
