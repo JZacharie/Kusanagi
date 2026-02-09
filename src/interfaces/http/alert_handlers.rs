@@ -1,5 +1,5 @@
 //! Alert HTTP Handlers
-//! 
+//!
 //! Interface layer for alert endpoints.
 //! Uses the GetAlertsUseCase from the application layer.
 
@@ -7,7 +7,7 @@ use actix_web::{web, HttpResponse, Result};
 use std::sync::Arc;
 use tracing::{debug, error, info};
 
-use crate::application::use_cases::{GetAlertsUseCase, GetAlertsInput};
+use crate::application::use_cases::{GetAlertsInput, GetAlertsUseCase};
 use crate::domain::ports::AlertRepository;
 use crate::infrastructure::repositories::AlertRepositoryImpl;
 
@@ -20,13 +20,13 @@ pub struct AlertsQuery {
 }
 
 /// Get active alerts
-/// 
+///
 /// # Endpoint
 /// GET /api/alerts
-/// 
+///
 /// # Query Parameters
 /// - `refresh`: Force cache refresh (optional, default: false)
-/// 
+///
 /// # Response
 /// Returns a JSON object with grouped alerts (critical, warning, info)
 pub async fn get_alerts_handler(
@@ -59,10 +59,10 @@ pub async fn get_alerts_handler(
 }
 
 /// Get active alerts (bypass cache)
-/// 
+///
 /// # Endpoint
 /// GET /api/alerts/active
-/// 
+///
 /// # Response
 /// Returns a JSON object with current active alerts from Alertmanager
 pub async fn get_active_alerts_handler(
@@ -72,7 +72,10 @@ pub async fn get_active_alerts_handler(
 
     match use_case.get_active_alerts().await {
         Ok(alerts) => {
-            debug!("Active alerts retrieved successfully: {} total", alerts.total);
+            debug!(
+                "Active alerts retrieved successfully: {} total",
+                alerts.total
+            );
             Ok(HttpResponse::Ok().json(alerts))
         }
         Err(e) => {
@@ -85,15 +88,13 @@ pub async fn get_active_alerts_handler(
 }
 
 /// Refresh alerts cache
-/// 
+///
 /// # Endpoint
 /// POST /api/alerts/refresh
-/// 
+///
 /// # Response
 /// Returns 200 OK with fresh alerts data
-pub async fn refresh_alerts_handler(
-    use_case: web::Data<GetAlertsUseCase>,
-) -> Result<HttpResponse> {
+pub async fn refresh_alerts_handler(use_case: web::Data<GetAlertsUseCase>) -> Result<HttpResponse> {
     info!("Manual alerts refresh requested");
 
     match use_case.refresh_alerts().await {
@@ -114,7 +115,7 @@ pub async fn refresh_alerts_handler(
 }
 
 /// Configure alert routes
-/// 
+///
 /// Adds alert endpoints to the Actix-Web service configuration
 pub fn configure_alert_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -126,7 +127,7 @@ pub fn configure_alert_routes(cfg: &mut web::ServiceConfig) {
 }
 
 /// Create GetAlertsUseCase with repository
-/// 
+///
 /// Helper function to create the use case with the alert repository
 pub fn create_alerts_use_case() -> GetAlertsUseCase {
     let repository: Arc<dyn AlertRepository> = Arc::new(AlertRepositoryImpl::new());

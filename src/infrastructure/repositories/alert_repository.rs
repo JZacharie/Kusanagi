@@ -1,5 +1,5 @@
 //! Alert Repository Implementation
-//! 
+//!
 //! Infrastructure adapter implementing the AlertRepository port.
 //! Handles Alertmanager API calls with caching.
 
@@ -16,7 +16,8 @@ use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
 
-const DEFAULT_ALERTMANAGER_URL: &str = "http://kube-prometheus-stack-alertmanager.kube-prometheus-stack.svc:9093";
+const DEFAULT_ALERTMANAGER_URL: &str =
+    "http://kube-prometheus-stack-alertmanager.kube-prometheus-stack.svc:9093";
 const CACHE_TTL_SECONDS: u64 = 120;
 
 /// Alertmanager API response structures
@@ -128,7 +129,9 @@ impl AlertRepositoryImpl {
             .timeout(Duration::from_secs(10))
             .send()
             .await
-            .map_err(|e| KusanagiError::external_service(format!("Alertmanager request failed: {}", e)))?;
+            .map_err(|e| {
+                KusanagiError::external_service(format!("Alertmanager request failed: {}", e))
+            })?;
 
         if !response.status().is_success() {
             return Err(KusanagiError::external_service(format!(
@@ -137,10 +140,9 @@ impl AlertRepositoryImpl {
             )));
         }
 
-        let am_alerts: Vec<AmAlert> = response
-            .json()
-            .await
-            .map_err(|e| KusanagiError::serialization(format!("Failed to parse Alertmanager response: {}", e)))?;
+        let am_alerts: Vec<AmAlert> = response.json().await.map_err(|e| {
+            KusanagiError::serialization(format!("Failed to parse Alertmanager response: {}", e))
+        })?;
 
         Ok(am_alerts)
     }
@@ -159,7 +161,9 @@ impl AlertRepositoryImpl {
                 let namespace = self.domain_service.extract_namespace(&am_alert.labels);
                 let pod = self.domain_service.extract_pod(&am_alert.labels);
                 let summary = self.domain_service.extract_summary(&am_alert.annotations);
-                let description = self.domain_service.extract_description(&am_alert.annotations);
+                let description = self
+                    .domain_service
+                    .extract_description(&am_alert.annotations);
                 let started_at = self.domain_service.parse_datetime(&am_alert.starts_at);
 
                 self.domain_service.build_alert(
@@ -211,10 +215,10 @@ impl AlertRepository for AlertRepositoryImpl {
         // Fetch from API
         let am_alerts = self.fetch_from_alertmanager().await?;
         let alerts = self.transform_alerts(am_alerts);
-        
+
         // Update cache
         self.update_cache(alerts.clone()).await;
-        
+
         Ok(alerts)
     }
 

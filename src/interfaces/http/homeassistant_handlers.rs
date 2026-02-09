@@ -83,10 +83,14 @@ pub async fn get_ha_status_handler() -> Result<HttpResponse> {
     match HomeAssistantRepositoryImpl::new() {
         Ok(repo) => {
             let configured = repo.is_configured();
-            let status = if configured { "configured" } else { "not_configured" };
-            
+            let status = if configured {
+                "configured"
+            } else {
+                "not_configured"
+            };
+
             info!("HomeAssistant status check: {}", status);
-            
+
             Ok(HttpResponse::Ok().json(serde_json::json!({
                 "status": status,
                 "configured": configured

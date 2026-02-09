@@ -1,5 +1,5 @@
 //! Backup HTTP Handlers
-//! 
+//!
 //! Interface layer for backup endpoints.
 
 use actix_web::{web, HttpResponse, Result};
@@ -12,17 +12,18 @@ use crate::infrastructure::repositories::BackupRepositoryImpl;
 use kube::Client;
 
 /// Get backups status
-/// 
+///
 /// # Endpoint
 /// GET /api/backups
-pub async fn get_backups_handler(
-    use_case: web::Data<BackupUseCase>,
-) -> Result<HttpResponse> {
+pub async fn get_backups_handler(use_case: web::Data<BackupUseCase>) -> Result<HttpResponse> {
     debug!("Backups status request received");
 
     match use_case.get_backups_status().await {
         Ok(backups) => {
-            debug!("Backups status retrieved: {} CronJobs", backups.total_cronjobs);
+            debug!(
+                "Backups status retrieved: {} CronJobs",
+                backups.total_cronjobs
+            );
             Ok(HttpResponse::Ok().json(backups))
         }
         Err(e) => {
@@ -35,7 +36,7 @@ pub async fn get_backups_handler(
 }
 
 /// Trigger a backup
-/// 
+///
 /// # Endpoint
 /// POST /api/backups/{namespace}/{name}/trigger
 pub async fn trigger_backup_handler(
@@ -66,7 +67,10 @@ pub fn configure_backup_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/backups")
             .route("", web::get().to(get_backups_handler))
-            .route("/{namespace}/{name}/trigger", web::post().to(trigger_backup_handler)),
+            .route(
+                "/{namespace}/{name}/trigger",
+                web::post().to(trigger_backup_handler),
+            ),
     );
 }
 

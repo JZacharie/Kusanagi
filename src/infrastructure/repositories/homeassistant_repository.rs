@@ -52,7 +52,9 @@ impl HomeAssistantRepositoryImpl {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(DEFAULT_TIMEOUT_SECONDS))
             .build()
-            .map_err(|e| AppError::external_service(format!("Failed to build HTTP client: {}", e)))?;
+            .map_err(|e| {
+                AppError::external_service(format!("Failed to build HTTP client: {}", e))
+            })?;
 
         Ok(Self {
             client,
@@ -79,7 +81,9 @@ impl HomeAssistantRepositoryImpl {
             .header("Content-Type", "application/json")
             .send()
             .await
-            .map_err(|e| AppError::external_service(format!("Home Assistant request failed: {}", e)))?;
+            .map_err(|e| {
+                AppError::external_service(format!("Home Assistant request failed: {}", e))
+            })?;
 
         if !response.status().is_success() {
             let status = response.status();

@@ -1,5 +1,5 @@
 //! Alert Domain Service
-//! 
+//!
 //! Core business logic for alert operations.
 //! This service is independent of infrastructure concerns.
 

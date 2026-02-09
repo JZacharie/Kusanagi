@@ -2,17 +2,29 @@
 use actix::{Actor, StreamHandler};
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_actors::ws;
+use kusanagi::application::use_cases::{
+    GetAlertsUseCase, GetHomeAssistantUseCase, GetSecurityUseCase, GetWeatherUseCase,
+};
+use kusanagi::domain::ports::{
+    AlertRepository, HomeAssistantRepository, SecurityRepository, WeatherRepository,
+};
 use kusanagi::domain::services::{
     argocd_service, fusion_service, homeassistant_service, irc_service, kubernetes_service,
     monitoring_service, mqtt_service, news_service, proxmox_service, slack_service, trivy_service,
 };
-use kusanagi::infrastructure::repositories::{WeatherRepositoryImpl, AlertRepositoryImpl, start_background_refresh as start_alert_background_refresh, create_security_repository, create_homeassistant_repository, HomeAssistantRepositoryImpl};
-use kusanagi::domain::ports::{WeatherRepository, AlertRepository, SecurityRepository, HomeAssistantRepository};
-use kusanagi::application::use_cases::{GetWeatherUseCase, GetAlertsUseCase, GetSecurityUseCase, GetHomeAssistantUseCase};
-use kusanagi::interfaces::http::weather_handlers::get_weather_handler;
+use kusanagi::infrastructure::repositories::{
+    create_homeassistant_repository, create_security_repository,
+    start_background_refresh as start_alert_background_refresh, AlertRepositoryImpl,
+    HomeAssistantRepositoryImpl, WeatherRepositoryImpl,
+};
 use kusanagi::interfaces::http::alert_handlers::get_alerts_handler;
-use kusanagi::interfaces::http::security_handlers::{get_security_handler, get_security_reports_handler, get_security_report_handler};
-use kusanagi::interfaces::http::homeassistant_handlers::{get_devices_handler as ha_devices_handler, get_sensors_handler as ha_sensors_handler};
+use kusanagi::interfaces::http::homeassistant_handlers::{
+    get_devices_handler as ha_devices_handler, get_sensors_handler as ha_sensors_handler,
+};
+use kusanagi::interfaces::http::security_handlers::{
+    get_security_handler, get_security_report_handler, get_security_reports_handler,
+};
+use kusanagi::interfaces::http::weather_handlers::get_weather_handler;
 use kusanagi::{legacy, Config};
 use serde::Deserialize;
 use serde_json::json;
@@ -188,9 +200,9 @@ async fn main() -> std::io::Result<()> {
     proxmox_service::check_proxmox_health(&client).await;
 
     // Initialize Weather use case (hexagonal architecture)
-    let weather_use_case = Arc::new(GetWeatherUseCase::new(
-        Arc::new(WeatherRepositoryImpl::new().await) as Arc<dyn WeatherRepository>
-    ));
+    let weather_use_case = Arc::new(GetWeatherUseCase::new(Arc::new(
+        WeatherRepositoryImpl::new().await,
+    ) as Arc<dyn WeatherRepository>));
 
     // Initialize Alerts use case (hexagonal architecture)
     let alerts_use_case = Arc::new(GetAlertsUseCase::new(
@@ -205,7 +217,10 @@ async fn main() -> std::io::Result<()> {
     let ha_repo = match create_homeassistant_repository() {
         Ok(repo) => Arc::new(repo) as Arc<dyn HomeAssistantRepository>,
         Err(e) => {
-            log::warn!("Failed to create HomeAssistant repository: {}, using mock", e);
+            log::warn!(
+                "Failed to create HomeAssistant repository: {}, using mock",
+                e
+            );
             // Create a dummy repository that will return empty results
             Arc::new(HomeAssistantRepositoryImpl::default()) as Arc<dyn HomeAssistantRepository>
         }
@@ -279,10 +294,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/mqtt/messages", web::get().to(mqtt_messages))
             .route("/api/argocd/status", web::get().to(argocd_status))
             .route("/api/argocd/sync", web::post().to(argocd_sync))
-            .route(
-                "/api/weather/current",
-                web::get().to(get_weather_handler),
-            )
+            .route("/api/weather/current", web::get().to(get_weather_handler))
             .route("/api/proxmox/vms", web::get().to(proxmox_vms))
             .route("/api/proxmox/containers", web::get().to(proxmox_containers))
             .route("/api/proxmox/nodes", web::get().to(proxmox_nodes))
@@ -299,11 +311,11 @@ async fn main() -> std::io::Result<()> {
             .route("/status", web::get().to(system_status))
             .route("/api/logs", web::get().to(logs_endpoint))
             // Security endpoints (Trivy) - Hexagonal Architecture
+            .route("/api/security/summary", web::get().to(get_security_handler))
             .route(
-                "/api/security/summary",
-                web::get().to(get_security_handler),
+                "/api/security/reports",
+                web::get().to(get_security_reports_handler),
             )
-            .route("/api/security/reports", web::get().to(get_security_reports_handler))
             .route(
                 "/api/security/reports/{category}/{name}",
                 web::get().to(get_security_report_handler),

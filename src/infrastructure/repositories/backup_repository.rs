@@ -1,5 +1,5 @@
 //! Backup Repository Implementation
-//! 
+//!
 //! Infrastructure adapter implementing the BackupRepository port.
 //! Handles Kubernetes CronJob and Job operations.
 
@@ -124,7 +124,9 @@ impl BackupRepository for BackupRepositoryImpl {
         let cronjobs = cronjobs_api
             .list(&ListParams::default())
             .await
-            .map_err(|e| KusanagiError::external_service(format!("Failed to list CronJobs: {}", e)))?;
+            .map_err(|e| {
+                KusanagiError::external_service(format!("Failed to list CronJobs: {}", e))
+            })?;
 
         // Get all Jobs
         let jobs_api: Api<Job> = Api::all(self.client.as_ref().clone());
@@ -159,19 +161,17 @@ impl BackupRepository for BackupRepositoryImpl {
                 .and_then(|s| s.last_schedule_time.as_ref())
                 .map(|t| format!("{:?}", t.0));
 
-            let last_schedule_age = status
-                .and_then(|s| s.last_schedule_time.as_ref())
-                .map(|t| {
-                    let ts_str = format!("{:?}", t.0);
-                    let ts = DateTime::parse_from_rfc3339(&ts_str)
-                        .ok()
-                        .map(|d| d.with_timezone(&Utc));
-                    if let Some(ts) = ts {
-                        self.format_duration(now.signed_duration_since(ts))
-                    } else {
-                        "Unknown".to_string()
-                    }
-                });
+            let last_schedule_age = status.and_then(|s| s.last_schedule_time.as_ref()).map(|t| {
+                let ts_str = format!("{:?}", t.0);
+                let ts = DateTime::parse_from_rfc3339(&ts_str)
+                    .ok()
+                    .map(|d| d.with_timezone(&Utc));
+                if let Some(ts) = ts {
+                    self.format_duration(now.signed_duration_since(ts))
+                } else {
+                    "Unknown".to_string()
+                }
+            });
 
             let active_jobs = status
                 .map(|s| s.active.as_ref().map(|a| a.len()).unwrap_or(0) as i32)
@@ -216,10 +216,9 @@ impl BackupRepository for BackupRepositoryImpl {
         let cronjobs_api: Api<CronJob> = Api::namespaced(self.client.as_ref().clone(), namespace);
 
         // Get the CronJob
-        let cronjob = cronjobs_api
-            .get(name)
-            .await
-            .map_err(|e| KusanagiError::external_service(format!("Failed to get CronJob: {}", e)))?;
+        let cronjob = cronjobs_api.get(name).await.map_err(|e| {
+            KusanagiError::external_service(format!("Failed to get CronJob: {}", e))
+        })?;
 
         // Create a Job from the CronJob template
         let job_spec = cronjob
@@ -230,7 +229,11 @@ impl BackupRepository for BackupRepositoryImpl {
 
         let job = Job {
             metadata: k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta {
-                name: Some(format!("{}-manual-{}", name, chrono::Utc::now().timestamp())),
+                name: Some(format!(
+                    "{}-manual-{}",
+                    name,
+                    chrono::Utc::now().timestamp()
+                )),
                 namespace: Some(namespace.to_string()),
                 ..Default::default()
             },

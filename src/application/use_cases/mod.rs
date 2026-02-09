@@ -52,7 +52,9 @@ impl GetWeatherUseCase {
 
     /// Execute the use case
     pub async fn execute(&self, input: GetWeatherInput) -> Result<WeatherResponse> {
-        self.repository.get_multi_city_weather(input.force_refresh).await
+        self.repository
+            .get_multi_city_weather(input.force_refresh)
+            .await
     }
 
     /// Force refresh weather data
@@ -183,7 +185,7 @@ impl GetSecurityUseCase {
 }
 
 // ==================== HomeAssistant Use Cases ====================
-use crate::domain::entities::{HomeAssistantSensorsResponse, HomeAssistantDevicesResponse};
+use crate::domain::entities::{HomeAssistantDevicesResponse, HomeAssistantSensorsResponse};
 use crate::domain::ports::HomeAssistantRepository;
 
 /// Input data for HomeAssistant queries
