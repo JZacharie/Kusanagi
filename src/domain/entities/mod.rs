@@ -66,6 +66,7 @@ pub struct Alert {
 
 /// Grouped alerts response
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct AlertsResponse {
     pub critical: Vec<Alert>,
     pub warning: Vec<Alert>,
@@ -75,18 +76,6 @@ pub struct AlertsResponse {
     pub pending: i32,
 }
 
-impl Default for AlertsResponse {
-    fn default() -> Self {
-        Self {
-            critical: vec![],
-            warning: vec![],
-            info: vec![],
-            total: 0,
-            firing: 0,
-            pending: 0,
-        }
-    }
-}
 
 // ==================== Backup Entities ====================
 

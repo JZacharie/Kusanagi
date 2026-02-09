@@ -27,17 +27,11 @@ impl ClusterUseCase {
 
 /// Input data for weather queries
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct GetWeatherInput {
     pub force_refresh: bool,
 }
 
-impl Default for GetWeatherInput {
-    fn default() -> Self {
-        Self {
-            force_refresh: false,
-        }
-    }
-}
 
 /// Use case for retrieving weather information
 pub struct GetWeatherUseCase {
@@ -69,17 +63,11 @@ use crate::domain::ports::AlertRepository;
 
 /// Input data for alert queries
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct GetAlertsInput {
     pub force_refresh: bool,
 }
 
-impl Default for GetAlertsInput {
-    fn default() -> Self {
-        Self {
-            force_refresh: false,
-        }
-    }
-}
 
 /// Use case for retrieving alerts
 pub struct GetAlertsUseCase {
@@ -190,17 +178,11 @@ use crate::domain::ports::HomeAssistantRepository;
 
 /// Input data for HomeAssistant queries
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct GetHomeAssistantInput {
     pub force_refresh: bool,
 }
 
-impl Default for GetHomeAssistantInput {
-    fn default() -> Self {
-        Self {
-            force_refresh: false,
-        }
-    }
-}
 
 /// Use case for retrieving HomeAssistant information
 pub struct GetHomeAssistantUseCase {
