@@ -227,6 +227,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/mqtt/devices", web::get().to(mqtt_devices))
             .route("/api/mqtt/messages", web::get().to(mqtt_messages))
             .route("/api/argocd/status", web::get().to(argocd_status))
+            .route("/api/weather/current", web::get().to(legacy::weather::get_weather_handler))
             .route("/api/proxmox/vms", web::get().to(proxmox_vms))
             .route("/api/proxmox/containers", web::get().to(proxmox_containers))
             .route("/api/proxmox/nodes", web::get().to(proxmox_nodes))

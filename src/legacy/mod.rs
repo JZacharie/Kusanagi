@@ -10,6 +10,7 @@ pub mod pods;
 pub mod prometheus;
 pub mod services;
 pub mod storage;
+pub mod weather;
 
 // Re-exports
 pub use alertmanager::*;
@@ -23,3 +24,4 @@ pub use pods::*;
 pub use prometheus::*;
 pub use services::*;
 pub use storage::*;
+pub use weather::*;
