@@ -850,6 +850,7 @@ async fn logs_endpoint() -> impl Responder {
 }
 
 // Endpoints mockés temporairement
+#[allow(dead_code)]
 async fn alerts() -> impl Responder {
     match monitoring_service::get_alerts().await {
         Ok(alerts) => {
@@ -1147,6 +1148,7 @@ async fn proxmox_ct_control(
     }
 }
 
+#[allow(dead_code)]
 async fn ha_devices() -> impl Responder {
     match homeassistant_service::get_ha_devices().await {
         Ok(devices) => {
@@ -1173,6 +1175,7 @@ async fn ha_devices() -> impl Responder {
     }
 }
 
+#[allow(dead_code)]
 async fn ha_sensors() -> impl Responder {
     match homeassistant_service::get_ha_sensors().await {
         Ok(sensors) => HttpResponse::Ok().json(sensors),
@@ -1180,6 +1183,7 @@ async fn ha_sensors() -> impl Responder {
     }
 }
 
+#[allow(dead_code)]
 async fn ha_automations() -> impl Responder {
     match homeassistant_service::get_ha_automations().await {
         Ok(automations) => HttpResponse::Ok().json(automations),
@@ -1402,6 +1406,7 @@ async fn start_irc_monitoring(irc: irc_service::IrcService, slack: slack_service
 }
 
 // Security endpoints (Trivy)
+#[allow(dead_code)]
 async fn security_vulnerabilities() -> impl Responder {
     match trivy_service::get_vulnerabilities().await {
         Ok(vulns) => HttpResponse::Ok().json(vulns),
@@ -1420,6 +1425,7 @@ async fn security_vulnerabilities() -> impl Responder {
     }
 }
 
+#[allow(dead_code)]
 async fn security_reports() -> impl Responder {
     match trivy_service::list_reports().await {
         Ok(reports) => HttpResponse::Ok().json(reports),
@@ -1434,6 +1440,7 @@ async fn security_reports() -> impl Responder {
     }
 }
 
+#[allow(dead_code)]
 async fn security_report_by_id(path: web::Path<String>) -> impl Responder {
     let report_id = path.into_inner();
     match trivy_service::get_report_by_id(&report_id).await {
