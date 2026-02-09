@@ -91,7 +91,10 @@ impl SlackService {
                     true
                 } else {
                     let status = res.status();
-                    let body = res.text().await.unwrap_or_else(|_| "Could not read body".to_string());
+                    let body = res
+                        .text()
+                        .await
+                        .unwrap_or_else(|_| "Could not read body".to_string());
                     error!("Slack API returned error: {} - Body: {}", status, body);
                     false
                 }
