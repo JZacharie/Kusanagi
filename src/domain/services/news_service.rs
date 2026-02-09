@@ -5,7 +5,7 @@ use reqwest::Client;
 use serde_json::{json, Value};
 
 const CACHE_KEY: &str = "news/cache.json";
-const CACHE_DAYS: i64 = 15;
+const CACHE_DAYS: i64 = 7;
 
 pub async fn get_news() -> Result<Value, String> {
     // Try to get from S3 cache first
@@ -77,7 +77,7 @@ async fn fetch_fresh_news() -> Result<Value, String> {
         all_news.append(&mut items);
     }
 
-    // Filter news older than 7 days
+    // Filter news older than CACHE_DAYS (7 days)
     let now = Utc::now();
     all_news.retain(|item| {
         if let Some(published_at_str) = item["published_at"].as_str() {
