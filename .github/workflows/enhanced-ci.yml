@@ -1,11 +1,13 @@
 name: Enhanced CI/CD
 
 on:
-  push:
-    branches: [ main, develop ]
-    tags: [ 'v*' ]
-  pull_request:
-    branches: [ main, develop ]
+  # Désactivé sur push - utilisez docker-build.yml à la place
+  # push:
+  #   branches: [ main, develop ]
+  #   tags: [ 'v*' ]
+  # pull_request:
+  #   branches: [ main, develop ]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always

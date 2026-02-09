@@ -1,3 +1,6 @@
+# Workflow principal - Build et push Docker
+# Les autres workflows (ci.yml, enhanced-ci.yml) sont désactivés sur push
+# et doivent être lancés manuellement si besoin
 name: Docker Build and Push
 
 on:
