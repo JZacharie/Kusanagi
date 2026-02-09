@@ -962,8 +962,8 @@ async fn nodes_status() -> impl Responder {
     }
 }
 
-async fn storage() -> impl Responder {
-    match kubernetes_service::get_storage().await {
+async fn storage(client: web::Data<reqwest::Client>) -> impl Responder {
+    match kubernetes_service::get_storage(&client).await {
         Ok(storage) => HttpResponse::Ok().json(storage),
         Err(_) => HttpResponse::Ok().json(json!({"total": "0GB", "used": "0GB"})),
     }

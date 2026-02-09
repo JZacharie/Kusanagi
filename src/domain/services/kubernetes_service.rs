@@ -401,14 +401,17 @@ pub async fn get_ingress() -> Result<Value, String> {
 
 // Imports are at top
 
-pub async fn get_storage() -> Result<Value, String> {
-    let client = Client::try_default().await.map_err(|e| e.to_string())?;
+pub async fn get_storage(client: &reqwest::Client) -> Result<Value, String> {
+    let kube_client = Client::try_default().await.map_err(|e| e.to_string())?;
 
-    let pvcs: Api<PersistentVolumeClaim> = Api::all(client);
+    let pvcs: Api<PersistentVolumeClaim> = Api::all(kube_client);
     let pvc_list = pvcs
         .list(&ListParams::default())
         .await
         .map_err(|e| e.to_string())?;
+
+    // Fetch usage metrics from Prometheus
+    let usage_map = fetch_storage_usage(client).await.unwrap_or_default();
 
     let pvcs_json: Vec<Value> = pvc_list
         .iter()
@@ -435,6 +438,16 @@ pub async fn get_storage() -> Result<Value, String> {
                 .unwrap_or("0".to_string());
 
             let capacity_bytes = parse_k8s_quantity(&capacity_str);
+            
+            // Get usage from map
+            let key = format!("{}/{}", namespace, name);
+            let used_bytes = usage_map.get(&key).cloned().unwrap_or(0);
+            
+            let usage_percent = if capacity_bytes > 0 {
+                (used_bytes as f64 / capacity_bytes as f64) * 100.0
+            } else {
+                0.0
+            };
 
             json!({
                 "name": name,
@@ -443,8 +456,8 @@ pub async fn get_storage() -> Result<Value, String> {
                 "storage_class": storage_class,
                 "capacity": capacity_str,
                 "capacity_bytes": capacity_bytes,
-                "used_bytes": 0, // No metrics available via standard API
-                "usage_percent": 0.0
+                "used_bytes": used_bytes,
+                "usage_percent": usage_percent
             })
         })
         .collect();
@@ -460,6 +473,47 @@ pub async fn get_storage() -> Result<Value, String> {
         "pvc_total_capacity": total_formatted,
         "pvcs": pvcs_json
     }))
+}
+
+async fn fetch_storage_usage(client: &reqwest::Client) -> Result<std::collections::HashMap<String, u64>, String> {
+    let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
+        "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
+    });
+    
+    let query = "kubelet_volume_stats_used_bytes";
+    let url = format!("{}/api/v1/query", prometheus_url);
+    
+    let response = client
+        .get(&url)
+        .query(&[("query", query)])
+        .timeout(std::time::Duration::from_secs(5))
+        .send()
+        .await
+        .map_err(|e| format!("Prometheus request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Prometheus returned status: {}", response.status()));
+    }
+
+    let body: Value = response.json().await.map_err(|e| e.to_string())?;
+    
+    let mut usage_map = std::collections::HashMap::new();
+    
+    if let Some(results) = body.get("data").and_then(|d| d.get("result")).and_then(|r| r.as_array()) {
+        for result in results {
+            if let (Some(metric), Some(value)) = (result.get("metric"), result.get("value")) {
+                let namespace = metric.get("namespace").and_then(|s| s.as_str()).unwrap_or("");
+                let pvc_name = metric.get("persistentvolumeclaim").and_then(|s| s.as_str()).unwrap_or("");
+                
+                if !namespace.is_empty() && !pvc_name.is_empty() {
+                    let bytes = value.get(1).and_then(|v| v.as_str()).and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0) as u64;
+                    usage_map.insert(format!("{}/{}", namespace, pvc_name), bytes);
+                }
+            }
+        }
+    }
+    
+    Ok(usage_map)
 }
 
 pub fn parse_k8s_quantity(q: &str) -> u64 {
