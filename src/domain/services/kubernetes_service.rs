@@ -438,11 +438,11 @@ pub async fn get_storage(client: &reqwest::Client) -> Result<Value, String> {
                 .unwrap_or("0".to_string());
 
             let capacity_bytes = parse_k8s_quantity(&capacity_str);
-            
+
             // Get usage from map
             let key = format!("{}/{}", namespace, name);
             let used_bytes = usage_map.get(&key).cloned().unwrap_or(0);
-            
+
             let usage_percent = if capacity_bytes > 0 {
                 (used_bytes as f64 / capacity_bytes as f64) * 100.0
             } else {
@@ -475,14 +475,16 @@ pub async fn get_storage(client: &reqwest::Client) -> Result<Value, String> {
     }))
 }
 
-async fn fetch_storage_usage(client: &reqwest::Client) -> Result<std::collections::HashMap<String, u64>, String> {
+async fn fetch_storage_usage(
+    client: &reqwest::Client,
+) -> Result<std::collections::HashMap<String, u64>, String> {
     let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
         "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
     });
-    
+
     let query = "kubelet_volume_stats_used_bytes";
     let url = format!("{}/api/v1/query", prometheus_url);
-    
+
     let response = client
         .get(&url)
         .query(&[("query", query)])
@@ -496,23 +498,37 @@ async fn fetch_storage_usage(client: &reqwest::Client) -> Result<std::collection
     }
 
     let body: Value = response.json().await.map_err(|e| e.to_string())?;
-    
+
     let mut usage_map = std::collections::HashMap::new();
-    
-    if let Some(results) = body.get("data").and_then(|d| d.get("result")).and_then(|r| r.as_array()) {
+
+    if let Some(results) = body
+        .get("data")
+        .and_then(|d| d.get("result"))
+        .and_then(|r| r.as_array())
+    {
         for result in results {
             if let (Some(metric), Some(value)) = (result.get("metric"), result.get("value")) {
-                let namespace = metric.get("namespace").and_then(|s| s.as_str()).unwrap_or("");
-                let pvc_name = metric.get("persistentvolumeclaim").and_then(|s| s.as_str()).unwrap_or("");
-                
+                let namespace = metric
+                    .get("namespace")
+                    .and_then(|s| s.as_str())
+                    .unwrap_or("");
+                let pvc_name = metric
+                    .get("persistentvolumeclaim")
+                    .and_then(|s| s.as_str())
+                    .unwrap_or("");
+
                 if !namespace.is_empty() && !pvc_name.is_empty() {
-                    let bytes = value.get(1).and_then(|v| v.as_str()).and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0) as u64;
+                    let bytes = value
+                        .get(1)
+                        .and_then(|v| v.as_str())
+                        .and_then(|s| s.parse::<f64>().ok())
+                        .unwrap_or(0.0) as u64;
                     usage_map.insert(format!("{}/{}", namespace, pvc_name), bytes);
                 }
             }
         }
     }
-    
+
     Ok(usage_map)
 }
 
