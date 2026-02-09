@@ -23,3 +23,64 @@ pub trait WeatherRepository: Send + Sync {
 
 /// Factory for creating WeatherRepository
 pub type WeatherRepositoryFactory = Arc<dyn Fn() -> Box<dyn WeatherRepository> + Send + Sync>;
+
+// ==================== Alert Ports ====================
+use super::entities::AlertsResponse;
+
+#[async_trait]
+pub trait AlertRepository: Send + Sync {
+    /// Get all active alerts from Alertmanager
+    async fn get_active_alerts(&self) -> Result<AlertsResponse>;
+    
+    /// Get cached active alerts (with cache logic)
+    async fn get_cached_alerts(&self) -> Result<AlertsResponse>;
+    
+    /// Force refresh alerts cache
+    async fn refresh_alerts(&self) -> Result<AlertsResponse>;
+    
+    /// Check if running in local mode (mock data)
+    fn is_local_mode(&self) -> bool;
+}
+
+// ==================== Backup Ports ====================
+use super::entities::BackupsResponse;
+use kube::Client;
+
+#[async_trait]
+pub trait BackupRepository: Send + Sync {
+    /// Get backup status (CronJobs and Jobs)
+    async fn get_backups_status(&self) -> Result<BackupsResponse>;
+    
+    /// Trigger a CronJob manually
+    async fn trigger_backup(&self, namespace: &str, name: &str) -> Result<String>;
+}
+
+// ==================== HomeAssistant Ports ====================
+use super::entities::{HomeAssistantSensorsResponse, HomeAssistantDevicesResponse};
+
+#[async_trait]
+pub trait HomeAssistantRepository: Send + Sync {
+    /// Get all sensors from Home Assistant
+    async fn get_sensors(&self) -> Result<HomeAssistantSensorsResponse>;
+    
+    /// Get all devices from Home Assistant
+    async fn get_devices(&self) -> Result<HomeAssistantDevicesResponse>;
+}
+
+// ==================== Security Ports ====================
+use super::entities::{SecurityReport, SecuritySummary};
+
+#[async_trait]
+pub trait SecurityRepository: Send + Sync {
+    /// Get security summary across all reports
+    async fn get_security_summary(&self) -> Result<SecuritySummary>;
+    
+    /// Get list of all security report keys
+    async fn get_security_reports(&self) -> Result<Vec<String>>;
+    
+    /// Get a specific security report by category and name
+    async fn get_security_report(&self, category: &str, name: &str) -> Result<SecurityReport>;
+    
+    /// Check if running in local mode (mock data)
+    fn is_local_mode(&self) -> bool;
+}

@@ -1,3 +1,4 @@
+pub mod alert_service;
 pub mod argocd_service;
 pub mod fusion_service;
 pub mod homeassistant_service;

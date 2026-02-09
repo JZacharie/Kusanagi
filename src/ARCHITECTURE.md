@@ -131,6 +131,10 @@ Dependencies point inward:
 | Alertmanager | ✅ Refactored | Hexagonal |
 | Chat | ✅ Refactored | Hexagonal |
 | Weather | ✅ Refactored | Hexagonal |
+| Alertmanager | ✅ Refactored | Hexagonal |
+| Backups | ✅ Refactored | Hexagonal |
+| Security | ✅ Refactored | Hexagonal |
+| HomeAssistant | ✅ Refactored | Hexagonal |
 | ... | 🔄 Pending | Legacy |
 
 ### 3. API Endpoints

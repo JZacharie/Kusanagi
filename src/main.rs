@@ -6,10 +6,13 @@ use kusanagi::domain::services::{
     argocd_service, fusion_service, homeassistant_service, irc_service, kubernetes_service,
     monitoring_service, mqtt_service, news_service, proxmox_service, slack_service, trivy_service,
 };
-use kusanagi::infrastructure::repositories::WeatherRepositoryImpl;
-use kusanagi::domain::ports::WeatherRepository;
-use kusanagi::application::use_cases::GetWeatherUseCase;
+use kusanagi::infrastructure::repositories::{WeatherRepositoryImpl, AlertRepositoryImpl, start_background_refresh as start_alert_background_refresh, create_security_repository, create_homeassistant_repository, HomeAssistantRepositoryImpl};
+use kusanagi::domain::ports::{WeatherRepository, AlertRepository, SecurityRepository, HomeAssistantRepository};
+use kusanagi::application::use_cases::{GetWeatherUseCase, GetAlertsUseCase, GetSecurityUseCase, GetHomeAssistantUseCase};
 use kusanagi::interfaces::http::weather_handlers::get_weather_handler;
+use kusanagi::interfaces::http::alert_handlers::get_alerts_handler;
+use kusanagi::interfaces::http::security_handlers::{get_security_handler, get_security_reports_handler, get_security_report_handler};
+use kusanagi::interfaces::http::homeassistant_handlers::{get_devices_handler as ha_devices_handler, get_sensors_handler as ha_sensors_handler};
 use kusanagi::{legacy, Config};
 use serde::Deserialize;
 use serde_json::json;
@@ -151,9 +154,10 @@ async fn main() -> std::io::Result<()> {
     }
     tokio::spawn(start_irc_monitoring(irc, slack));
 
-    // Start Alertmanager background cache refresh
-    tokio::spawn(async {
-        kusanagi::legacy::alertmanager::start_background_refresh().await;
+    // Start Alertmanager background cache refresh (hexagonal architecture)
+    let alert_repo = AlertRepositoryImpl::new();
+    tokio::spawn(async move {
+        start_alert_background_refresh(alert_repo).await;
     });
 
     // Start News background refresh
@@ -188,6 +192,26 @@ async fn main() -> std::io::Result<()> {
         Arc::new(WeatherRepositoryImpl::new().await) as Arc<dyn WeatherRepository>
     ));
 
+    // Initialize Alerts use case (hexagonal architecture)
+    let alerts_use_case = Arc::new(GetAlertsUseCase::new(
+        Arc::new(AlertRepositoryImpl::new()) as Arc<dyn AlertRepository>
+    ));
+
+    // Initialize Security use case (hexagonal architecture)
+    let security_repo: Arc<dyn SecurityRepository> = create_security_repository().await.into();
+    let security_use_case = Arc::new(GetSecurityUseCase::new(security_repo));
+
+    // Initialize HomeAssistant use case (hexagonal architecture)
+    let ha_repo = match create_homeassistant_repository() {
+        Ok(repo) => Arc::new(repo) as Arc<dyn HomeAssistantRepository>,
+        Err(e) => {
+            log::warn!("Failed to create HomeAssistant repository: {}, using mock", e);
+            // Create a dummy repository that will return empty results
+            Arc::new(HomeAssistantRepositoryImpl::default()) as Arc<dyn HomeAssistantRepository>
+        }
+    };
+    let ha_use_case = Arc::new(GetHomeAssistantUseCase::new(ha_repo));
+
     // Preload services cache
     let k8s_cache_clone = k8s_cache.clone();
     tokio::spawn(async move {
@@ -212,7 +236,10 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(client.clone()))
             .app_data(web::Data::new(mqtt_state.clone()))
-            .app_data(web::Data::new(weather_use_case.clone()));
+            .app_data(web::Data::new(weather_use_case.clone()))
+            .app_data(web::Data::new(alerts_use_case.clone()))
+            .app_data(web::Data::new(security_use_case.clone()))
+            .app_data(web::Data::new(ha_use_case.clone()));
 
         // Inject Kubernetes client if available
         if let Some(ref kube_client) = kube_client {
@@ -228,7 +255,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/system/status", web::get().to(system_status))
             .route("/api/system/logs", web::get().to(system_logs))
             .route("/api/cache/stats", web::get().to(cache_stats))
-            .route("/api/alerts", web::get().to(alerts))
+            .route("/api/alerts", web::get().to(get_alerts_handler))
             .route("/api/metrics", web::get().to(metrics))
             .route("/api/news", web::get().to(news))
             .route("/api/news/refresh", web::post().to(refresh_news))
@@ -267,20 +294,19 @@ async fn main() -> std::io::Result<()> {
                 "/api/proxmox/ct/{vmid}/node/{node}/status/{action}",
                 web::post().to(proxmox_ct_control),
             )
-            .route("/api/ha/devices", web::get().to(ha_devices))
-            .route("/api/ha/sensors", web::get().to(ha_sensors))
-            .route("/api/ha/automations", web::get().to(ha_automations))
+            .route("/api/ha/devices", web::get().to(ha_devices_handler))
+            .route("/api/ha/sensors", web::get().to(ha_sensors_handler))
             .route("/status", web::get().to(system_status))
             .route("/api/logs", web::get().to(logs_endpoint))
-            // Security endpoints (Trivy)
+            // Security endpoints (Trivy) - Hexagonal Architecture
             .route(
-                "/api/security/vulnerabilities",
-                web::get().to(security_vulnerabilities),
+                "/api/security/summary",
+                web::get().to(get_security_handler),
             )
-            .route("/api/security/reports", web::get().to(security_reports))
+            .route("/api/security/reports", web::get().to(get_security_reports_handler))
             .route(
-                "/api/security/reports/{report_id}",
-                web::get().to(security_report_by_id),
+                "/api/security/reports/{category}/{name}",
+                web::get().to(get_security_report_handler),
             )
             // WebSocket endpoint
             .route("/api/ws/notifications", web::get().to(websocket_handler))
