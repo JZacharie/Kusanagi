@@ -4,7 +4,6 @@
 //! This service is independent of infrastructure concerns.
 
 use crate::domain::entities::{ForecastDay, WeatherInfo, WeatherResponse};
-use crate::error::{AppError, Result};
 use chrono::Local;
 use tracing::warn;
 

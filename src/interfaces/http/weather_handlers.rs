@@ -95,8 +95,8 @@ pub fn configure_weather_routes(cfg: &mut web::ServiceConfig) {
 /// 
 /// Helper function to create the use case with the weather repository
 pub async fn create_weather_use_case() -> GetWeatherUseCase {
-    use crate::infrastructure::repositories::{WeatherRepositoryImpl, create_weather_repository};
+    use crate::infrastructure::repositories::{WeatherRepositoryImpl};
     
-    let repository = Arc::new(create_weather_repository().await) as Arc<dyn WeatherRepository>;
+    let repository: Arc<dyn WeatherRepository> = Arc::new(WeatherRepositoryImpl::new().await);
     GetWeatherUseCase::new(repository)
 }

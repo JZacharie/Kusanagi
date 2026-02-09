@@ -6,6 +6,10 @@ use kusanagi::domain::services::{
     argocd_service, fusion_service, homeassistant_service, irc_service, kubernetes_service,
     monitoring_service, mqtt_service, news_service, proxmox_service, slack_service, trivy_service,
 };
+use kusanagi::infrastructure::repositories::WeatherRepositoryImpl;
+use kusanagi::domain::ports::WeatherRepository;
+use kusanagi::application::use_cases::GetWeatherUseCase;
+use kusanagi::interfaces::http::weather_handlers::get_weather_handler;
 use kusanagi::{legacy, Config};
 use serde::Deserialize;
 use serde_json::json;
@@ -162,10 +166,11 @@ async fn main() -> std::io::Result<()> {
         }
     });
 
-    // Start Weather background refresh
+    // Start Weather background refresh (hexagonal architecture)
     tokio::spawn(async {
         log::info!("☁️ Starting background weather refresh...");
-        if let Err(e) = legacy::weather::force_refresh().await {
+        let weather_repo = WeatherRepositoryImpl::new().await;
+        if let Err(e) = weather_repo.force_refresh().await {
             log::warn!(
                 "⚠️ Failed to refresh weather at startup (might be expected if offline): {}",
                 e
@@ -177,6 +182,11 @@ async fn main() -> std::io::Result<()> {
 
     // Check Proxmox connectivity
     proxmox_service::check_proxmox_health(&client).await;
+
+    // Initialize Weather use case (hexagonal architecture)
+    let weather_use_case = Arc::new(GetWeatherUseCase::new(
+        Arc::new(WeatherRepositoryImpl::new().await) as Arc<dyn WeatherRepository>
+    ));
 
     // Preload services cache
     let k8s_cache_clone = k8s_cache.clone();
@@ -201,7 +211,8 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(general_cache.clone()))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(client.clone()))
-            .app_data(web::Data::new(mqtt_state.clone()));
+            .app_data(web::Data::new(mqtt_state.clone()))
+            .app_data(web::Data::new(weather_use_case.clone()));
 
         // Inject Kubernetes client if available
         if let Some(ref kube_client) = kube_client {
@@ -243,7 +254,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/argocd/sync", web::post().to(argocd_sync))
             .route(
                 "/api/weather/current",
-                web::get().to(legacy::weather::get_weather_handler),
+                web::get().to(get_weather_handler),
             )
             .route("/api/proxmox/vms", web::get().to(proxmox_vms))
             .route("/api/proxmox/containers", web::get().to(proxmox_containers))
