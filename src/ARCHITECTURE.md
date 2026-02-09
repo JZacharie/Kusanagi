@@ -130,6 +130,7 @@ Dependencies point inward:
 | Security | ✅ Refactored | Hexagonal |
 | Alertmanager | ✅ Refactored | Hexagonal |
 | Chat | ✅ Refactored | Hexagonal |
+| Weather | ✅ Refactored | Hexagonal |
 | ... | 🔄 Pending | Legacy |
 
 ### 3. API Endpoints
@@ -207,6 +208,10 @@ POST /api/chat/command            -> HandleChatCommandUseCase
 POST /api/chat/query              -> QueryAiUseCase
 GET  /api/chat/history            -> GetChatHistoryUseCase
 POST /api/chat/clear              -> ClearChatHistoryUseCase
+
+# Weather
+GET  /api/weather/current         -> GetWeatherUseCase
+POST /api/weather/refresh         -> GetWeatherUseCase (force_refresh)
 
 # Node Metrics (with Disk Usage)
 GET  /api/nodes/with-metrics      -> GetNodesWithDiskMetricsUseCase
