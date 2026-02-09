@@ -1,5 +1,5 @@
 // Legacy module - Extended working version
-// 
+//
 // NOTE: The following modules have been refactored to hexagonal architecture:
 // - 'weather' -> Use crate::interfaces::http::weather_handlers
 // - 'alertmanager' -> Use crate::interfaces::http::alert_handlers

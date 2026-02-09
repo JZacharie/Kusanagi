@@ -1,12 +1,12 @@
 //! Weather Repository Implementation
-//! 
+//!
 //! Infrastructure adapter implementing the WeatherRepository port.
 //! Handles external API calls (OpenWeather, wttr.in) and S3 caching.
 
 use crate::domain::entities::{ForecastDay, WeatherInfo, WeatherResponse};
 use crate::domain::ports::WeatherRepository;
 use crate::domain::services::weather_service::WeatherDomainService;
-use crate::error::{AppError, Result, KusanagiError};
+use crate::error::{AppError, KusanagiError, Result};
 use async_trait::async_trait;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::{config::Region, Client as S3Client};
@@ -32,7 +32,7 @@ impl WeatherRepositoryImpl {
     /// Create a new repository instance
     pub async fn new() -> Self {
         let api_key = env::var("OPENWEATHER_API_KEY").unwrap_or_default();
-        
+
         if api_key.is_empty() {
             info!("OPENWEATHER_API_KEY not set, will use fallback weather sources");
         }
@@ -54,8 +54,9 @@ impl WeatherRepositoryImpl {
 
     /// Initialize S3 client for caching
     async fn init_s3_client() -> Result<S3Client> {
-        let endpoint = env::var("S3_ENDPOINT").unwrap_or_else(|_| DEFAULT_MINIO_ENDPOINT.to_string());
-        
+        let endpoint =
+            env::var("S3_ENDPOINT").unwrap_or_else(|_| DEFAULT_MINIO_ENDPOINT.to_string());
+
         let config = aws_config::defaults(BehaviorVersion::latest())
             .region(Region::new(S3_REGION))
             .endpoint_url(&endpoint)
@@ -102,9 +103,10 @@ impl WeatherRepositoryImpl {
 
     /// Save weather to S3 cache
     async fn save_to_cache(&self, weather: &WeatherResponse) -> Result<()> {
-        let client = self.s3_client.as_ref().ok_or_else(|| {
-            KusanagiError::configuration("S3 client not available")
-        })?;
+        let client = self
+            .s3_client
+            .as_ref()
+            .ok_or_else(|| KusanagiError::configuration("S3 client not available"))?;
 
         let body = serde_json::to_string(weather)
             .map_err(|e| KusanagiError::serialization(e.to_string()))?;
@@ -135,8 +137,9 @@ impl WeatherRepositoryImpl {
         );
 
         debug!("Fetching current weather for {} from OpenWeather", city);
-        
-        let resp = self.http_client
+
+        let resp = self
+            .http_client
             .get(&url)
             .send()
             .await
@@ -185,7 +188,8 @@ impl WeatherRepositoryImpl {
             city, self.api_key
         );
 
-        let resp = self.http_client
+        let resp = self
+            .http_client
             .get(&url)
             .send()
             .await
@@ -195,7 +199,7 @@ impl WeatherRepositoryImpl {
             .map_err(|e| KusanagiError::serialization(e.to_string()))?;
 
         let mut forecast = Vec::new();
-        
+
         if let Some(list) = resp["list"].as_array() {
             // Pick one entry per day (roughly mid-day, every 8th entry = 24h)
             for item in list.iter().step_by(8).take(5) {
@@ -223,7 +227,8 @@ impl WeatherRepositoryImpl {
 
         debug!("Fetching weather for {} from wttr.in fallback", city);
 
-        let resp = self.http_client
+        let resp = self
+            .http_client
             .get(&url)
             .send()
             .await
@@ -233,47 +238,48 @@ impl WeatherRepositoryImpl {
             .map_err(|e| KusanagiError::serialization(e.to_string()))?;
 
         let current = &resp["current_condition"][0];
-        
+
         let temp = current["temp_C"]
             .as_str()
             .unwrap_or("0")
             .parse::<f32>()
             .unwrap_or(0.0);
-        
+
         let description = current["weatherDesc"][0]["value"]
             .as_str()
             .unwrap_or("unknown")
             .to_string();
-        
+
         let humidity = current["humidity"]
             .as_str()
             .unwrap_or("0")
             .parse::<u8>()
             .unwrap_or(0);
-        
+
         let wind_speed = current["windspeedKmph"]
             .as_str()
             .unwrap_or("0")
             .parse::<f32>()
             .unwrap_or(0.0);
-        
+
         let feels_like = current["FeelsLikeC"]
             .as_str()
             .unwrap_or("0")
             .parse::<f32>()
             .unwrap_or(temp);
-        
+
         let pressure = current["pressure"]
             .as_str()
             .unwrap_or("1013")
             .parse::<u32>()
             .unwrap_or(1013);
-        
+
         let visibility = current["visibility"]
             .as_str()
             .unwrap_or("10")
             .parse::<u32>()
-            .unwrap_or(10) * 1000;
+            .unwrap_or(10)
+            * 1000;
 
         let icon_code = self.domain_service.map_description_to_icon(&description);
 
@@ -283,7 +289,7 @@ impl WeatherRepositoryImpl {
             for day in weather_list.iter().take(5) {
                 let date = day["date"].as_str().unwrap_or("").to_string();
                 let hourly = &day["hourly"][4]; // Mid-day roughly
-                
+
                 forecast.push(ForecastDay {
                     date,
                     temp: day["avgtempC"]
@@ -331,7 +337,10 @@ impl WeatherRepositoryImpl {
         match self.fetch_from_wttrin(city).await {
             Ok(info) => info,
             Err(e) => {
-                warn!("wttr.in fallback failed for {}: {}, using mock data", city, e);
+                warn!(
+                    "wttr.in fallback failed for {}: {}, using mock data",
+                    city, e
+                );
                 self.domain_service.create_mock_weather(city)
             }
         }

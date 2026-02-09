@@ -30,9 +30,7 @@ pub struct ReportPath {
 /// - critical_count, high_count, medium_count, low_count: Vulnerability counts by severity
 /// - reports: List of report keys
 /// - last_updated: Timestamp of last update
-pub async fn get_security_handler(
-    use_case: web::Data<GetSecurityUseCase>,
-) -> Result<HttpResponse> {
+pub async fn get_security_handler(use_case: web::Data<GetSecurityUseCase>) -> Result<HttpResponse> {
     debug!("Security summary request received");
 
     // Check local mode
@@ -123,7 +121,10 @@ pub fn configure_security_routes(cfg: &mut web::ServiceConfig) {
         web::scope("/api/security")
             .route("/summary", web::get().to(get_security_handler))
             .route("/reports", web::get().to(get_security_reports_handler))
-            .route("/reports/{category}/{name}", web::get().to(get_security_report_handler)),
+            .route(
+                "/reports/{category}/{name}",
+                web::get().to(get_security_report_handler),
+            ),
     );
 }
 

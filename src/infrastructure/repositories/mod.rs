@@ -10,11 +10,11 @@ pub mod homeassistant_repository;
 pub mod security_repository;
 pub mod weather_repository;
 
-pub use alert_repository::{AlertRepositoryImpl, start_background_refresh};
+pub use alert_repository::{start_background_refresh, AlertRepositoryImpl};
 pub use backup_repository::BackupRepositoryImpl;
-pub use homeassistant_repository::{HomeAssistantRepositoryImpl, create_homeassistant_repository};
-pub use security_repository::{SecurityRepositoryImpl, create_security_repository};
-pub use weather_repository::{WeatherRepositoryImpl, create_weather_repository};
+pub use homeassistant_repository::{create_homeassistant_repository, HomeAssistantRepositoryImpl};
+pub use security_repository::{create_security_repository, SecurityRepositoryImpl};
+pub use weather_repository::{create_weather_repository, WeatherRepositoryImpl};
 
 pub struct MockClusterRepository;
 

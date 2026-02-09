@@ -8,8 +8,8 @@ use serde_json::{json, Value};
 use tokio::process::Command;
 
 pub async fn get_alerts() -> Result<Value, String> {
-    use crate::infrastructure::repositories::AlertRepositoryImpl;
     use crate::domain::ports::AlertRepository;
+    use crate::infrastructure::repositories::AlertRepositoryImpl;
 
     let repo = AlertRepositoryImpl::new();
     match repo.get_cached_alerts().await {

@@ -1,5 +1,5 @@
 //! Weather Domain Service
-//! 
+//!
 //! Core business logic for weather operations.
 //! This service is independent of infrastructure concerns.
 
@@ -50,7 +50,7 @@ impl WeatherDomainService {
     /// Generate mock forecast based on current temperature
     fn generate_mock_forecast(&self, base_temp: f32) -> Vec<ForecastDay> {
         let mut forecast = Vec::new();
-        
+
         for i in 1..=5 {
             let forecast_date = (Local::now() + chrono::Duration::days(i))
                 .format("%Y-%m-%d 12:00:00")

@@ -38,11 +38,11 @@ pub struct SecurityRepositoryImpl {
 impl SecurityRepositoryImpl {
     /// Create a new repository instance
     pub async fn new() -> Self {
-        let trivy_server_url = env::var("TRIVY_JSON_SERVER")
-            .unwrap_or_else(|_| DEFAULT_TRIVY_JSON_SERVER.to_string());
+        let trivy_server_url =
+            env::var("TRIVY_JSON_SERVER").unwrap_or_else(|_| DEFAULT_TRIVY_JSON_SERVER.to_string());
 
-        let bucket_name = env::var("SECURITY_S3_BUCKET")
-            .unwrap_or_else(|_| DEFAULT_BUCKET_NAME.to_string());
+        let bucket_name =
+            env::var("SECURITY_S3_BUCKET").unwrap_or_else(|_| DEFAULT_BUCKET_NAME.to_string());
 
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
@@ -108,12 +108,18 @@ impl SecurityRepositoryImpl {
                 .send()
                 .await
                 .map_err(|e| {
-                    KusanagiError::external_service(format!("Trivy server error for {}: {}", cat.name, e))
+                    KusanagiError::external_service(format!(
+                        "Trivy server error for {}: {}",
+                        cat.name, e
+                    ))
                 })?
                 .json()
                 .await
                 .map_err(|e| {
-                    KusanagiError::serialization(format!("Failed to parse {} index: {}", cat.name, e))
+                    KusanagiError::serialization(format!(
+                        "Failed to parse {} index: {}",
+                        cat.name, e
+                    ))
                 })?;
 
             let report_files: Vec<String> = files
@@ -142,21 +148,30 @@ impl SecurityRepositoryImpl {
             .send()
             .await
             .map_err(|e| {
-                KusanagiError::external_service(format!("Failed to fetch report {}/{}: {}", category, name, e))
+                KusanagiError::external_service(format!(
+                    "Failed to fetch report {}/{}: {}",
+                    category, name, e
+                ))
             })?
             .json()
             .await
             .map_err(|e| {
-                KusanagiError::serialization(format!("Failed to parse report {}/{}: {}", category, name, e))
+                KusanagiError::serialization(format!(
+                    "Failed to parse report {}/{}: {}",
+                    category, name, e
+                ))
             })?;
 
         Ok(report)
     }
 
     /// Count vulnerabilities in a report
-    fn count_vulnerabilities(&self, report: &serde_json::Value) -> (usize, usize, usize, usize, usize) {
+    fn count_vulnerabilities(
+        &self,
+        report: &serde_json::Value,
+    ) -> (usize, usize, usize, usize, usize) {
         let vulns = report["Report"]["Vulnerabilities"].as_array();
-        
+
         let mut total = 0;
         let mut critical = 0;
         let mut high = 0;
@@ -273,7 +288,12 @@ impl SecurityRepository for SecurityRepositoryImpl {
 
         // Try to get from S3 first (cached enriched reports)
         if let Some(s3_client) = &self.s3_client {
-            match s3_client.list_objects_v2().bucket(&self.bucket_name).send().await {
+            match s3_client
+                .list_objects_v2()
+                .bucket(&self.bucket_name)
+                .send()
+                .await
+            {
                 Ok(output) => {
                     let keys: Vec<String> = output
                         .contents
@@ -311,7 +331,10 @@ impl SecurityRepository for SecurityRepositoryImpl {
                     });
                 }
                 Err(e) => {
-                    warn!("Failed to list S3 objects: {}, falling back to Trivy server", e);
+                    warn!(
+                        "Failed to list S3 objects: {}, falling back to Trivy server",
+                        e
+                    );
                 }
             }
         }
@@ -348,7 +371,12 @@ impl SecurityRepository for SecurityRepositoryImpl {
 
         // Try S3 first
         if let Some(s3_client) = &self.s3_client {
-            match s3_client.list_objects_v2().bucket(&self.bucket_name).send().await {
+            match s3_client
+                .list_objects_v2()
+                .bucket(&self.bucket_name)
+                .send()
+                .await
+            {
                 Ok(output) => {
                     let keys: Vec<String> = output
                         .contents

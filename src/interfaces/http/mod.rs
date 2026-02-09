@@ -5,8 +5,8 @@ use serde_json::json;
 use std::sync::Arc;
 
 pub mod alert_handlers;
-pub mod homeassistant_handlers;
 pub mod backup_handlers;
+pub mod homeassistant_handlers;
 pub mod security_handlers;
 pub mod weather_handlers;
 

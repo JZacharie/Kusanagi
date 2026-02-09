@@ -1,5 +1,5 @@
 //! Weather HTTP Handlers
-//! 
+//!
 //! Interface layer for weather endpoints.
 //! Uses the GetWeatherUseCase from the application layer.
 
@@ -7,7 +7,7 @@ use actix_web::{web, HttpResponse, Result};
 use std::sync::Arc;
 use tracing::{debug, error, info};
 
-use crate::application::use_cases::{GetWeatherUseCase, GetWeatherInput};
+use crate::application::use_cases::{GetWeatherInput, GetWeatherUseCase};
 use crate::domain::ports::WeatherRepository;
 
 /// Query parameters for weather endpoint
@@ -19,13 +19,13 @@ pub struct WeatherQuery {
 }
 
 /// Get current weather for multiple cities
-/// 
+///
 /// # Endpoint
 /// GET /api/weather/current
-/// 
+///
 /// # Query Parameters
 /// - `refresh`: Force cache refresh (optional, default: false)
-/// 
+///
 /// # Response
 /// Returns a JSON object with weather data for configured cities
 pub async fn get_weather_handler(
@@ -53,10 +53,10 @@ pub async fn get_weather_handler(
 }
 
 /// Force refresh weather data
-/// 
+///
 /// # Endpoint
 /// POST /api/weather/refresh
-/// 
+///
 /// # Response
 /// Returns 200 OK on success, error on failure
 pub async fn refresh_weather_handler(
@@ -81,7 +81,7 @@ pub async fn refresh_weather_handler(
 }
 
 /// Configure weather routes
-/// 
+///
 /// Adds weather endpoints to the Actix-Web service configuration
 pub fn configure_weather_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -92,11 +92,11 @@ pub fn configure_weather_routes(cfg: &mut web::ServiceConfig) {
 }
 
 /// Create GetWeatherUseCase with repository
-/// 
+///
 /// Helper function to create the use case with the weather repository
 pub async fn create_weather_use_case() -> GetWeatherUseCase {
-    use crate::infrastructure::repositories::{WeatherRepositoryImpl};
-    
+    use crate::infrastructure::repositories::WeatherRepositoryImpl;
+
     let repository: Arc<dyn WeatherRepository> = Arc::new(WeatherRepositoryImpl::new().await);
     GetWeatherUseCase::new(repository)
 }
