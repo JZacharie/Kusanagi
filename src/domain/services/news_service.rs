@@ -153,7 +153,7 @@ async fn get_cached_news() -> Result<Value, String> {
     let cached: Value = serde_json::from_slice(&body.into_bytes())
         .map_err(|e| format!("JSON parse error: {}", e))?;
 
-    // Check if cache is still valid (1 hour instead of 7 days to keep it fresh)
+    // Check if cache is still valid (1 hour)
     if let Some(cached_at_str) = cached["cached_at"].as_str() {
         if let Ok(cached_at) = DateTime::parse_from_rfc3339(cached_at_str) {
             let age = Utc::now().signed_duration_since(cached_at.with_timezone(&Utc));
@@ -187,7 +187,7 @@ async fn store_cached_news(data: Value) -> Result<(), String> {
 }
 
 async fn create_s3_client() -> Result<S3Client, String> {
-    let endpoint = std::env::var("S3_ENDPOINT").map_err(|_| "S3_ENDPOINT not set")?;
+    let endpoint = std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170:9010".to_string());
     let region = std::env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".to_string());
 
     let config = aws_config::defaults(BehaviorVersion::latest())
