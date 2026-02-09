@@ -17,9 +17,10 @@ pub struct ChatMessage {
 }
 
 pub async fn store_chat_message(user_msg: &str, ai_response: &str, response_type: &str) -> Result<(), String> {
+    let endpoint = std::env::var("S3_ENDPOINT").unwrap_or_else(|_| MINIO_ENDPOINT.to_string());
     let config = aws_config::defaults(BehaviorVersion::latest())
         .region(Region::new("us-east-1")) // MinIO defaults
-        .endpoint_url(MINIO_ENDPOINT)
+        .endpoint_url(endpoint)
         .load()
         .await;
 
