@@ -181,3 +181,20 @@ jobs:
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL'
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        if: success()
+
+      - name: Rollout to jo3 cluster
+        if: success()
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_JO3 }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+          kubectl rollout restart deployment kusanagi -n kusanagi
+
+      - name: Notify Slack
+        if: success()
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ *Kusanagi Update*\n\n🚀 New image built and pushed (`latest`)\n🔄 Rolling out to `jo3` cluster\n\n_System is restarting..._"}' ${{ secrets.SLACK_WEBHOOK_URL }}
