@@ -1004,7 +1004,8 @@ async fn events() -> impl Responder {
 async fn argocd_status() -> impl Responder {
     match argocd_service::get_argocd_status().await {
         Ok(status) => HttpResponse::Ok().json(status),
-        Err(_) => HttpResponse::Ok().json(json!({"healthy": false, "apps": 0, "error": "Failed to fetch status"})),
+        Err(_) => HttpResponse::Ok()
+            .json(json!({"healthy": false, "apps": 0, "error": "Failed to fetch status"})),
     }
 }
 
@@ -1016,7 +1017,9 @@ struct ArgoSyncRequest {
 async fn argocd_sync(params: web::Json<ArgoSyncRequest>) -> impl Responder {
     match argocd_service::sync_app(&params.app_name).await {
         Ok(msg) => HttpResponse::Ok().json(json!({ "success": true, "message": msg })),
-        Err(e) => HttpResponse::InternalServerError().json(json!({ "success": false, "message": e })),
+        Err(e) => {
+            HttpResponse::InternalServerError().json(json!({ "success": false, "message": e }))
+        }
     }
 }
 
