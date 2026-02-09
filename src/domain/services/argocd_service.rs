@@ -147,3 +147,25 @@ fn parse_argocd_apps_text(stdout: &str) -> Result<Value, String> {
         "apps_with_upgrades": apps_with_upgrades
     }))
 }
+
+pub async fn sync_app(app_name: &str) -> Result<String, String> {
+    tracing::info!("🔄 Triggering sync for ArgoCD app: {}", app_name);
+
+    let output = Command::new("kubectl")
+        .args([
+            "patch", "application", app_name, 
+            "-n", "argocd", 
+            "--type", "merge", 
+            "-p", "{\"operation\": {\"sync\": {\"prune\": true}}}"
+        ])
+        .output()
+        .await
+        .map_err(|e| format!("Failed to execute kubectl: {}", e))?;
+
+    if output.status.success() {
+        Ok(format!("Sync triggered for {}", app_name))
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Sync failed: {}", stderr))
+    }
+}
