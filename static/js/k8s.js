@@ -820,7 +820,7 @@ const K8sManager = {
                     <th onclick="K8sManager.sortStorage('capacity_bytes')" class="sortable">Capacity ${this.getSortArrow('capacity_bytes')}</th>
                     <th onclick="K8sManager.sortStorage('usage_percent')" class="sortable">Usage ${this.getSortArrow('usage_percent')}</th>
                     <th onclick="K8sManager.sortStorage('status')" class="sortable">Status ${this.getSortArrow('status')}</th>
-                    <th>Class</th>
+                    <th onclick="K8sManager.sortStorage('storage_class')" class="sortable">Class ${this.getSortArrow('storage_class')}</th>
                 </tr></thead>
                 <tbody>${pageData.map(pvc => {
             const percent = pvc.usage_percent || 0;
