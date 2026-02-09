@@ -187,7 +187,8 @@ async fn store_cached_news(data: Value) -> Result<(), String> {
 }
 
 async fn create_s3_client() -> Result<S3Client, String> {
-    let endpoint = std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170:9010".to_string());
+    let endpoint =
+        std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170:9010".to_string());
     let region = std::env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".to_string());
 
     let config = aws_config::defaults(BehaviorVersion::latest())
