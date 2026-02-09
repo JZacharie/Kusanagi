@@ -284,7 +284,7 @@ pub async fn trigger_cronjob(namespace: &str, cronjob_name: &str) -> Result<Stri
             api_version: "batch/v1".to_string(),
             kind: "CronJob".to_string(),
             name: cronjob_name.to_string(),
-            uid: uid,
+            uid,
             controller: Some(true),
             block_owner_deletion: Some(true),
         }]);
