@@ -1,7 +1,14 @@
 use actix_web::{web, HttpResponse, Result};
+use aws_config::BehaviorVersion;
+use aws_sdk_s3::{config::Region, Client as S3Client};
 use serde::{Deserialize, Serialize};
 use std::env;
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
+
+const S3_BUCKET: &str = "kusanagi";
+const S3_KEY: &str = "weather-cache.json";
+const S3_REGION: &str = "us-east-1";
+const MINIO_ENDPOINT: &str = "http://192.168.0.170:9010"; // Hardcoded from chat_storage.rs for consistency
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ForecastDay {
@@ -35,10 +42,11 @@ pub struct WeatherResponse {
 pub struct WeatherClient {
     api_key: String,
     client: reqwest::Client,
+    s3_client: Option<S3Client>,
 }
 
 impl WeatherClient {
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let api_key = env::var("OPENWEATHER_API_KEY").unwrap_or_else(|_| "".to_string());
 
         if api_key.is_empty() {
@@ -49,12 +57,44 @@ impl WeatherClient {
             .timeout(std::time::Duration::from_secs(5))
             .build()?;
 
-        Ok(Self { api_key, client })
+        // Initialize S3 Client (MinIO)
+        let config = aws_config::defaults(BehaviorVersion::latest())
+            .region(Region::new(S3_REGION))
+            .endpoint_url(MINIO_ENDPOINT)
+            .load()
+            .await;
+
+        let s3_client = Some(S3Client::new(&config));
+
+        Ok(Self {
+            api_key,
+            client,
+            s3_client,
+        })
     }
 
     pub async fn get_multi_city_weather(
         &self,
+        force_refresh: bool,
     ) -> Result<WeatherResponse, Box<dyn std::error::Error>> {
+        // 1. Check S3 cache first if not forced refresh
+        if !force_refresh {
+            if let Some(cached) = self.fetch_from_s3().await {
+                // Check if cache is fresh (less than 6 hours)
+                if let Ok(cached_time) =
+                    chrono::NaiveDateTime::parse_from_str(&cached.cached_at, "%Y-%m-%d %H:%M:%S")
+                {
+                   let six_hours_ago = chrono::Local::now().naive_local() - chrono::Duration::hours(6);
+                    if cached_time > six_hours_ago {
+                        debug!("Returning cached weather data from S3 (cached at {})", cached.cached_at);
+                        return Ok(cached);
+                    } else {
+                        debug!("S3 cache expired (cached at {}), refreshing...", cached.cached_at);
+                    }
+                }
+            }
+        }
+
         let cities = vec!["Lyon", "Mexico City", "New York"];
         let mut results = Vec::new();
 
@@ -72,27 +112,71 @@ impl WeatherClient {
                     }
                 }
             }
-            return Ok(WeatherResponse {
-                cities: results,
-                cached_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-            });
-        }
-
-        for city in cities {
-            match self.fetch_city_weather(city).await {
-                Ok(info) => results.push(info),
-                Err(e) => {
-                    error!("Failed to fetch weather for {}: {}", city, e);
-                    // Fallback to mock for this city if API fails
-                    results.push(self.get_mock_city_weather(city));
+        } else {
+            for city in cities {
+                match self.fetch_city_weather(city).await {
+                    Ok(info) => results.push(info),
+                    Err(e) => {
+                        error!("Failed to fetch weather for {}: {}", city, e);
+                        // Fallback to mock for this city if API fails
+                        results.push(self.get_mock_city_weather(city));
+                    }
                 }
             }
         }
 
-        Ok(WeatherResponse {
+        let response = WeatherResponse {
             cities: results,
             cached_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-        })
+        };
+
+        // 2. Save to S3
+        if let Err(e) = self.save_to_s3(&response).await {
+            error!("Failed to save weather to S3: {}", e);
+        }
+
+        Ok(response)
+    }
+
+    async fn fetch_from_s3(&self) -> Option<WeatherResponse> {
+        let client = self.s3_client.as_ref()?;
+        
+        match client.get_object().bucket(S3_BUCKET).key(S3_KEY).send().await {
+            Ok(resp) => {
+                let data = resp.body.collect().await.ok()?.into_bytes();
+                match serde_json::from_slice::<WeatherResponse>(&data) {
+                    Ok(weather) => Some(weather),
+                    Err(e) => {
+                        error!("Failed to parse S3 weather cache: {}", e);
+                        None
+                    }
+                }
+            }
+            Err(e) => {
+                debug!("Available buckets: {:?}", client.list_buckets().send().await);
+                warn!("Failed to fetch from S3 (might apply first run): {}", e);
+                None
+            }
+        }
+    }
+
+    async fn save_to_s3(
+        &self,
+        weather: &WeatherResponse,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let client = self.s3_client.as_ref().ok_or("No S3 client")?;
+        let body = serde_json::to_string(weather)?;
+
+        client
+            .put_object()
+            .bucket(S3_BUCKET)
+            .key(S3_KEY)
+            .body(body.into_bytes().into())
+            .send()
+            .await?;
+
+        info!("Weather data cached to S3 successfully");
+        Ok(())
     }
 
     async fn fetch_city_weather(
@@ -318,10 +402,18 @@ impl WeatherClient {
     }
 }
 
+// Public helper for startup refresh
+pub async fn force_refresh() -> Result<(), Box<dyn std::error::Error>> {
+    let client = WeatherClient::new().await?;
+    info!("Forcing weather refresh...");
+    client.get_multi_city_weather(true).await?;
+    Ok(())
+}
+
 // API Handlers
 pub async fn get_weather_handler() -> Result<HttpResponse> {
-    match WeatherClient::new() {
-        Ok(client) => match client.get_multi_city_weather().await {
+    match WeatherClient::new().await {
+        Ok(client) => match client.get_multi_city_weather(false).await {
             Ok(weather) => Ok(HttpResponse::Ok().json(weather)),
             Err(e) => {
                 error!("Weather error: {}", e);
