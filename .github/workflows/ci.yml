@@ -196,5 +196,11 @@ jobs:
 
       - name: Notify Slack
         if: success()
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ *Kusanagi Update*\n\n🚀 New image built and pushed (`latest`)\n🔄 Rolling out to `jo3` cluster\n\n_System is restarting..._"}' ${{ secrets.SLACK_WEBHOOK_URL }}
+          jq -n \
+            --arg msg "$COMMIT_MSG" \
+            '{text: ("✅ *Kusanagi Update*\n\n🚀 New image built and pushed (`latest`)\n🔄 Rolling out to `jo3` cluster\n\n📝 *Commit:* " + $msg + "\n\n_System is restarting..._")}' \
+            | curl -X POST -H 'Content-type: application/json' -d @- $SLACK_WEBHOOK
