@@ -18,6 +18,7 @@ const S3_BUCKET: &str = "kusanagi";
 const S3_KEY: &str = "weather-cache.json";
 const S3_REGION: &str = "us-east-1";
 const DEFAULT_MINIO_ENDPOINT: &str = "http://192.168.0.170:9010";
+#[allow(dead_code)]
 const CACHE_DURATION_HOURS: i64 = 6;
 
 /// Weather repository implementation

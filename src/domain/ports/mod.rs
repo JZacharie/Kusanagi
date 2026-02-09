@@ -44,7 +44,6 @@ pub trait AlertRepository: Send + Sync {
 
 // ==================== Backup Ports ====================
 use super::entities::BackupsResponse;
-use kube::Client;
 
 #[async_trait]
 pub trait BackupRepository: Send + Sync {

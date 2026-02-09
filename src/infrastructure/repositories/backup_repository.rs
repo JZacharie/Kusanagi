@@ -14,7 +14,7 @@ use kube::{
     Client,
 };
 use std::sync::Arc;
-use tracing::{debug, error, info, warn};
+use tracing::info;
 
 /// Backup repository implementation
 pub struct BackupRepositoryImpl {
@@ -48,7 +48,7 @@ impl BackupRepositoryImpl {
         cronjob_name: &str,
         namespace: &str,
         jobs: &[Job],
-        now: &DateTime<Utc>,
+        _now: &DateTime<Utc>,
     ) -> Vec<JobInfo> {
         jobs.iter()
             .filter(|job| {
