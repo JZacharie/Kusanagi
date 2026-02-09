@@ -4,6 +4,10 @@ use crate::domain::ports::ClusterRepository;
 use crate::error::Result;
 use async_trait::async_trait;
 
+pub mod weather_repository;
+
+pub use weather_repository::{WeatherRepositoryImpl, create_weather_repository};
+
 pub struct MockClusterRepository;
 
 #[async_trait]

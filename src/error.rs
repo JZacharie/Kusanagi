@@ -5,9 +5,34 @@ pub enum KusanagiError {
 
     #[error("Cache error: {message}")]
     Cache { message: String },
+    
+    #[error("External service error: {0}")]
+    ExternalService(String),
+    
+    #[error("Serialization error: {0}")]
+    Serialization(String),
 }
 
+// Type alias for backward compatibility
 pub type Result<T> = std::result::Result<T, KusanagiError>;
+
+// AppError alias for hexagonal architecture
+pub use KusanagiError as AppError;
+
+// Helper constructors
+impl KusanagiError {
+    pub fn configuration(msg: impl Into<String>) -> Self {
+        Self::Config { message: msg.into() }
+    }
+    
+    pub fn external_service(msg: impl Into<String>) -> Self {
+        Self::ExternalService(msg.into())
+    }
+    
+    pub fn serialization(msg: impl Into<String>) -> Self {
+        Self::Serialization(msg.into())
+    }
+}
 
 #[cfg(test)]
 mod tests {
