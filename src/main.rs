@@ -217,6 +217,7 @@ async fn main() -> std::io::Result<()> {
             )
             .route("/api/cluster/overview", web::get().to(cluster_overview))
             .route("/api/backups", web::get().to(backups))
+            .route("/api/backups/trigger", web::post().to(trigger_backup))
             .route("/api/services", web::get().to(services))
             .route("/api/ingress", web::get().to(ingress))
             .route("/api/nodes/status", web::get().to(nodes_status))
@@ -928,6 +929,25 @@ async fn backups() -> impl Responder {
     match monitoring_service::get_backups().await {
         Ok(backups) => HttpResponse::Ok().json(backups),
         Err(_) => HttpResponse::Ok().json(json!([])),
+    }
+}
+
+#[derive(Deserialize)]
+struct TriggerBackupRequest {
+    namespace: String,
+    cronjob_name: String,
+}
+
+async fn trigger_backup(params: web::Json<TriggerBackupRequest>) -> impl Responder {
+    match monitoring_service::trigger_cronjob(&params.namespace, &params.cronjob_name).await {
+        Ok(msg) => HttpResponse::Ok().json(json!({
+            "status": "success",
+            "message": msg
+        })),
+        Err(e) => HttpResponse::InternalServerError().json(json!({
+            "status": "error",
+            "message": e
+        })),
     }
 }
 

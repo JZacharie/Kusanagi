@@ -604,7 +604,7 @@ pub async fn get_events() -> Result<Value, String> {
 }
 
 // Helper function to calculate age from k8s timestamp (kube 3.0 uses jiff::Timestamp)
-fn calculate_age_from_timestamp(
+pub fn calculate_age_from_timestamp(
     ts: &k8s_openapi::apimachinery::pkg::apis::meta::v1::Time,
 ) -> String {
     // Convert jiff::Timestamp to seconds since epoch

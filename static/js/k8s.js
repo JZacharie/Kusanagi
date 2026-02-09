@@ -943,18 +943,82 @@ const K8sManager = {
 
         container.innerHTML = `
             <table class="issues-table">
-                <thead><tr><th>CronJob</th><th>Namespace</th><th>Schedule</th><th>Last Run</th><th>Status</th><th>Recent Jobs</th></tr></thead>
+                <thead><tr>
+                    <th>CronJob</th>
+                    <th>Namespace</th>
+                    <th>Schedule</th>
+                    <th>Last Run</th>
+                    <th>Status</th>
+                    <th>Recent Jobs</th>
+                    <th>Actions</th>
+                </tr></thead>
                 <tbody>${cronjobs.map(cj => {
             const statusClass = cj.suspend ? 'suspended' : (cj.active_jobs > 0 ? 'running' : 'healthy');
             const statusText = cj.suspend ? 'Suspended' : (cj.active_jobs > 0 ? 'Running' : 'Idle');
+
+            // Render recent jobs dots
+            const recentJobsHtml = (cj.recent_jobs || []).map(job => {
+                let color = 'var(--neon-blue)'; // Default/Running
+                if (job.status === 'Succeeded') color = 'var(--neon-green)';
+                if (job.status === 'Failed') color = 'var(--neon-orange)';
+
+                return `<span title="${job.name} (${job.status}) - ${job.age}" 
+                        style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${color}; margin-right: 4px; box-shadow: 0 0 5px ${color};"></span>`;
+            }).join('');
+
             return `<tr>
-                        <td class="app-name">${cj.name}</td><td>${cj.namespace}</td><td><code>${cj.schedule}</code></td>
-                        <td>${cj.last_schedule_age || '-'}</td><td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                        <td>${(cj.recent_jobs || []).length} jobs</td>
+                        <td class="app-name">${cj.name}</td>
+                        <td>${cj.namespace}</td>
+                        <td><code>${cj.schedule}</code></td>
+                        <td>${cj.last_schedule_age || '-'}</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td>
+                            ${recentJobsHtml || '<span style="opacity: 0.5;">No runs</span>'}
+                        </td>
+                        <td>
+                            <button class="cyber-btn small" onclick="K8sManager.triggerCronJob('${cj.namespace}', '${cj.name}')">
+                                ▶ Run
+                            </button>
+                        </td>
                     </tr>`;
         }).join('')}</tbody>
             </table>
         `;
+    },
+
+    async triggerCronJob(namespace, name) {
+        if (!confirm(`Are you sure you want to trigger backup '${name}'?`)) return;
+
+        try {
+            const response = await fetch('/api/backups/trigger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ namespace, cronjob_name: name })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message || 'Failed to trigger backup');
+            }
+
+            const result = await response.json();
+            // Show toast or alert
+            if (window.showNotification) {
+                window.showNotification(result.message, 'success');
+            } else {
+                alert(result.message);
+            }
+
+            // Refresh list after a short delay
+            setTimeout(() => this.fetchBackupsStatus(), 1000);
+        } catch (error) {
+            console.error('Trigger error:', error);
+            if (window.showNotification) {
+                window.showNotification(`Error: ${error.message}`, 'error');
+            } else {
+                alert(`Error: ${error.message}`);
+            }
+        }
     },
 
     // === SERVICES & INGRESS ===
