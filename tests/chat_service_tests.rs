@@ -28,9 +28,19 @@ struct ChatSession {
 
 // Repository
 trait ChatRepository: Send + Sync {
-    fn save_message(&self, session_id: &str, message: ChatMessage) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>>;
-    fn get_session_messages(&self, session_id: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<ChatMessage>> + Send + '_>>;
-    fn clear_session(&self, session_id: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>>;
+    fn save_message(
+        &self,
+        session_id: &str,
+        message: ChatMessage,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>>;
+    fn get_session_messages(
+        &self,
+        session_id: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<ChatMessage>> + Send + '_>>;
+    fn clear_session(
+        &self,
+        session_id: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>>;
 }
 
 struct InMemoryChatRepository {
@@ -46,7 +56,11 @@ impl InMemoryChatRepository {
 }
 
 impl ChatRepository for InMemoryChatRepository {
-    fn save_message(&self, session_id: &str, message: ChatMessage) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>> {
+    fn save_message(
+        &self,
+        session_id: &str,
+        message: ChatMessage,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>> {
         let sessions = self.sessions.clone();
         let session_id = session_id.to_string();
         Box::pin(async move {
@@ -63,15 +77,27 @@ impl ChatRepository for InMemoryChatRepository {
         })
     }
 
-    fn get_session_messages(&self, session_id: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<ChatMessage>> + Send + '_>> {
+    fn get_session_messages(
+        &self,
+        session_id: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<ChatMessage>> + Send + '_>> {
         let sessions = self.sessions.clone();
         let session_id = session_id.to_string();
         Box::pin(async move {
-            sessions.lock().await.iter().find(|s| s.id == session_id).map(|s| s.messages.clone()).unwrap_or_default()
+            sessions
+                .lock()
+                .await
+                .iter()
+                .find(|s| s.id == session_id)
+                .map(|s| s.messages.clone())
+                .unwrap_or_default()
         })
     }
 
-    fn clear_session(&self, session_id: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>> {
+    fn clear_session(
+        &self,
+        session_id: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>> {
         let sessions = self.sessions.clone();
         let session_id = session_id.to_string();
         Box::pin(async move {
@@ -98,7 +124,9 @@ impl<R: ChatRepository> ChatService<R> {
             content: content.to_string(),
             timestamp: "2024-01-01T00:00:00Z".to_string(),
         };
-        self.repository.save_message(session_id, user_message.clone()).await;
+        self.repository
+            .save_message(session_id, user_message.clone())
+            .await;
 
         // Generate assistant response (mock)
         let assistant_message = ChatMessage {
@@ -107,7 +135,9 @@ impl<R: ChatRepository> ChatService<R> {
             content: format!("Response to: {}", content),
             timestamp: "2024-01-01T00:00:01Z".to_string(),
         };
-        self.repository.save_message(session_id, assistant_message.clone()).await;
+        self.repository
+            .save_message(session_id, assistant_message.clone())
+            .await;
 
         assistant_message
     }
@@ -131,9 +161,7 @@ impl<R: ChatRepository> ChatService<R> {
 
 fn generate_id() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let duration = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap();
+    let duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
     format!("msg_{}", duration.as_millis())
 }
 
@@ -186,10 +214,14 @@ async fn test_multiple_sessions() {
 
     assert_eq!(history1.len(), 2);
     assert_eq!(history2.len(), 2);
-    
+
     // Ensure messages are isolated
-    assert!(history1.iter().all(|m| m.content.contains("Message 1") || m.content.contains("Response to: Message 1")));
-    assert!(history2.iter().all(|m| m.content.contains("Message 2") || m.content.contains("Response to: Message 2")));
+    assert!(history1
+        .iter()
+        .all(|m| m.content.contains("Message 1") || m.content.contains("Response to: Message 1")));
+    assert!(history2
+        .iter()
+        .all(|m| m.content.contains("Message 2") || m.content.contains("Response to: Message 2")));
 }
 
 #[tokio::test]

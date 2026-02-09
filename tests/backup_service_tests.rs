@@ -1,8 +1,8 @@
 //! Tests for backup service
 
+use chrono::{DateTime, Duration, Utc};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use chrono::{DateTime, Utc, Duration};
 
 // Mock types
 #[derive(Debug, Clone)]
@@ -34,9 +34,17 @@ struct CronJob {
 
 // Repository
 trait BackupRepository: Send + Sync {
-    fn list_backups(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<Backup>> + Send + '_>>;
-    fn get_cronjobs(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<CronJob>> + Send + '_>>;
-    fn trigger_backup(&self, name: &str, namespace: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + '_>>;
+    fn list_backups(
+        &self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<Backup>> + Send + '_>>;
+    fn get_cronjobs(
+        &self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<CronJob>> + Send + '_>>;
+    fn trigger_backup(
+        &self,
+        name: &str,
+        namespace: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + '_>>;
 }
 
 struct InMemoryBackupRepository {
@@ -62,17 +70,25 @@ impl InMemoryBackupRepository {
 }
 
 impl BackupRepository for InMemoryBackupRepository {
-    fn list_backups(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<Backup>> + Send + '_>> {
+    fn list_backups(
+        &self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<Backup>> + Send + '_>> {
         let backups = self.backups.clone();
         Box::pin(async move { backups.lock().await.clone() })
     }
 
-    fn get_cronjobs(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<CronJob>> + Send + '_>> {
+    fn get_cronjobs(
+        &self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<CronJob>> + Send + '_>> {
         let cronjobs = self.cronjobs.clone();
         Box::pin(async move { cronjobs.lock().await.clone() })
     }
 
-    fn trigger_backup(&self, name: &str, _namespace: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + '_>> {
+    fn trigger_backup(
+        &self,
+        name: &str,
+        _namespace: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + '_>> {
         let name = name.to_string();
         Box::pin(async move {
             if name.is_empty() {
@@ -99,9 +115,18 @@ impl<R: BackupRepository> BackupService<R> {
 
         BackupSummary {
             total: backups.len(),
-            completed: backups.iter().filter(|b| b.status == BackupStatus::Completed).count(),
-            failed: backups.iter().filter(|b| b.status == BackupStatus::Failed).count(),
-            in_progress: backups.iter().filter(|b| b.status == BackupStatus::InProgress).count(),
+            completed: backups
+                .iter()
+                .filter(|b| b.status == BackupStatus::Completed)
+                .count(),
+            failed: backups
+                .iter()
+                .filter(|b| b.status == BackupStatus::Failed)
+                .count(),
+            in_progress: backups
+                .iter()
+                .filter(|b| b.status == BackupStatus::InProgress)
+                .count(),
             total_size_bytes: backups.iter().map(|b| b.size_bytes).sum(),
         }
     }
@@ -118,7 +143,10 @@ impl<R: BackupRepository> BackupService<R> {
 
     async fn get_failed_backups(&self) -> Vec<Backup> {
         let backups = self.repository.list_backups().await;
-        backups.into_iter().filter(|b| b.status == BackupStatus::Failed).collect()
+        backups
+            .into_iter()
+            .filter(|b| b.status == BackupStatus::Failed)
+            .collect()
     }
 
     async fn get_active_cronjobs(&self) -> Vec<CronJob> {
@@ -132,10 +160,7 @@ impl<R: BackupRepository> BackupService<R> {
 
         cronjobs
             .into_iter()
-            .filter(|c| {
-                c.is_active && 
-                c.next_run.map(|nr| nr < now).unwrap_or(false)
-            })
+            .filter(|c| c.is_active && c.next_run.map(|nr| nr < now).unwrap_or(false))
             .collect()
     }
 
@@ -175,7 +200,8 @@ async fn test_backup_summary_with_data() {
         status: BackupStatus::Completed,
         created_at: Utc::now(),
         size_bytes: 1024 * 1024 * 100, // 100 MB
-    }).await;
+    })
+    .await;
 
     repo.add_backup(Backup {
         name: "backup-2".to_string(),
@@ -183,7 +209,8 @@ async fn test_backup_summary_with_data() {
         status: BackupStatus::Completed,
         created_at: Utc::now(),
         size_bytes: 1024 * 1024 * 200, // 200 MB
-    }).await;
+    })
+    .await;
 
     repo.add_backup(Backup {
         name: "backup-3".to_string(),
@@ -191,7 +218,8 @@ async fn test_backup_summary_with_data() {
         status: BackupStatus::Failed,
         created_at: Utc::now(),
         size_bytes: 0,
-    }).await;
+    })
+    .await;
 
     let service = BackupService::new(repo);
     let summary = service.get_backup_summary().await;
@@ -214,7 +242,8 @@ async fn test_get_recent_backups() {
         status: BackupStatus::Completed,
         created_at: now,
         size_bytes: 100,
-    }).await;
+    })
+    .await;
 
     repo.add_backup(Backup {
         name: "old-backup".to_string(),
@@ -222,7 +251,8 @@ async fn test_get_recent_backups() {
         status: BackupStatus::Completed,
         created_at: now - Duration::hours(25),
         size_bytes: 100,
-    }).await;
+    })
+    .await;
 
     let service = BackupService::new(repo);
     let recent = service.get_recent_backups(24).await;
@@ -241,7 +271,8 @@ async fn test_get_failed_backups() {
         status: BackupStatus::Failed,
         created_at: Utc::now(),
         size_bytes: 0,
-    }).await;
+    })
+    .await;
 
     repo.add_backup(Backup {
         name: "completed-1".to_string(),
@@ -249,7 +280,8 @@ async fn test_get_failed_backups() {
         status: BackupStatus::Completed,
         created_at: Utc::now(),
         size_bytes: 100,
-    }).await;
+    })
+    .await;
 
     let service = BackupService::new(repo);
     let failed = service.get_failed_backups().await;
@@ -269,7 +301,8 @@ async fn test_get_active_cronjobs() {
         last_run: None,
         next_run: None,
         is_active: true,
-    }).await;
+    })
+    .await;
 
     repo.add_cronjob(CronJob {
         name: "inactive-job".to_string(),
@@ -278,7 +311,8 @@ async fn test_get_active_cronjobs() {
         last_run: None,
         next_run: None,
         is_active: false,
-    }).await;
+    })
+    .await;
 
     let service = BackupService::new(repo);
     let active = service.get_active_cronjobs().await;
@@ -299,7 +333,8 @@ async fn test_get_overdue_cronjobs() {
         last_run: None,
         next_run: Some(now - Duration::hours(1)),
         is_active: true,
-    }).await;
+    })
+    .await;
 
     repo.add_cronjob(CronJob {
         name: "future-job".to_string(),
@@ -308,7 +343,8 @@ async fn test_get_overdue_cronjobs() {
         last_run: None,
         next_run: Some(now + Duration::hours(1)),
         is_active: true,
-    }).await;
+    })
+    .await;
 
     let service = BackupService::new(repo);
     let overdue = service.get_overdue_cronjobs().await;

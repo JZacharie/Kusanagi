@@ -75,7 +75,11 @@ impl MockK8sClient {
 
         let services = self.services.lock().await;
         Ok(match namespace {
-            Some(ns) => services.iter().filter(|s| s.namespace == ns).cloned().collect(),
+            Some(ns) => services
+                .iter()
+                .filter(|s| s.namespace == ns)
+                .cloned()
+                .collect(),
             None => services.clone(),
         })
     }
@@ -113,7 +117,7 @@ impl KubernetesRepository {
 
     async fn count_pods_by_status(&self) -> Result<PodStatusCounts, String> {
         let pods = self.client.list_pods(None).await?;
-        
+
         let mut counts = PodStatusCounts::default();
         for pod in &pods {
             match pod.status.as_str() {
@@ -125,7 +129,7 @@ impl KubernetesRepository {
             }
         }
         counts.total = pods.len();
-        
+
         Ok(counts)
     }
 
@@ -166,7 +170,7 @@ struct ClusterSummary {
 #[tokio::test]
 async fn test_repository_get_all_pods() {
     let client = Arc::new(MockK8sClient::new());
-    
+
     // Add test data
     client.pods.lock().await.push(MockPod {
         name: "pod-1".to_string(),
@@ -190,7 +194,7 @@ async fn test_repository_get_all_pods() {
 #[tokio::test]
 async fn test_repository_get_pods_by_namespace() {
     let client = Arc::new(MockK8sClient::new());
-    
+
     client.pods.lock().await.push(MockPod {
         name: "pod-1".to_string(),
         namespace: "default".to_string(),
@@ -219,7 +223,7 @@ async fn test_repository_get_pods_by_namespace() {
 #[tokio::test]
 async fn test_repository_get_nodes() {
     let client = Arc::new(MockK8sClient::new());
-    
+
     client.nodes.lock().await.push(MockNode {
         name: "master-1".to_string(),
         status: "Ready".to_string(),
@@ -242,13 +246,38 @@ async fn test_repository_get_nodes() {
 #[tokio::test]
 async fn test_repository_count_pods_by_status() {
     let client = Arc::new(MockK8sClient::new());
-    
+
     client.pods.lock().await.extend(vec![
-        MockPod { name: "p1".to_string(), namespace: "default".to_string(), status: "Running".to_string(), phase: "Running".to_string() },
-        MockPod { name: "p2".to_string(), namespace: "default".to_string(), status: "Running".to_string(), phase: "Running".to_string() },
-        MockPod { name: "p3".to_string(), namespace: "default".to_string(), status: "Pending".to_string(), phase: "Pending".to_string() },
-        MockPod { name: "p4".to_string(), namespace: "default".to_string(), status: "Failed".to_string(), phase: "Failed".to_string() },
-        MockPod { name: "p5".to_string(), namespace: "default".to_string(), status: "Succeeded".to_string(), phase: "Succeeded".to_string() },
+        MockPod {
+            name: "p1".to_string(),
+            namespace: "default".to_string(),
+            status: "Running".to_string(),
+            phase: "Running".to_string(),
+        },
+        MockPod {
+            name: "p2".to_string(),
+            namespace: "default".to_string(),
+            status: "Running".to_string(),
+            phase: "Running".to_string(),
+        },
+        MockPod {
+            name: "p3".to_string(),
+            namespace: "default".to_string(),
+            status: "Pending".to_string(),
+            phase: "Pending".to_string(),
+        },
+        MockPod {
+            name: "p4".to_string(),
+            namespace: "default".to_string(),
+            status: "Failed".to_string(),
+            phase: "Failed".to_string(),
+        },
+        MockPod {
+            name: "p5".to_string(),
+            namespace: "default".to_string(),
+            status: "Succeeded".to_string(),
+            phase: "Succeeded".to_string(),
+        },
     ]);
 
     let repo = KubernetesRepository::new(client);
@@ -265,7 +294,7 @@ async fn test_repository_count_pods_by_status() {
 #[tokio::test]
 async fn test_repository_get_cluster_summary() {
     let client = Arc::new(MockK8sClient::new());
-    
+
     client.pods.lock().await.push(MockPod {
         name: "pod-1".to_string(),
         namespace: "default".to_string(),
@@ -297,7 +326,7 @@ async fn test_repository_error_handling() {
     client.set_fail(true).await;
 
     let repo = KubernetesRepository::new(client);
-    
+
     let result = repo.get_all_pods().await;
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("Kubernetes API error"));
@@ -330,10 +359,21 @@ async fn test_repository_empty_results() {
 
 /// Generic Repository Port
 trait Repository<T, E>: Send + Sync {
-    fn find_all(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<T>, E>> + Send + '_>>;
-    fn find_by_id(&self, id: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<T>, E>> + Send + '_>>;
-    fn save(&self, item: T) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), E>> + Send + '_>>;
-    fn delete(&self, id: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), E>> + Send + '_>>;
+    fn find_all(
+        &self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<T>, E>> + Send + '_>>;
+    fn find_by_id(
+        &self,
+        id: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<T>, E>> + Send + '_>>;
+    fn save(
+        &self,
+        item: T,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), E>> + Send + '_>>;
+    fn delete(
+        &self,
+        id: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), E>> + Send + '_>>;
 }
 
 /// In-Memory Repository Implementation
@@ -352,14 +392,19 @@ impl<T: Clone + Send + Sync + 'static> InMemoryRepository<T> {
 }
 
 impl<T: Clone + Send + Sync + 'static> Repository<T, String> for InMemoryRepository<T> {
-    fn find_all(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<T>, String>> + Send + '_>> {
+    fn find_all(
+        &self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<T>, String>> + Send + '_>>
+    {
         let data = self.data.clone();
-        Box::pin(async move {
-            Ok(data.lock().await.clone())
-        })
+        Box::pin(async move { Ok(data.lock().await.clone()) })
     }
 
-    fn find_by_id(&self, id: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<T>, String>> + Send + '_>> {
+    fn find_by_id(
+        &self,
+        id: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<T>, String>> + Send + '_>>
+    {
         let data = self.data.clone();
         let id = id.to_string();
         let id_extractor = self.id_extractor;
@@ -369,7 +414,10 @@ impl<T: Clone + Send + Sync + 'static> Repository<T, String> for InMemoryReposit
         })
     }
 
-    fn save(&self, item: T) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + '_>> {
+    fn save(
+        &self,
+        item: T,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + '_>> {
         let data = self.data.clone();
         let id_extractor = self.id_extractor;
         Box::pin(async move {
@@ -384,7 +432,10 @@ impl<T: Clone + Send + Sync + 'static> Repository<T, String> for InMemoryReposit
         })
     }
 
-    fn delete(&self, id: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + '_>> {
+    fn delete(
+        &self,
+        id: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + '_>> {
         let data = self.data.clone();
         let id = id.to_string();
         let id_extractor = self.id_extractor;
@@ -450,9 +501,27 @@ async fn test_generic_repository_crud() {
 async fn test_generic_repository_find_all() {
     let repo = InMemoryRepository::new(extract_id);
 
-    repo.save(TestEntity { id: "1".to_string(), name: "A".to_string(), value: 1 }).await.unwrap();
-    repo.save(TestEntity { id: "2".to_string(), name: "B".to_string(), value: 2 }).await.unwrap();
-    repo.save(TestEntity { id: "3".to_string(), name: "C".to_string(), value: 3 }).await.unwrap();
+    repo.save(TestEntity {
+        id: "1".to_string(),
+        name: "A".to_string(),
+        value: 1,
+    })
+    .await
+    .unwrap();
+    repo.save(TestEntity {
+        id: "2".to_string(),
+        name: "B".to_string(),
+        value: 2,
+    })
+    .await
+    .unwrap();
+    repo.save(TestEntity {
+        id: "3".to_string(),
+        name: "C".to_string(),
+        value: 3,
+    })
+    .await
+    .unwrap();
 
     let all = repo.find_all().await.unwrap();
     assert_eq!(all.len(), 3);
@@ -461,7 +530,7 @@ async fn test_generic_repository_find_all() {
 #[tokio::test]
 async fn test_generic_repository_delete_not_found() {
     let repo = InMemoryRepository::new(extract_id);
-    
+
     let result = repo.delete("nonexistent").await;
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("not found"));

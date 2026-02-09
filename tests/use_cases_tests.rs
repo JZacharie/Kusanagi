@@ -6,9 +6,17 @@ use tokio::sync::Mutex;
 
 // Mock Repository Port - Using async_trait for mocking
 trait PodRepository: Send + Sync {
-    fn list_pods(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<MockPod>> + Send + '_>>;
-    fn get_pod(&self, name: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<MockPod>> + Send + '_>>;
-    fn get_pods_by_status(&self, status: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<MockPod>> + Send + '_>>;
+    fn list_pods(
+        &self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<MockPod>> + Send + '_>>;
+    fn get_pod(
+        &self,
+        name: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<MockPod>> + Send + '_>>;
+    fn get_pods_by_status(
+        &self,
+        status: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<MockPod>> + Send + '_>>;
 }
 
 // Mock Pod Entity
@@ -36,26 +44,35 @@ impl InMemoryPodRepository {
 }
 
 impl PodRepository for InMemoryPodRepository {
-    fn list_pods(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<MockPod>> + Send + '_>> {
+    fn list_pods(
+        &self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<MockPod>> + Send + '_>> {
         let pods = self.pods.clone();
-        Box::pin(async move {
-            pods.lock().await.clone()
-        })
+        Box::pin(async move { pods.lock().await.clone() })
     }
 
-    fn get_pod(&self, name: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<MockPod>> + Send + '_>> {
+    fn get_pod(
+        &self,
+        name: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<MockPod>> + Send + '_>> {
         let pods = self.pods.clone();
         let name = name.to_string();
-        Box::pin(async move {
-            pods.lock().await.iter().find(|p| p.name == name).cloned()
-        })
+        Box::pin(async move { pods.lock().await.iter().find(|p| p.name == name).cloned() })
     }
 
-    fn get_pods_by_status(&self, status: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<MockPod>> + Send + '_>> {
+    fn get_pods_by_status(
+        &self,
+        status: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<MockPod>> + Send + '_>> {
         let pods = self.pods.clone();
         let status = status.to_string();
         Box::pin(async move {
-            pods.lock().await.iter().filter(|p| p.status == status).cloned().collect()
+            pods.lock()
+                .await
+                .iter()
+                .filter(|p| p.status == status)
+                .cloned()
+                .collect()
         })
     }
 }
@@ -149,7 +166,10 @@ impl<R: PodRepository> GetPodStatusSummaryUseCase<R> {
             running: pods.iter().filter(|p| p.status == "Running").count(),
             pending: pods.iter().filter(|p| p.status == "Pending").count(),
             failed: pods.iter().filter(|p| p.status == "Failed").count(),
-            restart_threshold_exceeded: pods.iter().filter(|p| p.restart_count > restart_threshold).count(),
+            restart_threshold_exceeded: pods
+                .iter()
+                .filter(|p| p.restart_count > restart_threshold)
+                .count(),
         }
     }
 }
@@ -226,16 +246,14 @@ async fn test_list_pods_use_case_empty() {
 
 #[tokio::test]
 async fn test_get_pod_detail_use_case_found() {
-    let pods = vec![
-        MockPod {
-            name: "pod-1".to_string(),
-            namespace: "default".to_string(),
-            status: "Running".to_string(),
-            restart_count: 5,
-            cpu_usage: 100.0,
-            memory_usage: 512.0,
-        },
-    ];
+    let pods = vec![MockPod {
+        name: "pod-1".to_string(),
+        namespace: "default".to_string(),
+        status: "Running".to_string(),
+        restart_count: 5,
+        cpu_usage: 100.0,
+        memory_usage: 512.0,
+    }];
 
     let repo = Arc::new(InMemoryPodRepository::new(pods));
     let use_case = GetPodDetailUseCase::new(repo);
@@ -262,11 +280,46 @@ async fn test_get_pod_detail_use_case_not_found() {
 #[tokio::test]
 async fn test_get_pod_status_summary_use_case() {
     let pods = vec![
-        MockPod { name: "p1".to_string(), namespace: "default".to_string(), status: "Running".to_string(), restart_count: 0, cpu_usage: 0.0, memory_usage: 0.0 },
-        MockPod { name: "p2".to_string(), namespace: "default".to_string(), status: "Running".to_string(), restart_count: 1, cpu_usage: 0.0, memory_usage: 0.0 },
-        MockPod { name: "p3".to_string(), namespace: "default".to_string(), status: "Pending".to_string(), restart_count: 0, cpu_usage: 0.0, memory_usage: 0.0 },
-        MockPod { name: "p4".to_string(), namespace: "default".to_string(), status: "Failed".to_string(), restart_count: 10, cpu_usage: 0.0, memory_usage: 0.0 },
-        MockPod { name: "p5".to_string(), namespace: "default".to_string(), status: "Running".to_string(), restart_count: 6, cpu_usage: 0.0, memory_usage: 0.0 },
+        MockPod {
+            name: "p1".to_string(),
+            namespace: "default".to_string(),
+            status: "Running".to_string(),
+            restart_count: 0,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        },
+        MockPod {
+            name: "p2".to_string(),
+            namespace: "default".to_string(),
+            status: "Running".to_string(),
+            restart_count: 1,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        },
+        MockPod {
+            name: "p3".to_string(),
+            namespace: "default".to_string(),
+            status: "Pending".to_string(),
+            restart_count: 0,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        },
+        MockPod {
+            name: "p4".to_string(),
+            namespace: "default".to_string(),
+            status: "Failed".to_string(),
+            restart_count: 10,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        },
+        MockPod {
+            name: "p5".to_string(),
+            namespace: "default".to_string(),
+            status: "Running".to_string(),
+            restart_count: 6,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        },
     ];
 
     let repo = Arc::new(InMemoryPodRepository::new(pods));
@@ -284,11 +337,46 @@ async fn test_get_pod_status_summary_use_case() {
 #[tokio::test]
 async fn test_find_problematic_pods_use_case() {
     let pods = vec![
-        MockPod { name: "healthy".to_string(), namespace: "default".to_string(), status: "Running".to_string(), restart_count: 0, cpu_usage: 0.0, memory_usage: 0.0 },
-        MockPod { name: "failed".to_string(), namespace: "default".to_string(), status: "Failed".to_string(), restart_count: 0, cpu_usage: 0.0, memory_usage: 0.0 },
-        MockPod { name: "crashloop".to_string(), namespace: "default".to_string(), status: "CrashLoopBackOff".to_string(), restart_count: 0, cpu_usage: 0.0, memory_usage: 0.0 },
-        MockPod { name: "unknown".to_string(), namespace: "default".to_string(), status: "Unknown".to_string(), restart_count: 0, cpu_usage: 0.0, memory_usage: 0.0 },
-        MockPod { name: "restarting".to_string(), namespace: "default".to_string(), status: "Running".to_string(), restart_count: 10, cpu_usage: 0.0, memory_usage: 0.0 },
+        MockPod {
+            name: "healthy".to_string(),
+            namespace: "default".to_string(),
+            status: "Running".to_string(),
+            restart_count: 0,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        },
+        MockPod {
+            name: "failed".to_string(),
+            namespace: "default".to_string(),
+            status: "Failed".to_string(),
+            restart_count: 0,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        },
+        MockPod {
+            name: "crashloop".to_string(),
+            namespace: "default".to_string(),
+            status: "CrashLoopBackOff".to_string(),
+            restart_count: 0,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        },
+        MockPod {
+            name: "unknown".to_string(),
+            namespace: "default".to_string(),
+            status: "Unknown".to_string(),
+            restart_count: 0,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        },
+        MockPod {
+            name: "restarting".to_string(),
+            namespace: "default".to_string(),
+            status: "Running".to_string(),
+            restart_count: 10,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        },
     ];
 
     let repo = Arc::new(InMemoryPodRepository::new(pods));
@@ -306,8 +394,22 @@ async fn test_find_problematic_pods_use_case() {
 #[tokio::test]
 async fn test_find_problematic_pods_use_case_no_problems() {
     let pods = vec![
-        MockPod { name: "pod-1".to_string(), namespace: "default".to_string(), status: "Running".to_string(), restart_count: 0, cpu_usage: 0.0, memory_usage: 0.0 },
-        MockPod { name: "pod-2".to_string(), namespace: "default".to_string(), status: "Running".to_string(), restart_count: 1, cpu_usage: 0.0, memory_usage: 0.0 },
+        MockPod {
+            name: "pod-1".to_string(),
+            namespace: "default".to_string(),
+            status: "Running".to_string(),
+            restart_count: 0,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        },
+        MockPod {
+            name: "pod-2".to_string(),
+            namespace: "default".to_string(),
+            status: "Running".to_string(),
+            restart_count: 1,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        },
     ];
 
     let repo = Arc::new(InMemoryPodRepository::new(pods));
@@ -322,15 +424,23 @@ async fn test_find_problematic_pods_use_case_no_problems() {
 struct FailingPodRepository;
 
 impl PodRepository for FailingPodRepository {
-    fn list_pods(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<MockPod>> + Send + '_>> {
+    fn list_pods(
+        &self,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<MockPod>> + Send + '_>> {
         Box::pin(async move { vec![] })
     }
 
-    fn get_pod(&self, _name: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<MockPod>> + Send + '_>> {
+    fn get_pod(
+        &self,
+        _name: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<MockPod>> + Send + '_>> {
         Box::pin(async move { None })
     }
 
-    fn get_pods_by_status(&self, _status: &str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<MockPod>> + Send + '_>> {
+    fn get_pods_by_status(
+        &self,
+        _status: &str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<MockPod>> + Send + '_>> {
         Box::pin(async move { vec![] })
     }
 }
