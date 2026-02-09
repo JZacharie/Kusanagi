@@ -189,7 +189,7 @@
                     <li class="nav-item">
                         <a class="nav-link" data-page="backups" href="#backups">
                             <i class="mdi mdi-backup-restore"></i>
-                            <span class="nav-link-text">Backups</span>
+                            <span class="nav-link-text">Tâches</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -465,7 +465,36 @@
 
             <!-- Backups Section -->
             <section class="argocd-section tab-content" data-tab="backups" style="display: none;">
-                <div class="loading">Loading...</div>
+                <h2 class="section-title">Tâches Planifiées</h2>
+
+                <div class="argocd-stats" id="backups-stats">
+                    <div class="stat-box info">
+                        <div class="stat-value" id="backup-cronjobs">-</div>
+                        <div class="stat-label">Total CronJobs</div>
+                    </div>
+                    <div class="stat-box warning">
+                        <div class="stat-value" id="backup-active">-</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                    <div class="stat-box healthy">
+                        <div class="stat-value" id="backup-succeeded">-</div>
+                        <div class="stat-label">Succeeded</div>
+                    </div>
+                    <div class="stat-box unhealthy">
+                        <div class="stat-value" id="backup-failed">-</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                </div>
+
+                <div class="issues-table-container">
+                    <div class="issues-table-header">
+                        <span class="issues-table-title">📅 Scheduled Tasks</span>
+                        <span class="issues-count" id="backups-count">0</span>
+                    </div>
+                    <div id="backups-content">
+                        <div class="loading">Loading backups...</div>
+                    </div>
+                </div>
             </section>
 
             <!-- Network Visualization Section -->
