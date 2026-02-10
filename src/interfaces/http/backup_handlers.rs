@@ -1,9 +1,15 @@
 //! Backup HTTP Handlers
 //!
 //! Interface layer for backup endpoints.
+//! Migrated from Actix-web to Axum.
 
-use axum::{extract::State, response::IntoResponse, Json};
-use tracing::{debug, info};
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+    Json,
+};
+use std::sync::Arc;
+use tracing::{debug, error, info};
 
 use crate::state::AppState;
 
@@ -11,27 +17,55 @@ use crate::state::AppState;
 ///
 /// # Endpoint
 /// GET /api/backups
-pub async fn get_backups_handler(State(_state): State<AppState>) -> impl IntoResponse {
+pub async fn get_backups_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Backups status request received");
 
-    // Note: Backup use case needs to be added to AppState
-    // For now, return empty response
-    Json(serde_json::json!({
-        "cronjobs": [],
-        "total_cronjobs": 0,
-        "error": "Backup use case not yet migrated"
-    }))
+    match state.backup_use_case.get_backups_status().await {
+        Ok(backups) => {
+            debug!(
+                "Backups status retrieved: {} CronJobs",
+                backups.total_cronjobs
+            );
+            Json(backups).into_response()
+        }
+        Err(e) => {
+            error!("Failed to get backups status: {}", e);
+            Json(serde_json::json!({
+                "error": format!("Failed to retrieve backups status: {}", e)
+            }))
+            .into_response()
+        }
+    }
 }
 
 /// Trigger a backup
 ///
 /// # Endpoint
-/// POST /api/backups/trigger
-pub async fn trigger_backup_handler(State(_state): State<AppState>) -> impl IntoResponse {
-    info!("Backup trigger requested");
+/// POST /api/backups/{namespace}/{name}/trigger
+pub async fn trigger_backup_handler(
+    State(state): State<AppState>,
+    Path((namespace, name)): Path<(String, String)>,
+) -> impl IntoResponse {
+    info!("Backup trigger requested for {}/{}", namespace, name);
 
-    // Note: Backup use case needs to be added to AppState
-    Json(serde_json::json!({
-        "error": "Backup use case not yet migrated"
-    }))
+    match state
+        .backup_use_case
+        .trigger_backup(&namespace, &name)
+        .await
+    {
+        Ok(message) => {
+            info!("Backup triggered successfully: {}", message);
+            Json(serde_json::json!({
+                "message": message
+            }))
+            .into_response()
+        }
+        Err(e) => {
+            error!("Failed to trigger backup: {}", e);
+            Json(serde_json::json!({
+                "error": format!("Failed to trigger backup: {}", e)
+            }))
+            .into_response()
+        }
+    }
 }
