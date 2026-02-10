@@ -19,23 +19,30 @@ struct MockK8sClient {
 
 #[derive(Clone, Debug)]
 struct MockPod {
+    #[allow(dead_code)]
     name: String,
     namespace: String,
+    #[allow(dead_code)]
     status: String,
+    #[allow(dead_code)]
     phase: String,
 }
 
 #[derive(Clone, Debug)]
 struct MockNode {
+    #[allow(dead_code)]
     name: String,
+    #[allow(dead_code)]
     status: String,
     role: String,
 }
 
 #[derive(Clone, Debug)]
 struct MockService {
+    #[allow(dead_code)]
     name: String,
     namespace: String,
+    #[allow(dead_code)]
     cluster_ip: String,
 }
 

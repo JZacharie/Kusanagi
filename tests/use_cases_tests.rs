@@ -13,6 +13,7 @@ trait PodRepository: Send + Sync {
         &self,
         name: &str,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<MockPod>> + Send + '_>>;
+    #[allow(dead_code)]
     fn get_pods_by_status(
         &self,
         status: &str,
@@ -81,18 +82,24 @@ impl PodRepository for InMemoryPodRepository {
 #[derive(Debug, Clone)]
 struct PodDto {
     name: String,
+    #[allow(dead_code)]
     namespace: String,
+    #[allow(dead_code)]
     status: String,
+    #[allow(dead_code)]
     age: String,
 }
 
 #[derive(Debug, Clone)]
 struct PodDetailDto {
     name: String,
+    #[allow(dead_code)]
     namespace: String,
+    #[allow(dead_code)]
     status: String,
     restart_count: i32,
     cpu_usage: f64,
+    #[allow(dead_code)]
     memory_usage: f64,
 }
 

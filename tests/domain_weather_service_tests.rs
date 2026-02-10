@@ -7,9 +7,12 @@ use std::collections::HashMap;
 struct WeatherData {
     city: String,
     temperature: f64,
+    #[allow(dead_code)]
     humidity: u8,
     condition: WeatherCondition,
+    #[allow(dead_code)]
     wind_speed: f64,
+    #[allow(dead_code)]
     updated_at: String,
 }
 
@@ -109,7 +112,7 @@ impl WeatherService {
         })
     }
 
-    fn is_cache_stale(&self, city: &str, max_age_minutes: u64) -> bool {
+    fn is_cache_stale(&self, city: &str, _max_age_minutes: u64) -> bool {
         // Simplified - in real implementation would check timestamp
         !self.cache.contains_key(city)
     }

@@ -666,6 +666,7 @@ struct Metric {
     name: String,
     value: f64,
     labels: HashMap<String, String>,
+    #[allow(dead_code)]
     timestamp: String,
 }
 

@@ -8,6 +8,7 @@ use tokio::sync::Mutex;
 #[derive(Debug, Clone)]
 struct Backup {
     name: String,
+    #[allow(dead_code)]
     namespace: String,
     status: BackupStatus,
     created_at: DateTime<Utc>,
@@ -15,6 +16,7 @@ struct Backup {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 enum BackupStatus {
     Completed,
     InProgress,
@@ -25,10 +27,14 @@ enum BackupStatus {
 #[derive(Debug, Clone)]
 struct CronJob {
     name: String,
+    #[allow(dead_code)]
     namespace: String,
+    #[allow(dead_code)]
     schedule: String,
+    #[allow(dead_code)]
     last_run: Option<DateTime<Utc>>,
     next_run: Option<DateTime<Utc>>,
+    #[allow(dead_code)]
     is_active: bool,
 }
 
@@ -87,7 +93,7 @@ impl BackupRepository for InMemoryBackupRepository {
     fn trigger_backup(
         &self,
         name: &str,
-        _namespace: &str,
+        #[allow(unused_variables)] namespace: &str,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + '_>> {
         let name = name.to_string();
         Box::pin(async move {
@@ -175,6 +181,7 @@ struct BackupSummary {
     total: usize,
     completed: usize,
     failed: usize,
+    #[allow(dead_code)]
     in_progress: usize,
     total_size_bytes: u64,
 }

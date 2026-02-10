@@ -32,13 +32,16 @@ fn extract_json_value<'a>(json: &'a str, key: &str) -> Option<&'a str> {
 struct HttpRequest {
     method: String,
     path: String,
+    #[allow(dead_code)]
     headers: Vec<(String, String)>,
     body: Option<String>,
 }
 
 #[derive(Debug, Clone)]
 struct HttpResponse {
+    #[allow(dead_code)]
     status: u16,
+    #[allow(dead_code)]
     headers: Vec<(String, String)>,
     body: String,
 }
@@ -113,12 +116,14 @@ struct TestPod {
 #[derive(Clone, Debug)]
 struct TestNode {
     name: String,
+    #[allow(dead_code)]
     status: String,
 }
 
 #[derive(Clone, Debug)]
 struct TestService {
     name: String,
+    #[allow(dead_code)]
     namespace: String,
 }
 

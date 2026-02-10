@@ -6,13 +6,16 @@ use tokio::sync::Mutex;
 // Mock types for chat service
 #[derive(Debug, Clone)]
 struct ChatMessage {
+    #[allow(dead_code)]
     id: String,
     role: MessageRole,
     content: String,
+    #[allow(dead_code)]
     timestamp: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 enum MessageRole {
     User,
     Assistant,
@@ -23,6 +26,7 @@ enum MessageRole {
 struct ChatSession {
     id: String,
     messages: Vec<ChatMessage>,
+    #[allow(dead_code)]
     context: Option<String>,
 }
 

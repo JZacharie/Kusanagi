@@ -50,6 +50,7 @@ impl Severity {
 struct SecurityReport {
     image: String,
     vulnerabilities: Vec<Vulnerability>,
+    #[allow(dead_code)]
     scanned_at: String,
 }
 

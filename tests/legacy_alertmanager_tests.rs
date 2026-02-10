@@ -24,6 +24,7 @@ enum AlertStatus {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct AlertGroup {
     name: String,
     alerts: Vec<Alert>,

@@ -6,6 +6,7 @@ use std::time::Duration;
 // Simulating AppState structure and related components
 struct MockCache<T: Clone> {
     data: std::collections::HashMap<String, T>,
+    #[allow(dead_code)]
     ttl: Duration,
 }
 
@@ -113,7 +114,9 @@ struct AlertsResponse {
 }
 
 struct Alert {
+    #[allow(dead_code)]
     id: String,
+    #[allow(dead_code)]
     severity: String,
 }
 
@@ -123,7 +126,9 @@ struct WeatherResponse {
 
 struct CityWeather {
     name: String,
+    #[allow(dead_code)]
     temperature: f64,
+    #[allow(dead_code)]
     condition: String,
 }
 
