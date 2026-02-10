@@ -290,7 +290,7 @@ async fn test_ha_get_entities_by_domain() {
 async fn test_ha_get_on_entities() {
     let repo = Arc::new(HomeAssistantRepository::new());
 
-    let mut attrs = std::collections::HashMap::new();
+    let attrs = std::collections::HashMap::new();
 
     repo.entities.lock().await.extend(vec![
         HaEntity {

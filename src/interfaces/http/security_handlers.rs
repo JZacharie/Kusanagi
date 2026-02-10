@@ -3,13 +3,14 @@
 //! Interface layer for security endpoints.
 //! Uses the GetSecurityUseCase from the application layer.
 
-use actix_web::{web, HttpResponse, Responder};
-use std::sync::Arc;
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+    Json,
+};
 use tracing::{debug, error};
 
-use crate::application::use_cases::GetSecurityUseCase;
-use crate::domain::ports::SecurityRepository;
-use crate::infrastructure::repositories::SecurityRepositoryImpl;
+use crate::state::AppState;
 
 /// Path parameters for getting a specific report
 #[derive(Debug, serde::Deserialize)]
@@ -30,25 +31,25 @@ pub struct ReportPath {
 /// - critical_count, high_count, medium_count, low_count: Vulnerability counts by severity
 /// - reports: List of report keys
 /// - last_updated: Timestamp of last update
-pub async fn get_security_handler(use_case: web::Data<GetSecurityUseCase>) -> impl Responder {
+pub async fn get_security_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Security summary request received");
 
     // Check local mode
-    if use_case.is_local_mode() {
+    if state.security_use_case.is_local_mode() {
         debug!("Running in local mode, returning mock security summary");
     }
 
-    match use_case.get_summary().await {
+    match state.security_use_case.get_summary().await {
         Ok(summary) => {
             debug!(
                 "Security summary retrieved: {} reports, {} vulnerabilities",
                 summary.total_reports, summary.total_vulnerabilities
             );
-            HttpResponse::Ok().json(summary)
+            Json(summary).into_response()
         }
         Err(e) => {
             error!("Failed to get security summary: {}", e);
-            HttpResponse::Ok().json(serde_json::json!({
+            Json(serde_json::json!({
                 "total_reports": 0,
                 "total_vulnerabilities": 0,
                 "critical_count": 0,
@@ -58,6 +59,8 @@ pub async fn get_security_handler(use_case: web::Data<GetSecurityUseCase>) -> im
                 "reports": [],
                 "error": format!("Failed to retrieve security summary: {}", e)
             }))
+            .into_response()
+            .into_response()
         }
     }
 }
@@ -69,19 +72,17 @@ pub async fn get_security_handler(use_case: web::Data<GetSecurityUseCase>) -> im
 ///
 /// # Response
 /// Returns a JSON array of report keys (e.g., ["cluster/report1.json", "apps/app-report.json"])
-pub async fn get_security_reports_handler(
-    use_case: web::Data<GetSecurityUseCase>,
-) -> impl Responder {
+pub async fn get_security_reports_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Security reports list request received");
 
-    match use_case.get_reports().await {
+    match state.security_use_case.get_reports().await {
         Ok(reports) => {
             debug!("Security reports retrieved: {} reports", reports.len());
-            HttpResponse::Ok().json(reports)
+            Json(reports).into_response()
         }
         Err(e) => {
             error!("Failed to get security reports: {}", e);
-            HttpResponse::Ok().json(serde_json::json!([]))
+            Json(serde_json::json!([])).into_response()
         }
     }
 }
@@ -93,18 +94,16 @@ pub async fn get_security_reports_handler(
 ///
 /// # Response
 /// Returns a JSON object with vulnerability counts by severity
-pub async fn get_vulnerabilities_handler(
-    use_case: web::Data<GetSecurityUseCase>,
-) -> impl Responder {
+pub async fn get_vulnerabilities_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Security vulnerabilities request received");
 
-    match use_case.get_summary().await {
+    match state.security_use_case.get_summary().await {
         Ok(summary) => {
             debug!(
                 "Security vulnerabilities retrieved: {} total",
                 summary.total_vulnerabilities
             );
-            HttpResponse::Ok().json(serde_json::json!({
+            Json(serde_json::json!({
                 "critical": summary.critical_count,
                 "high": summary.high_count,
                 "medium": summary.medium_count,
@@ -112,10 +111,11 @@ pub async fn get_vulnerabilities_handler(
                 "total": summary.total_vulnerabilities,
                 "images": []
             }))
+            .into_response()
         }
         Err(e) => {
             error!("Failed to get security vulnerabilities: {}", e);
-            HttpResponse::Ok().json(serde_json::json!({
+            Json(serde_json::json!({
                 "critical": 0,
                 "high": 0,
                 "medium": 0,
@@ -124,6 +124,7 @@ pub async fn get_vulnerabilities_handler(
                 "images": [],
                 "error": format!("Failed to retrieve vulnerabilities: {}", e)
             }))
+            .into_response()
         }
     }
 }
@@ -140,49 +141,32 @@ pub async fn get_vulnerabilities_handler(
 /// # Response
 /// Returns the full security report with original Trivy data and optional AI enrichment
 pub async fn get_security_report_handler(
-    use_case: web::Data<GetSecurityUseCase>,
-    path: web::Path<ReportPath>,
-) -> impl Responder {
-    let ReportPath { category, name } = path.into_inner();
-    debug!("Security report request received: {}/{}", category, name);
+    State(state): State<AppState>,
+    Path(path): Path<ReportPath>,
+) -> impl IntoResponse {
+    debug!(
+        "Security report request received: {}/{}",
+        path.category, path.name
+    );
 
-    match use_case.get_report(&category, &name).await {
+    match state
+        .security_use_case
+        .get_report(&path.category, &path.name)
+        .await
+    {
         Ok(report) => {
-            debug!("Security report retrieved: {}/{}", category, name);
-            HttpResponse::Ok().json(report)
+            debug!("Security report retrieved: {}/{}", path.category, path.name);
+            Json(report).into_response()
         }
         Err(e) => {
-            error!("Failed to get security report {}/{}: {}", category, name, e);
-            HttpResponse::Ok().json(serde_json::json!({
-                "error": format!("Report not found: {}/{}", category, name)
+            error!(
+                "Failed to get security report {}/{}: {}",
+                path.category, path.name, e
+            );
+            Json(serde_json::json!({
+                "error": format!("Report not found: {}/{}", path.category, path.name)
             }))
+            .into_response()
         }
     }
-}
-
-/// Configure security routes
-///
-/// Adds security endpoints to the Actix-Web service configuration
-pub fn configure_security_routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/security")
-            .route("/summary", web::get().to(get_security_handler))
-            .route(
-                "/vulnerabilities",
-                web::get().to(get_vulnerabilities_handler),
-            )
-            .route("/reports", web::get().to(get_security_reports_handler))
-            .route(
-                "/reports/{category}/{name}",
-                web::get().to(get_security_report_handler),
-            ),
-    );
-}
-
-/// Create GetSecurityUseCase with repository
-///
-/// Helper function to create the use case with the security repository
-pub async fn create_security_use_case() -> GetSecurityUseCase {
-    let repository: Arc<dyn SecurityRepository> = Arc::new(SecurityRepositoryImpl::new().await);
-    GetSecurityUseCase::new(repository)
 }
