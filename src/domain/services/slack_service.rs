@@ -35,15 +35,20 @@ impl SlackService {
             info!("💬 Slack: Integration enabled for channel {}", channel_id);
         }
 
+        // Create HTTP client with native TLS (more compatible with various SSL certificates)
+        let client = Client::builder()
+            .user_agent("Kusanagi/0.2.0")
+            .timeout(std::time::Duration::from_secs(10))
+            .build()
+            .unwrap_or_else(|_| {
+                // Fallback to default client if custom config fails
+                Client::default()
+            });
+
         Self {
             token,
             channel_id,
-            client: Client::builder()
-                .use_rustls_tls() // Enforce rustls (now with webpki-roots via Cargo.toml)
-                .user_agent("Kusanagi/0.2.0")
-                .timeout(std::time::Duration::from_secs(10))
-                .build()
-                .unwrap_or_default(),
+            client,
         }
     }
 
