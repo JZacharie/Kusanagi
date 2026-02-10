@@ -3,13 +3,14 @@
 //! Interface layer for alert endpoints.
 //! Uses the GetAlertsUseCase from the application layer.
 
-use actix_web::{web, HttpResponse, Result};
-use std::sync::Arc;
+use axum::{
+    extract::{Query, State},
+    response::IntoResponse,
+    Json,
+};
 use tracing::{debug, error, info};
 
-use crate::application::use_cases::{GetAlertsInput, GetAlertsUseCase};
-use crate::domain::ports::AlertRepository;
-use crate::infrastructure::repositories::AlertRepositoryImpl;
+use crate::{application::use_cases::GetAlertsInput, state::AppState};
 
 /// Query parameters for alerts endpoint
 #[derive(Debug, serde::Deserialize)]
@@ -30,13 +31,13 @@ pub struct AlertsQuery {
 /// # Response
 /// Returns a JSON object with grouped alerts (critical, warning, info)
 pub async fn get_alerts_handler(
-    use_case: web::Data<GetAlertsUseCase>,
-    query: web::Query<AlertsQuery>,
-) -> Result<HttpResponse> {
+    State(state): State<AppState>,
+    Query(query): Query<AlertsQuery>,
+) -> impl IntoResponse {
     debug!("Alerts request received, refresh={}", query.refresh);
 
     // Check local mode
-    if use_case.is_local_mode() {
+    if state.alerts_use_case.is_local_mode() {
         debug!("Running in local mode, returning mock alerts");
     }
 
@@ -44,16 +45,17 @@ pub async fn get_alerts_handler(
         force_refresh: query.refresh,
     };
 
-    match use_case.execute(input).await {
+    match state.alerts_use_case.execute(input).await {
         Ok(alerts) => {
             debug!("Alerts retrieved successfully: {} total", alerts.total);
-            Ok(HttpResponse::Ok().json(alerts))
+            Json(alerts).into_response()
         }
         Err(e) => {
             error!("Failed to get alerts: {}", e);
-            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+            Json(serde_json::json!({
                 "error": format!("Failed to retrieve alerts: {}", e)
-            })))
+            }))
+            .into_response()
         }
     }
 }
@@ -65,24 +67,23 @@ pub async fn get_alerts_handler(
 ///
 /// # Response
 /// Returns a JSON object with current active alerts from Alertmanager
-pub async fn get_active_alerts_handler(
-    use_case: web::Data<GetAlertsUseCase>,
-) -> Result<HttpResponse> {
+pub async fn get_active_alerts_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Active alerts request received");
 
-    match use_case.get_active_alerts().await {
+    match state.alerts_use_case.get_active_alerts().await {
         Ok(alerts) => {
             debug!(
                 "Active alerts retrieved successfully: {} total",
                 alerts.total
             );
-            Ok(HttpResponse::Ok().json(alerts))
+            Json(alerts).into_response()
         }
         Err(e) => {
             error!("Failed to get active alerts: {}", e);
-            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+            Json(serde_json::json!({
                 "error": format!("Failed to retrieve active alerts: {}", e)
-            })))
+            }))
+            .into_response()
         }
     }
 }
@@ -94,42 +95,24 @@ pub async fn get_active_alerts_handler(
 ///
 /// # Response
 /// Returns 200 OK with fresh alerts data
-pub async fn refresh_alerts_handler(use_case: web::Data<GetAlertsUseCase>) -> Result<HttpResponse> {
+pub async fn refresh_alerts_handler(State(state): State<AppState>) -> impl IntoResponse {
     info!("Manual alerts refresh requested");
 
-    match use_case.refresh_alerts().await {
+    match state.alerts_use_case.refresh_alerts().await {
         Ok(alerts) => {
             info!("Alerts refreshed successfully: {} total", alerts.total);
-            Ok(HttpResponse::Ok().json(serde_json::json!({
+            Json(serde_json::json!({
                 "message": "Alerts refreshed successfully",
                 "alerts": alerts
-            })))
+            }))
+            .into_response()
         }
         Err(e) => {
             error!("Failed to refresh alerts: {}", e);
-            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+            Json(serde_json::json!({
                 "error": format!("Failed to refresh alerts: {}", e)
-            })))
+            }))
+            .into_response()
         }
     }
-}
-
-/// Configure alert routes
-///
-/// Adds alert endpoints to the Actix-Web service configuration
-pub fn configure_alert_routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/alerts")
-            .route("", web::get().to(get_alerts_handler))
-            .route("/active", web::get().to(get_active_alerts_handler))
-            .route("/refresh", web::post().to(refresh_alerts_handler)),
-    );
-}
-
-/// Create GetAlertsUseCase with repository
-///
-/// Helper function to create the use case with the alert repository
-pub fn create_alerts_use_case() -> GetAlertsUseCase {
-    let repository: Arc<dyn AlertRepository> = Arc::new(AlertRepositoryImpl::new());
-    GetAlertsUseCase::new(repository)
 }
