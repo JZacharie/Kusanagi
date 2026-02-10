@@ -23,6 +23,6 @@ pub mod utils;
 
 // Re-exports
 pub use advanced_cache::AdvancedCache;
-pub use cache::{Cache, CacheStats};
+pub use cache::{Cache, CacheStats, InMemoryCache};
 pub use config::Config;
 pub use error::{KusanagiError, Result};
