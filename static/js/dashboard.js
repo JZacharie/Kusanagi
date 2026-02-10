@@ -588,7 +588,19 @@ const MetricsManager = {
 /**
  * Alerts display manager
  */
-// AlertsManager removed (replaced by MonitorsManager)
+const AlertsManager = {
+    init() {
+        // Delegates to MonitorsManager if available
+        if (window.MonitorsManager) {
+            console.log('AlertsManager delegating to MonitorsManager');
+        }
+    },
+    loadAlerts() {
+        if (window.MonitorsManager && MonitorsManager.loadMonitors) {
+            MonitorsManager.loadMonitors();
+        }
+    }
+};
 
 /**
  * Quotas display manager

@@ -139,12 +139,24 @@ impl WeatherRepositoryImpl {
 
         debug!("Fetching current weather for {} from OpenWeather", city);
 
-        let resp = self
+        let response = self
             .http_client
             .get(&url)
             .send()
             .await
-            .map_err(|e| AppError::ExternalService(format!("OpenWeather API error: {}", e)))?
+            .map_err(|e| AppError::ExternalService(format!("OpenWeather API error: {}", e)))?;
+
+        // Check HTTP status
+        let status = response.status();
+        if !status.is_success() {
+            let text = response.text().await.unwrap_or_default();
+            return Err(KusanagiError::external_service(format!(
+                "OpenWeather API returned {}: {}",
+                status, text
+            )));
+        }
+
+        let resp = response
             .json::<Value>()
             .await
             .map_err(|e| KusanagiError::serialization(e.to_string()))?;
