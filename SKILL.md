@@ -1,7 +1,7 @@
-# Skill: Kusanagi Development
+# Skill: Kusanagi Development v0.3.0
 
 ## TL;DR
-Kusanagi = Kubernetes monitoring platform in Rust using **Axum** + **Hexagonal Architecture**.
+Kusanagi v0.3.0 = Kubernetes monitoring platform in Rust using **Axum** + **Hexagonal Architecture**.
 
 ---
 

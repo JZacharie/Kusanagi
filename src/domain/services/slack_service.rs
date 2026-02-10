@@ -62,7 +62,7 @@ impl SlackService {
     fn create_client_with_native_certs() -> Result<Client, reqwest::Error> {
         // Build client - native-tls will automatically use system certificates
         Client::builder()
-            .user_agent("Kusanagi/0.2.0")
+            .user_agent("Kusanagi/0.3.0")
             .timeout(std::time::Duration::from_secs(10))
             .build()
     }

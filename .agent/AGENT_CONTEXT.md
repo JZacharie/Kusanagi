@@ -1,7 +1,7 @@
 # Kusanagi - Agent Context
 
 ## TL;DR
-Kusanagi v0.2.0 is a Rust-based Kubernetes monitoring platform using Hexagonal Architecture. Backend: Actix-Web, Frontend: Vanilla JS PWA. Key patterns: Repository pattern, Use Cases, impl Responder handlers.
+Kusanagi v0.3.0 is a Rust-based Kubernetes monitoring platform using Hexagonal Architecture. Backend: Axum + Tower, Frontend: Vanilla JS PWA. Key patterns: Repository pattern, Use Cases, impl IntoResponse handlers.
 
 ## Architecture Overview
 

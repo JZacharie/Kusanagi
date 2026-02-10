@@ -302,6 +302,6 @@ futures = "0.3"
 
 ---
 
-**Version**: 0.2.0  
+**Version**: 0.3.0  
 **Framework**: Axum 0.7  
 **Architecture**: Hexagonale (Ports & Adapters)

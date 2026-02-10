@@ -1,9 +1,9 @@
 # Kusanagi - Project Overview
 
 ## Identity
-**Name**: Kusanagi v0.2.0  
+**Name**: Kusanagi v0.3.0  
 **Type**: Kubernetes Monitoring Platform  
-**Language**: Rust (Actix-Web)  
+**Language**: Rust (Axum + Tower)  
 **Architecture**: Hexagonal (Clean) + Legacy Modules  
 
 ## Core Purpose
