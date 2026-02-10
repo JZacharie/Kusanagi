@@ -8,13 +8,9 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use std::sync::Arc;
 use tracing::{debug, error, info};
 
-use crate::{
-    application::use_cases::{GetWeatherInput, GetWeatherUseCase},
-    state::AppState,
-};
+use crate::{application::use_cases::GetWeatherInput, state::AppState};
 
 /// Query parameters for weather endpoint
 #[derive(Debug, serde::Deserialize)]
@@ -83,9 +79,7 @@ pub async fn get_weather_handler(
 ///
 /// # Response
 /// Returns 200 OK on success, error on failure
-pub async fn refresh_weather_handler(
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+pub async fn refresh_weather_handler(State(state): State<AppState>) -> impl IntoResponse {
     info!("Manual weather refresh requested");
 
     match state.weather_use_case.force_refresh().await {
@@ -107,5 +101,3 @@ pub async fn refresh_weather_handler(
         }
     }
 }
-
-

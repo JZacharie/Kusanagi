@@ -1,59 +1,33 @@
-use actix_web::web;
+//! API Routes - Axum Router configuration
+//!
+//! This module configures all API routes for the Axum framework.
 
-/// Configure API routes (hexagonal architecture)
-pub fn configure_api_routes(cfg: &mut web::ServiceConfig) {
-    cfg
+use axum::{routing::get, Router};
+
+use crate::handlers;
+use crate::state::AppState;
+
+/// Create the main application router
+pub fn create_router() -> Router<AppState> {
+    Router::new()
         // Health & Info
-        .route(
-            "/health",
-            web::get().to(crate::handlers::health::health_check),
-        )
-        .route("/api", web::get().to(crate::handlers::health::service_info))
+        .route("/health", get(handlers::health::health_check))
+        .route("/api", get(handlers::health::service_info))
         // System
-        .route(
-            "/api/system/status",
-            web::get().to(crate::handlers::system::system_status),
-        )
-        .route(
-            "/api/system/logs",
-            web::get().to(crate::handlers::system::system_logs),
-        )
+        .route("/api/system/status", get(handlers::system::system_status))
+        .route("/api/system/logs", get(handlers::system::system_logs))
         // Cache
-        .route(
-            "/api/cache/stats",
-            web::get().to(crate::handlers::cache::cache_stats),
-        );
+        .route("/api/cache/stats", get(handlers::cache::cache_stats))
+        // Kubernetes
+        .route("/api/k8s/cluster", get(handlers::k8s::cluster_overview))
+        .route("/api/k8s/nodes", get(handlers::k8s::nodes_status))
+        .route("/api/k8s/pods", get(handlers::k8s::pods_status))
+        // Monitoring
+        .route("/api/alerts", get(handlers::monitoring::alerts))
+        .route("/api/monitoring/quotas", get(handlers::monitoring::quotas))
 }
 
-/// Configure Kubernetes routes
-pub fn configure_k8s_routes(cfg: &mut web::ServiceConfig) {
-    cfg.route(
-        "/api/k8s/cluster",
-        web::get().to(crate::handlers::k8s::cluster_overview),
-    )
-    .route(
-        "/api/k8s/nodes",
-        web::get().to(crate::handlers::k8s::nodes_status),
-    )
-    .route(
-        "/api/k8s/pods",
-        web::get().to(crate::handlers::k8s::pods_status),
-    );
-}
-
-/// Configure monitoring routes
-pub fn configure_monitoring_routes(cfg: &mut web::ServiceConfig) {
-    cfg.route(
-        "/api/alerts",
-        web::get().to(crate::handlers::monitoring::alerts),
-    )
-    .route(
-        "/api/monitoring/quotas",
-        web::get().to(crate::handlers::monitoring::quotas),
-    );
-}
-
-/// Configure weather routes (hexagonal architecture)
-pub fn configure_weather_routes(cfg: &mut web::ServiceConfig) {
-    crate::interfaces::http::configure_weather_routes(cfg);
+/// Configure all routes (legacy function for compatibility)
+pub fn configure_routes() -> Router<AppState> {
+    create_router()
 }

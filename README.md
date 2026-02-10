@@ -9,7 +9,7 @@
 
 ## 🎯 Overview
 
-Kusanagi is a production-ready Kubernetes monitoring platform built with Rust and Actix-Web. It provides real-time monitoring, GitOps integration, security scanning, and multi-infrastructure support through a modern web interface.
+Kusanagi is a production-ready Kubernetes monitoring platform built with Rust and Axum. It provides real-time monitoring, GitOps integration, security scanning, and multi-infrastructure support through a modern web interface.
 
 ### Key Features
 
@@ -34,7 +34,7 @@ Kusanagi is a production-ready Kubernetes monitoring platform built with Rust an
 │  ├── Security Reports (Trivy + AI)                           │
 │  └── AI Chat (Cluster assistant)                             │
 ├─────────────────────────────────────────────────────────────┤
-│  Backend (Rust + Actix-Web)                                  │
+│  Backend (Rust + Axum + Tower)                               │
 │  ├── Domain Services (Kubernetes, ArgoCD, Proxmox)           │
 │  ├── Legacy Modules (Backward compatibility)                 │
 │  ├── Telemetry (OpenObserve RUM)                             │
