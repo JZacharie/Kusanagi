@@ -8,7 +8,6 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use std::sync::Arc;
 use tracing::{debug, error, info};
 
 use crate::state::AppState;
