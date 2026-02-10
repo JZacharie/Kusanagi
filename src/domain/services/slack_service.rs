@@ -1,7 +1,11 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::env;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tracing::{error, info, warn};
+
+// Static flag to track if SSL errors have been encountered
+static SSL_ERROR_LOGGED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SlackMessage {
@@ -35,21 +39,32 @@ impl SlackService {
             info!("💬 Slack: Integration enabled for channel {}", channel_id);
         }
 
-        // Create HTTP client with native TLS (more compatible with various SSL certificates)
-        let client = Client::builder()
-            .user_agent("Kusanagi/0.2.0")
-            .timeout(std::time::Duration::from_secs(10))
-            .build()
-            .unwrap_or_else(|_| {
-                // Fallback to default client if custom config fails
+        // Create HTTP client with native certificates loaded from system
+        let client = match Self::create_client_with_native_certs() {
+            Ok(c) => c,
+            Err(e) => {
+                warn!(
+                    "⚠️ Failed to create client with native certs: {}, using default",
+                    e
+                );
                 Client::default()
-            });
+            }
+        };
 
         Self {
             token,
             channel_id,
             client,
         }
+    }
+
+    /// Create HTTP client with system certificates
+    fn create_client_with_native_certs() -> Result<Client, reqwest::Error> {
+        // Build client - native-tls will automatically use system certificates
+        Client::builder()
+            .user_agent("Kusanagi/0.2.0")
+            .timeout(std::time::Duration::from_secs(10))
+            .build()
     }
 
     pub async fn send_alert(&self, title: &str, message: &str, severity: &str) -> bool {
@@ -107,7 +122,21 @@ impl SlackService {
                 }
             }
             Err(e) => {
-                error!("Failed to send Slack message: {:?}", e);
+                // Check if it's an SSL/TLS error
+                let err_str = format!("{:?}", e);
+                if err_str.contains("ssl")
+                    || err_str.contains("tls")
+                    || err_str.contains("handshake")
+                {
+                    // Only log the SSL error once to avoid spam
+                    if !SSL_ERROR_LOGGED.load(Ordering::Relaxed) {
+                        warn!("⚠️ Slack SSL/TLS error (this will be logged only once). This usually means CA certificates are missing in the Docker image.");
+                        warn!("💡 To fix: Install ca-certificates in your Dockerfile: RUN apt-get update && apt-get install -y ca-certificates");
+                        SSL_ERROR_LOGGED.store(true, Ordering::Relaxed);
+                    }
+                } else {
+                    error!("Failed to send Slack message: {:?}", e);
+                }
                 false
             }
         }

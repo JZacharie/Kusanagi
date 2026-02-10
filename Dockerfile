@@ -14,7 +14,10 @@ RUN chmod +x scripts/*.sh
 RUN cargo build --release
 
 FROM debian:trixie-slim
-RUN apt-get update && apt-get install -y ca-certificates libssl3 curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ca-certificates libssl3 curl && rm -rf /var/lib/apt/lists/* \
+    && update-ca-certificates \
+    && chmod 644 /etc/ssl/certs/* \
+    && chmod 755 /etc/ssl/certs
 
 # Install kubectl - robust version fetch
 RUN export KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt | tr -d '\n' | tr -d '\r') && \
@@ -26,6 +29,11 @@ COPY --from=builder /app/static /app/static
 RUN useradd -r -s /bin/false kusanagi && chown -R kusanagi:kusanagi /app
 
 WORKDIR /app
+
+# Ensure CA certificates are accessible
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+ENV SSL_CERT_DIR=/etc/ssl/certs
+
 USER kusanagi
 EXPOSE 8080
 
