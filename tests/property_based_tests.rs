@@ -281,7 +281,20 @@ fn truncate_string(s: &str, max_len: usize) -> String {
     if s.len() <= max_len {
         s.to_string()
     } else {
-        format!("{}...", &s[..max_len.saturating_sub(3)])
+        // Truncate safely respecting UTF-8 character boundaries
+        let target_len = max_len.saturating_sub(3);
+        let mut result = String::with_capacity(target_len + 3);
+
+        for ch in s.chars() {
+            // Check if adding this char would exceed target length
+            let char_len = ch.len_utf8();
+            if result.len() + char_len > target_len {
+                break;
+            }
+            result.push(ch);
+        }
+
+        format!("{}...", result)
     }
 }
 
