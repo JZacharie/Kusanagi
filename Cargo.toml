@@ -8,7 +8,7 @@ edition = "2021"
 tokio = { version = "1.0", features = ["full"] }
 axum = { version = "0.7", features = ["ws"] }
 tower = { version = "0.4", features = ["full"] }
-tower-http = { version = "0.5", features = ["fs", "cors", "compression", "trace"] }
+tower-http = { version = "0.5", features = ["fs", "cors", "compression-gzip", "trace"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
@@ -32,7 +32,9 @@ rumqttc = "0.25"
 irc = "0.15"
 rustls-pemfile = "2.2" # Force version to avoid unmaintained warning
 tracing = "0.1"
+tracing-subscriber = "0.3"
 rustls = { version = "0.23", features = ["aws-lc-rs"] }
+toml = "0.8"
 aws-config = "1.1"
 aws-sdk-s3 = "1.13"
 

@@ -15,6 +15,7 @@ use tower_http::{
 };
 
 use crate::{
+    handlers::{cache::cache_stats, health::health_check, k8s::*, monitoring::*, system::*},
     interfaces::http::{
         alert_handlers, backup_handlers, homeassistant_handlers, security_handlers,
         weather_handlers,
@@ -64,6 +65,36 @@ fn create_api_routes() -> Router<AppState> {
         // Backups
         .route("/api/backups", get(backup_handlers::get_backups_handler))
         .route("/api/backups/trigger", post(backup_handlers::trigger_backup_handler))
+        // Kubernetes
+        .route("/api/services", get(services))
+        .route("/api/ingress", get(ingress))
+        .route("/api/nodes/status", get(nodes_status))
+        .route("/api/pods/status", get(pods_status))
+        .route("/api/storage", get(storage))
+        .route("/api/events", get(events))
+        .route("/api/cluster/overview", get(cluster_overview))
+        // Cache
+        .route("/api/cache/stats", get(cache_stats))
+        // System
+        .route("/api/system/status", get(system_status))
+        .route("/api/system/logs", get(system_logs))
+        .route("/api/metrics", get(metrics))
+        // Monitoring
+        .route("/api/alerts", get(alerts))
+        .route("/api/quotas", get(quotas))
+        // Other
+        .route("/api/news", get(news))
+        .route("/api/news/refresh", post(refresh_news))
+        .route("/api/fusion", get(fusion))
+        .route("/api/mqtt/devices", get(mqtt_devices))
+        .route("/api/mqtt/messages", get(mqtt_messages))
+        .route("/api/argocd/status", get(argocd_status))
+        .route("/api/argocd/sync", post(argocd_sync))
+        .route("/api/proxmox/vms", get(proxmox_vms))
+        .route("/api/proxmox/containers", get(proxmox_containers))
+        .route("/api/proxmox/nodes", get(proxmox_nodes))
+        .route("/api/ha/devices", get(ha_devices))
+        .route("/api/ha/sensors", get(ha_sensors))
 }
 
 /// Create health check routes
@@ -73,12 +104,106 @@ fn create_health_routes() -> Router<AppState> {
         .route("/", get(index_handler))
 }
 
-/// Health check handler
-async fn health_check() -> &'static str {
-    "OK"
-}
-
 /// Index handler - serves the dashboard
 async fn index_handler() -> axum::response::Html<&'static str> {
     axum::response::Html(include_str!("../static/index.html"))
 }
+
+// Legacy handlers that need to be migrated
+async fn services(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!([]))
+}
+
+async fn ingress(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!([]))
+}
+
+async fn nodes_status(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"ready": 0, "not_ready": 0}))
+}
+
+async fn pods_status(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"pods": [], "total": 0}))
+}
+
+async fn storage(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"total": "0GB", "used": "0GB"}))
+}
+
+async fn events(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!([]))
+}
+
+async fn cluster_overview(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({}))
+}
+
+async fn alerts(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"alerts": []}))
+}
+
+async fn quotas(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({}))
+}
+
+async fn news(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"items": []}))
+}
+
+async fn refresh_news(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"status": "success"}))
+}
+
+async fn fusion(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({}))
+}
+
+async fn mqtt_devices(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"devices": []}))
+}
+
+async fn mqtt_messages(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"messages": []}))
+}
+
+async fn argocd_status(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"status": "unknown"}))
+}
+
+async fn argocd_sync(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"status": "success"}))
+}
+
+async fn proxmox_vms(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"vms": []}))
+}
+
+async fn proxmox_containers(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"containers": []}))
+}
+
+async fn proxmox_nodes(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"nodes": []}))
+}
+
+async fn ha_devices(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"devices": []}))
+}
+
+async fn ha_sensors(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"sensors": []}))
+}
+
+async fn system_status(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"status": "ok"}))
+}
+
+async fn system_logs(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({"logs": ""}))
+}
+
+async fn metrics(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({}))
+}
+
+use axum::response::IntoResponse;

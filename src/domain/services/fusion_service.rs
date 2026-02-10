@@ -132,20 +132,21 @@ pub async fn get_fusion_events() -> Result<Vec<UnifiedEvent>, String> {
     Ok(unified_events)
 }
 
-// Actix Handler
-use actix_web::{HttpResponse, Responder};
-use serde_json::json;
+// Axum Handler
+use axum::{response::IntoResponse, Json};
 
-pub async fn fusion_handler() -> impl Responder {
+pub async fn fusion_handler() -> impl IntoResponse {
     match get_fusion_events().await {
-        Ok(events) => HttpResponse::Ok().json(json!({
+        Ok(events) => Json(serde_json::json!({
             "status": "success",
             "count": events.len(),
             "data": events
-        })),
-        Err(e) => HttpResponse::InternalServerError().json(json!({
+        }))
+        .into_response(),
+        Err(e) => Json(serde_json::json!({
             "status": "error",
             "message": e
-        })),
+        }))
+        .into_response(),
     }
 }

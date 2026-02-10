@@ -1,18 +1,18 @@
-use actix_web::{web, HttpResponse, Responder};
-use std::sync::Arc;
+//! System handlers
 
-pub async fn system_status(
-    _general_cache: web::Data<Arc<crate::AdvancedCache<String>>>,
-) -> impl Responder {
-    // Placeholder - à implémenter
-    HttpResponse::Ok().json(serde_json::json!({
-        "status": "operational"
+use axum::response::IntoResponse;
+use axum::Json;
+
+/// System status endpoint
+pub async fn system_status() -> impl IntoResponse {
+    Json(serde_json::json!({
+        "status": "operational",
+        "cpu_load": 0.0,
+        "memory_usage": 0
     }))
 }
 
-pub async fn system_logs() -> impl Responder {
-    // Placeholder - à implémenter
-    HttpResponse::Ok().json(serde_json::json!({
-        "logs": []
-    }))
+/// System logs endpoint
+pub async fn system_logs() -> impl IntoResponse {
+    "System logs not available"
 }

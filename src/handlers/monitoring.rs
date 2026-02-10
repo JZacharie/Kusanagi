@@ -1,9 +1,20 @@
-use actix_web::{HttpResponse, Responder};
+//! Monitoring handlers
 
-pub async fn alerts() -> impl Responder {
-    HttpResponse::Ok().json(serde_json::json!({"alerts": []}))
+use axum::response::IntoResponse;
+use axum::Json;
+
+/// Alerts endpoint
+pub async fn alerts() -> impl IntoResponse {
+    Json(serde_json::json!({
+        "alerts": [],
+        "total": 0
+    }))
 }
 
-pub async fn quotas() -> impl Responder {
-    HttpResponse::Ok().json(serde_json::json!({"quotas": []}))
+/// Quotas endpoint
+pub async fn quotas() -> impl IntoResponse {
+    Json(serde_json::json!({
+        "used": 0,
+        "total": 100
+    }))
 }

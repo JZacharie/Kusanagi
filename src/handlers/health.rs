@@ -1,19 +1,21 @@
-use actix_web::{HttpResponse, Responder};
-use serde_json::json;
+//! Health check handler
 
-pub async fn health_check() -> impl Responder {
-    HttpResponse::Ok().json(json!({
+use axum::response::IntoResponse;
+use axum::Json;
+
+/// Simple health check endpoint
+pub async fn health_check() -> impl IntoResponse {
+    Json(serde_json::json!({
         "status": "healthy",
-        "service": "kusanagi",
-        "version": env!("CARGO_PKG_VERSION")
+        "timestamp": chrono::Utc::now().to_rfc3339()
     }))
 }
 
-pub async fn service_info() -> impl Responder {
-    HttpResponse::Ok().json(json!({
-        "name": "Kusanagi",
+/// Service info endpoint
+pub async fn service_info() -> impl IntoResponse {
+    Json(serde_json::json!({
+        "service": "Kusanagi",
         "version": env!("CARGO_PKG_VERSION"),
-        "description": "Kubernetes & Infrastructure Monitoring Platform",
-        "build_timestamp": env!("BUILD_TIMESTAMP")
+        "architecture": "axum-migration"
     }))
 }
