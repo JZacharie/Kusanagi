@@ -9,8 +9,8 @@ use kusanagi::domain::ports::{
     AlertRepository, HomeAssistantRepository, SecurityRepository, WeatherRepository,
 };
 use kusanagi::domain::services::{
-    argocd_service, fusion_service, homeassistant_service, irc_service, kubernetes_service,
-    monitoring_service, mqtt_service, news_service, proxmox_service, slack_service, trivy_service,
+    argocd_service, fusion_service, irc_service, kubernetes_service, monitoring_service,
+    mqtt_service, news_service, proxmox_service, slack_service,
 };
 use kusanagi::infrastructure::repositories::{
     create_homeassistant_repository, create_security_repository,
@@ -19,7 +19,8 @@ use kusanagi::infrastructure::repositories::{
 };
 use kusanagi::interfaces::http::alert_handlers::get_alerts_handler;
 use kusanagi::interfaces::http::homeassistant_handlers::{
-    get_devices_handler as ha_devices_handler, get_sensors_handler as ha_sensors_handler,
+    get_automations_handler as ha_automations_handler, get_devices_handler as ha_devices_handler,
+    get_sensors_handler as ha_sensors_handler,
 };
 use kusanagi::interfaces::http::security_handlers::{
     get_security_handler, get_security_report_handler, get_security_reports_handler,
@@ -308,6 +309,7 @@ async fn main() -> std::io::Result<()> {
             )
             .route("/api/ha/devices", web::get().to(ha_devices_handler))
             .route("/api/ha/sensors", web::get().to(ha_sensors_handler))
+            .route("/api/ha/automations", web::get().to(ha_automations_handler))
             .route("/status", web::get().to(system_status))
             .route("/api/logs", web::get().to(logs_endpoint))
             // Security endpoints (Trivy) - Hexagonal Architecture
@@ -849,49 +851,6 @@ async fn logs_endpoint() -> impl Responder {
     }
 }
 
-// Endpoints mockés temporairement
-#[allow(dead_code)]
-async fn alerts() -> impl Responder {
-    match monitoring_service::get_alerts().await {
-        Ok(alerts) => {
-            let alerts_array = alerts.as_array().unwrap_or(&vec![]).clone();
-
-            // Group alerts by severity
-            let mut critical = vec![];
-            let mut warning = vec![];
-            let mut info = vec![];
-
-            for alert in &alerts_array {
-                let severity = alert
-                    .get("severity")
-                    .and_then(|s| s.as_str())
-                    .unwrap_or("info");
-
-                match severity {
-                    "critical" => critical.push(alert.clone()),
-                    "warning" => warning.push(alert.clone()),
-                    _ => info.push(alert.clone()),
-                }
-            }
-
-            HttpResponse::Ok().json(json!({
-                "total": alerts_array.len(),
-                "critical": critical,
-                "warning": warning,
-                "info": info,
-                "status": "success"
-            }))
-        }
-        Err(_) => HttpResponse::Ok().json(json!({
-            "total": 0,
-            "critical": [],
-            "warning": [],
-            "info": [],
-            "status": "error"
-        })),
-    }
-}
-
 async fn cache_stats(
     k8s_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>,
     argocd_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>,
@@ -1152,49 +1111,6 @@ async fn proxmox_ct_control(
     }
 }
 
-#[allow(dead_code)]
-async fn ha_devices() -> impl Responder {
-    match homeassistant_service::get_ha_devices().await {
-        Ok(devices) => {
-            let devices_array = devices.as_array().unwrap_or(&vec![]).clone();
-            HttpResponse::Ok().json(json!({
-                "devices": devices_array,
-                "data": devices_array,
-                "count": devices_array.len(),
-                "status": "success",
-                "total": devices_array.len(),
-                "online": 0,
-                "offline": 0
-            }))
-        }
-        Err(_) => HttpResponse::Ok().json(json!({
-            "devices": [],
-            "data": [],
-            "count": 0,
-            "status": "no_ha",
-            "total": 0,
-            "online": 0,
-            "offline": 0
-        })),
-    }
-}
-
-#[allow(dead_code)]
-async fn ha_sensors() -> impl Responder {
-    match homeassistant_service::get_ha_sensors().await {
-        Ok(sensors) => HttpResponse::Ok().json(sensors),
-        Err(_) => HttpResponse::Ok().json(json!([])),
-    }
-}
-
-#[allow(dead_code)]
-async fn ha_automations() -> impl Responder {
-    match homeassistant_service::get_ha_automations().await {
-        Ok(automations) => HttpResponse::Ok().json(automations),
-        Err(_) => HttpResponse::Ok().json(json!([])),
-    }
-}
-
 async fn websocket_handler(req: HttpRequest, stream: web::Payload) -> impl Responder {
     ws::start(WsNotifications, &req, stream)
 }
@@ -1405,55 +1321,6 @@ async fn start_irc_monitoring(irc: irc_service::IrcService, slack: slack_service
                     .send_alert("System Recovered", recovery_msg, "success")
                     .await;
             }
-        }
-    }
-}
-
-// Security endpoints (Trivy)
-#[allow(dead_code)]
-async fn security_vulnerabilities() -> impl Responder {
-    match trivy_service::get_vulnerabilities().await {
-        Ok(vulns) => HttpResponse::Ok().json(vulns),
-        Err(e) => {
-            tracing::debug!("Trivy vulnerabilities unavailable: {}", e);
-            HttpResponse::Ok().json(json!({
-                "critical": 0,
-                "high": 0,
-                "medium": 0,
-                "low": 0,
-                "total": 0,
-                "images": [],
-                "error": e
-            }))
-        }
-    }
-}
-
-#[allow(dead_code)]
-async fn security_reports() -> impl Responder {
-    match trivy_service::list_reports().await {
-        Ok(reports) => HttpResponse::Ok().json(reports),
-        Err(e) => {
-            tracing::debug!("Trivy reports unavailable: {}", e);
-            HttpResponse::Ok().json(json!({
-                "reports": [],
-                "total": 0,
-                "error": e
-            }))
-        }
-    }
-}
-
-#[allow(dead_code)]
-async fn security_report_by_id(path: web::Path<String>) -> impl Responder {
-    let report_id = path.into_inner();
-    match trivy_service::get_report_by_id(&report_id).await {
-        Ok(report) => HttpResponse::Ok().json(report),
-        Err(e) => {
-            tracing::warn!("Failed to fetch report {}: {}", report_id, e);
-            HttpResponse::NotFound().json(json!({
-                "error": format!("Report not found: {}", e)
-            }))
         }
     }
 }

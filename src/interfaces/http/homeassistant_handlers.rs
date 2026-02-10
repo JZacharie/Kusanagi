@@ -70,6 +70,23 @@ pub async fn get_devices_handler(
     }
 }
 
+/// Get automations from Home Assistant
+///
+/// # Endpoint
+/// GET /api/ha/automations
+///
+/// # Response
+/// Returns a JSON object with automations array
+pub async fn get_automations_handler() -> Result<HttpResponse> {
+    debug!("HomeAssistant automations request received");
+
+    // Return empty automations list for now (Home Assistant not configured)
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "automations": [],
+        "count": 0
+    })))
+}
+
 /// Check Home Assistant configuration status
 ///
 /// # Endpoint
@@ -115,6 +132,7 @@ pub fn configure_ha_routes(cfg: &mut web::ServiceConfig) {
         web::scope("/api/ha")
             .route("/sensors", web::get().to(get_sensors_handler))
             .route("/devices", web::get().to(get_devices_handler))
+            .route("/automations", web::get().to(get_automations_handler))
             .route("/status", web::get().to(get_ha_status_handler)),
     );
 }
