@@ -202,6 +202,7 @@ struct ForecastDay {
 
 struct WeatherResponse {
     cities: Vec<WeatherInfo>,
+    #[allow(dead_code)]
     cached_at: String,
     total: usize,
 }
@@ -267,11 +268,12 @@ fn test_weather_response_creation() {
 // Weather caching logic tests
 struct WeatherCache {
     data: Option<WeatherResponse>,
+    #[allow(dead_code)]
     max_age_minutes: u64,
 }
 
 impl WeatherCache {
-    fn new(max_age_minutes: u64) -> Self {
+    fn new(#[allow(unused_variables)] max_age_minutes: u64) -> Self {
         Self {
             data: None,
             max_age_minutes,

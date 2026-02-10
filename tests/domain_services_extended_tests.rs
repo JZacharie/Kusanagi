@@ -1,6 +1,8 @@
 //! Extended tests for domain services
 //! Tests for Proxmox, HomeAssistant, MQTT, News services
 
+#![allow(dead_code)]
+
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

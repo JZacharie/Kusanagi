@@ -38,6 +38,7 @@ struct Alert {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 enum AlertSeverity {
     Critical,
     Warning,
@@ -54,6 +55,7 @@ struct Backup {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 enum BackupStatus {
     Pending,
     InProgress,
@@ -63,11 +65,15 @@ enum BackupStatus {
 
 #[derive(Debug, Clone)]
 struct Vulnerability {
+    #[allow(dead_code)]
     id: String,
     severity: VulnSeverity,
+    #[allow(dead_code)]
     package: String,
+    #[allow(dead_code)]
     version: String,
     fixed_version: Option<String>,
+    #[allow(dead_code)]
     description: String,
 }
 
@@ -91,11 +97,14 @@ struct SecuritySummary {
 
 #[derive(Debug, Clone)]
 struct RepositoryError {
+    #[allow(dead_code)]
     message: String,
+    #[allow(dead_code)]
     code: ErrorCode,
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 enum ErrorCode {
     NotFound,
     ConnectionFailed,

@@ -6,6 +6,7 @@ use serde_json::json;
 
 // Mock HTTP request/response types for testing
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct MockRequest {
     method: String,
     path: String,
@@ -39,6 +40,7 @@ impl MockRequest {
         }
     }
 
+    #[allow(dead_code)]
     fn with_header(mut self, key: &str, value: &str) -> Self {
         self.headers.push((key.to_string(), value.to_string()));
         self
@@ -62,6 +64,7 @@ impl MockResponse {
         }
     }
 
+    #[allow(dead_code)]
     fn bad_request(message: &str) -> Self {
         Self {
             status: 400,

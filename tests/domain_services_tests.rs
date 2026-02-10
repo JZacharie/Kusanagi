@@ -21,6 +21,7 @@ struct MockPod {
 
 #[derive(Debug, Clone)]
 struct MockNode {
+    #[allow(dead_code)]
     name: String,
     status: String,
     role: String,
