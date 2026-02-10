@@ -3,12 +3,18 @@
 //! Interface layer for weather endpoints.
 //! Uses the GetWeatherUseCase from the application layer.
 
-use actix_web::{web, HttpResponse, Responder};
+use axum::{
+    extract::{Query, State},
+    response::IntoResponse,
+    Json,
+};
 use std::sync::Arc;
 use tracing::{debug, error, info};
 
-use crate::application::use_cases::{GetWeatherInput, GetWeatherUseCase};
-use crate::domain::ports::WeatherRepository;
+use crate::{
+    application::use_cases::{GetWeatherInput, GetWeatherUseCase},
+    state::AppState,
+};
 
 /// Query parameters for weather endpoint
 #[derive(Debug, serde::Deserialize)]
@@ -29,24 +35,24 @@ pub struct WeatherQuery {
 /// # Response
 /// Returns a JSON object with weather data for configured cities
 pub async fn get_weather_handler(
-    use_case: web::Data<GetWeatherUseCase>,
-    query: web::Query<WeatherQuery>,
-) -> impl Responder {
+    State(state): State<AppState>,
+    Query(query): Query<WeatherQuery>,
+) -> impl IntoResponse {
     debug!("Weather request received, refresh={}", query.refresh);
 
     let input = GetWeatherInput {
         force_refresh: query.refresh,
     };
 
-    match use_case.execute(input).await {
+    match state.weather_use_case.execute(input).await {
         Ok(weather) => {
             debug!("Weather data retrieved successfully");
-            HttpResponse::Ok().json(weather)
+            Json(weather).into_response()
         }
         Err(e) => {
             error!("Failed to get weather: {}", e);
             // Return mock data on error to ensure frontend always gets valid JSON
-            HttpResponse::Ok().json(serde_json::json!({
+            Json(serde_json::json!({
                 "cities": [
                     {
                         "city": "Paris",
@@ -65,6 +71,7 @@ pub async fn get_weather_handler(
                 "cached_at": chrono::Utc::now().to_rfc3339(),
                 "source": "error_fallback"
             }))
+            .into_response()
         }
     }
 }
@@ -76,44 +83,29 @@ pub async fn get_weather_handler(
 ///
 /// # Response
 /// Returns 200 OK on success, error on failure
-pub async fn refresh_weather_handler(use_case: web::Data<GetWeatherUseCase>) -> impl Responder {
+pub async fn refresh_weather_handler(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
     info!("Manual weather refresh requested");
 
-    match use_case.force_refresh().await {
+    match state.weather_use_case.force_refresh().await {
         Ok(_) => {
             info!("Weather data refreshed successfully");
-            HttpResponse::Ok().json(serde_json::json!({
+            Json(serde_json::json!({
                 "status": "success",
                 "message": "Weather data refreshed successfully"
             }))
+            .into_response()
         }
         Err(e) => {
             error!("Failed to refresh weather: {}", e);
-            HttpResponse::Ok().json(serde_json::json!({
+            Json(serde_json::json!({
                 "status": "error",
                 "message": format!("Failed to refresh weather data: {}", e)
             }))
+            .into_response()
         }
     }
 }
 
-/// Configure weather routes
-///
-/// Adds weather endpoints to the Actix-Web service configuration
-pub fn configure_weather_routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/weather")
-            .route("/current", web::get().to(get_weather_handler))
-            .route("/refresh", web::post().to(refresh_weather_handler)),
-    );
-}
 
-/// Create GetWeatherUseCase with repository
-///
-/// Helper function to create the use case with the weather repository
-pub async fn create_weather_use_case() -> GetWeatherUseCase {
-    use crate::infrastructure::repositories::WeatherRepositoryImpl;
-
-    let repository: Arc<dyn WeatherRepository> = Arc::new(WeatherRepositoryImpl::new().await);
-    GetWeatherUseCase::new(repository)
-}

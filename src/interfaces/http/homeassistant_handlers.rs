@@ -3,13 +3,19 @@
 //! Interface layer for HomeAssistant endpoints.
 //! Uses the GetHomeAssistantUseCase from the application layer.
 
-use actix_web::{web, HttpResponse, Responder};
+use axum::{
+    extract::State,
+    response::IntoResponse,
+    Json,
+};
 use std::sync::Arc;
 use tracing::{debug, error, info};
 
-use crate::application::use_cases::GetHomeAssistantUseCase;
-use crate::domain::ports::HomeAssistantRepository;
-use crate::infrastructure::repositories::HomeAssistantRepositoryImpl;
+use crate::{
+    application::use_cases::GetHomeAssistantUseCase,
+    infrastructure::repositories::HomeAssistantRepositoryImpl,
+    state::AppState,
+};
 
 /// Get sensors from Home Assistant
 ///
@@ -18,25 +24,28 @@ use crate::infrastructure::repositories::HomeAssistantRepositoryImpl;
 ///
 /// # Response
 /// Returns a JSON object with sensors array and count
-pub async fn get_sensors_handler(use_case: web::Data<GetHomeAssistantUseCase>) -> impl Responder {
+pub async fn get_sensors_handler(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
     debug!("HomeAssistant sensors request received");
 
-    match use_case.get_sensors().await {
+    match state.ha_use_case.get_sensors().await {
         Ok(response) => {
             debug!(
                 "HomeAssistant sensors retrieved successfully: {} sensors",
                 response.count
             );
-            HttpResponse::Ok().json(response)
+            Json(response).into_response()
         }
         Err(e) => {
             error!("Failed to get HomeAssistant sensors: {}", e);
             // Return empty response on error
-            HttpResponse::Ok().json(serde_json::json!({
+            Json(serde_json::json!({
                 "sensors": [],
                 "count": 0,
                 "error": format!("Failed to fetch sensors: {}", e)
             }))
+            .into_response()
         }
     }
 }
@@ -48,24 +57,27 @@ pub async fn get_sensors_handler(use_case: web::Data<GetHomeAssistantUseCase>) -
 ///
 /// # Response
 /// Returns a JSON object with devices array and count
-pub async fn get_devices_handler(use_case: web::Data<GetHomeAssistantUseCase>) -> impl Responder {
+pub async fn get_devices_handler(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
     debug!("HomeAssistant devices request received");
 
-    match use_case.get_devices().await {
+    match state.ha_use_case.get_devices().await {
         Ok(response) => {
             debug!(
                 "HomeAssistant devices retrieved successfully: {} devices",
                 response.count
             );
-            HttpResponse::Ok().json(response)
+            Json(response).into_response()
         }
         Err(e) => {
             error!("Failed to get HomeAssistant devices: {}", e);
-            HttpResponse::Ok().json(serde_json::json!({
+            Json(serde_json::json!({
                 "devices": [],
                 "count": 0,
                 "error": format!("Failed to fetch devices: {}", e)
             }))
+            .into_response()
         }
     }
 }
