@@ -1,4 +1,4 @@
-# Kusanagi v0.2.0 🔮
+# Kusanagi v0.3.0 🔮
 
 > **"Your effort to remain what you are is what limits you."**  
 > A comprehensive Kubernetes monitoring platform inspired by Ghost in the Shell
@@ -332,7 +332,7 @@ Kusanagi exposes Prometheus metrics at `/metrics`:
 ```
 # HELP kusanagi_info Service information
 # TYPE kusanagi_info gauge
-kusanagi_info{version="0.2.0",architecture="hexagonal"} 1
+kusanagi_info{version="0.3.0",architecture="hexagonal"} 1
 
 # HELP kusanagi_requests_total Total HTTP requests
 # TYPE kusanagi_requests_total counter
