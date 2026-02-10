@@ -46,6 +46,7 @@ paths = [
     '''target/''',
     '''node_modules/''',
     '''\.cargo/''',
+    '''DEPLOYMENT\.md''',  # Legacy doc with curl examples
 ]
 
 regexes = [
@@ -54,4 +55,6 @@ regexes = [
     '''dummy''',
     '''placeholder''',
     '''AKIA[0-9A-Z]{16}''', # Example AWS keys in docs
+    '''curl -H "Authorization:''',  # Curl examples with auth headers
+    '''\*\*\*''',  # Redacted/placeholder tokens
 ]
