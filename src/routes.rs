@@ -3,7 +3,7 @@
 //! This module configures all API routes for the Axum framework.
 
 use axum::{
-    routing::{get, post},
+    routing::get,
     Router,
 };
 

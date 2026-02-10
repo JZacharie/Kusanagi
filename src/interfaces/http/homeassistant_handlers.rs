@@ -4,7 +4,7 @@
 //! Migrated from Actix-web to Axum.
 
 use axum::{extract::State, response::IntoResponse, Json};
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
 use crate::state::AppState;
 

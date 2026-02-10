@@ -8,7 +8,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
 use crate::application::use_cases::GetAlertsInput;
 use crate::state::AppState;
