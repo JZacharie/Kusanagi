@@ -11,7 +11,7 @@ use crate::state::AppState;
 ///
 /// # Endpoint
 /// GET /api/backups
-pub async fn get_backups_handler(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn get_backups_handler(State(_state): State<AppState>) -> impl IntoResponse {
     debug!("Backups status request received");
 
     // Note: Backup use case needs to be added to AppState
@@ -27,7 +27,7 @@ pub async fn get_backups_handler(State(state): State<AppState>) -> impl IntoResp
 ///
 /// # Endpoint
 /// POST /api/backups/trigger
-pub async fn trigger_backup_handler(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn trigger_backup_handler(State(_state): State<AppState>) -> impl IntoResponse {
     info!("Backup trigger requested");
 
     // Note: Backup use case needs to be added to AppState
