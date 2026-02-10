@@ -3,7 +3,7 @@
 //! Interface layer for security endpoints.
 //! Uses the GetSecurityUseCase from the application layer.
 
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpResponse, Responder};
 use std::sync::Arc;
 use tracing::{debug, error};
 
@@ -30,7 +30,7 @@ pub struct ReportPath {
 /// - critical_count, high_count, medium_count, low_count: Vulnerability counts by severity
 /// - reports: List of report keys
 /// - last_updated: Timestamp of last update
-pub async fn get_security_handler(use_case: web::Data<GetSecurityUseCase>) -> HttpResponse {
+pub async fn get_security_handler(use_case: web::Data<GetSecurityUseCase>) -> impl Responder {
     debug!("Security summary request received");
 
     // Check local mode
@@ -69,7 +69,9 @@ pub async fn get_security_handler(use_case: web::Data<GetSecurityUseCase>) -> Ht
 ///
 /// # Response
 /// Returns a JSON array of report keys (e.g., ["cluster/report1.json", "apps/app-report.json"])
-pub async fn get_security_reports_handler(use_case: web::Data<GetSecurityUseCase>) -> HttpResponse {
+pub async fn get_security_reports_handler(
+    use_case: web::Data<GetSecurityUseCase>,
+) -> impl Responder {
     debug!("Security reports list request received");
 
     match use_case.get_reports().await {
@@ -91,7 +93,9 @@ pub async fn get_security_reports_handler(use_case: web::Data<GetSecurityUseCase
 ///
 /// # Response
 /// Returns a JSON object with vulnerability counts by severity
-pub async fn get_vulnerabilities_handler(use_case: web::Data<GetSecurityUseCase>) -> HttpResponse {
+pub async fn get_vulnerabilities_handler(
+    use_case: web::Data<GetSecurityUseCase>,
+) -> impl Responder {
     debug!("Security vulnerabilities request received");
 
     match use_case.get_summary().await {
@@ -138,7 +142,7 @@ pub async fn get_vulnerabilities_handler(use_case: web::Data<GetSecurityUseCase>
 pub async fn get_security_report_handler(
     use_case: web::Data<GetSecurityUseCase>,
     path: web::Path<ReportPath>,
-) -> HttpResponse {
+) -> impl Responder {
     let ReportPath { category, name } = path.into_inner();
     debug!("Security report request received: {}/{}", category, name);
 

@@ -3,7 +3,7 @@
 //! Interface layer for HomeAssistant endpoints.
 //! Uses the GetHomeAssistantUseCase from the application layer.
 
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpResponse, Responder};
 use std::sync::Arc;
 use tracing::{debug, error, info};
 
@@ -18,7 +18,7 @@ use crate::infrastructure::repositories::HomeAssistantRepositoryImpl;
 ///
 /// # Response
 /// Returns a JSON object with sensors array and count
-pub async fn get_sensors_handler(use_case: web::Data<GetHomeAssistantUseCase>) -> HttpResponse {
+pub async fn get_sensors_handler(use_case: web::Data<GetHomeAssistantUseCase>) -> impl Responder {
     debug!("HomeAssistant sensors request received");
 
     match use_case.get_sensors().await {
@@ -48,7 +48,7 @@ pub async fn get_sensors_handler(use_case: web::Data<GetHomeAssistantUseCase>) -
 ///
 /// # Response
 /// Returns a JSON object with devices array and count
-pub async fn get_devices_handler(use_case: web::Data<GetHomeAssistantUseCase>) -> HttpResponse {
+pub async fn get_devices_handler(use_case: web::Data<GetHomeAssistantUseCase>) -> impl Responder {
     debug!("HomeAssistant devices request received");
 
     match use_case.get_devices().await {
@@ -77,7 +77,7 @@ pub async fn get_devices_handler(use_case: web::Data<GetHomeAssistantUseCase>) -
 ///
 /// # Response
 /// Returns a JSON object with automations array
-pub async fn get_automations_handler() -> HttpResponse {
+pub async fn get_automations_handler() -> impl Responder {
     debug!("HomeAssistant automations request received");
 
     // Return empty automations list for now (Home Assistant not configured)
@@ -94,7 +94,7 @@ pub async fn get_automations_handler() -> HttpResponse {
 ///
 /// # Response
 /// Returns a JSON object with configuration status
-pub async fn get_ha_status_handler() -> HttpResponse {
+pub async fn get_ha_status_handler() -> impl Responder {
     debug!("HomeAssistant status request received");
 
     match HomeAssistantRepositoryImpl::new() {
