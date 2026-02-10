@@ -229,7 +229,7 @@ async fn main() -> std::io::Result<()> {
     };
     let ha_use_case = Arc::new(GetHomeAssistantUseCase::new(ha_repo));
 
-    // Preload services cache
+    // Preload services cache (TTL 3 minutes)
     let k8s_cache_clone = k8s_cache.clone();
     tokio::spawn(async move {
         log::info!("↻ Preloading Services cache...");
@@ -237,11 +237,27 @@ async fn main() -> std::io::Result<()> {
             Ok(services) => {
                 let json = serde_json::to_string(&services).unwrap_or_default();
                 k8s_cache_clone
-                    .set("services".to_string(), json, None)
+                    .set("services".to_string(), json, Some(Duration::from_secs(180)))
                     .await;
-                log::info!("✅ Services cache warmed up");
+                log::info!("✅ Services cache warmed up (TTL: 3 min)");
             }
             Err(e) => log::error!("⚠️ Failed to preload services cache: {}", e),
+        }
+    });
+
+    // Preload ingress cache (TTL 3 minutes)
+    let k8s_cache_clone = k8s_cache.clone();
+    tokio::spawn(async move {
+        log::info!("↻ Preloading Ingress cache...");
+        match kubernetes_service::get_ingress().await {
+            Ok(ingress) => {
+                let json = serde_json::to_string(&ingress).unwrap_or_default();
+                k8s_cache_clone
+                    .set("ingress".to_string(), json, Some(Duration::from_secs(180)))
+                    .await;
+                log::info!("✅ Ingress cache warmed up (TTL: 3 min)");
+            }
+            Err(e) => log::error!("⚠️ Failed to preload ingress cache: {}", e),
         }
     });
 
@@ -987,26 +1003,61 @@ async fn trigger_backup(params: web::Json<TriggerBackupRequest>) -> impl Respond
     }
 }
 
+use std::time::Duration;
+
+// Cache TTL for services and ingress: 3 minutes
+const SERVICES_INGRESS_TTL: Duration = Duration::from_secs(180);
+
 async fn services(k8s_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>) -> impl Responder {
+    // Try to get from cache first (TTL 3 minutes)
     if let Some(cached) = k8s_cache.get("services").await {
         return HttpResponse::Ok()
             .content_type("application/json")
             .body(cached);
     }
 
+    // Cache miss - fetch fresh data
     match kubernetes_service::get_services().await {
         Ok(services) => {
             let json = serde_json::to_string(&services).unwrap_or_default();
-            k8s_cache.set("services".to_string(), json, None).await;
-            HttpResponse::Ok().json(services)
+            k8s_cache
+                .set(
+                    "services".to_string(),
+                    json.clone(),
+                    Some(SERVICES_INGRESS_TTL),
+                )
+                .await;
+            HttpResponse::Ok()
+                .content_type("application/json")
+                .body(json)
         }
         Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }
 
-async fn ingress() -> impl Responder {
+async fn ingress(k8s_cache: web::Data<Arc<kusanagi::AdvancedCache<String>>>) -> impl Responder {
+    // Try to get from cache first (TTL 3 minutes)
+    if let Some(cached) = k8s_cache.get("ingress").await {
+        return HttpResponse::Ok()
+            .content_type("application/json")
+            .body(cached);
+    }
+
+    // Cache miss - fetch fresh data
     match kubernetes_service::get_ingress().await {
-        Ok(ingress) => HttpResponse::Ok().json(ingress),
+        Ok(ingress) => {
+            let json = serde_json::to_string(&ingress).unwrap_or_default();
+            k8s_cache
+                .set(
+                    "ingress".to_string(),
+                    json.clone(),
+                    Some(SERVICES_INGRESS_TTL),
+                )
+                .await;
+            HttpResponse::Ok()
+                .content_type("application/json")
+                .body(json)
+        }
         Err(_) => HttpResponse::Ok().json(json!([])),
     }
 }

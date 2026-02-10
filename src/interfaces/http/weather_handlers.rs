@@ -3,7 +3,7 @@
 //! Interface layer for weather endpoints.
 //! Uses the GetWeatherUseCase from the application layer.
 
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpResponse, Responder};
 use std::sync::Arc;
 use tracing::{debug, error, info};
 
@@ -31,7 +31,7 @@ pub struct WeatherQuery {
 pub async fn get_weather_handler(
     use_case: web::Data<GetWeatherUseCase>,
     query: web::Query<WeatherQuery>,
-) -> HttpResponse {
+) -> impl Responder {
     debug!("Weather request received, refresh={}", query.refresh);
 
     let input = GetWeatherInput {
@@ -76,7 +76,7 @@ pub async fn get_weather_handler(
 ///
 /// # Response
 /// Returns 200 OK on success, error on failure
-pub async fn refresh_weather_handler(use_case: web::Data<GetWeatherUseCase>) -> HttpResponse {
+pub async fn refresh_weather_handler(use_case: web::Data<GetWeatherUseCase>) -> impl Responder {
     info!("Manual weather refresh requested");
 
     match use_case.force_refresh().await {

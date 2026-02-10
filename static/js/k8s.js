@@ -10,16 +10,39 @@ const K8sManager = {
     storageSortField: 'usage_percent',
     storageSortDir: 'desc',
     currentEventFilter: 'all',
-    currentEventFilter: 'all',
     currentEventPage: 1,
     eventPerPage: 20,
     lastServicesFetch: 0,
+    lastIngressFetch: 0,
+    // 3 minutes TTL for services and ingress (in milliseconds)
+    SERVICES_INGRESS_TTL: 180000,
 
     init() {
         this.fetchAll();
         // Set up intervals if needed (or move to main init)
         setInterval(() => this.fetchAll(), 30000);
-        console.log('✅ K8s Manager initialized');
+        
+        // Refresh on page focus (for services and ingress)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
+                const now = Date.now();
+                
+                // Refresh services if on services tab and TTL expired
+                if (activeTab === 'services' && now - this.lastServicesFetch >= this.SERVICES_INGRESS_TTL) {
+                    console.log('🔄 Page focused, refreshing services...');
+                    this.fetchServices();
+                }
+                
+                // Refresh ingress if on ingress tab and TTL expired
+                if (activeTab === 'ingress' && now - this.lastIngressFetch >= this.SERVICES_INGRESS_TTL) {
+                    console.log('🔄 Page focused, refreshing ingress...');
+                    this.fetchIngress();
+                }
+            }
+        });
+        
+        console.log('✅ K8s Manager initialized (Services/Ingress cache: 3min TTL, refresh on focus)');
     },
 
     fetchAll() {
@@ -1025,11 +1048,11 @@ const K8sManager = {
     async fetchServices() {
         const now = Date.now();
         // Allow initial fetch (lastServicesFetch === 0)
-        // Otherwise, check if 3 minutes (180000ms) have passed AND we are on the services tab
+        // Otherwise, check if 3 minutes have passed AND we are on the services tab
         if (this.lastServicesFetch !== 0) {
             const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
             if (activeTab !== 'services') return;
-            if (now - this.lastServicesFetch < 180000) return;
+            if (now - this.lastServicesFetch < this.SERVICES_INGRESS_TTL) return;
         }
 
         this.lastServicesFetch = now;
@@ -1074,6 +1097,17 @@ const K8sManager = {
     },
 
     async fetchIngress() {
+        const now = Date.now();
+        // Allow initial fetch (lastIngressFetch === 0)
+        // Otherwise, check if 3 minutes have passed AND we are on the ingress tab
+        if (this.lastIngressFetch !== 0) {
+            const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
+            if (activeTab !== 'ingress') return;
+            if (now - this.lastIngressFetch < this.SERVICES_INGRESS_TTL) return;
+        }
+
+        this.lastIngressFetch = now;
+
         try {
             const response = await fetch('/api/ingress');
             const data = await response.json();
