@@ -7,9 +7,12 @@ pub mod homeassistant_handlers;
 pub mod security_handlers;
 pub mod weather_handlers;
 
-// Re-export handlers (temporary - will be restored when all handlers are migrated)
-// pub use alert_handlers::{configure_alert_routes, create_alerts_use_case};
-// pub use backup_handlers::{configure_backup_routes, create_backup_use_case};
-// pub use homeassistant_handlers::{configure_ha_routes, create_homeassistant_use_case};
-// pub use security_handlers::{configure_security_routes, create_security_use_case};
-// pub use weather_handlers::{configure_weather_routes, create_weather_use_case};
+// Re-export handler functions (not configuration functions which are Actix-specific)
+pub use alert_handlers::get_alerts_handler;
+pub use backup_handlers::{get_backups_handler, trigger_backup_handler};
+pub use homeassistant_handlers::{get_devices_handler, get_sensors_handler};
+pub use security_handlers::{
+    get_security_handler, get_security_report_handler, get_security_reports_handler,
+    get_vulnerabilities_handler,
+};
+pub use weather_handlers::get_weather_handler;

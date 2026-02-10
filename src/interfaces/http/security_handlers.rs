@@ -1,7 +1,7 @@
 //! Security HTTP Handlers
 //!
 //! Interface layer for security endpoints.
-//! Uses the GetSecurityUseCase from the application layer.
+//! Migrated from Actix-web to Axum.
 
 use axum::{
     extract::{Path, State},
@@ -23,18 +23,9 @@ pub struct ReportPath {
 ///
 /// # Endpoint
 /// GET /api/security/summary
-///
-/// # Response
-/// Returns a JSON object with security summary including:
-/// - total_reports: Total number of security reports
-/// - total_vulnerabilities: Total vulnerabilities across all reports
-/// - critical_count, high_count, medium_count, low_count: Vulnerability counts by severity
-/// - reports: List of report keys
-/// - last_updated: Timestamp of last update
 pub async fn get_security_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Security summary request received");
 
-    // Check local mode
     if state.security_use_case.is_local_mode() {
         debug!("Running in local mode, returning mock security summary");
     }
@@ -60,7 +51,6 @@ pub async fn get_security_handler(State(state): State<AppState>) -> impl IntoRes
                 "error": format!("Failed to retrieve security summary: {}", e)
             }))
             .into_response()
-            .into_response()
         }
     }
 }
@@ -69,9 +59,6 @@ pub async fn get_security_handler(State(state): State<AppState>) -> impl IntoRes
 ///
 /// # Endpoint
 /// GET /api/security/reports
-///
-/// # Response
-/// Returns a JSON array of report keys (e.g., ["cluster/report1.json", "apps/app-report.json"])
 pub async fn get_security_reports_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Security reports list request received");
 
@@ -91,9 +78,6 @@ pub async fn get_security_reports_handler(State(state): State<AppState>) -> impl
 ///
 /// # Endpoint
 /// GET /api/security/vulnerabilities
-///
-/// # Response
-/// Returns a JSON object with vulnerability counts by severity
 pub async fn get_vulnerabilities_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Security vulnerabilities request received");
 
@@ -133,13 +117,6 @@ pub async fn get_vulnerabilities_handler(State(state): State<AppState>) -> impl 
 ///
 /// # Endpoint
 /// GET /api/security/reports/{category}/{name}
-///
-/// # Path Parameters
-/// - `category`: Report category (e.g., "cluster", "apps")
-/// - `name`: Report filename (e.g., "report.json")
-///
-/// # Response
-/// Returns the full security report with original Trivy data and optional AI enrichment
 pub async fn get_security_report_handler(
     State(state): State<AppState>,
     Path(path): Path<ReportPath>,

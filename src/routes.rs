@@ -2,7 +2,10 @@
 //!
 //! This module configures all API routes for the Axum framework.
 
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 
 use crate::handlers;
 use crate::state::AppState;
