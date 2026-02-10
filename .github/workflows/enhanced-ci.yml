@@ -121,11 +121,13 @@ jobs:
       - name: Generate coverage
         run: cargo tarpaulin --out xml --output-dir coverage
 
-      - name: Upload to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage/cobertura.xml
-          fail_ci_if_error: false
+      # Note: Codecov upload disabled due to rate limiting without token
+      # - name: Upload to Codecov
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     files: ./coverage/cobertura.xml
+      #     fail_ci_if_error: false
+      #     token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

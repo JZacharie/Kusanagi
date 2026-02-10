@@ -3,7 +3,7 @@
 //! Interface layer for HomeAssistant endpoints.
 //! Uses the GetHomeAssistantUseCase from the application layer.
 
-use actix_web::{web, HttpResponse, Result};
+use actix_web::{web, HttpResponse};
 use std::sync::Arc;
 use tracing::{debug, error, info};
 
@@ -18,9 +18,7 @@ use crate::infrastructure::repositories::HomeAssistantRepositoryImpl;
 ///
 /// # Response
 /// Returns a JSON object with sensors array and count
-pub async fn get_sensors_handler(
-    use_case: web::Data<GetHomeAssistantUseCase>,
-) -> Result<HttpResponse> {
+pub async fn get_sensors_handler(use_case: web::Data<GetHomeAssistantUseCase>) -> HttpResponse {
     debug!("HomeAssistant sensors request received");
 
     match use_case.get_sensors().await {
@@ -29,14 +27,16 @@ pub async fn get_sensors_handler(
                 "HomeAssistant sensors retrieved successfully: {} sensors",
                 response.count
             );
-            Ok(HttpResponse::Ok().json(response))
+            HttpResponse::Ok().json(response)
         }
         Err(e) => {
             error!("Failed to get HomeAssistant sensors: {}", e);
-            // Return 503 Service Unavailable for configuration errors
-            Ok(HttpResponse::ServiceUnavailable().json(serde_json::json!({
+            // Return empty response on error
+            HttpResponse::Ok().json(serde_json::json!({
+                "sensors": [],
+                "count": 0,
                 "error": format!("Failed to fetch sensors: {}", e)
-            })))
+            }))
         }
     }
 }
@@ -48,9 +48,7 @@ pub async fn get_sensors_handler(
 ///
 /// # Response
 /// Returns a JSON object with devices array and count
-pub async fn get_devices_handler(
-    use_case: web::Data<GetHomeAssistantUseCase>,
-) -> Result<HttpResponse> {
+pub async fn get_devices_handler(use_case: web::Data<GetHomeAssistantUseCase>) -> HttpResponse {
     debug!("HomeAssistant devices request received");
 
     match use_case.get_devices().await {
@@ -59,13 +57,15 @@ pub async fn get_devices_handler(
                 "HomeAssistant devices retrieved successfully: {} devices",
                 response.count
             );
-            Ok(HttpResponse::Ok().json(response))
+            HttpResponse::Ok().json(response)
         }
         Err(e) => {
             error!("Failed to get HomeAssistant devices: {}", e);
-            Ok(HttpResponse::ServiceUnavailable().json(serde_json::json!({
+            HttpResponse::Ok().json(serde_json::json!({
+                "devices": [],
+                "count": 0,
                 "error": format!("Failed to fetch devices: {}", e)
-            })))
+            }))
         }
     }
 }
@@ -77,14 +77,14 @@ pub async fn get_devices_handler(
 ///
 /// # Response
 /// Returns a JSON object with automations array
-pub async fn get_automations_handler() -> Result<HttpResponse> {
+pub async fn get_automations_handler() -> HttpResponse {
     debug!("HomeAssistant automations request received");
 
     // Return empty automations list for now (Home Assistant not configured)
-    Ok(HttpResponse::Ok().json(serde_json::json!({
+    HttpResponse::Ok().json(serde_json::json!({
         "automations": [],
         "count": 0
-    })))
+    }))
 }
 
 /// Check Home Assistant configuration status
@@ -94,7 +94,7 @@ pub async fn get_automations_handler() -> Result<HttpResponse> {
 ///
 /// # Response
 /// Returns a JSON object with configuration status
-pub async fn get_ha_status_handler() -> Result<HttpResponse> {
+pub async fn get_ha_status_handler() -> HttpResponse {
     debug!("HomeAssistant status request received");
 
     match HomeAssistantRepositoryImpl::new() {
@@ -108,18 +108,18 @@ pub async fn get_ha_status_handler() -> Result<HttpResponse> {
 
             info!("HomeAssistant status check: {}", status);
 
-            Ok(HttpResponse::Ok().json(serde_json::json!({
+            HttpResponse::Ok().json(serde_json::json!({
                 "status": status,
                 "configured": configured
-            })))
+            }))
         }
         Err(e) => {
             error!("Failed to check HomeAssistant status: {}", e);
-            Ok(HttpResponse::ServiceUnavailable().json(serde_json::json!({
+            HttpResponse::Ok().json(serde_json::json!({
                 "status": "error",
                 "configured": false,
                 "error": format!("{}", e)
-            })))
+            }))
         }
     }
 }

@@ -26,8 +26,18 @@ jobs:
       - name: Generate coverage report
         run: make coverage-fast
         
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+      # Note: Codecov upload disabled due to rate limiting without token
+      # To re-enable, add CODECOV_TOKEN to repository secrets
+      # - name: Upload coverage to Codecov
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     files: ./coverage-fast/cobertura.xml
+      #     fail_ci_if_error: false
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      
+      - name: Upload coverage report as artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: ./coverage-fast/cobertura.xml
-          fail_ci_if_error: false
+          name: coverage-report
+          path: coverage-fast/
+          retention-days: 7
