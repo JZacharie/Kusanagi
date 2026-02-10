@@ -24,6 +24,7 @@ use kusanagi::interfaces::http::homeassistant_handlers::{
 };
 use kusanagi::interfaces::http::security_handlers::{
     get_security_handler, get_security_report_handler, get_security_reports_handler,
+    get_vulnerabilities_handler,
 };
 use kusanagi::interfaces::http::weather_handlers::get_weather_handler;
 use kusanagi::{legacy, Config};
@@ -314,6 +315,10 @@ async fn main() -> std::io::Result<()> {
             .route("/api/logs", web::get().to(logs_endpoint))
             // Security endpoints (Trivy) - Hexagonal Architecture
             .route("/api/security/summary", web::get().to(get_security_handler))
+            .route(
+                "/api/security/vulnerabilities",
+                web::get().to(get_vulnerabilities_handler),
+            )
             .route(
                 "/api/security/reports",
                 web::get().to(get_security_reports_handler),
