@@ -18,7 +18,8 @@ pub async fn get_argocd_status() -> Result<Value, String> {
             return parse_argocd_apps_text(&stdout);
         } else {
             let stderr = String::from_utf8_lossy(&result.stderr);
-            tracing::warn!("⚠️ ArgoCD kubectl error: {}", stderr.trim());
+            tracing::error!("❌ ArgoCD kubectl error: {}", stderr.trim());
+            tracing::error!("❌ Command executed: kubectl get applications -n argocd ...");
         }
     }
 
@@ -133,6 +134,10 @@ fn parse_argocd_apps_text(stdout: &str) -> Result<Value, String> {
         if sync_status == "OutOfSync" && health_status == "Healthy" {
             apps_with_upgrades.push(app_obj);
         }
+    }
+
+    if total == 0 {
+        tracing::warn!("⚠️ Parsed 0 ArgoCD applications. Raw stdout:\n{}", stdout);
     }
 
     Ok(json!({
