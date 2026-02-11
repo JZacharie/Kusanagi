@@ -34,7 +34,7 @@ use kusanagi::handlers::{
 use kusanagi::interfaces::http::{
     alert_handlers::get_alerts_handler,
     backup_handlers::{get_backups_handler, trigger_backup_handler},
-    homeassistant_handlers::{get_devices_handler, get_sensors_handler},
+    homeassistant_handlers::{get_automations_handler, get_devices_handler, get_sensors_handler},
     proxmox_handlers::{get_containers_handler, get_nodes_handler, get_vms_handler},
     security_handlers::{
         get_security_handler, get_security_report_handler, get_security_reports_handler,
@@ -99,6 +99,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/api/ha/devices", get(get_devices_handler))
         .route("/api/ha/sensors", get(get_sensors_handler))
+        .route("/api/ha/automations", get(get_automations_handler))
         .route("/api/security/summary", get(get_security_handler))
         .route("/api/security/reports", get(get_security_reports_handler))
         .route(
@@ -203,6 +204,11 @@ async fn api_info() -> impl IntoResponse {
                 "GET /api/proxmox/vms",
                 "GET /api/proxmox/containers",
                 "GET /api/proxmox/nodes"
+            ],
+            "homeassistant": [
+                "GET /api/ha/devices",
+                "GET /api/ha/sensors",
+                "GET /api/ha/automations"
             ]
         }
     }))
