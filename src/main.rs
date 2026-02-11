@@ -2,6 +2,8 @@
 // Migration from Actix-web to Axum
 
 use axum::{
+    extract::Request,
+    middleware::{self, Next},
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
@@ -20,6 +22,12 @@ pub mod api_handlers;
 use api_handlers::{
     cache::cache_stats, config::get_config, health::health_check, slack::send_slack_notification,
     websocket::ws_notifications_handler,
+};
+use kusanagi::domain::services::fusion_service::fusion_handler;
+use kusanagi::handlers::{
+    k8s::{cluster_overview, nodes_status, pods_status},
+    monitoring::{alerts, quotas},
+    system::{system_logs, system_status},
 };
 
 // Hexagonal handlers
@@ -85,7 +93,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/alerts", get(get_alerts_handler))
         .route("/api/backups", get(get_backups_handler))
         .route(
-            "/api/backups/:namespace/:name/trigger",
+            "/api/backups/{namespace}/{name}/trigger",
             post(trigger_backup_handler),
         )
         .route("/api/ha/devices", get(get_devices_handler))
@@ -93,7 +101,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/security/summary", get(get_security_handler))
         .route("/api/security/reports", get(get_security_reports_handler))
         .route(
-            "/api/security/reports/:category/:name",
+            "/api/security/reports/{category}/{name}",
             get(get_security_report_handler),
         )
         .route(
@@ -101,13 +109,26 @@ async fn main() -> anyhow::Result<()> {
             get(get_vulnerabilities_handler),
         )
         .route("/api/weather/current", get(get_weather_handler))
-        // Static files
+        // System routes
+        .route("/api/system/status", get(system_status))
+        .route("/api/system/logs", get(system_logs))
+        // Kubernetes routes
+        .route("/api/k8s/cluster", get(cluster_overview))
+        .route("/api/k8s/nodes", get(nodes_status))
+        .route("/api/k8s/pods", get(pods_status))
+        // Monitoring routes
+        .route("/api/monitoring/alerts", get(alerts))
+        .route("/api/monitoring/quotas", get(quotas))
+        .route("/api/metrics", get(metrics_handler))
+        .route("/api/fusion", get(fusion_handler))
+        // Static files (doit être après les routes API)
         .nest_service("/static", ServeDir::new("./static"))
-        // Layers
+        // Layers (appliqués dans l'ordre inverse - le dernier est exécuté en premier)
+        .layer(middleware::from_fn(log_request))
         .layer(CorsLayer::permissive())
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http())
-        // State
+        // State (doit être en dernier)
         .with_state(state);
 
     // Start server
@@ -147,6 +168,23 @@ async fn api_info() -> impl IntoResponse {
                 "POST /api/slack/notify - Send Slack notification",
                 "GET /api/ws/notifications - WebSocket"
             ],
+            "system": [
+                "GET /api/system/status",
+                "GET /api/system/logs"
+            ],
+            "kubernetes": [
+                "GET /api/k8s/cluster",
+                "GET /api/k8s/nodes",
+                "GET /api/k8s/pods"
+            ],
+            "monitoring": [
+                "GET /api/monitoring/alerts",
+                "GET /api/monitoring/quotas",
+                "GET /api/metrics"
+            ],
+            "fusion": [
+                "GET /api/fusion"
+            ],
             "hexagonal": [
                 "GET /api/alerts",
                 "GET /api/backups",
@@ -156,4 +194,37 @@ async fn api_info() -> impl IntoResponse {
             ]
         }
     }))
+}
+
+/// Metrics endpoint
+async fn metrics_handler() -> impl IntoResponse {
+    Json(serde_json::json!({
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "version": env!("CARGO_PKG_VERSION"),
+        "uptime_seconds": 0,
+        "system": {
+            "cpu_usage": 0.0,
+            "memory_usage": 0,
+            "memory_total": 0
+        },
+        "kubernetes": {
+            "pods_total": 0,
+            "pods_running": 0,
+            "nodes_total": 0
+        }
+    }))
+}
+
+/// Middleware pour logger les requêtes reçues
+async fn log_request(request: Request, next: Next) -> impl IntoResponse {
+    let method = request.method().clone();
+    let uri = request.uri().clone();
+
+    info!("📥 {} {}", method, uri);
+
+    let response = next.run(request).await;
+
+    info!("📤 {} - Status: {}", uri, response.status());
+
+    response
 }
