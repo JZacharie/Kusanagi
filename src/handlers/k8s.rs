@@ -1,41 +1,69 @@
 //! Kubernetes handlers
 
+use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::Json;
 
+use crate::domain::services::kubernetes_service;
+use crate::state::AppState;
+
 /// Cluster overview endpoint
 pub async fn cluster_overview() -> impl IntoResponse {
-    Json(serde_json::json!({
-        "nodes": 0,
-        "pods": 0,
-        "services": 0
-    }))
+    match kubernetes_service::get_cluster_overview().await {
+        Ok(data) => Json(data).into_response(),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "message": e,
+            "nodes": 0,
+            "pods": 0,
+            "services": 0
+        }))
+        .into_response(),
+    }
 }
 
 /// Nodes status endpoint
 pub async fn nodes_status() -> impl IntoResponse {
-    Json(serde_json::json!({
-        "ready": 0,
-        "not_ready": 0
-    }))
+    match kubernetes_service::get_nodes_status().await {
+        Ok(data) => Json(data).into_response(),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "message": e,
+            "ready": 0,
+            "not_ready": 0
+        }))
+        .into_response(),
+    }
 }
 
 /// Pods status endpoint
 pub async fn pods_status() -> impl IntoResponse {
-    Json(serde_json::json!({
-        "running": 0,
-        "pending": 0,
-        "failed": 0
-    }))
+    match kubernetes_service::get_pods_status().await {
+        Ok(data) => Json(data).into_response(),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "message": e,
+            "running": 0,
+            "pending": 0,
+            "failed": 0
+        }))
+        .into_response(),
+    }
 }
 
 /// Storage endpoint
-pub async fn storage() -> impl IntoResponse {
-    Json(serde_json::json!({
-        "pvc_count": 0,
-        "pvc_total_capacity": "0 B",
-        "pvcs": []
-    }))
+pub async fn storage(State(state): State<AppState>) -> impl IntoResponse {
+    match kubernetes_service::get_storage(&state.http_client).await {
+        Ok(data) => Json(data).into_response(),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "message": e,
+            "pvc_count": 0,
+            "pvc_total_capacity": "0 B",
+            "pvcs": []
+        }))
+        .into_response(),
+    }
 }
 
 /// Ingress endpoint
