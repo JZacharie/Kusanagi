@@ -603,6 +603,29 @@ pub async fn get_events() -> Result<Value, String> {
     Ok(json!(events))
 }
 
+pub async fn get_pod_logs(namespace: &str, name: &str) -> Result<String, String> {
+    let client = Client::try_default().await.map_err(|e| e.to_string())?;
+    let pods: Api<Pod> = Api::namespaced(client, namespace);
+    let log_params = kube::api::LogParams {
+        container: None,
+        follow: false,
+        limit_bytes: None,
+        pretty: false,
+        previous: false,
+        since_seconds: None,
+        tail_lines: Some(100),
+        timestamps: true,
+        since_time: None,
+    };
+
+    let logs = pods
+        .logs(name, &log_params)
+        .await
+        .map_err(|e| format!("Failed to fetch logs: {}", e))?;
+
+    Ok(logs)
+}
+
 // Helper function to calculate age from k8s timestamp (kube 3.0 uses jiff::Timestamp)
 pub fn calculate_age_from_timestamp(
     ts: &k8s_openapi::apimachinery::pkg::apis::meta::v1::Time,

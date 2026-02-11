@@ -5,10 +5,13 @@ use axum::Json;
 
 /// System status endpoint
 pub async fn system_status() -> impl IntoResponse {
+    // Mock data for now, ideally retrieved from system metrics or app state
     Json(serde_json::json!({
         "status": "operational",
-        "cpu_load": 0.0,
-        "memory_usage": 0
+        "uptime_secs": 3600, // Mock 1 hour
+        "cpu_usage": 15.5,
+        "memory_usage_mb": 256.0,
+        "version": env!("CARGO_PKG_VERSION")
     }))
 }
 
