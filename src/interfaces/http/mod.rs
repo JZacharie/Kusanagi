@@ -4,6 +4,7 @@
 pub mod alert_handlers;
 pub mod backup_handlers;
 pub mod homeassistant_handlers;
+pub mod proxmox_handlers;
 pub mod security_handlers;
 pub mod weather_handlers;
 
@@ -11,6 +12,7 @@ pub mod weather_handlers;
 pub use alert_handlers::get_alerts_handler;
 pub use backup_handlers::{get_backups_handler, trigger_backup_handler};
 pub use homeassistant_handlers::{get_devices_handler, get_sensors_handler};
+pub use proxmox_handlers::{get_containers_handler, get_nodes_handler, get_vms_handler};
 pub use security_handlers::{
     get_security_handler, get_security_report_handler, get_security_reports_handler,
     get_vulnerabilities_handler,

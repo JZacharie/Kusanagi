@@ -25,7 +25,7 @@ use api_handlers::{
 };
 use kusanagi::domain::services::fusion_service::fusion_handler;
 use kusanagi::handlers::{
-    k8s::{cluster_overview, nodes_status, pods_status},
+    k8s::{cluster_overview, nodes_status, pods_status, storage},
     monitoring::{alerts, quotas},
     system::{system_logs, system_status},
 };
@@ -35,6 +35,7 @@ use kusanagi::interfaces::http::{
     alert_handlers::get_alerts_handler,
     backup_handlers::{get_backups_handler, trigger_backup_handler},
     homeassistant_handlers::{get_devices_handler, get_sensors_handler},
+    proxmox_handlers::{get_containers_handler, get_nodes_handler, get_vms_handler},
     security_handlers::{
         get_security_handler, get_security_report_handler, get_security_reports_handler,
         get_vulnerabilities_handler,
@@ -116,11 +117,16 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/k8s/cluster", get(cluster_overview))
         .route("/api/k8s/nodes", get(nodes_status))
         .route("/api/k8s/pods", get(pods_status))
+        .route("/api/storage", get(storage))
         // Monitoring routes
         .route("/api/monitoring/alerts", get(alerts))
         .route("/api/monitoring/quotas", get(quotas))
         .route("/api/metrics", get(metrics_handler))
         .route("/api/fusion", get(fusion_handler))
+        // Proxmox routes
+        .route("/api/proxmox/vms", get(get_vms_handler))
+        .route("/api/proxmox/containers", get(get_containers_handler))
+        .route("/api/proxmox/nodes", get(get_nodes_handler))
         // Static files (doit être après les routes API)
         .nest_service("/static", ServeDir::new("./static"))
         // Layers (appliqués dans l'ordre inverse - le dernier est exécuté en premier)
@@ -175,7 +181,8 @@ async fn api_info() -> impl IntoResponse {
             "kubernetes": [
                 "GET /api/k8s/cluster",
                 "GET /api/k8s/nodes",
-                "GET /api/k8s/pods"
+                "GET /api/k8s/pods",
+                "GET /api/storage"
             ],
             "monitoring": [
                 "GET /api/monitoring/alerts",
@@ -191,6 +198,11 @@ async fn api_info() -> impl IntoResponse {
                 "GET /api/security/*",
                 "GET /api/weather/current",
                 "GET /api/ha/*"
+            ],
+            "proxmox": [
+                "GET /api/proxmox/vms",
+                "GET /api/proxmox/containers",
+                "GET /api/proxmox/nodes"
             ]
         }
     }))

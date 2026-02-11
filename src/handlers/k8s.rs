@@ -28,3 +28,12 @@ pub async fn pods_status() -> impl IntoResponse {
         "failed": 0
     }))
 }
+
+/// Storage endpoint
+pub async fn storage() -> impl IntoResponse {
+    Json(serde_json::json!({
+        "pvc_count": 0,
+        "pvc_total_capacity": "0 B",
+        "pvcs": []
+    }))
+}
