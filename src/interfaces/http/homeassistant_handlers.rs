@@ -61,3 +61,33 @@ pub async fn get_devices_handler(State(state): State<AppState>) -> impl IntoResp
         }
     }
 }
+
+/// Get automations from Home Assistant
+///
+/// # Endpoint
+/// GET /api/ha/automations
+pub async fn get_automations_handler() -> impl IntoResponse {
+    debug!("HomeAssistant automations request received");
+
+    use crate::domain::services::homeassistant_service::get_ha_automations;
+
+    match get_ha_automations().await {
+        Ok(automations) => {
+            debug!("HomeAssistant automations retrieved successfully");
+            Json(serde_json::json!({
+                "automations": automations,
+                "count": automations.as_array().map(|a| a.len()).unwrap_or(0)
+            }))
+            .into_response()
+        }
+        Err(e) => {
+            error!("Failed to get HomeAssistant automations: {}", e);
+            Json(serde_json::json!({
+                "automations": [],
+                "count": 0,
+                "error": format!("Failed to fetch automations: {}", e)
+            }))
+            .into_response()
+        }
+    }
+}
