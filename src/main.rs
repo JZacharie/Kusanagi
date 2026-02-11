@@ -120,6 +120,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/k8s/pods", get(pods_status))
         .route("/api/storage", get(storage))
         .route("/api/ingress", get(ingress))
+        // Legacy/Expected Kubernetes routes
+        .route("/api/cluster/overview", get(cluster_overview))
+        .route("/api/nodes/status", get(nodes_status))
+        .route("/api/pods/status", get(pods_status))
         // Monitoring routes
         .route("/api/monitoring/alerts", get(alerts))
         .route("/api/monitoring/quotas", get(quotas))
