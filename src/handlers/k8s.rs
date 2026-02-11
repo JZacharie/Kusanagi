@@ -72,7 +72,7 @@ pub async fn ingress() -> impl IntoResponse {
 
     match get_ingress().await {
         Ok(ingresses) => Json(ingresses).into_response(),
-        Err(e) => Json(serde_json::json!([])).into_response(),
+        Err(_e) => Json(serde_json::json!([])).into_response(),
     }
 }
 
@@ -82,7 +82,7 @@ pub async fn services() -> impl IntoResponse {
 
     match get_services().await {
         Ok(services) => Json(services).into_response(),
-        Err(e) => Json(serde_json::json!([])).into_response(),
+        Err(_e) => Json(serde_json::json!([])).into_response(),
     }
 }
 
