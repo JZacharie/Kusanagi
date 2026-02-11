@@ -66,7 +66,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize tracing
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
+        .with_max_level(tracing::Level::WARN)
         .init();
 
     let version = env!("CARGO_PKG_VERSION");
