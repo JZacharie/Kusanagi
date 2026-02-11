@@ -118,7 +118,7 @@ const PageLoader = {
                 if (window.AlertsManager) AlertsManager.init();
                 break;
             case 'system':
-                if (window.KusanagiSystem) KusanagiSystem.init();
+                if (window.KusanagiSystem) KusanagiSystem.activate();
                 break;
             case 'nodes':
                 if (window.K8sManager && K8sManager.fetchNodesStatus) {
