@@ -13,48 +13,45 @@ use crate::state::AppState;
 /// Get Proxmox VMs
 pub async fn get_vms_handler(State(state): State<AppState>) -> impl IntoResponse {
     match proxmox_service::get_proxmox_vms(&state.http_client).await {
-        Ok(vms) => Json(json!({
-            "status": "success",
-            "data": vms
-        }))
-        .into_response(),
-        Err(e) => Json(json!({
-            "status": "error",
-            "message": e
-        }))
-        .into_response(),
+        Ok(vms) => Json(vms).into_response(),
+        Err(e) => (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "status": "error",
+                "message": e
+            })),
+        )
+            .into_response(),
     }
 }
 
 /// Get Proxmox containers (LXC)
 pub async fn get_containers_handler(State(state): State<AppState>) -> impl IntoResponse {
     match proxmox_service::get_proxmox_containers(&state.http_client).await {
-        Ok(containers) => Json(json!({
-            "status": "success",
-            "data": containers
-        }))
-        .into_response(),
-        Err(e) => Json(json!({
-            "status": "error",
-            "message": e
-        }))
-        .into_response(),
+        Ok(containers) => Json(containers).into_response(),
+        Err(e) => (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "status": "error",
+                "message": e
+            })),
+        )
+            .into_response(),
     }
 }
 
 /// Get Proxmox nodes
 pub async fn get_nodes_handler(State(state): State<AppState>) -> impl IntoResponse {
     match proxmox_service::get_proxmox_nodes(&state.http_client).await {
-        Ok(nodes) => Json(json!({
-            "status": "success",
-            "data": nodes
-        }))
-        .into_response(),
-        Err(e) => Json(json!({
-            "status": "error",
-            "message": e
-        }))
-        .into_response(),
+        Ok(nodes) => Json(nodes).into_response(),
+        Err(e) => (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "status": "error",
+                "message": e
+            })),
+        )
+            .into_response(),
     }
 }
 
