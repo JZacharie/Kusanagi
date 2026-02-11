@@ -19,13 +19,21 @@ use kusanagi::state::AppState;
 
 // Handlers
 pub mod api_handlers;
+// Declare submodules in main.rs if they are not in mod.rs of api_handlers
+// But usually they should be in api_handlers/mod.rs
+// I will check api_handlers/mod.rs next.
+
 use api_handlers::{
-    cache::cache_stats, config::get_config, health::health_check, slack::send_slack_notification,
+    cache::cache_stats, config::get_config, database::database_health_handler,
+    health::health_check, prometheus::prometheus_range_handler, slack::send_slack_notification,
     websocket::ws_notifications_handler,
 };
 use kusanagi::domain::services::fusion_service::fusion_handler;
 use kusanagi::handlers::{
-    k8s::{argocd_status, cluster_overview, ingress, nodes_status, pods_status, services, storage},
+    k8s::{
+        argocd_status, cluster_overview, delete_error_pods_handler, ingress, nodes_status,
+        pod_logs, pods_status, services, storage,
+    },
     monitoring::{alerts, quotas},
     system::{news, system_logs, system_status},
 };
@@ -118,6 +126,11 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/k8s/cluster", get(cluster_overview))
         .route("/api/k8s/nodes", get(nodes_status))
         .route("/api/k8s/pods", get(pods_status))
+        .route("/api/k8s/pods/:namespace/:name/logs", get(pod_logs))
+        .route(
+            "/api/pods/delete-error-pods",
+            post(delete_error_pods_handler),
+        )
         .route("/api/storage", get(storage))
         .route("/api/ingress", get(ingress))
         .route("/api/services", get(services))
@@ -130,8 +143,11 @@ async fn main() -> anyhow::Result<()> {
         // Monitoring routes
         .route("/api/monitoring/alerts", get(alerts))
         .route("/api/monitoring/quotas", get(quotas))
+        .route("/api/quotas", get(quotas)) // Alias for frontend
         .route("/api/metrics", get(metrics_handler))
         .route("/metrics", get(metrics_handler))
+        .route("/api/prometheus/range", get(prometheus_range_handler))
+        .route("/api/database/health", get(database_health_handler))
         .route("/api/fusion", get(fusion_handler))
         // Proxmox routes
         .route("/api/proxmox/vms", get(get_vms_handler))
