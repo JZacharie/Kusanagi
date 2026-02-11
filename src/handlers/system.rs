@@ -16,3 +16,16 @@ pub async fn system_status() -> impl IntoResponse {
 pub async fn system_logs() -> impl IntoResponse {
     "System logs not available"
 }
+
+/// News endpoint
+pub async fn news() -> impl IntoResponse {
+    match crate::domain::services::news_service::get_news().await {
+        Ok(news) => Json(news).into_response(),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "message": e,
+            "items": []
+        }))
+        .into_response(),
+    }
+}

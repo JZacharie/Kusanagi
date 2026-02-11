@@ -25,9 +25,9 @@ use api_handlers::{
 };
 use kusanagi::domain::services::fusion_service::fusion_handler;
 use kusanagi::handlers::{
-    k8s::{cluster_overview, ingress, nodes_status, pods_status, storage},
+    k8s::{argocd_status, cluster_overview, ingress, nodes_status, pods_status, services, storage},
     monitoring::{alerts, quotas},
-    system::{system_logs, system_status},
+    system::{news, system_logs, system_status},
 };
 
 // Hexagonal handlers
@@ -120,6 +120,9 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/k8s/pods", get(pods_status))
         .route("/api/storage", get(storage))
         .route("/api/ingress", get(ingress))
+        .route("/api/services", get(services))
+        .route("/api/argocd/status", get(argocd_status))
+        .route("/api/news", get(news))
         // Legacy/Expected Kubernetes routes
         .route("/api/cluster/overview", get(cluster_overview))
         .route("/api/nodes/status", get(nodes_status))
