@@ -25,7 +25,7 @@ use api_handlers::{
 };
 use kusanagi::domain::services::fusion_service::fusion_handler;
 use kusanagi::handlers::{
-    k8s::{cluster_overview, nodes_status, pods_status, storage},
+    k8s::{cluster_overview, ingress, nodes_status, pods_status, storage},
     monitoring::{alerts, quotas},
     system::{system_logs, system_status},
 };
@@ -119,10 +119,12 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/k8s/nodes", get(nodes_status))
         .route("/api/k8s/pods", get(pods_status))
         .route("/api/storage", get(storage))
+        .route("/api/ingress", get(ingress))
         // Monitoring routes
         .route("/api/monitoring/alerts", get(alerts))
         .route("/api/monitoring/quotas", get(quotas))
         .route("/api/metrics", get(metrics_handler))
+        .route("/metrics", get(metrics_handler))
         .route("/api/fusion", get(fusion_handler))
         // Proxmox routes
         .route("/api/proxmox/vms", get(get_vms_handler))
@@ -183,7 +185,8 @@ async fn api_info() -> impl IntoResponse {
                 "GET /api/k8s/cluster",
                 "GET /api/k8s/nodes",
                 "GET /api/k8s/pods",
-                "GET /api/storage"
+                "GET /api/storage",
+                "GET /api/ingress"
             ],
             "monitoring": [
                 "GET /api/monitoring/alerts",
