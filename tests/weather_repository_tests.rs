@@ -281,13 +281,9 @@ impl WeatherCache {
     }
 
     fn is_valid(&self) -> bool {
-        if let Some(ref response) = self.data {
-            // In real implementation, would check timestamp
-            // For tests, we just check if data exists
-            true
-        } else {
-            false
-        }
+        // In real implementation, would check timestamp
+        // For tests, we just check if data exists
+        self.data.is_some()
     }
 
     fn set(&mut self, response: WeatherResponse) {

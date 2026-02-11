@@ -14,11 +14,13 @@ pub mod cache;
 pub mod config;
 pub mod error;
 pub mod event_bus;
+#[allow(dead_code)]
 pub mod handlers;
 pub mod init;
+#[allow(dead_code)]
 pub mod legacy;
 pub mod perf_monitor;
-pub mod routes;
+// pub mod routes; // Removed - router.rs is used instead
 pub mod utils;
 
 // Re-exports
