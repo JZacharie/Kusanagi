@@ -320,9 +320,63 @@ const MetricsManager = {
     },
 
     /**
+     * Load metrics from localStorage cache
+     */
+    loadFromCache() {
+        try {
+            const cached = localStorage.getItem('kusanagi_metrics_cache');
+            if (!cached) return null;
+
+            const data = JSON.parse(cached);
+            const age = Date.now() - data.timestamp;
+
+            // Use cache if less than 30 seconds old (same as refresh interval)
+            if (age < 30000) {
+                console.log('📊 Loading metrics from localStorage cache (age: ' + Math.round(age / 1000) + 's)');
+                return data.metrics;
+            }
+        } catch (e) {
+            console.error('Metrics cache load error:', e);
+        }
+        return null;
+    },
+
+    /**
+     * Save metrics to localStorage cache
+     */
+    saveToCache(metrics) {
+        try {
+            localStorage.setItem('kusanagi_metrics_cache', JSON.stringify({
+                metrics: metrics,
+                timestamp: Date.now()
+            }));
+            console.log('💾 Metrics saved to localStorage cache');
+        } catch (e) {
+            console.error('Metrics cache save error:', e);
+        }
+    },
+
+    /**
      * Load Prometheus metrics
      */
     async loadMetrics() {
+        const container = document.getElementById('metrics-content');
+
+        // Try to load from cache first for instant display
+        const cached = this.loadFromCache();
+        if (cached) {
+            this.renderMetrics(cached);
+        } else if (container) {
+            // Show loading state only if no cached data
+            container.innerHTML = `
+                <div class="loading-state" style="text-align: center; padding: 3rem;">
+                    <div style="font-size: 3rem; animation: pulse 1.5s ease-in-out infinite;">📊</div>
+                    <p style="margin-top: 1rem; opacity: 0.7; font-family: 'Orbitron', sans-serif;">LOADING METRICS...</p>
+                    <p style="font-size: 0.8rem; opacity: 0.5; font-family: 'JetBrains Mono', monospace;">CONNECTING TO PROMETHEUS</p>
+                </div>
+            `;
+        }
+
         try {
             const response = await fetch('/api/metrics');
             if (!response.ok) {
@@ -337,6 +391,10 @@ const MetricsManager = {
             }
 
             const metrics = await response.json();
+
+            // Save to cache
+            this.saveToCache(metrics);
+
             this.renderMetrics(metrics);
         } catch (error) {
             console.error('Metrics error:', error);
