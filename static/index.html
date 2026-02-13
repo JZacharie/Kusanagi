@@ -284,6 +284,12 @@
             </button>
             <h1 class="header-title">Dashboard</h1>
             <div style="display: flex; align-items: center; gap: 1rem; margin-left: auto;">
+                <button onclick="refreshAllKusanagiData()" class="cyber-btn" 
+                    style="padding: 0.4rem 1rem; font-size: 0.85rem; background: rgba(0, 255, 249, 0.1); border: 1px solid var(--neon-cyan); border-radius: 4px; cursor: pointer; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(0, 255, 249, 0.2)'" 
+                    onmouseout="this.style.background='rgba(0, 255, 249, 0.1)'">
+                    🔄 REFRESH
+                </button>
                 <div id="theme-switcher-container"></div>
                 <div id="language-switcher-container">
                     <select id="language-select" class="cyber-select"

@@ -1345,12 +1345,12 @@ if (typeof window !== 'undefined') {
         if (window.NetworkManager) NetworkManager.init();
         if (window.SetupManager) SetupManager.init();
 
-        // Initial Data Sync
-        if (window.refreshAllKusanagiData) {
-            refreshAllKusanagiData();
-            // Global Refresh Interval (30s)
-            setInterval(refreshAllKusanagiData, 30000);
-        }
+        // Initial Data Sync - DISABLED: Now manual only via refresh button
+        // if (window.refreshAllKusanagiData) {
+        //     refreshAllKusanagiData();
+        //     // Global Refresh Interval (30s)
+        //     setInterval(refreshAllKusanagiData, 30000);
+        // }
     });
 }
 
