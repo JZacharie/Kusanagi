@@ -12,62 +12,253 @@ pub struct RouteInfo {
 pub fn get_routes() -> Vec<RouteInfo> {
     vec![
         // Core
-        RouteInfo { method: "GET".to_string(), path: "/".to_string(), description: "Web interface".to_string(), category: "Core".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api".to_string(), description: "API information".to_string(), category: "Core".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/health".to_string(), description: "Health check".to_string(), category: "Core".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/config".to_string(), description: "Configuration".to_string(), category: "Core".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/cache/stats".to_string(), description: "Cache statistics".to_string(), category: "Core".to_string() },
-        RouteInfo { method: "POST".to_string(), path: "/api/slack/notify".to_string(), description: "Send Slack notification".to_string(), category: "Core".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/ws/notifications".to_string(), description: "WebSocket notifications".to_string(), category: "Core".to_string() },
-        
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/".to_string(),
+            description: "Web interface".to_string(),
+            category: "Core".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api".to_string(),
+            description: "API information".to_string(),
+            category: "Core".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/health".to_string(),
+            description: "Health check".to_string(),
+            category: "Core".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/config".to_string(),
+            description: "Configuration".to_string(),
+            category: "Core".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/cache/stats".to_string(),
+            description: "Cache statistics".to_string(),
+            category: "Core".to_string(),
+        },
+        RouteInfo {
+            method: "POST".to_string(),
+            path: "/api/slack/notify".to_string(),
+            description: "Send Slack notification".to_string(),
+            category: "Core".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/ws/notifications".to_string(),
+            description: "WebSocket notifications".to_string(),
+            category: "Core".to_string(),
+        },
         // System
-        RouteInfo { method: "GET".to_string(), path: "/api/system/status".to_string(), description: "System status".to_string(), category: "System".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/system/logs".to_string(), description: "System logs".to_string(), category: "System".to_string() },
-        
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/system/status".to_string(),
+            description: "System status".to_string(),
+            category: "System".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/system/logs".to_string(),
+            description: "System logs".to_string(),
+            category: "System".to_string(),
+        },
         // Kubernetes
-        RouteInfo { method: "GET".to_string(), path: "/api/k8s/cluster".to_string(), description: "Cluster overview".to_string(), category: "Kubernetes".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/k8s/nodes".to_string(), description: "Nodes status".to_string(), category: "Kubernetes".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/k8s/pods".to_string(), description: "Pods status".to_string(), category: "Kubernetes".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/k8s/pods/:namespace/:name/logs".to_string(), description: "Pod logs".to_string(), category: "Kubernetes".to_string() },
-        RouteInfo { method: "POST".to_string(), path: "/api/pods/delete-error-pods".to_string(), description: "Delete error pods".to_string(), category: "Kubernetes".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/storage".to_string(), description: "Storage status".to_string(), category: "Kubernetes".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/ingress".to_string(), description: "Ingress resources".to_string(), category: "Kubernetes".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/services".to_string(), description: "Services".to_string(), category: "Kubernetes".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/argocd/status".to_string(), description: "ArgoCD status".to_string(), category: "Kubernetes".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/news".to_string(), description: "Cluster news/events".to_string(), category: "Kubernetes".to_string() },
-        
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/k8s/cluster".to_string(),
+            description: "Cluster overview".to_string(),
+            category: "Kubernetes".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/k8s/nodes".to_string(),
+            description: "Nodes status".to_string(),
+            category: "Kubernetes".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/k8s/pods".to_string(),
+            description: "Pods status".to_string(),
+            category: "Kubernetes".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/k8s/pods/:namespace/:name/logs".to_string(),
+            description: "Pod logs".to_string(),
+            category: "Kubernetes".to_string(),
+        },
+        RouteInfo {
+            method: "POST".to_string(),
+            path: "/api/pods/delete-error-pods".to_string(),
+            description: "Delete error pods".to_string(),
+            category: "Kubernetes".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/storage".to_string(),
+            description: "Storage status".to_string(),
+            category: "Kubernetes".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/ingress".to_string(),
+            description: "Ingress resources".to_string(),
+            category: "Kubernetes".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/services".to_string(),
+            description: "Services".to_string(),
+            category: "Kubernetes".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/argocd/status".to_string(),
+            description: "ArgoCD status".to_string(),
+            category: "Kubernetes".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/news".to_string(),
+            description: "Cluster news/events".to_string(),
+            category: "Kubernetes".to_string(),
+        },
         // Monitoring
-        RouteInfo { method: "GET".to_string(), path: "/api/monitoring/alerts".to_string(), description: "Active alerts".to_string(), category: "Monitoring".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/monitoring/quotas".to_string(), description: "Resource quotas".to_string(), category: "Monitoring".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/metrics".to_string(), description: "System metrics".to_string(), category: "Monitoring".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/prometheus/range".to_string(), description: "Prometheus range query".to_string(), category: "Monitoring".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/database/health".to_string(), description: "Database health".to_string(), category: "Monitoring".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/fusion".to_string(), description: "Fusion stats".to_string(), category: "Monitoring".to_string() },
-        
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/monitoring/alerts".to_string(),
+            description: "Active alerts".to_string(),
+            category: "Monitoring".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/monitoring/quotas".to_string(),
+            description: "Resource quotas".to_string(),
+            category: "Monitoring".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/metrics".to_string(),
+            description: "System metrics".to_string(),
+            category: "Monitoring".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/prometheus/range".to_string(),
+            description: "Prometheus range query".to_string(),
+            category: "Monitoring".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/database/health".to_string(),
+            description: "Database health".to_string(),
+            category: "Monitoring".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/fusion".to_string(),
+            description: "Fusion stats".to_string(),
+            category: "Monitoring".to_string(),
+        },
         // Hexagonal (Integrations)
-        RouteInfo { method: "GET".to_string(), path: "/api/alerts".to_string(), description: "External alerts".to_string(), category: "Integrations".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/backups".to_string(), description: "Backups status".to_string(), category: "Integrations".to_string() },
-        RouteInfo { method: "POST".to_string(), path: "/api/backups/{namespace}/{name}/trigger".to_string(), description: "Trigger backup".to_string(), category: "Integrations".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/ha/devices".to_string(), description: "Home Assistant devices".to_string(), category: "Integrations".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/ha/sensors".to_string(), description: "Home Assistant sensors".to_string(), category: "Integrations".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/ha/automations".to_string(), description: "Home Assistant automations".to_string(), category: "Integrations".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/security/summary".to_string(), description: "Security summary".to_string(), category: "Integrations".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/security/reports".to_string(), description: "Security reports".to_string(), category: "Integrations".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/security/reports/{category}/{name}".to_string(), description: "Specific security report".to_string(), category: "Integrations".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/security/vulnerabilities".to_string(), description: "Vulnerabilities".to_string(), category: "Integrations".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/weather/current".to_string(), description: "Current weather".to_string(), category: "Integrations".to_string() },
-        
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/alerts".to_string(),
+            description: "External alerts".to_string(),
+            category: "Integrations".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/backups".to_string(),
+            description: "Backups status".to_string(),
+            category: "Integrations".to_string(),
+        },
+        RouteInfo {
+            method: "POST".to_string(),
+            path: "/api/backups/{namespace}/{name}/trigger".to_string(),
+            description: "Trigger backup".to_string(),
+            category: "Integrations".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/ha/devices".to_string(),
+            description: "Home Assistant devices".to_string(),
+            category: "Integrations".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/ha/sensors".to_string(),
+            description: "Home Assistant sensors".to_string(),
+            category: "Integrations".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/ha/automations".to_string(),
+            description: "Home Assistant automations".to_string(),
+            category: "Integrations".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/security/summary".to_string(),
+            description: "Security summary".to_string(),
+            category: "Integrations".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/security/reports".to_string(),
+            description: "Security reports".to_string(),
+            category: "Integrations".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/security/reports/{category}/{name}".to_string(),
+            description: "Specific security report".to_string(),
+            category: "Integrations".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/security/vulnerabilities".to_string(),
+            description: "Vulnerabilities".to_string(),
+            category: "Integrations".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/weather/current".to_string(),
+            description: "Current weather".to_string(),
+            category: "Integrations".to_string(),
+        },
         // Proxmox
-        RouteInfo { method: "GET".to_string(), path: "/api/proxmox/vms".to_string(), description: "Proxmox VMs".to_string(), category: "Proxmox".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/proxmox/containers".to_string(), description: "Proxmox Containers".to_string(), category: "Proxmox".to_string() },
-        RouteInfo { method: "GET".to_string(), path: "/api/proxmox/nodes".to_string(), description: "Proxmox Nodes".to_string(), category: "Proxmox".to_string() },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/proxmox/vms".to_string(),
+            description: "Proxmox VMs".to_string(),
+            category: "Proxmox".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/proxmox/containers".to_string(),
+            description: "Proxmox Containers".to_string(),
+            category: "Proxmox".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/proxmox/nodes".to_string(),
+            description: "Proxmox Nodes".to_string(),
+            category: "Proxmox".to_string(),
+        },
     ]
 }
 
 pub async fn docs_handler() -> impl IntoResponse {
     let routes = get_routes();
-    
-    let mut html = String::from(r#"<!DOCTYPE html>
+
+    let mut html = String::from(
+        r#"<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -93,18 +284,25 @@ pub async fn docs_handler() -> impl IntoResponse {
     </style>
 </head>
 <body>
-    <div class="version">Version: "#);
-    
+    <div class="version">Version: "#,
+    );
+
     html.push_str(env!("CARGO_PKG_VERSION"));
-    html.push_str(r#"</div>
+    html.push_str(
+        r#"</div>
     <h1>Kusanagi API Documentation</h1>
     <p class="summary">Documentation of all available API endpoints for the Kusanagi service.</p>
-"#);
+"#,
+    );
 
     // Group by category
-    let mut categories: std::collections::BTreeMap<String, Vec<&RouteInfo>> = std::collections::BTreeMap::new();
+    let mut categories: std::collections::BTreeMap<String, Vec<&RouteInfo>> =
+        std::collections::BTreeMap::new();
     for route in &routes {
-        categories.entry(route.category.clone()).or_default().push(route);
+        categories
+            .entry(route.category.clone())
+            .or_default()
+            .push(route);
     }
 
     for (category, cat_routes) in categories {

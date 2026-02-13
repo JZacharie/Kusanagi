@@ -185,12 +185,17 @@ async fn index_handler() -> impl IntoResponse {
 /// API information endpoint
 async fn api_info() -> impl IntoResponse {
     let routes = api_handlers::docs::get_routes();
-    let mut endpoints: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
+    let mut endpoints: std::collections::BTreeMap<String, Vec<String>> =
+        std::collections::BTreeMap::new();
 
     for route in routes {
-        endpoints.entry(route.category.to_lowercase())
+        endpoints
+            .entry(route.category.to_lowercase())
             .or_default()
-            .push(format!("{} {} - {}", route.method, route.path, route.description));
+            .push(format!(
+                "{} {} - {}",
+                route.method, route.path, route.description
+            ));
     }
 
     Json(serde_json::json!({
