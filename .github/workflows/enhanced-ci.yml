@@ -235,6 +235,8 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Run Trivy vulnerability scanner
+        # Only scan on tags when we actually push multi-arch images
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ghcr.io/${{ steps.repo.outputs.owner }}/kusanagi:${{ github.sha }}
@@ -243,6 +245,8 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results
+        # Only upload on tags when scan actually ran
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'
