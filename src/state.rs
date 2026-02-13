@@ -17,6 +17,7 @@ pub struct AppState {
     pub security_use_case: Arc<GetSecurityUseCase>,
     pub ha_use_case: Arc<GetHomeAssistantUseCase>,
     pub backup_use_case: Arc<BackupUseCase>,
+    pub chat_use_case: Arc<crate::application::use_cases::ChatUseCase>,
     pub kube_client: Option<Arc<kube::Client>>,
     pub http_client: Arc<reqwest::Client>,
 }
@@ -77,11 +78,22 @@ impl AppState {
         };
 
         // Initialize use cases
-        let alerts_use_case = Arc::new(GetAlertsUseCase::new(alert_repo));
+        let alerts_use_case = Arc::new(GetAlertsUseCase::new(alert_repo.clone()));
         let weather_use_case = Arc::new(GetWeatherUseCase::new(weather_repo));
         let security_use_case = Arc::new(GetSecurityUseCase::new(security_repo));
         let ha_use_case = Arc::new(GetHomeAssistantUseCase::new(ha_repo));
         let backup_use_case = Arc::new(BackupUseCase::new(backup_repo));
+
+        // Chat Use Case
+        let cluster_repo: Arc<dyn crate::domain::ports::ClusterRepository> = Arc::new(
+            crate::infrastructure::repositories::KubernetesClusterRepository::new(
+                http_client.clone(),
+            ),
+        );
+        let chat_use_case = Arc::new(crate::application::use_cases::ChatUseCase::new(
+            cluster_repo,
+            alert_repo.clone(),
+        ));
 
         Ok(Self {
             k8s_cache,
@@ -92,6 +104,7 @@ impl AppState {
             security_use_case,
             ha_use_case,
             backup_use_case,
+            chat_use_case,
             kube_client,
             http_client,
         })

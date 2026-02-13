@@ -16,6 +16,9 @@ pub use homeassistant_repository::{create_homeassistant_repository, HomeAssistan
 pub use security_repository::{create_security_repository, SecurityRepositoryImpl};
 pub use weather_repository::{create_weather_repository, WeatherRepositoryImpl};
 
+pub mod cluster_repository;
+pub use cluster_repository::KubernetesClusterRepository;
+
 pub struct MockClusterRepository;
 
 #[async_trait]

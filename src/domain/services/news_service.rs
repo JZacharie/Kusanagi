@@ -126,7 +126,9 @@ async fn fetch_fresh_news() -> Result<Value, String> {
     // Store in S3 cache (fire and forget)
     let response_clone = response.clone();
     tokio::spawn(async move {
-        let _ = store_cached_news(response_clone).await;
+        if let Err(e) = store_cached_news(response_clone).await {
+            tracing::error!("Failed to update news cache in S3: {}", e);
+        }
     });
 
     Ok(response)
@@ -142,7 +144,10 @@ async fn get_cached_news() -> Result<Value, String> {
         .key(CACHE_KEY)
         .send()
         .await
-        .map_err(|e| format!("S3 get error: {}", e))?;
+        .map_err(|e| {
+            tracing::warn!("S3 get error: {}", e);
+            format!("S3 get error: {}", e)
+        })?;
 
     let body = result
         .body
@@ -197,7 +202,11 @@ async fn create_s3_client() -> Result<S3Client, String> {
         .load()
         .await;
 
-    Ok(S3Client::new(&config))
+    Ok(S3Client::from_conf(
+        aws_sdk_s3::config::Builder::from(&config)
+            .force_path_style(true)
+            .build(),
+    ))
 }
 
 async fn fetch_hackernews(client: &Client) -> Result<Vec<Value>, String> {
