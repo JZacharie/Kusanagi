@@ -9,6 +9,8 @@ pub async fn get_argocd_status() -> Result<Value, String> {
         .output()
         .await;
 
+    let mut applications_error = String::new();
+
     if let Ok(result) = kubectl_output {
         if result.status.success() {
             let stdout = String::from_utf8_lossy(&result.stdout);
@@ -17,10 +19,11 @@ pub async fn get_argocd_status() -> Result<Value, String> {
         } else {
             let stderr = String::from_utf8_lossy(&result.stderr);
             tracing::error!("❌ ArgoCD kubectl FAILED. Stderr: {}", stderr.trim());
-            // Continue to fallback
+            applications_error = format!("kubectl failed: {}", stderr.trim());
         }
     } else {
         tracing::error!("❌ Failed to execute kubectl command");
+        applications_error = "Failed to execute kubectl command".to_string();
     }
 
     // Check if ArgoCD is installed if app fetch failed
@@ -58,7 +61,7 @@ pub async fn get_argocd_status() -> Result<Value, String> {
                     "upgrades_available": 0,
                     "apps_with_issues": [],
                     "apps_with_upgrades": [],
-                    "message": format!("ArgoCD installed ({}/{} pods running) but app fetch failed", running_pods, pod_lines.len())
+                    "message": format!("ArgoCD installed ({}/{} pods running) but app fetch failed: {}", running_pods, pod_lines.len(), applications_error)
                 }));
             }
         }

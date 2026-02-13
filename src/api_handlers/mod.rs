@@ -7,3 +7,4 @@ pub mod health;
 pub mod prometheus;
 pub mod slack;
 pub mod websocket;
+pub mod docs;
