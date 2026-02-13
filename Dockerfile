@@ -20,8 +20,9 @@ RUN apt-get update && apt-get install -y ca-certificates libssl3 curl && rm -rf 
     && chmod 755 /etc/ssl/certs
 
 # Install kubectl - robust version fetch
+ARG TARGETARCH
 RUN export KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt | tr -d '\n' | tr -d '\r') && \
-    curl -L "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl && \
+    curl -L "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" -o /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl
 
 COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi
