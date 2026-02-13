@@ -154,15 +154,11 @@ async fn main() -> anyhow::Result<()> {
     // We can't conditionally add a layer type nicely without boxing or Option,
     // but tracing-subscriber allows an Option<Layer>.
     // Let's create the file layer as an Option.
-    let file_layer = if let Some(nb) = non_blocking {
-        Some(
-            tracing_subscriber::fmt::layer()
-                .with_writer(nb)
-                .with_ansi(false),
-        )
-    } else {
-        None
-    };
+    let file_layer = non_blocking.map(|nb| {
+        tracing_subscriber::fmt::layer()
+            .with_writer(nb)
+            .with_ansi(false)
+    });
 
     tracing_subscriber::registry()
         .with(env_filter)
