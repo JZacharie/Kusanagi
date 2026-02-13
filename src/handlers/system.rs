@@ -44,7 +44,36 @@ fn get_container_memory_usage() -> Option<u64> {
 
 /// System logs endpoint
 pub async fn system_logs() -> impl IntoResponse {
-    // Try to get logs via journalctl
+    // Try to read from local log file first (for Docker/k8s support)
+    // We configured it to write to "logs/kusanagi.log.YYYY-MM-DD"
+    // But rolling file appender names files with dates.
+    // Helper to find the latest log file in "logs" directory.
+    
+    let log_dir = "logs";
+    let mut latest_log_content = String::new();
+
+    if let Ok(entries) = std::fs::read_dir(log_dir) {
+        let mut files: Vec<_> = entries
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().is_file() && e.file_name().to_string_lossy().starts_with("kusanagi.log"))
+            .collect();
+        
+        // Sort by name (which includes date) descending
+        files.sort_by_key(|e| std::cmp::Reverse(e.file_name()));
+
+        if let Some(latest) = files.first() {
+            if let Ok(content) = std::fs::read_to_string(latest.path()) {
+                // Get last 200 lines to avoid sending huge payload
+                latest_log_content = content.lines().rev().take(200).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n");
+            }
+        }
+    }
+
+    if !latest_log_content.is_empty() {
+        return latest_log_content;
+    }
+
+    // Fallback to journalctl
     match Command::new("journalctl")
         .args(["-n", "50", "-o", "short", "--no-pager"])
         .output()
@@ -55,10 +84,10 @@ pub async fn system_logs() -> impl IntoResponse {
                 String::from_utf8_lossy(&output.stdout).to_string()
             } else {
                 let err = String::from_utf8_lossy(&output.stderr);
-                format!("Failed to retrieve logs: {}", err)
+                format!("Failed to retrieve logs (checked file 'logs/kusanagi.log*' and using journalctl): {}", err)
             }
         }
-        Err(e) => format!("Failed to execute journalctl: {}", e),
+        Err(e) => format!("Failed to retrieve logs: Local file not found/empty and journalctl failed: {}", e),
     }
 }
 

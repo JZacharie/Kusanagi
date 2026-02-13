@@ -1,0 +1,13 @@
+2026-02-13T15:54:24.856291Z  INFO kusanagi: 🚀 Kusanagi Axum Migration
+2026-02-13T15:54:24.856369Z  INFO kusanagi: 📅 Version: 0.3.0
+2026-02-13T15:54:24.856396Z  INFO kusanagi: ⏰ Build Time: 2026-02-10 18:44:51 UTC
+2026-02-13T15:54:24.856463Z  INFO kusanagi: 🌐 Server binding to: 0.0.0.0:8080
+2026-02-13T15:54:24.914782Z  WARN kusanagi::infrastructure::repositories::alert_repository: ALERTMANAGER_URL not set, using default local K8s service URL
+2026-02-13T15:54:24.914889Z  WARN kusanagi::infrastructure::repositories::alert_repository: No Alertmanager credentials found in env vars (ALERTMANAGER_USERNAME/PASSWORD)
+2026-02-13T15:54:25.112773Z  WARN kusanagi::infrastructure::repositories::homeassistant_repository: HOME_ASSISTANT_URL not set, using default
+2026-02-13T15:54:25.112892Z  WARN kusanagi::infrastructure::repositories::homeassistant_repository: HOME_ASSISTANT_TOKEN not set, API calls will fail
+2026-02-13T15:54:25.159519Z  INFO kusanagi: ✅ Server ready at http://0.0.0.0:8080
+2026-02-13T15:54:33.264759Z DEBUG request{[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/system/logs [3mversion[0m[2m=[0mHTTP/1.1}: tower_http::trace::on_request: started processing request
+2026-02-13T15:54:33.265062Z  INFO request{[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/system/logs [3mversion[0m[2m=[0mHTTP/1.1}: kusanagi: 📥 GET /api/system/logs
+2026-02-13T15:54:33.265400Z  INFO request{[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/system/logs [3mversion[0m[2m=[0mHTTP/1.1}: kusanagi: 📤 /api/system/logs - Status: 200 OK
+2026-02-13T15:54:33.265580Z DEBUG request{[3mmethod[0m[2m=[0mGET [3muri[0m[2m=[0m/api/system/logs [3mversion[0m[2m=[0mHTTP/1.1}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
