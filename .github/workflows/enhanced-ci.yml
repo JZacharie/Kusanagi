@@ -224,11 +224,14 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          # Build ARM64 only on tags to save time, AMD64 for all commits
+          platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
+          cache-from: |
+            type=gha
+            type=registry,ref=ghcr.io/${{ steps.repo.outputs.owner }}/kusanagi:buildcache
           cache-to: type=gha,mode=max
 
       - name: Run Trivy vulnerability scanner
