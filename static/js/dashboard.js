@@ -170,6 +170,10 @@ const DashboardManager = {
      */
     init() {
         SystemStatusManager.init();
+        if (window.K8sManager) {
+            console.log('🚀 Initializing K8sManager...');
+            K8sManager.init();
+        }
         this.loadLayout();
         this.setupEventListeners();
         console.log('✅ Dashboard Manager initialized');
