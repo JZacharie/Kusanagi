@@ -21,8 +21,8 @@ echo "   Found $APP_COUNT applications"
 
 if [ "$APP_COUNT" -gt 0 ]; then
     echo ""
-    echo "   Applications:"
-    kubectl get applications -n argocd -o custom-columns=NAME:.metadata.name,HEALTH:.status.health.status,SYNC:.status.sync.status
+    echo "   Applications (JSON Summary):"
+    kubectl get applications -n argocd -o json | jq -r '.items[] | "Name: \(.metadata.name) | Health: \(.status.health.status) | Sync: \(.status.sync.status)"'
 fi
 
 # Test API endpoint
