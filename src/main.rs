@@ -24,7 +24,7 @@ pub mod api_handlers;
 // I will check api_handlers/mod.rs next.
 
 use api_handlers::{
-    cache::cache_stats, config::get_config, database::database_health_handler,
+    cache::cache_stats, config::get_config, database::database_health_handler, docs::docs_handler,
     health::health_check, prometheus::prometheus_range_handler, slack::send_slack_notification,
     websocket::ws_notifications_handler,
 };
@@ -100,6 +100,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/config", get(get_config))
         .route("/api/cache/stats", get(cache_stats))
         .route("/api/slack/notify", post(send_slack_notification))
+        .route("/docs", get(docs_handler))
         // WebSocket
         .route("/api/ws/notifications", get(ws_notifications_handler))
         // Hexagonal routes
@@ -183,6 +184,15 @@ async fn index_handler() -> impl IntoResponse {
 
 /// API information endpoint
 async fn api_info() -> impl IntoResponse {
+    let routes = api_handlers::docs::get_routes();
+    let mut endpoints: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
+
+    for route in routes {
+        endpoints.entry(route.category.to_lowercase())
+            .or_default()
+            .push(format!("{} {} - {}", route.method, route.path, route.description));
+    }
+
     Json(serde_json::json!({
         "service": "Kusanagi",
         "version": env!("CARGO_PKG_VERSION"),
@@ -194,53 +204,7 @@ async fn api_info() -> impl IntoResponse {
             "Cache System",
             "WebSocket Notifications"
         ],
-        "endpoints": {
-            "core": [
-                "GET / - Web interface",
-                "GET /api - API information",
-                "GET /health - Health check",
-                "GET /api/config - Configuration",
-                "GET /api/cache/stats - Cache statistics",
-                "POST /api/slack/notify - Send Slack notification",
-                "GET /api/ws/notifications - WebSocket"
-            ],
-            "system": [
-                "GET /api/system/status",
-                "GET /api/system/logs"
-            ],
-            "kubernetes": [
-                "GET /api/k8s/cluster",
-                "GET /api/k8s/nodes",
-                "GET /api/k8s/pods",
-                "GET /api/storage",
-                "GET /api/ingress"
-            ],
-            "monitoring": [
-                "GET /api/monitoring/alerts",
-                "GET /api/monitoring/quotas",
-                "GET /api/metrics"
-            ],
-            "fusion": [
-                "GET /api/fusion"
-            ],
-            "hexagonal": [
-                "GET /api/alerts",
-                "GET /api/backups",
-                "GET /api/security/*",
-                "GET /api/weather/current",
-                "GET /api/ha/*"
-            ],
-            "proxmox": [
-                "GET /api/proxmox/vms",
-                "GET /api/proxmox/containers",
-                "GET /api/proxmox/nodes"
-            ],
-            "homeassistant": [
-                "GET /api/ha/devices",
-                "GET /api/ha/sensors",
-                "GET /api/ha/automations"
-            ]
-        }
+        "endpoints": endpoints
     }))
 }
 
