@@ -10,7 +10,8 @@ pub async fn system_status() -> impl IntoResponse {
 
     // Calculate global CPU usage
     let cpu_usage = sys.global_cpu_usage();
-    let memory_used = sys.used_memory();
+    // Try to get container memory usage, fallback to whole system usage
+    let memory_used = get_container_memory_usage().unwrap_or_else(|| sys.used_memory());
     let uptime = System::uptime();
 
     Json(serde_json::json!({
@@ -20,6 +21,25 @@ pub async fn system_status() -> impl IntoResponse {
         "memory_usage_mb": memory_used / 1024 / 1024,
         "version": env!("CARGO_PKG_VERSION")
     }))
+}
+
+/// Try to read memory usage from cgroup v2
+fn get_container_memory_usage() -> Option<u64> {
+    // Try cgroup v2
+    if let Ok(contents) = std::fs::read_to_string("/sys/fs/cgroup/memory.current") {
+        if let Ok(bytes) = contents.trim().parse::<u64>() {
+            return Some(bytes);
+        }
+    }
+
+    // Try cgroup v1 (less likely in modern k8s but good fallback)
+    if let Ok(contents) = std::fs::read_to_string("/sys/fs/cgroup/memory/memory.usage_in_bytes") {
+        if let Ok(bytes) = contents.trim().parse::<u64>() {
+            return Some(bytes);
+        }
+    }
+
+    None
 }
 
 /// System logs endpoint
