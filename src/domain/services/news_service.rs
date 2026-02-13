@@ -197,6 +197,18 @@ async fn create_s3_client() -> Result<S3Client, String> {
     let endpoint =
         std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170:9010".to_string());
     let region = std::env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".to_string());
+    let access_key = std::env::var("S3_ACCESS_KEY")
+        .map_err(|_| "S3_ACCESS_KEY environment variable not set".to_string())?;
+    let secret_key = std::env::var("S3_SECRET_KEY")
+        .map_err(|_| "S3_SECRET_KEY environment variable not set".to_string())?;
+
+    let credentials = aws_sdk_s3::config::Credentials::new(
+        access_key,
+        secret_key,
+        None, // session token
+        None, // expiry
+        "custom",
+    );
 
     let config = aws_config::defaults(BehaviorVersion::latest())
         .region(aws_sdk_s3::config::Region::new(region))
@@ -206,6 +218,7 @@ async fn create_s3_client() -> Result<S3Client, String> {
 
     Ok(S3Client::from_conf(
         aws_sdk_s3::config::Builder::from(&config)
+            .credentials_provider(credentials)
             .force_path_style(true)
             .build(),
     ))
