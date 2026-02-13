@@ -72,6 +72,13 @@ async fn main() -> anyhow::Result<()> {
     // Check if we can write to the log directory
     let file_appender = match std::fs::create_dir_all(log_dir) {
         Ok(_) => {
+            // Create a placeholder file to ensure the directory is not empty
+            // This prevents system_logs from failing before the first log rotation/flush
+            let init_file = std::path::Path::new(log_dir).join("kusanagi.log.0000-init");
+            if let Err(e) = std::fs::write(&init_file, "Initializing Kusanagi logs...\n") {
+                eprintln!("Failed to create init log file: {}", e);
+            }
+
             let appender = tracing_appender::rolling::minutely(log_dir, "kusanagi.log");
             Some(tracing_appender::non_blocking(appender))
         }

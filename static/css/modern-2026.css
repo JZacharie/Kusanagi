@@ -44,11 +44,11 @@
 
 /* Gauge & Pod Bar Overrides for Modern Aesthetic */
 body.theme-modern .pod-bar-container {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: var(--radius-sm);
     height: 20px;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 body.theme-modern .pod-bar {

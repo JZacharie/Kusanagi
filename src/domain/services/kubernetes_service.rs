@@ -130,9 +130,9 @@ pub async fn get_pods_status() -> Result<Value, String> {
 
 // Imports are at top
 
-pub async fn get_nodes_status() -> Result<Value, String> {
-    let client = Client::try_default().await.map_err(|e| e.to_string())?;
-    let nodes_api: Api<Node> = Api::all(client);
+pub async fn get_nodes_status(client: &reqwest::Client) -> Result<Value, String> {
+    let kube_client = Client::try_default().await.map_err(|e| e.to_string())?;
+    let nodes_api: Api<Node> = Api::all(kube_client);
     let list = nodes_api
         .list(&ListParams::default())
         .await
@@ -144,6 +144,9 @@ pub async fn get_nodes_status() -> Result<Value, String> {
     let mut total_cpu = 0.0;
     let mut total_memory_gb = 0.0;
     let mut nodes_data = Vec::new();
+
+    // Fetch real metrics from Prometheus
+    let metrics_map = fetch_node_metrics(client).await.unwrap_or_default();
 
     for node in list {
         total += 1;
@@ -207,16 +210,15 @@ pub async fn get_nodes_status() -> Result<Value, String> {
             .and_then(|q| q.0.parse::<f64>().ok())
             .unwrap_or(0.0);
 
-        let memory_capacity = node
+        let memory_capacity_kb = node
             .status
             .as_ref()
             .and_then(|s| s.capacity.as_ref())
             .and_then(|c| c.get("memory"))
-            .map(|q| {
-                let kb = parse_k8s_quantity(&q.0) as f64;
-                kb / 1024.0 / 1024.0 // Convert KB to GB
-            })
+            .map(|q| parse_k8s_quantity(&q.0) as f64 / 1024.0)
             .unwrap_or(0.0);
+
+        let memory_capacity_gb = memory_capacity_kb / 1024.0 / 1024.0;
 
         let pod_capacity = node
             .status
@@ -233,8 +235,8 @@ pub async fn get_nodes_status() -> Result<Value, String> {
             .and_then(|s| s.allocatable.as_ref())
             .and_then(|a| a.get("memory"))
             .map(|q| {
-                let kb = parse_k8s_quantity(&q.0);
-                format_bytes(kb * 1024)
+                let bytes = parse_k8s_quantity(&q.0);
+                format_bytes(bytes)
             })
             .unwrap_or_default();
 
@@ -247,7 +249,26 @@ pub async fn get_nodes_status() -> Result<Value, String> {
             .unwrap_or_default();
 
         total_cpu += cpu_capacity;
-        total_memory_gb += memory_capacity / 1024.0;
+        total_memory_gb += memory_capacity_gb;
+
+        // Metrics logic
+        let (cpu_usage_core, memory_usage_bytes) =
+            metrics_map.get(name).cloned().unwrap_or((0.0, 0.0));
+
+        let cpu_usage_percent = if cpu_capacity > 0.0 {
+            (cpu_usage_core / cpu_capacity) * 100.0
+        } else {
+            0.0
+        };
+
+        // memory_capacity_kb is in KB, memory_usage_bytes is in Bytes
+        // Convert capacity to bytes for percentage calculation
+        let memory_capacity_bytes = memory_capacity_kb * 1024.0;
+        let memory_usage_percent = if memory_capacity_bytes > 0.0 {
+            (memory_usage_bytes / memory_capacity_bytes) * 100.0
+        } else {
+            0.0
+        };
 
         nodes_data.push(json!({
             "name": name,
@@ -257,11 +278,11 @@ pub async fn get_nodes_status() -> Result<Value, String> {
             "kernel_version": kernel,
             "kubelet_version": kubelet,
             "cpu_capacity": format!("{} cores", cpu_capacity),
-            "cpu_usage_percent": 0.0,
+            "cpu_usage_percent": cpu_usage_percent,
             "memory_allocatable": memory_allocatable,
-            "memory_usage_percent": 0.0,
+            "memory_usage_percent": memory_usage_percent,
             "pod_capacity": pod_capacity,
-            "pod_count": 0,
+            "pod_count": 0, // Need to implement pod counting per node if needed, but not critical for this task
             "age": age,
             "conditions": conditions_map
         }));
@@ -277,7 +298,7 @@ pub async fn get_nodes_status() -> Result<Value, String> {
     }))
 }
 
-pub async fn get_cluster_overview() -> Result<Value, String> {
+pub async fn get_cluster_overview(client: &reqwest::Client) -> Result<Value, String> {
     let pods = get_pods_status().await.unwrap_or_else(|_| {
         json!({
             "total_pods": 0,
@@ -287,7 +308,7 @@ pub async fn get_cluster_overview() -> Result<Value, String> {
         })
     });
 
-    let nodes = get_nodes_status().await.unwrap_or_else(|_| {
+    let nodes = get_nodes_status(client).await.unwrap_or_else(|_| {
         json!({
             "total_nodes": 0,
             "ready_nodes": 0,
@@ -757,4 +778,93 @@ pub async fn delete_error_pods() -> Result<Value, String> {
         "deleted": deleted_count,
         "errors": errors
     }))
+}
+
+// Helper to fetch metrics
+// Returns Map<NodeName, (CpuUsageCores, MemoryUsageBytes)>
+async fn fetch_node_metrics(
+    client: &reqwest::Client,
+) -> Result<std::collections::HashMap<String, (f64, f64)>, String> {
+    let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
+        "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
+    });
+
+    let url = format!("{}/api/v1/query", prometheus_url);
+    let mut metrics_map = std::collections::HashMap::new();
+
+    // 1. Fetch CPU Usage (cores)
+    // sum(rate(container_cpu_usage_seconds_total{id="/"}[5m])) by (node)
+    let cpu_query = "sum(rate(container_cpu_usage_seconds_total{id=\"/\"}[5m])) by (node)";
+
+    if let Ok(response) = client
+        .get(&url)
+        .query(&[("query", cpu_query)])
+        .timeout(std::time::Duration::from_secs(3))
+        .send()
+        .await
+    {
+        if let Ok(body) = response.json::<Value>().await {
+            if let Some(results) = body
+                .get("data")
+                .and_then(|d| d.get("result"))
+                .and_then(|r| r.as_array())
+            {
+                for result in results {
+                    if let (Some(metric), Some(value)) = (result.get("metric"), result.get("value"))
+                    {
+                        if let Some(node) = metric.get("node").and_then(|s| s.as_str()) {
+                            let val = value
+                                .get(1)
+                                .and_then(|v| v.as_str())
+                                .and_then(|s| s.parse::<f64>().ok())
+                                .unwrap_or(0.0);
+
+                            metrics_map.insert(node.to_string(), (val, 0.0));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Fetch Memory Usage (bytes)
+    // sum(container_memory_working_set_bytes{id="/"}) by (node)
+    let mem_query = "sum(container_memory_working_set_bytes{id=\"/\"}) by (node)";
+
+    if let Ok(response) = client
+        .get(&url)
+        .query(&[("query", mem_query)])
+        .timeout(std::time::Duration::from_secs(3))
+        .send()
+        .await
+    {
+        if let Ok(body) = response.json::<Value>().await {
+            if let Some(results) = body
+                .get("data")
+                .and_then(|d| d.get("result"))
+                .and_then(|r| r.as_array())
+            {
+                for result in results {
+                    if let (Some(metric), Some(value)) = (result.get("metric"), result.get("value"))
+                    {
+                        if let Some(node) = metric.get("node").and_then(|s| s.as_str()) {
+                            let val = value
+                                .get(1)
+                                .and_then(|v| v.as_str())
+                                .and_then(|s| s.parse::<f64>().ok())
+                                .unwrap_or(0.0);
+
+                            if let Some(entry) = metrics_map.get_mut(node) {
+                                entry.1 = val;
+                            } else {
+                                metrics_map.insert(node.to_string(), (0.0, val));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(metrics_map)
 }

@@ -8,8 +8,8 @@ use crate::domain::services::kubernetes_service;
 use crate::state::AppState;
 
 /// Cluster overview endpoint
-pub async fn cluster_overview() -> impl IntoResponse {
-    match kubernetes_service::get_cluster_overview().await {
+pub async fn cluster_overview(State(state): State<AppState>) -> impl IntoResponse {
+    match kubernetes_service::get_cluster_overview(&state.http_client).await {
         Ok(data) => Json(data).into_response(),
         Err(e) => Json(serde_json::json!({
             "status": "error",
@@ -25,8 +25,8 @@ pub async fn cluster_overview() -> impl IntoResponse {
 }
 
 /// Nodes status endpoint
-pub async fn nodes_status() -> impl IntoResponse {
-    match kubernetes_service::get_nodes_status().await {
+pub async fn nodes_status(State(state): State<AppState>) -> impl IntoResponse {
+    match kubernetes_service::get_nodes_status(&state.http_client).await {
         Ok(data) => Json(data).into_response(),
         Err(e) => Json(serde_json::json!({
             "status": "error",
