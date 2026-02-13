@@ -38,6 +38,8 @@ use kusanagi::handlers::{
     system::{news, system_logs, system_status},
 };
 
+use kusanagi::interfaces::http::chat_handlers::post_chat_handler;
+
 // Hexagonal handlers
 use kusanagi::interfaces::http::{
     alert_handlers::get_alerts_handler,
@@ -246,6 +248,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/quotas", get(quotas)) // Alias for frontend
         .route("/api/metrics", get(metrics_handler))
         .route("/metrics", get(metrics_handler))
+        .route("/api/chat", post(post_chat_handler))
         .route("/api/prometheus/range", get(prometheus_range_handler))
         .route("/api/database/health", get(database_health_handler))
         .route("/api/fusion", get(fusion_handler))

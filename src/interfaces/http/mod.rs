@@ -3,6 +3,7 @@
 
 pub mod alert_handlers;
 pub mod backup_handlers;
+pub mod chat_handlers;
 pub mod homeassistant_handlers;
 pub mod proxmox_handlers;
 pub mod security_handlers;

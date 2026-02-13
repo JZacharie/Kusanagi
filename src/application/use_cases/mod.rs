@@ -199,3 +199,6 @@ impl GetHomeAssistantUseCase {
         self.repository.get_devices().await
     }
 }
+
+pub mod chat_use_case;
+pub use chat_use_case::ChatUseCase;
