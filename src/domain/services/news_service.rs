@@ -203,9 +203,7 @@ async fn create_s3_client() -> Result<S3Client, String> {
         .map_err(|_| "S3_SECRET_KEY environment variable not set".to_string())?;
 
     let credentials = aws_sdk_s3::config::Credentials::new(
-        access_key,
-        secret_key,
-        None, // session token
+        access_key, secret_key, None, // session token
         None, // expiry
         "custom",
     );
