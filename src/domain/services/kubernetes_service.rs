@@ -298,7 +298,10 @@ pub async fn get_nodes_status(client: &reqwest::Client) -> Result<Value, String>
     }))
 }
 
-pub async fn get_cluster_overview(client: &reqwest::Client) -> Result<Value, String> {
+pub async fn get_cluster_overview(
+    client: &reqwest::Client,
+    cache: &crate::AdvancedCache<String>,
+) -> Result<Value, String> {
     let pods = get_pods_status().await.unwrap_or_else(|_| {
         json!({
             "total_pods": 0,
@@ -316,7 +319,7 @@ pub async fn get_cluster_overview(client: &reqwest::Client) -> Result<Value, Str
         })
     });
 
-    let services_count = match get_services().await {
+    let services_count = match get_services(cache).await {
         Ok(json) => json.as_array().map(|v| v.len()).unwrap_or(0),
         Err(_) => 0,
     };
@@ -332,7 +335,15 @@ pub async fn get_cluster_overview(client: &reqwest::Client) -> Result<Value, Str
 
 // Imports are at top
 
-pub async fn get_services() -> Result<Value, String> {
+pub async fn get_services(cache: &crate::AdvancedCache<String>) -> Result<Value, String> {
+    const CACHE_KEY: &str = "kusanagi_services";
+
+    if let Some(cached) = cache.get(CACHE_KEY).await {
+        if let Ok(value) = serde_json::from_str::<Value>(&cached) {
+            return Ok(value);
+        }
+    }
+
     let client = Client::try_default().await.map_err(|e| e.to_string())?;
     let services: Api<Service> = Api::all(client);
     let list = services
@@ -374,12 +385,31 @@ pub async fn get_services() -> Result<Value, String> {
         })
     }).collect();
 
-    Ok(json!(services_json))
+    let result = json!(services_json);
+
+    // Cache the result
+    cache
+        .set(
+            CACHE_KEY.to_string(),
+            result.to_string(),
+            Some(std::time::Duration::from_secs(60)),
+        )
+        .await;
+
+    Ok(result)
 }
 
 // Imports are at top
 
-pub async fn get_ingress() -> Result<Value, String> {
+pub async fn get_ingress(cache: &crate::AdvancedCache<String>) -> Result<Value, String> {
+    const CACHE_KEY: &str = "kusanagi_ingress";
+
+    if let Some(cached) = cache.get(CACHE_KEY).await {
+        if let Ok(value) = serde_json::from_str::<Value>(&cached) {
+            return Ok(value);
+        }
+    }
+
     let client = Client::try_default().await.map_err(|e| e.to_string())?;
     let ingresses: Api<Ingress> = Api::all(client);
     let list = ingresses
@@ -417,7 +447,18 @@ pub async fn get_ingress() -> Result<Value, String> {
         })
         .collect();
 
-    Ok(json!(ingresses_json))
+    let result = json!(ingresses_json);
+
+    // Cache the result
+    cache
+        .set(
+            CACHE_KEY.to_string(),
+            result.to_string(),
+            Some(std::time::Duration::from_secs(60)),
+        )
+        .await;
+
+    Ok(result)
 }
 
 // Imports are at top

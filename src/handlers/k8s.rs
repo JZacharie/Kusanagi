@@ -9,7 +9,7 @@ use crate::state::AppState;
 
 /// Cluster overview endpoint
 pub async fn cluster_overview(State(state): State<AppState>) -> impl IntoResponse {
-    match kubernetes_service::get_cluster_overview(&state.http_client).await {
+    match kubernetes_service::get_cluster_overview(&state.http_client, &state.k8s_cache).await {
         Ok(data) => Json(data).into_response(),
         Err(e) => Json(serde_json::json!({
             "status": "error",
@@ -71,20 +71,20 @@ pub async fn storage(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// Ingress endpoint
-pub async fn ingress() -> impl IntoResponse {
+pub async fn ingress(State(state): State<AppState>) -> impl IntoResponse {
     use crate::domain::services::kubernetes_service::get_ingress;
 
-    match get_ingress().await {
+    match get_ingress(&state.k8s_cache).await {
         Ok(ingresses) => Json(ingresses).into_response(),
         Err(_e) => Json(serde_json::json!([])).into_response(),
     }
 }
 
 /// Services endpoint
-pub async fn services() -> impl IntoResponse {
+pub async fn services(State(state): State<AppState>) -> impl IntoResponse {
     use crate::domain::services::kubernetes_service::get_services;
 
-    match get_services().await {
+    match get_services(&state.k8s_cache).await {
         Ok(services) => Json(services).into_response(),
         Err(_e) => Json(serde_json::json!([])).into_response(),
     }
