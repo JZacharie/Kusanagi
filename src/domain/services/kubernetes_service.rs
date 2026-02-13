@@ -823,7 +823,9 @@ pub async fn delete_error_pods() -> Result<Value, String> {
 
 // Helper to fetch metrics
 // Returns Map<NodeName, (CpuUsageCores, MemoryUsageBytes)>
-async fn fetch_node_metrics(
+// Helper to fetch metrics
+// Returns Map<NodeName, (CpuUsageCores, MemoryUsageBytes)>
+pub async fn fetch_node_metrics(
     client: &reqwest::Client,
 ) -> Result<std::collections::HashMap<String, (f64, f64)>, String> {
     let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {

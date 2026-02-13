@@ -34,7 +34,7 @@ use kusanagi::handlers::{
         argocd_status, cluster_overview, delete_error_pods_handler, ingress, nodes_status,
         pod_logs, pods_status, services, storage,
     },
-    monitoring::{alerts, quotas},
+    monitoring::{alerts, metrics_handler, quotas},
     system::{news, system_logs, system_status},
 };
 
@@ -305,35 +305,6 @@ async fn api_info() -> impl IntoResponse {
             "WebSocket Notifications"
         ],
         "endpoints": endpoints
-    }))
-}
-
-/// Metrics endpoint
-async fn metrics_handler() -> impl IntoResponse {
-    use sysinfo::System;
-
-    let mut sys = System::new_all();
-    sys.refresh_all();
-
-    let cpu_usage = sys.global_cpu_usage();
-    let memory_used = sys.used_memory();
-    let memory_total = sys.total_memory();
-    let uptime = System::uptime();
-
-    Json(serde_json::json!({
-        "timestamp": chrono::Utc::now().to_rfc3339(),
-        "version": env!("CARGO_PKG_VERSION"),
-        "uptime_seconds": uptime,
-        "system": {
-            "cpu_usage": cpu_usage,
-            "memory_usage": memory_used,
-            "memory_total": memory_total
-        },
-        "kubernetes": {
-            "pods_total": 0, // Still mock, would need k8s client
-            "pods_running": 0,
-            "nodes_total": 0
-        }
     }))
 }
 
