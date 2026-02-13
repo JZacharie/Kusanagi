@@ -52,46 +52,39 @@ pub async fn system_logs() -> impl IntoResponse {
     let mut latest_log_content = String::new();
     let mut debug_info = String::new();
 
-    if let Ok(entries) = std::fs::read_dir(log_dir) {
-        let mut files: Vec<_> = entries
-            .filter_map(|e| e.ok())
-            .filter(|e| {
-                let is_match = e.path().is_file()
-                    && e.file_name().to_string_lossy().starts_with("kusanagi.log");
-                if is_match {
-                    println!("Found log file: {:?}", e.path());
-                } else {
-                    println!("Ignored file: {:?}", e.path());
+    match std::fs::read_dir(log_dir) {
+        Ok(entries) => {
+            let mut files: Vec<_> = entries
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    e.path().is_file()
+                        && e.file_name().to_string_lossy().starts_with("kusanagi.log")
+                })
+                .collect();
+
+            debug_info = format!("checked {} candidates in {}", files.len(), log_dir);
+
+            // Sort by name (which includes date) descending
+            files.sort_by_key(|e| std::cmp::Reverse(e.file_name()));
+
+            if let Some(latest) = files.first() {
+                if let Ok(content) = std::fs::read_to_string(latest.path()) {
+                    // Get last 200 lines to avoid sending huge payload
+                    latest_log_content = content
+                        .lines()
+                        .rev()
+                        .take(200)
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                        .rev()
+                        .collect::<Vec<_>>()
+                        .join("\n");
                 }
-                is_match
-            })
-            .collect();
-
-        debug_info = format!("checked {} candidates in {}", files.len(), log_dir);
-
-        if files.is_empty() {
-            println!("No log files found in {}", log_dir);
-        }
-
-        // Sort by name (which includes date) descending
-        files.sort_by_key(|e| std::cmp::Reverse(e.file_name()));
-
-        if let Some(latest) = files.first() {
-            if let Ok(content) = std::fs::read_to_string(latest.path()) {
-                // Get last 200 lines to avoid sending huge payload
-                latest_log_content = content
-                    .lines()
-                    .rev()
-                    .take(200)
-                    .collect::<Vec<_>>()
-                    .into_iter()
-                    .rev()
-                    .collect::<Vec<_>>()
-                    .join("\n");
             }
         }
-    } else {
-        debug_info = format!("failed to read directory {}", log_dir);
+        Err(e) => {
+            debug_info = format!("failed to read directory {}: {}", log_dir, e);
+        }
     }
 
     if !latest_log_content.is_empty() {
