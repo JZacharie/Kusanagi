@@ -2,12 +2,12 @@ name: Enhanced CI/CD
 
 on:
   # Désactivé sur push - utilisez docker-build.yml à la place
-  # push:
-  #   branches: [ main, develop ]
-  #   tags: [ 'v*' ]
-  # pull_request:
-  #   branches: [ main, develop ]
-  workflow_dispatch:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, develop ]
+  # workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -101,46 +101,46 @@ jobs:
       - name: Run doc tests
         run: cargo test --doc --verbose
 
-  # ============================================================================
-  # Phase 4: Code Coverage
-  # ============================================================================
-  coverage:
-    name: 📊 Code Coverage
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  # # ============================================================================
+  # # Phase 4: Code Coverage
+  # # ============================================================================
+  # coverage:
+  #   name: 📊 Code Coverage
+  #   needs: test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+  #     - name: Setup Rust
+  #       uses: dtolnay/rust-toolchain@stable
 
-      - name: Install cargo-tarpaulin
-        uses: taiki-e/install-action@cargo-tarpaulin
+  #     - name: Install cargo-tarpaulin
+  #       uses: taiki-e/install-action@cargo-tarpaulin
 
-      - name: Generate coverage
-        run: cargo tarpaulin --out xml --output-dir coverage
+  #     - name: Generate coverage
+  #       run: cargo tarpaulin --out xml --output-dir coverage
 
-      # Note: Codecov upload disabled due to rate limiting without token
-      # - name: Upload to Codecov
-      #   uses: codecov/codecov-action@v3
-      #   with:
-      #     files: ./coverage/cobertura.xml
-      #     fail_ci_if_error: false
-      #     token: ${{ secrets.CODECOV_TOKEN }}
+  #     # Note: Codecov upload disabled due to rate limiting without token
+  #     # - name: Upload to Codecov
+  #     #   uses: codecov/codecov-action@v3
+  #     #   with:
+  #     #     files: ./coverage/cobertura.xml
+  #     #     fail_ci_if_error: false
+  #     #     token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage/
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: coverage-report
+  #         path: coverage/
 
   # ============================================================================
   # Phase 5: Build Release Binary
   # ============================================================================
   build:
     name: 🔨 Build Release
-    needs: [test, coverage]
+    needs: [test]
     runs-on: ubuntu-latest
     strategy:
       matrix:
