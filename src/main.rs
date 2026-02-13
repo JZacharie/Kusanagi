@@ -68,35 +68,52 @@ async fn main() -> anyhow::Result<()> {
     // Initialize tracing with file appender - Minutely rotation for 15m retention
     // Use /tmp as it's usually writable in containers
     let log_dir = "/tmp/kusanagi-logs";
-    let file_appender = tracing_appender::rolling::minutely(log_dir, "kusanagi.log");
-    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+    
+    // Check if we can write to the log directory
+    let file_appender = match std::fs::create_dir_all(log_dir) {
+        Ok(_) => {
+            let appender = tracing_appender::rolling::minutely(log_dir, "kusanagi.log");
+            Some(tracing_appender::non_blocking(appender))
+        },
+        Err(e) => {
+            eprintln!("⚠️ Failed to create log directory '{}': {}. File logging disabled.", log_dir, e);
+            None
+        }
+    };
 
-    // Spawn background task to clean up old logs
-    tokio::spawn(async move {
-        // Wait a bit before first cleanup
-        tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
-        
-        loop {
-            if let Ok(entries) = std::fs::read_dir(log_dir) {
-                let now = std::time::SystemTime::now();
-                let retention_period = std::time::Duration::from_secs(15 * 60); // 15 minutes
+    let (non_blocking, _guard) = match file_appender {
+        Some((nb, guard)) => (Some(nb), Some(guard)),
+        None => (None, None),
+    };
 
-                for entry in entries.filter_map(|e| e.ok()) {
-                    let path = entry.path();
-                    if path.is_file() {
-                        // Check if file name starts with kusanagi.log
-                        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                            if name.starts_with("kusanagi.log") {
-                                // Check modification time
-                                if let Ok(metadata) = std::fs::metadata(&path) {
-                                    if let Ok(modified) = metadata.modified() {
-                                        if let Ok(age) = now.duration_since(modified) {
-                                            if age > retention_period {
-                                                if let Err(e) = std::fs::remove_file(&path) {
-                                                    eprintln!("Failed to delete old log {}: {}", name, e);
-                                                } else {
-                                                    // Use println instead of tracing to avoid recursive logging issues if we are purging
-                                                    println!("Purged old log file: {}", name);
+    // Spawn background task to clean up old logs ONLY if file logging is enabled
+    if _guard.is_some() {
+        tokio::spawn(async move {
+            // Wait a bit before first cleanup
+            tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
+            
+            loop {
+                if let Ok(entries) = std::fs::read_dir(log_dir) {
+                    let now = std::time::SystemTime::now();
+                    let retention_period = std::time::Duration::from_secs(15 * 60); // 15 minutes
+
+                    for entry in entries.filter_map(|e| e.ok()) {
+                        let path = entry.path();
+                        if path.is_file() {
+                            // Check if file name starts with kusanagi.log
+                            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                                if name.starts_with("kusanagi.log") {
+                                    // Check modification time
+                                    if let Ok(metadata) = std::fs::metadata(&path) {
+                                        if let Ok(modified) = metadata.modified() {
+                                            if let Ok(age) = now.duration_since(modified) {
+                                                if age > retention_period {
+                                                    if let Err(e) = std::fs::remove_file(&path) {
+                                                        eprintln!("Failed to delete old log {}: {}", name, e);
+                                                    } else {
+                                                        // Use println instead of tracing to avoid recursive logging issues if we are purging
+                                                        println!("Purged old log file: {}", name);
+                                                    }
                                                 }
                                             }
                                         }
@@ -106,23 +123,12 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                 }
+                // Check every minute
+                tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
             }
-            // Check every minute
-            tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
-        }
-    });
+        });
+    }
 
-
-    
-    // We can't easily add a second subscriber with just fmt().init().
-    // Let's use tracing-subscriber's Registry for multiple layers if needed,
-    // or just keep it simple: we print to stdout, but we ALSO want to write to file.
-    // The standard way is using `tracing_subscriber::registry().with(layer).init()`.
-    // But since I don't want to refactor the whole init block too much if I can avoid it...
-    // Actually, for `tracing-appender` to work well, we need to hold onto `_guard`.
-    // But `main` is async, so `_guard` will be dropped at the end of main, which is fine.
-    // Let's re-do the init properly with layers.
-    
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
     let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
@@ -131,9 +137,16 @@ async fn main() -> anyhow::Result<()> {
     let stdout_layer = tracing_subscriber::fmt::layer()
         .with_writer(std::io::stdout);
 
-    let file_layer = tracing_subscriber::fmt::layer()
-        .with_writer(non_blocking)
-        .with_ansi(false);
+    // We can't conditionally add a layer type nicely without boxing or Option, 
+    // but tracing-subscriber allows an Option<Layer>.
+    // Let's create the file layer as an Option.
+    let file_layer = if let Some(nb) = non_blocking {
+        Some(tracing_subscriber::fmt::layer()
+            .with_writer(nb)
+            .with_ansi(false))
+    } else {
+        None
+    };
 
     tracing_subscriber::registry()
         .with(env_filter)
