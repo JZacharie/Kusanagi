@@ -149,11 +149,10 @@ async fn get_cached_news() -> Result<Value, String> {
             format!("S3 get error: {}", e)
         })?;
 
-    let body = result
-        .body
-        .collect()
-        .await
-        .map_err(|e| format!("Body read error: {}", e))?;
+    let body = result.body.collect().await.map_err(|e| {
+        tracing::debug!("S3 get_object failed: {:?}", e);
+        format!("S3 get error: {:?}", e)
+    })?;
 
     let cached: Value = serde_json::from_slice(&body.into_bytes())
         .map_err(|e| format!("JSON parse error: {}", e))?;
@@ -186,7 +185,10 @@ async fn store_cached_news(data: Value) -> Result<(), String> {
         .content_type("application/json")
         .send()
         .await
-        .map_err(|e| format!("S3 put error: {}", e))?;
+        .map_err(|e| {
+            tracing::error!("S3 put_object failed: {:?}", e);
+            format!("S3 put error: {:?}", e)
+        })?;
 
     Ok(())
 }
