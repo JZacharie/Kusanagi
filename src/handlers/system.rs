@@ -50,14 +50,28 @@ pub async fn system_logs() -> impl IntoResponse {
 
     let log_dir = "/tmp/kusanagi-logs";
     let mut latest_log_content = String::new();
+    let mut debug_info = String::new();
 
     if let Ok(entries) = std::fs::read_dir(log_dir) {
         let mut files: Vec<_> = entries
             .filter_map(|e| e.ok())
             .filter(|e| {
-                e.path().is_file() && e.file_name().to_string_lossy().starts_with("kusanagi.log")
+                let is_match = e.path().is_file()
+                    && e.file_name().to_string_lossy().starts_with("kusanagi.log");
+                if is_match {
+                    println!("Found log file: {:?}", e.path());
+                } else {
+                    println!("Ignored file: {:?}", e.path());
+                }
+                is_match
             })
             .collect();
+
+        debug_info = format!("checked {} candidates in {}", files.len(), log_dir);
+
+        if files.is_empty() {
+            println!("No log files found in {}", log_dir);
+        }
 
         // Sort by name (which includes date) descending
         files.sort_by_key(|e| std::cmp::Reverse(e.file_name()));
@@ -76,6 +90,8 @@ pub async fn system_logs() -> impl IntoResponse {
                     .join("\n");
             }
         }
+    } else {
+        debug_info = format!("failed to read directory {}", log_dir);
     }
 
     if !latest_log_content.is_empty() {
@@ -93,12 +109,15 @@ pub async fn system_logs() -> impl IntoResponse {
                 String::from_utf8_lossy(&output.stdout).to_string()
             } else {
                 let err = String::from_utf8_lossy(&output.stderr);
-                format!("Failed to retrieve logs (checked file '/tmp/kusanagi-logs/kusanagi.log*' and using journalctl): {}", err)
+                format!(
+                    "Failed to retrieve logs ({} and using journalctl): {}",
+                    debug_info, err
+                )
             }
         }
         Err(e) => format!(
-            "Failed to retrieve logs: Local file not found/empty and journalctl failed: {}",
-            e
+            "Failed to retrieve logs: Local file not found/empty ({}) and journalctl failed: {}",
+            debug_info, e
         ),
     }
 }
