@@ -21,19 +21,19 @@ const K8sManager = {
         this.fetchAll();
         // Set up intervals if needed (or move to main init)
         setInterval(() => this.fetchAll(), 30000);
-        
+
         // Refresh on page focus (for services and ingress)
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
                 const now = Date.now();
-                
+
                 // Refresh services if on services tab and TTL expired
                 if (activeTab === 'services' && now - this.lastServicesFetch >= this.SERVICES_INGRESS_TTL) {
                     console.log('🔄 Page focused, refreshing services...');
                     this.fetchServices();
                 }
-                
+
                 // Refresh ingress if on ingress tab and TTL expired
                 if (activeTab === 'ingress' && now - this.lastIngressFetch >= this.SERVICES_INGRESS_TTL) {
                     console.log('🔄 Page focused, refreshing ingress...');
@@ -41,7 +41,7 @@ const K8sManager = {
                 }
             }
         });
-        
+
         console.log('✅ K8s Manager initialized (Services/Ingress cache: 3min TTL, refresh on focus)');
     },
 
@@ -89,6 +89,11 @@ const K8sManager = {
     },
 
     updateArgoStats(data) {
+        console.time('ArgoCD Render');
+        if (window.performance && window.performance.memory) {
+            console.log(`🧠 JS Memory: ${(window.performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`);
+        }
+
         const stats = {
             'stat-total': data.total || 0,
             'stat-healthy': data.healthy || 0,
@@ -109,6 +114,7 @@ const K8sManager = {
         if (data.message) {
             console.info('ArgoCD:', data.message);
         }
+        console.timeEnd('ArgoCD Render');
     },
 
     renderAppRow(app, showSync = false) {
