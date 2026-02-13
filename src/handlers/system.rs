@@ -50,7 +50,7 @@ pub async fn system_logs() -> impl IntoResponse {
 
     let log_dir = "/tmp/kusanagi-logs";
     let mut latest_log_content = String::new();
-    let mut debug_info = String::new();
+    let debug_info;
 
     match std::fs::read_dir(log_dir) {
         Ok(entries) => {
