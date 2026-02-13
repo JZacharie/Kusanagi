@@ -740,14 +740,70 @@ const NewsManager = {
      */
     init() {
         this.fetchNews();
-        // Auto-refresh every 5 minutes
-        setInterval(() => this.fetchNews(), 300000);
+        // Auto-refresh every 10 minutes (optimized from 5 minutes)
+        setInterval(() => this.fetchNews(), 600000);
+    },
+
+    /**
+     * Load news from localStorage cache
+     */
+    loadFromCache() {
+        try {
+            const cached = localStorage.getItem('kusanagi_news_cache');
+            if (!cached) return null;
+
+            const data = JSON.parse(cached);
+            const age = Date.now() - new Date(data.cached_at).getTime();
+
+            // Use cache if less than 10 minutes old
+            if (age < 600000) {
+                console.log('📰 Loading news from localStorage cache (age: ' + Math.round(age / 1000) + 's)');
+                return data;
+            }
+        } catch (e) {
+            console.error('Cache load error:', e);
+        }
+        return null;
+    },
+
+    /**
+     * Save news to localStorage cache
+     */
+    saveToCache(data) {
+        try {
+            localStorage.setItem('kusanagi_news_cache', JSON.stringify(data));
+            console.log('💾 News saved to localStorage cache');
+        } catch (e) {
+            console.error('Cache save error:', e);
+        }
     },
 
     /**
      * Fetch news from API
      */
     async fetchNews() {
+        const container = document.getElementById('news-container');
+
+        // Try to load from localStorage first for instant display
+        const cached = this.loadFromCache();
+        if (cached && cached.items) {
+            this.allNews = cached.items;
+            this.sources = cached.sources || [...new Set(this.allNews.map(item => item.source))].sort();
+            this.renderFilterButtons();
+            this.updateStats(cached);
+            this.updateTimestamp(cached.cached_at);
+            this.applyFilters();
+        } else if (container && !this.allNews.length) {
+            // Show loading state only if no cached data and no previous data
+            container.innerHTML = `
+                <div class="loading-state" style="text-align: center; padding: 3rem;">
+                    <div style="font-size: 3rem; animation: pulse 1.5s ease-in-out infinite;">⏳</div>
+                    <p style="margin-top: 1rem; opacity: 0.7; font-family: 'Orbitron', sans-serif;">LOADING LATEST TECH NEWS...</p>
+                    <p style="font-size: 0.8rem; opacity: 0.5; font-family: 'JetBrains Mono', monospace;">FETCHING FROM 13 SOURCES</p>
+                </div>
+            `;
+        }
+
         try {
             const response = await fetch('/api/news');
             if (!response.ok) {
@@ -755,6 +811,10 @@ const NewsManager = {
             }
 
             const data = await response.json();
+
+            // Save to localStorage cache
+            this.saveToCache(data);
+
             this.allNews = data.items || [];
 
             // Extract sources if available, otherwise derive from items
