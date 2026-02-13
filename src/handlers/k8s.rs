@@ -16,7 +16,9 @@ pub async fn cluster_overview() -> impl IntoResponse {
             "message": e,
             "nodes": 0,
             "pods": 0,
-            "services": 0
+            "services": 0,
+            "pods_running": 0,
+            "nodes_ready": 0
         }))
         .into_response(),
     }
@@ -29,8 +31,9 @@ pub async fn nodes_status() -> impl IntoResponse {
         Err(e) => Json(serde_json::json!({
             "status": "error",
             "message": e,
-            "ready": 0,
-            "not_ready": 0
+            "ready_nodes": 0,
+            "not_ready_nodes": 0,
+            "total_nodes": 0
         }))
         .into_response(),
     }
@@ -43,9 +46,10 @@ pub async fn pods_status() -> impl IntoResponse {
         Err(e) => Json(serde_json::json!({
             "status": "error",
             "message": e,
-            "running": 0,
-            "pending": 0,
-            "failed": 0
+            "running_pods": 0,
+            "pending_pods": 0,
+            "error_pods": 0,
+            "total_pods": 0
         }))
         .into_response(),
     }

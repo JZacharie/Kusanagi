@@ -280,18 +280,18 @@ pub async fn get_nodes_status() -> Result<Value, String> {
 pub async fn get_cluster_overview() -> Result<Value, String> {
     let pods = get_pods_status().await.unwrap_or_else(|_| {
         json!({
-            "total": 0,
-            "running": 0,
-            "pending": 0,
-            "failed": 0
+            "total_pods": 0,
+            "running_pods": 0,
+            "pending_pods": 0,
+            "error_pods": 0
         })
     });
 
     let nodes = get_nodes_status().await.unwrap_or_else(|_| {
         json!({
-            "total": 0,
-            "ready": 0,
-            "not_ready": 0
+            "total_nodes": 0,
+            "ready_nodes": 0,
+            "not_ready_nodes": 0
         })
     });
 
@@ -301,11 +301,11 @@ pub async fn get_cluster_overview() -> Result<Value, String> {
     };
 
     Ok(json!({
-        "nodes": nodes["total"],
-        "pods": pods["total"],
+        "nodes": nodes["total_nodes"],
+        "pods": pods["total_pods"],
         "services": services_count,
-        "pods_running": pods["running"],
-        "nodes_ready": nodes["ready"]
+        "pods_running": pods["running_pods"],
+        "nodes_ready": nodes["ready_nodes"]
     }))
 }
 
