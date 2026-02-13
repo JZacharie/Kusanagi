@@ -81,10 +81,13 @@ const K8sManager = {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
-            const data = await response.json();
+            // The backend returns { status: "success", data: { ... } } or { status: "error", error: "..." }
+            // We need to handle both cases and extract the actual data
+            const responseData = await response.json();
+            const data = responseData.data || responseData;
 
-            if (data.error) {
-                this.showArgoError(data.error);
+            if (responseData.error || data.error) {
+                this.showArgoError(responseData.error || data.error);
                 return;
             }
 
