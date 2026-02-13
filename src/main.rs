@@ -66,7 +66,9 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize tracing
     // Initialize tracing with file appender - Minutely rotation for 15m retention
-    let file_appender = tracing_appender::rolling::minutely("logs", "kusanagi.log");
+    // Use /tmp as it's usually writable in containers
+    let log_dir = "/tmp/kusanagi-logs";
+    let file_appender = tracing_appender::rolling::minutely(log_dir, "kusanagi.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
     // Spawn background task to clean up old logs
@@ -75,7 +77,7 @@ async fn main() -> anyhow::Result<()> {
         tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
         
         loop {
-            if let Ok(entries) = std::fs::read_dir("logs") {
+            if let Ok(entries) = std::fs::read_dir(log_dir) {
                 let now = std::time::SystemTime::now();
                 let retention_period = std::time::Duration::from_secs(15 * 60); // 15 minutes
 
