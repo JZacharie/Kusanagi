@@ -12,11 +12,15 @@ pub async fn get_argocd_status() -> Result<Value, String> {
     if let Ok(result) = kubectl_output {
         if result.status.success() {
             let stdout = String::from_utf8_lossy(&result.stdout);
+            tracing::debug!("✅ kubectl output length: {}", stdout.len());
             return parse_argocd_apps_json(&stdout);
         } else {
             let stderr = String::from_utf8_lossy(&result.stderr);
-            tracing::error!("❌ ArgoCD kubectl error: {}", stderr.trim());
+            tracing::error!("❌ ArgoCD kubectl FAILED. Stderr: {}", stderr.trim());
+            // Continue to fallback
         }
+    } else {
+        tracing::error!("❌ Failed to execute kubectl command");
     }
 
     // Check if ArgoCD is installed if app fetch failed
@@ -82,6 +86,12 @@ fn parse_argocd_apps_json(json_str: &str) -> Result<Value, String> {
     let items = root["items"]
         .as_array()
         .ok_or("No items found in JSON response")?;
+
+    if items.is_empty() {
+        tracing::warn!("⚠️ ArgoCD JSON parsed successfully but 'items' array is empty.");
+    } else {
+        tracing::info!("✅ Found {} ArgoCD applications in JSON", items.len());
+    }
 
     let mut healthy = 0;
     let mut unhealthy = 0;
