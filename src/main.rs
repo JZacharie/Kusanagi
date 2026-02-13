@@ -68,15 +68,18 @@ async fn main() -> anyhow::Result<()> {
     // Initialize tracing with file appender - Minutely rotation for 15m retention
     // Use /tmp as it's usually writable in containers
     let log_dir = "/tmp/kusanagi-logs";
-    
+
     // Check if we can write to the log directory
     let file_appender = match std::fs::create_dir_all(log_dir) {
         Ok(_) => {
             let appender = tracing_appender::rolling::minutely(log_dir, "kusanagi.log");
             Some(tracing_appender::non_blocking(appender))
-        },
+        }
         Err(e) => {
-            eprintln!("⚠️ Failed to create log directory '{}': {}. File logging disabled.", log_dir, e);
+            eprintln!(
+                "⚠️ Failed to create log directory '{}': {}. File logging disabled.",
+                log_dir, e
+            );
             None
         }
     };
@@ -91,7 +94,7 @@ async fn main() -> anyhow::Result<()> {
         tokio::spawn(async move {
             // Wait a bit before first cleanup
             tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
-            
+
             loop {
                 if let Ok(entries) = std::fs::read_dir(log_dir) {
                     let now = std::time::SystemTime::now();
@@ -109,7 +112,10 @@ async fn main() -> anyhow::Result<()> {
                                             if let Ok(age) = now.duration_since(modified) {
                                                 if age > retention_period {
                                                     if let Err(e) = std::fs::remove_file(&path) {
-                                                        eprintln!("Failed to delete old log {}: {}", name, e);
+                                                        eprintln!(
+                                                            "Failed to delete old log {}: {}",
+                                                            name, e
+                                                        );
                                                     } else {
                                                         // Use println instead of tracing to avoid recursive logging issues if we are purging
                                                         println!("Purged old log file: {}", name);
@@ -134,16 +140,17 @@ async fn main() -> anyhow::Result<()> {
     let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| "kusanagi=debug,tower_http=debug,axum=debug".into());
 
-    let stdout_layer = tracing_subscriber::fmt::layer()
-        .with_writer(std::io::stdout);
+    let stdout_layer = tracing_subscriber::fmt::layer().with_writer(std::io::stdout);
 
-    // We can't conditionally add a layer type nicely without boxing or Option, 
+    // We can't conditionally add a layer type nicely without boxing or Option,
     // but tracing-subscriber allows an Option<Layer>.
     // Let's create the file layer as an Option.
     let file_layer = if let Some(nb) = non_blocking {
-        Some(tracing_subscriber::fmt::layer()
-            .with_writer(nb)
-            .with_ansi(false))
+        Some(
+            tracing_subscriber::fmt::layer()
+                .with_writer(nb)
+                .with_ansi(false),
+        )
     } else {
         None
     };

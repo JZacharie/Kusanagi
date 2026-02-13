@@ -47,23 +47,33 @@ pub async fn system_logs() -> impl IntoResponse {
     // Try to read from local log file first (for Docker/k8s support)
     // We configured it to write to "/tmp/kusanagi-logs/kusanagi.log.YYYY-MM-DD-HH-MM"
     // Helper to find the latest log file in log directory.
-    
+
     let log_dir = "/tmp/kusanagi-logs";
     let mut latest_log_content = String::new();
 
     if let Ok(entries) = std::fs::read_dir(log_dir) {
         let mut files: Vec<_> = entries
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().is_file() && e.file_name().to_string_lossy().starts_with("kusanagi.log"))
+            .filter(|e| {
+                e.path().is_file() && e.file_name().to_string_lossy().starts_with("kusanagi.log")
+            })
             .collect();
-        
+
         // Sort by name (which includes date) descending
         files.sort_by_key(|e| std::cmp::Reverse(e.file_name()));
 
         if let Some(latest) = files.first() {
             if let Ok(content) = std::fs::read_to_string(latest.path()) {
                 // Get last 200 lines to avoid sending huge payload
-                latest_log_content = content.lines().rev().take(200).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n");
+                latest_log_content = content
+                    .lines()
+                    .rev()
+                    .take(200)
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .rev()
+                    .collect::<Vec<_>>()
+                    .join("\n");
             }
         }
     }
@@ -86,7 +96,10 @@ pub async fn system_logs() -> impl IntoResponse {
                 format!("Failed to retrieve logs (checked file '/tmp/kusanagi-logs/kusanagi.log*' and using journalctl): {}", err)
             }
         }
-        Err(e) => format!("Failed to retrieve logs: Local file not found/empty and journalctl failed: {}", e),
+        Err(e) => format!(
+            "Failed to retrieve logs: Local file not found/empty and journalctl failed: {}",
+            e
+        ),
     }
 }
 
