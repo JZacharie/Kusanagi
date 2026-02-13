@@ -9,7 +9,7 @@ const CACHE_DAYS: i64 = 7;
 
 pub async fn get_news() -> Result<Value, String> {
     tracing::debug!("📰 News service: Attempting to get news");
-    
+
     // Try to get from S3 cache first
     match get_cached_news().await {
         Ok(cached) => {
@@ -31,7 +31,7 @@ pub async fn force_refresh() -> Result<Value, String> {
 
 async fn fetch_fresh_news() -> Result<Value, String> {
     tracing::info!("🔄 Fetching fresh news from all sources...");
-    
+
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()
@@ -127,7 +127,11 @@ async fn fetch_fresh_news() -> Result<Value, String> {
         sources.sort();
         sources.dedup();
 
-        tracing::info!("📊 Fetched {} news items from {} sources", all_news.len(), sources.len());
+        tracing::info!(
+            "📊 Fetched {} news items from {} sources",
+            all_news.len(),
+            sources.len()
+        );
 
         json!({
             "items": all_news,
@@ -153,7 +157,7 @@ async fn fetch_fresh_news() -> Result<Value, String> {
 async fn get_cached_news() -> Result<Value, String> {
     let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
     tracing::debug!("🔍 Checking S3 cache: bucket={}, key={}", bucket, CACHE_KEY);
-    
+
     let s3_client = create_s3_client().await?;
 
     let result = s3_client
@@ -196,7 +200,7 @@ async fn get_cached_news() -> Result<Value, String> {
 async fn store_cached_news(data: Value) -> Result<(), String> {
     let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
     tracing::debug!("💾 Storing to S3: bucket={}, key={}", bucket, CACHE_KEY);
-    
+
     let s3_client = create_s3_client().await?;
 
     let json_bytes =
