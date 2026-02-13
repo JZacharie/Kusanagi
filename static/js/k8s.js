@@ -51,6 +51,67 @@ const K8sManager = {
         console.log('✅ K8s Manager initialized (Services/Ingress cache: 3min TTL, refresh on focus)');
     },
 
+    // === CACHE METHODS ===
+    loadServicesFromCache() {
+        try {
+            const cached = localStorage.getItem('kusanagi_services_cache');
+            if (!cached) return null;
+
+            const data = JSON.parse(cached);
+            const age = Date.now() - data.timestamp;
+
+            if (age < 180000) { // 3 minutes TTL
+                console.log('📋 Loading services from cache (age: ' + Math.round(age / 1000) + 's)');
+                return data.services;
+            }
+        } catch (e) {
+            console.error('Services cache load error:', e);
+        }
+        return null;
+    },
+
+    saveServicesCache(services) {
+        try {
+            localStorage.setItem('kusanagi_services_cache', JSON.stringify({
+                services: services,
+                timestamp: Date.now()
+            }));
+            console.log('💾 Services saved to localStorage');
+        } catch (e) {
+            console.error('Services cache save error:', e);
+        }
+    },
+
+    loadIngressFromCache() {
+        try {
+            const cached = localStorage.getItem('kusanagi_ingress_cache');
+            if (!cached) return null;
+
+            const data = JSON.parse(cached);
+            const age = Date.now() - data.timestamp;
+
+            if (age < 180000) { // 3 minutes TTL
+                console.log('🌐 Loading ingress from cache (age: ' + Math.round(age / 1000) + 's)');
+                return data.ingress;
+            }
+        } catch (e) {
+            console.error('Ingress cache load error:', e);
+        }
+        return null;
+    },
+
+    saveIngressCache(ingress) {
+        try {
+            localStorage.setItem('kusanagi_ingress_cache', JSON.stringify({
+                ingress: ingress,
+                timestamp: Date.now()
+            }));
+            console.log('💾 Ingress saved to localStorage');
+        } catch (e) {
+            console.error('Ingress cache save error:', e);
+        }
+    },
+
     fetchAll() {
         this.fetchArgoStatus();
         this.fetchNodesStatus();
@@ -1064,6 +1125,20 @@ const K8sManager = {
 
     // === SERVICES & INGRESS ===
     async fetchServices() {
+        // Load from cache first for instant display
+        const cached = this.loadServicesFromCache();
+        if (cached) {
+            const countEl = document.getElementById('services-count');
+            if (countEl) countEl.textContent = cached.length;
+            if (window.TableManager) {
+                TableManager.init('services', cached, (svc) => this.renderServicesRows(svc), [
+                    { key: 'name', label: 'Name' }, { key: 'namespace', label: 'Namespace' }, { key: 'type_', label: 'Type' },
+                    { key: 'cluster_ip', label: 'Cluster IP' }, { key: 'external_ip', label: 'External IP' }, { key: 'ports', label: 'Ports' }, { key: 'age', label: 'Age' }
+                ]);
+                this.renderServicesStructure();
+            }
+        }
+
         const now = Date.now();
         // Allow initial fetch (lastServicesFetch === 0)
         // Otherwise, check if 3 minutes have passed AND we are on the services tab
@@ -1078,6 +1153,10 @@ const K8sManager = {
         try {
             const response = await fetch('/api/services');
             const data = await response.json();
+
+            // Save to cache
+            this.saveServicesCache(data);
+
             const countEl = document.getElementById('services-count');
             if (countEl) countEl.textContent = data.length;
             if (window.TableManager) {
@@ -1115,6 +1194,14 @@ const K8sManager = {
     },
 
     async fetchIngress() {
+        // Load from cache first for instant display
+        const cached = this.loadIngressFromCache();
+        if (cached) {
+            const countEl = document.getElementById('ingress-count');
+            if (countEl) countEl.textContent = cached.length;
+            this.renderIngressTable(cached);
+        }
+
         const now = Date.now();
         // Allow initial fetch (lastIngressFetch === 0)
         // Otherwise, check if 3 minutes have passed AND we are on the ingress tab
@@ -1129,6 +1216,10 @@ const K8sManager = {
         try {
             const response = await fetch('/api/ingress');
             const data = await response.json();
+
+            // Save to cache
+            this.saveIngressCache(data);
+
             const countEl = document.getElementById('ingress-count');
             if (countEl) countEl.textContent = data.length;
             this.renderIngressTable(data);
