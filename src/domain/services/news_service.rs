@@ -8,9 +8,17 @@ const CACHE_KEY: &str = "news/cache.json";
 const CACHE_DAYS: i64 = 7;
 
 pub async fn get_news() -> Result<Value, String> {
+    tracing::debug!("📰 News service: Attempting to get news");
+    
     // Try to get from S3 cache first
-    if let Ok(cached) = get_cached_news().await {
-        return Ok(cached);
+    match get_cached_news().await {
+        Ok(cached) => {
+            tracing::info!("✅ News cache HIT - returning cached data");
+            return Ok(cached);
+        }
+        Err(e) => {
+            tracing::warn!("⚠️  News cache MISS: {} - fetching fresh news", e);
+        }
     }
 
     // Cache miss or expired, fetch fresh news
@@ -22,6 +30,8 @@ pub async fn force_refresh() -> Result<Value, String> {
 }
 
 async fn fetch_fresh_news() -> Result<Value, String> {
+    tracing::info!("🔄 Fetching fresh news from all sources...");
+    
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()
@@ -102,6 +112,7 @@ async fn fetch_fresh_news() -> Result<Value, String> {
     });
 
     let response = if all_news.is_empty() {
+        tracing::warn!("⚠️  No news fetched - using fallback mock data");
         json!({
             "items": get_fallback_news(),
             "cached_at": Utc::now().to_rfc3339(),
@@ -116,6 +127,8 @@ async fn fetch_fresh_news() -> Result<Value, String> {
         sources.sort();
         sources.dedup();
 
+        tracing::info!("📊 Fetched {} news items from {} sources", all_news.len(), sources.len());
+
         json!({
             "items": all_news,
             "cached_at": Utc::now().to_rfc3339(),
@@ -126,8 +139,11 @@ async fn fetch_fresh_news() -> Result<Value, String> {
     // Store in S3 cache (fire and forget)
     let response_clone = response.clone();
     tokio::spawn(async move {
+        tracing::debug!("💾 Storing news cache to S3");
         if let Err(e) = store_cached_news(response_clone).await {
-            tracing::error!("Failed to update news cache in S3: {}", e);
+            tracing::error!("❌ Failed to update news cache in S3: {}", e);
+        } else {
+            tracing::info!("✅ News cache stored successfully in S3");
         }
     });
 
@@ -135,8 +151,10 @@ async fn fetch_fresh_news() -> Result<Value, String> {
 }
 
 async fn get_cached_news() -> Result<Value, String> {
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
+    tracing::debug!("🔍 Checking S3 cache: bucket={}, key={}", bucket, CACHE_KEY);
+    
     let s3_client = create_s3_client().await?;
-    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
 
     let result = s3_client
         .get_object()
@@ -145,7 +163,7 @@ async fn get_cached_news() -> Result<Value, String> {
         .send()
         .await
         .map_err(|e| {
-            tracing::warn!("S3 get error: {}", e);
+            tracing::warn!("❌ S3 get_object failed: {}", e);
             format!("S3 get error: {}", e)
         })?;
 
@@ -162,17 +180,24 @@ async fn get_cached_news() -> Result<Value, String> {
         if let Ok(cached_at) = DateTime::parse_from_rfc3339(cached_at_str) {
             let age = Utc::now().signed_duration_since(cached_at.with_timezone(&Utc));
             if age < Duration::hours(1) {
+                tracing::info!("✅ Cache valid (age: {} minutes)", age.num_minutes());
                 return Ok(cached);
+            } else {
+                tracing::warn!("⏰ Cache expired (age: {} minutes > 60)", age.num_minutes());
+                return Err("Cache expired".to_string());
             }
         }
     }
 
+    tracing::warn!("⚠️  Cache has no valid timestamp");
     Err("Cache expired".to_string())
 }
 
 async fn store_cached_news(data: Value) -> Result<(), String> {
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
+    tracing::debug!("💾 Storing to S3: bucket={}, key={}", bucket, CACHE_KEY);
+    
     let s3_client = create_s3_client().await?;
-    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
 
     let json_bytes =
         serde_json::to_vec(&data).map_err(|e| format!("JSON serialize error: {}", e))?;
