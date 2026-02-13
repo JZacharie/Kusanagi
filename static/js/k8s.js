@@ -39,6 +39,12 @@ const K8sManager = {
                     console.log('🔄 Page focused, refreshing ingress...');
                     this.fetchIngress();
                 }
+
+                // Refresh ArgoCD if on ArgoCD tab
+                if (activeTab === 'argocd') {
+                    console.log('🔄 Page focused, refreshing ArgoCD status...');
+                    this.fetchArgoStatus();
+                }
             }
         });
 
@@ -63,7 +69,10 @@ const K8sManager = {
     async fetchArgoStatus() {
         // Only fetch if we're on the ArgoCD tab
         const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
+        console.log(`🔍 ArgoCD Fetch Attempt. Active Tab: ${activeTab}, Should Fetch: ${activeTab === 'argocd'}`);
+
         if (activeTab !== 'argocd') {
+            console.log('Skipping ArgoCD fetch (not active tab)');
             return; // Skip fetch if not on ArgoCD tab
         }
 

@@ -322,6 +322,9 @@ async function switchTab(tabName) {
         MonitorsManager.init();
     } else if (tabName === "system" && window.KusanagiSystem) {
         KusanagiSystem.activate();
+    } else if (tabName === "argocd" && window.K8sManager) {
+        console.log("🔄 Switched to ArgoCD tab, fetching status...");
+        K8sManager.fetchArgoStatus();
     }
 }
 

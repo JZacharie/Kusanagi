@@ -65,8 +65,12 @@ async fn main() -> anyhow::Result<()> {
         .expect("Failed to install rustls crypto provider");
 
     // Initialize tracing
+    // Initialize tracing
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::WARN)
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "kusanagi=debug,tower_http=debug,axum=debug".into()),
+        )
         .init();
 
     let version = env!("CARGO_PKG_VERSION");
