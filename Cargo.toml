@@ -36,6 +36,7 @@ rustls = { version = "0.23", features = ["aws-lc-rs"] }
 toml = "0.8"
 aws-config = "1.1"
 aws-sdk-s3 = "1.13"
+tracing-appender = "0.2.4"
 
 [build-dependencies]
 chrono = "0.4"
