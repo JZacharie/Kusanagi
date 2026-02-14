@@ -173,6 +173,14 @@ jobs:
         with:
           name: kusanagi-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/kusanagi
+          
+      - name: Verify assets
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        env:
+          BINARY_PATH: ./target/${{ matrix.target }}/release/kusanagi
+        run: |
+          chmod +x scripts/verify_assets.sh
+          ./scripts/verify_assets.sh
 
   # ============================================================================
   # Phase 6: Docker Build & Push (main only)

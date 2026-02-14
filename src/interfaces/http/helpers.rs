@@ -4,11 +4,19 @@ use axum::{extract::Request, middleware::Next, response::IntoResponse, Json};
 use tracing::info;
 
 // Static files
-static INDEX_HTML: &str = include_str!("../../../static/index.html");
+static INDEX_HTML_TEMPLATE: &str = include_str!("../../../static/index.html");
+
+use std::sync::OnceLock;
+
+static INDEX_HTML: OnceLock<String> = OnceLock::new();
 
 /// Serve index.html
 pub async fn index_handler() -> impl IntoResponse {
-    axum::response::Html(INDEX_HTML)
+    let html = INDEX_HTML.get_or_init(|| {
+        let version = env!("BUILD_TIMESTAMP");
+        INDEX_HTML_TEMPLATE.replace("{{VERSION}}", version)
+    });
+    axum::response::Html(html.as_str())
 }
 
 /// API information endpoint

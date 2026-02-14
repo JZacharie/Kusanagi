@@ -70,4 +70,7 @@ update: ## Update dependencies
 check: ## Quick compile check
 	cargo check
 
-all: fmt lint test build ## Run all checks and build
+verify-assets: ## Verify static assets have correct versioning
+	@./scripts/verify_assets.sh
+
+all: fmt lint test build verify-assets ## Run all checks and build
