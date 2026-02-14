@@ -150,7 +150,7 @@ async fn fetch_vps_metrics(client: &reqwest::Client) -> (f64, f64, f64) {
 
     (
         cpu_value.max(0.0),
-        disk_value.max(0.0).min(100.0),
+        disk_value.clamp(0.0, 100.0),
         net_value.max(0.0),
     )
 }
@@ -237,7 +237,7 @@ async fn fetch_enphase_from_ha(client: &reqwest::Client) -> (f64, f64) {
     }
 
     let response = match client
-        .get(&format!("{}/api/states", ha_url))
+        .get(format!("{}/api/states", ha_url))
         .header("Authorization", format!("Bearer {}", ha_token))
         .timeout(std::time::Duration::from_secs(5))
         .send()
