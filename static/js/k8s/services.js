@@ -8,9 +8,9 @@ const K8sServices = {
         const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
         const container = document.getElementById('services-content');
 
-        // Always update UI if we're on the services tab, regardless of cache
-        if (activeTab !== 'services') {
-            console.log('⏭️ Skipping services fetch - not on services tab');
+        // Skip if we're definitely on a different tab (but allow if activeTab is undefined/unknown)
+        if (activeTab && activeTab !== 'services') {
+            console.log('⏭️ Skipping services fetch - not on services tab (current: ' + activeTab + ')');
             return;
         }
 
