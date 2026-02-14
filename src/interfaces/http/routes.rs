@@ -34,6 +34,12 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/cache/stats", get(cache_stats))
         .route("/api/slack/notify", post(send_slack_notification))
         .route("/docs", get(docs_handler))
+        // LLM routes
+        .route("/api/llm/health", get(llm_health_check))
+        .route("/api/llm/config", get(llm_config_info))
+        // Doctor routes
+        .route("/api/doctor", get(doctor_handler))
+        .route("/api/doctor/quick", get(doctor_quick_handler))
         // WebSocket
         .route("/api/ws/notifications", get(ws_notifications_handler))
         // Hexagonal routes
