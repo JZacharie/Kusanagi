@@ -302,21 +302,22 @@ impl SecurityRepository for SecurityRepositoryImpl {
                         .filter_map(|o| o.key)
                         .collect();
 
+                    let fetch_futures = keys.iter().map(|key| self.fetch_from_s3(key));
+                    let reports = futures::future::join_all(fetch_futures).await;
+
                     let mut total_vulns = 0;
                     let mut critical = 0;
                     let mut high = 0;
                     let mut medium = 0;
                     let mut low = 0;
 
-                    for key in &keys {
-                        if let Some(report) = self.fetch_from_s3(key).await {
-                            let (t, c, h, m, l) = self.count_vulnerabilities(&report.original_data);
-                            total_vulns += t;
-                            critical += c;
-                            high += h;
-                            medium += m;
-                            low += l;
-                        }
+                    for report in reports.into_iter().flatten() {
+                        let (t, c, h, m, l) = self.count_vulnerabilities(&report.original_data);
+                        total_vulns += t;
+                        critical += c;
+                        high += h;
+                        medium += m;
+                        low += l;
                     }
 
                     return Ok(SecuritySummary {

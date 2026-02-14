@@ -145,6 +145,16 @@ const PageLoader = {
                     K8sManager.fetchBackupsStatus();
                 }
                 break;
+            case 'services':
+                if (window.K8sManager && K8sManager.fetchServices) {
+                    K8sManager.fetchServices();
+                }
+                break;
+            case 'ingress':
+                if (window.K8sManager && K8sManager.fetchIngress) {
+                    K8sManager.fetchIngress();
+                }
+                break;
             case 'monitors':
                 if (window.MonitorsManager) MonitorsManager.init();
                 break;

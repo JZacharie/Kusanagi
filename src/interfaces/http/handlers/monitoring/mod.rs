@@ -59,6 +59,7 @@ pub async fn metrics_handler(
     // 2. Get cluster overview for pod count
     let pod_count = match kubernetes_service::get_cluster_overview(
         &state.http_client,
+        &state.kube_client,
         &state.k8s_cache,
     )
     .await

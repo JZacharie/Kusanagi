@@ -8,6 +8,7 @@ pub struct ChatService {
     llm_service: Arc<LlmService>,
     http_client: reqwest::Client,
     k8s_cache: Arc<crate::AdvancedCache<String>>,
+    kube_client: Option<Arc<kube::Client>>,
 }
 
 impl ChatService {
@@ -15,11 +16,13 @@ impl ChatService {
         llm_service: Arc<LlmService>,
         http_client: reqwest::Client,
         k8s_cache: Arc<crate::AdvancedCache<String>>,
+        kube_client: Option<Arc<kube::Client>>,
     ) -> Self {
         Self {
             llm_service,
             http_client,
             k8s_cache,
+            kube_client,
         }
     }
 
@@ -77,8 +80,12 @@ impl ChatService {
         }
 
         // Cluster Overview
-        if let Ok(overview) =
-            kubernetes_service::get_cluster_overview(&self.http_client, &self.k8s_cache).await
+        if let Ok(overview) = kubernetes_service::get_cluster_overview(
+            &self.http_client,
+            &self.kube_client,
+            &self.k8s_cache,
+        )
+        .await
         {
             parts.push(format!(
                 "Cluster: {} pods running, {} nodes ready",

@@ -95,6 +95,7 @@ impl AppState {
             llm_service.clone(),
             http_client.as_ref().clone(),
             k8s_cache.clone(),
+            kube_client.clone(),
         ));
 
         // Chat Use Case
