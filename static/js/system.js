@@ -66,13 +66,15 @@ const KusanagiSystem = {
 
     updateStatusUI: function (data) {
         console.log('🎨 Updating status UI with:', data);
-        // Handle uptime - can be either uptime_secs (number) or uptime (formatted string)
-        const uptimeDisplay = data.uptime || this.formatUptime(data.uptime_secs) || 'N/A';
+
+        // Handle uptime - favor uptime_secs for consistency
+        const uptimeDisplay = this.formatUptime(data.uptime_secs) || data.uptime || 'N/A';
+
         console.log('⏱️ Uptime display:', uptimeDisplay);
         setText('sys-tab-uptime', uptimeDisplay);
-        setText('sys-tab-cpu', data.cpu_usage ? `${data.cpu_usage.toFixed(1)}%` : '0%');
-        setText('sys-tab-memory', data.memory_usage_mb ? `${data.memory_usage_mb.toFixed(0)} MB` : '0 MB');
-        setText('sys-tab-version', data.version || 'Unknown');
+        setText('sys-tab-cpu', (data.cpu_usage ?? data.cpu_usage_percent) ? `${(data.cpu_usage ?? data.cpu_usage_percent).toFixed(1)}%` : '0%');
+        setText('sys-tab-memory', (data.memory_usage_mb ?? (data.memory_usage_bytes / 1048576)) ? `${(data.memory_usage_mb ?? (data.memory_usage_bytes / 1048576)).toFixed(0)} MB` : '0 MB');
+        setText('sys-tab-version', data.version || '0.3.0');
 
         // Also update the header status bar if present
         setText('kusanagi-uptime', uptimeDisplay);
