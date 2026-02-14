@@ -117,9 +117,6 @@ const K8sManager = {
         this.fetchNodesStatus();
         this.fetchPodsStatus();
         this.fetchClusterOverview();
-        this.fetchClusterOverview();
-        // this.fetchEvents(this.currentEventFilter, this.currentEventPage); // REPLACED BY MONITORS
-        this.fetchBackupsStatus();
         this.fetchBackupsStatus();
         this.fetchStorageStatus();
         this.fetchServices();
@@ -312,7 +309,7 @@ const K8sManager = {
     async fetchPodsStatus() {
         console.log('📦 Fetching pods status...');
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        const timeoutId = setTimeout(() => controller.abort('timeout'), 60000); // 60s timeout
         const startTime = performance.now();
 
         try {
@@ -383,7 +380,7 @@ const K8sManager = {
             const el = document.getElementById('pods-content');
 
             let errorMessage = 'Failed to fetch pods status.';
-            if (error.name === 'AbortError') {
+            if (error.name === 'AbortError' || error.message === 'timeout') {
                 errorMessage = 'Request timed out (backend too slow).';
             } else if (error.message.includes('HTTP error')) {
                 errorMessage = `Server Error: ${error.message}`;
@@ -717,44 +714,40 @@ const K8sManager = {
                     </div>
                     
                     <div class="node-resources">
-                        <div>
-                            <div class="resource-bar">
-                                <div class="resource-label">
-                                    <span>CPU</span>
-                                    <span>${cpuPercent.toFixed(1)}% (${node.cpu_capacity || 'N/A'})</span>
-                                </div>
-                                <div class="pod-bar-container">
-                                    <div class="pod-bar ${getCpuClass(cpuPercent)}" style="width: ${Math.min(cpuPercent, 100)}%"></div>
-                                </div>
+                        <div class="resource-bar">
+                            <div class="resource-label">
+                                <span>CPU</span>
+                                <span>${cpuPercent.toFixed(1)}% (${node.cpu_capacity || 'N/A'})</span>
                             </div>
-                            
-                            <div class="resource-bar">
-                                <div class="resource-label">
-                                    <span>Pods</span>
-                                    <span>${node.pod_count || 0} / ${node.pod_capacity || 'N/A'}</span>
-                                </div>
-                                <div class="pod-bar-container">
-                                    <div class="pod-bar ${getPodClass(podPercent)}" style="width: ${Math.min(podPercent, 100)}%"></div>
-                                </div>
+                            <div class="pod-bar-container">
+                                <div class="pod-bar ${getCpuClass(cpuPercent)}" style="width: ${Math.min(cpuPercent, 100)}%"></div>
                             </div>
                         </div>
                         
-                        <div>
-                            <div class="resource-bar">
-                                <div class="resource-label">
-                                    <span>Memory</span>
-                                    <span>${memPercent.toFixed(1)}% (${node.memory_allocatable || 'N/A'})</span>
-                                </div>
-                                <div class="pod-bar-container">
-                                    <div class="pod-bar ${getMemClass(memPercent)}" style="width: ${Math.min(memPercent, 100)}%"></div>
-                                </div>
+                        <div class="resource-bar">
+                            <div class="resource-label">
+                                <span>Memory</span>
+                                <span>${memPercent.toFixed(1)}% (${node.memory_allocatable || 'N/A'})</span>
                             </div>
-                            
-                            <div class="resource-bar">
-                                <div class="resource-label">
-                                    <span>Age</span>
-                                    <span>${node.age || 'N/A'}</span>
-                                </div>
+                            <div class="pod-bar-container">
+                                <div class="pod-bar ${getMemClass(memPercent)}" style="width: ${Math.min(memPercent, 100)}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="resource-bar">
+                            <div class="resource-label">
+                                <span>Pods</span>
+                                <span>${node.pod_count || 0} / ${node.pod_capacity || 'N/A'}</span>
+                            </div>
+                            <div class="pod-bar-container">
+                                <div class="pod-bar ${getPodClass(podPercent)}" style="width: ${Math.min(podPercent, 100)}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="resource-bar" style="margin-top: 5px;">
+                            <div class="resource-label">
+                                <span>Node Age</span>
+                                <span>${node.age || 'N/A'}</span>
                             </div>
                         </div>
                     </div>
@@ -762,7 +755,7 @@ const K8sManager = {
                     ${node.conditions ? `
                     <div class="node-conditions">
                         ${Object.entries(node.conditions).map(([key, value]) =>
-                `<span class="condition-item ${value === 'True' ? 'true' : 'false'}">${key}: ${value}</span>`
+                `<span class="condition-item ${key} ${value === 'True' ? 'true' : 'false'}">${key}: ${value}</span>`
             ).join('')}
                     </div>
                     ` : ''}

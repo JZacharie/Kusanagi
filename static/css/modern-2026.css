@@ -317,6 +317,7 @@ body.theme-modern .footer-quote {
     font-style: italic;
     font-family: serif;
 }
+
 /* ============================================
    ANSI Log Display Styles
    ============================================ */
@@ -336,30 +337,87 @@ body.theme-modern .footer-quote {
 }
 
 /* ANSI Color Classes */
-.ansi-black { color: #2e3436; }
-.ansi-red { color: #ff6b6b; }
-.ansi-green { color: #69db7c; }
-.ansi-yellow { color: #ffd93d; }
-.ansi-blue { color: #4dabf7; }
-.ansi-magenta { color: #da77f2; }
-.ansi-cyan { color: #22d3ee; }
-.ansi-white { color: #f8f9fa; }
+.ansi-black {
+    color: #2e3436;
+}
+
+.ansi-red {
+    color: #ff6b6b;
+}
+
+.ansi-green {
+    color: #69db7c;
+}
+
+.ansi-yellow {
+    color: #ffd93d;
+}
+
+.ansi-blue {
+    color: #4dabf7;
+}
+
+.ansi-magenta {
+    color: #da77f2;
+}
+
+.ansi-cyan {
+    color: #22d3ee;
+}
+
+.ansi-white {
+    color: #f8f9fa;
+}
 
 /* Bright colors */
-.ansi-bright-black { color: #555555; }
-.ansi-bright-red { color: #ff8787; }
-.ansi-bright-green { color: #8ce99a; }
-.ansi-bright-yellow { color: #ffe066; }
-.ansi-bright-blue { color: #74c0fc; }
-.ansi-bright-magenta { color: #e599f7; }
-.ansi-bright-cyan { color: #67e8f9; }
-.ansi-bright-white { color: #ffffff; }
+.ansi-bright-black {
+    color: #555555;
+}
+
+.ansi-bright-red {
+    color: #ff8787;
+}
+
+.ansi-bright-green {
+    color: #8ce99a;
+}
+
+.ansi-bright-yellow {
+    color: #ffe066;
+}
+
+.ansi-bright-blue {
+    color: #74c0fc;
+}
+
+.ansi-bright-magenta {
+    color: #e599f7;
+}
+
+.ansi-bright-cyan {
+    color: #67e8f9;
+}
+
+.ansi-bright-white {
+    color: #ffffff;
+}
 
 /* Styles */
-.ansi-bold { font-weight: bold; }
-.ansi-dim { opacity: 0.7; }
-.ansi-italic { font-style: italic; }
-.ansi-underline { text-decoration: underline; }
+.ansi-bold {
+    font-weight: bold;
+}
+
+.ansi-dim {
+    opacity: 0.7;
+}
+
+.ansi-italic {
+    font-style: italic;
+}
+
+.ansi-underline {
+    text-decoration: underline;
+}
 
 /* Log level highlighting */
 .log-level-error {
@@ -419,4 +477,77 @@ body.theme-cyberpunk .ansi-log {
 
 #system-logs-content .ansi-log {
     margin: 0;
+}
+
+/* Node Card Modern Extensions */
+body.theme-modern .node-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin: 1.25rem 0;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+body.theme-modern .node-info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+body.theme-modern .node-info-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+body.theme-modern .node-info-value {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-weight: 500;
+}
+
+body.theme-modern .node-resources {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+body.theme-modern .node-conditions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+body.theme-modern .condition-item {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-weight: 600;
+}
+
+body.theme-modern .condition-item.true {
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+}
+
+body.theme-modern .condition-item.false {
+    background: rgba(34, 197, 94, 0.1);
+    color: #4ade80;
+}
+
+body.theme-modern .condition-item.Ready.true {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+body.theme-modern .condition-item.Ready.false {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
 }
