@@ -52,7 +52,7 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and notify clients
 self.addEventListener('activate', (event) => {
     console.log('🚀 Service Worker activating...');
     
@@ -66,14 +66,21 @@ self.addEventListener('activate', (event) => {
                         return caches.delete(name);
                     })
             );
+        }).then(() => {
+            // Notify all clients to reload
+            return self.clients.matchAll().then(clients => {
+                clients.forEach(client => {
+                    client.postMessage('reload');
+                });
+            });
         })
     );
     
-    // Take control of all clients
+    // Take control of all clients immediately
     self.clients.claim();
 });
 
-// Fetch event - serve from cache or network
+// Fetch event - network first for JS files, cache first for others
 self.addEventListener('fetch', (event) => {
     // Skip non-GET requests
     if (event.request.method !== 'GET') return;
@@ -81,24 +88,43 @@ self.addEventListener('fetch', (event) => {
     // Skip API calls
     if (event.request.url.includes('/api/')) return;
     
+    // For JS files: always try network first, then cache
+    if (event.request.url.endsWith('.js')) {
+        event.respondWith(
+            fetch(event.request)
+                .then(networkResponse => {
+                    // Update cache with new version
+                    if (networkResponse.status === 200) {
+                        const responseToCache = networkResponse.clone();
+                        caches.open(CACHE_NAME).then(cache => {
+                            cache.put(event.request, responseToCache);
+                        });
+                    }
+                    return networkResponse;
+                })
+                .catch(() => {
+                    // Fallback to cache if network fails
+                    return caches.match(event.request);
+                })
+        );
+        return;
+    }
+    
+    // For other files: cache first
     event.respondWith(
         caches.match(event.request)
             .then(response => {
-                // Return cached version or fetch from network
                 if (response) {
                     return response;
                 }
                 
                 return fetch(event.request)
                     .then(networkResponse => {
-                        // Don't cache non-successful responses
                         if (!networkResponse || networkResponse.status !== 200) {
                             return networkResponse;
                         }
                         
-                        // Clone response for caching
                         const responseToCache = networkResponse.clone();
-                        
                         caches.open(CACHE_NAME)
                             .then(cache => {
                                 cache.put(event.request, responseToCache);
@@ -107,7 +133,6 @@ self.addEventListener('fetch', (event) => {
                         return networkResponse;
                     })
                     .catch(() => {
-                        // Return offline fallback if available
                         if (event.request.mode === 'navigate') {
                             return caches.match('/');
                         }
@@ -119,6 +144,7 @@ self.addEventListener('fetch', (event) => {
 // Handle messages from client
 self.addEventListener('message', (event) => {
     if (event.data === 'skipWaiting') {
+        console.log('⏩ Skipping waiting...');
         self.skipWaiting();
     }
 });
