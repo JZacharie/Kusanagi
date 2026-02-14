@@ -38,5 +38,10 @@ aws-config = "1.1"
 aws-sdk-s3 = "1.13"
 tracing-appender = "0.2.4"
 
+# Sprint 5: Robustness & Observability
+utoipa = { version = "5.3", features = ["axum_extras", "uuid", "chrono"] }
+utoipa-swagger-ui = { version = "8.1", features = ["axum"] }
+tower_governor = "0.4"
+
 [build-dependencies]
 chrono = "0.4"

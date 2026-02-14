@@ -1,6 +1,7 @@
 // HTTP Controllers - Interface Layer
 // Migrated from Actix-web to Axum
 
+pub mod docs;
 pub mod handlers;
 pub mod helpers;
 pub mod routes;

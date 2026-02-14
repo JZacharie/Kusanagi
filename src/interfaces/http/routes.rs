@@ -20,11 +20,32 @@ use super::helpers::{api_info, index_handler, log_request};
 
 // Import other handlers
 use crate::domain::services::fusion_service::fusion_handler;
+use crate::interfaces::http::docs::ApiDoc;
 use crate::interfaces::http::handlers::business::chat::post_chat_handler;
+use tower_governor::{
+    governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor, GovernorLayer,
+};
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
+
+use std::sync::Arc;
 
 /// Configure all application routes
 pub fn configure_routes(state: AppState) -> Router {
+    // Rate Limiting Configuration
+    // Allow 10 requests per second with a burst of 30
+    let governor_conf = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(10)
+            .burst_size(30)
+            .key_extractor(SmartIpKeyExtractor)
+            .finish()
+            .unwrap(),
+    );
+
     Router::new()
+        // Swagger UI
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         // Core routes
         .route("/", get(index_handler))
         .route("/health", get(health_check))
@@ -119,4 +140,8 @@ pub fn configure_routes(state: AppState) -> Router {
         .layer(TraceLayer::new_for_http())
         // State (must be last)
         .with_state(state)
+        // Global Rate Limiting Layer
+        .layer(GovernorLayer {
+            config: governor_conf,
+        })
 }

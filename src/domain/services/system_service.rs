@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use sysinfo::System;
 use tokio::process::Command;
+use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct SystemStatus {
     pub status: String,
     pub uptime_secs: u64,
