@@ -1,3 +1,14 @@
+//! Tests for Kubernetes service functionality
+//!
+//! Note: The following functions include 20-second timeouts to prevent hangs:
+//! - get_services
+//! - get_ingress
+//! - get_storage (PVC list call)
+//!
+//! These timeouts are defensive improvements that require integration testing
+//! with a real or mocked Kubernetes cluster to fully verify timeout behavior.
+//! The tests below focus on the utility functions that can be unit tested.
+
 #[cfg(test)]
 mod tests {
     use kusanagi::domain::services::kubernetes_service;

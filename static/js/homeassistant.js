@@ -16,11 +16,16 @@ const HomeAssistantDashboard = {
 
     async fetchAndRender() {
         try {
-            const [sensors, automations, devices] = await Promise.all([
+            const [sensorsResp, automationsResp, devicesResp] = await Promise.all([
                 fetch('/api/ha/sensors').then(r => r.json()),
                 fetch('/api/ha/automations').then(r => r.json()),
                 fetch('/api/ha/devices').then(r => r.json())
             ]);
+
+            // Extract arrays from response objects (API returns {sensors: [...], count: N})
+            const sensors = Array.isArray(sensorsResp) ? sensorsResp : (sensorsResp.sensors || []);
+            const automations = Array.isArray(automationsResp) ? automationsResp : (automationsResp.automations || []);
+            const devices = Array.isArray(devicesResp) ? devicesResp : (devicesResp.devices || []);
 
             this.sensors = sensors; // Store for detail view
             this.renderStats(sensors, automations, devices);
@@ -96,15 +101,18 @@ const HomeAssistantDashboard = {
         const countEl = document.getElementById('ha-sensors-count');
 
         if (!container) return;
-        if (countEl) countEl.textContent = sensors.length;
 
-        if (!sensors || sensors.length === 0) {
+        // Ensure sensors is an array
+        const sensorsArray = Array.isArray(sensors) ? sensors : [];
+        if (countEl) countEl.textContent = sensorsArray.length;
+
+        if (sensorsArray.length === 0) {
             container.innerHTML = '<div class="no-issues">No sensors found</div>';
             return;
         }
 
         const grouped = {};
-        this.sensors.filter(s => s.state !== 'unknown').forEach(s => {
+        sensorsArray.filter(s => s.state !== 'unknown').forEach(s => {
             const cat = this.getCategory(s);
             if (!grouped[cat]) grouped[cat] = [];
             grouped[cat].push(s);

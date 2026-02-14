@@ -805,7 +805,7 @@ const K8sManager = {
     // === CLUSTER OVERVIEW ===
     async fetchClusterOverview() {
         try {
-            const response = await fetch('/api/cluster/overview');
+            const response = await fetch('/api/k8s/cluster');
             const data = await response.json();
             if (!data.error) {
                 const stats = {
@@ -816,7 +816,10 @@ const K8sManager = {
                     'pvc-bound-count': (data.pvcs || []).filter(p => p.status === 'Bound').length,
                     'pvc-pending-count': (data.pvcs || []).filter(p => p.status !== 'Bound').length,
                     'pvc-total-storage': data.pvc_total_capacity || '-',
-                    'pvc-table-count': (data.pvcs || []).length
+                    'pvc-table-count': (data.pvcs || []).length,
+                    'services-count': data.services || 0,
+                    'pods-total': data.pods || 0,
+                    'node-total': data.nodes || 0
                 };
                 for (const [id, value] of Object.entries(stats)) {
                     const el = document.getElementById(id);
@@ -1143,22 +1146,22 @@ const K8sManager = {
         }
 
         const now = Date.now();
-        // Allow initial fetch (lastServicesFetch === 0)
-        // Otherwise, check if 3 minutes have passed AND we are on the services tab
-        if (this.lastServicesFetch !== 0) {
+        const container = document.getElementById('services-content');
+        const isLoading = container && container.innerHTML.includes('Loading services...');
+
+        // Bypass TTL if we are stuck on loading screen
+        if (this.lastServicesFetch !== 0 && !isLoading) {
             const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
             if (activeTab !== 'services') return;
             if (now - this.lastServicesFetch < this.SERVICES_INGRESS_TTL) return;
         }
 
-        this.lastServicesFetch = now;
-
         try {
             const response = await fetch('/api/services');
             const data = await response.json();
 
-            // Save to cache
             this.saveServicesCache(data);
+            this.lastServicesFetch = Date.now();
 
             const countEl = document.getElementById('services-count');
             if (countEl) countEl.textContent = data.length;
@@ -1169,7 +1172,13 @@ const K8sManager = {
                 ]);
                 this.renderServicesStructure();
             }
-        } catch (error) { console.error('Error fetching services:', error); }
+        } catch (error) {
+            console.error('Error fetching services:', error);
+            const container = document.getElementById('services-content');
+            if (container) {
+                container.innerHTML = `<div class="loading" style="color: #ff4444;">Error: ${error.message} <br> <button class="cyber-btn" onclick="K8sManager.fetchServices()">Retry</button></div>`;
+            }
+        }
     },
 
     renderServicesStructure() {
@@ -1206,15 +1215,15 @@ const K8sManager = {
         }
 
         const now = Date.now();
-        // Allow initial fetch (lastIngressFetch === 0)
-        // Otherwise, check if 3 minutes have passed AND we are on the ingress tab
-        if (this.lastIngressFetch !== 0) {
+        const container = document.getElementById('ingress-content');
+        const isLoading = container && container.innerHTML.includes('Loading...');
+
+        // Bypass TTL if we are stuck on loading screen
+        if (this.lastIngressFetch !== 0 && !isLoading) {
             const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
             if (activeTab !== 'ingress') return;
             if (now - this.lastIngressFetch < this.SERVICES_INGRESS_TTL) return;
         }
-
-        this.lastIngressFetch = now;
 
         try {
             const response = await fetch('/api/ingress');
@@ -1222,11 +1231,18 @@ const K8sManager = {
 
             // Save to cache
             this.saveIngressCache(data);
+            this.lastIngressFetch = Date.now();
 
             const countEl = document.getElementById('ingress-count');
             if (countEl) countEl.textContent = data.length;
             this.renderIngressTable(data);
-        } catch (error) { console.error('Error fetching ingress:', error); }
+        } catch (error) {
+            console.error('Error fetching ingress:', error);
+            const container = document.getElementById('ingress-content');
+            if (container) {
+                container.innerHTML = `<div class="loading" style="color: #ff4444;">Error: ${error.message} <br> <button class="cyber-btn" onclick="K8sManager.fetchIngress()">Retry</button></div>`;
+            }
+        }
     },
 
     renderIngressTable(ingresses) {

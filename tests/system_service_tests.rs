@@ -7,9 +7,10 @@ async fn test_system_status_integration() {
 
     assert_eq!(status.status, "operational");
     assert!(!status.version.is_empty());
-    assert!(status.uptime_secs >= 0);
-    // memory_usage_mb can be 0 in some container environments or if reading fails gracefully
-    // cpu_usage can be 0.0
+    // uptime_secs is unsigned, so it's always >= 0 by definition
+    assert!(status.uptime_secs < u64::MAX); // Just verify it's a valid value
+                                            // memory_usage_mb can be 0 in some container environments or if reading fails gracefully
+                                            // cpu_usage can be 0.0
 }
 
 #[tokio::test]
