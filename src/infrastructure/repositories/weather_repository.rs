@@ -151,17 +151,28 @@ impl WeatherRepositoryImpl {
         let body = serde_json::to_string(weather)
             .map_err(|e| KusanagiError::serialization(e.to_string()))?;
 
-        client
+        match client
             .put_object()
             .bucket(S3_BUCKET)
             .key(S3_KEY)
             .body(body.into_bytes().into())
             .send()
             .await
-            .map_err(|e| AppError::ExternalService(format!("S3 error: {}", e)))?;
-
-        info!("Weather data cached to S3 successfully");
-        Ok(())
+        {
+            Ok(_) => {
+                info!("Weather data cached to S3 successfully");
+                Ok(())
+            }
+            Err(e) => {
+                let err_msg = e.to_string();
+                if err_msg.contains("XMinioStorageFull") {
+                    warn!("⚠️  S3 Storage full: could not cache weather data (non-critical)");
+                } else {
+                    warn!("Failed to save weather to cache: {}", err_msg);
+                }
+                Ok(()) // Don't return error for non-critical cache failure
+            }
+        }
     }
 
     /// Fetch weather from Open-Meteo API (open source, no API key required)

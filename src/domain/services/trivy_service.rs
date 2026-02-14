@@ -228,7 +228,7 @@ async fn cache_report_to_s3(report_id: &str, report: &TrivyReport) -> Result<(),
 
     let key = format!("trivy-reports/{}.json", report_id);
 
-    s3_client
+    match s3_client
         .put_object()
         .bucket(&bucket_name)
         .key(&key)
@@ -236,10 +236,24 @@ async fn cache_report_to_s3(report_id: &str, report: &TrivyReport) -> Result<(),
         .content_type("application/json")
         .send()
         .await
-        .map_err(|e| format!("Failed to upload to S3: {}", e))?;
-
-    tracing::info!("Cached report {} to S3 bucket {}", report_id, bucket_name);
-    Ok(())
+    {
+        Ok(_) => {
+            tracing::info!("Cached report {} to S3 bucket {}", report_id, bucket_name);
+            Ok(())
+        }
+        Err(e) => {
+            let err_msg = e.to_string();
+            if err_msg.contains("XMinioStorageFull") {
+                tracing::warn!(
+                    "⚠️  S3 Storage full: could not cache report {} (non-critical)",
+                    report_id
+                );
+            } else {
+                tracing::error!("Failed to upload report {} to S3: {}", report_id, err_msg);
+            }
+            Err(format!("Failed to upload to S3: {}", err_msg))
+        }
+    }
 }
 
 /// Fetch from S3 cache

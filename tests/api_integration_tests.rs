@@ -252,7 +252,7 @@ async fn get_nested(Path((category, id)): Path<(String, u32)>) -> impl IntoRespo
 
 #[tokio::test]
 async fn test_path_param() {
-    let app = Router::new().route("/items/:id", get(get_item));
+    let app = Router::new().route("/items/{id}", get(get_item));
 
     let response = app
         .oneshot(
@@ -275,7 +275,7 @@ async fn test_path_param() {
 
 #[tokio::test]
 async fn test_multiple_path_params() {
-    let app = Router::new().route("/items/:category/:id", get(get_nested));
+    let app = Router::new().route("/items/{category}/{id}", get(get_nested));
 
     let response = app
         .oneshot(

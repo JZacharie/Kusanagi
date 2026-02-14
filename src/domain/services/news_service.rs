@@ -144,10 +144,14 @@ async fn fetch_fresh_news() -> Result<Value, String> {
     let response_clone = response.clone();
     tokio::spawn(async move {
         tracing::debug!("💾 Storing news cache to S3");
-        if let Err(e) = store_cached_news(response_clone).await {
-            tracing::error!("❌ Failed to update news cache in S3: {}", e);
-        } else {
-            tracing::info!("✅ News cache stored successfully in S3");
+        match store_cached_news(response_clone).await {
+            Ok(_) => tracing::info!("✅ News cache stored successfully in S3"),
+            Err(e) if e.contains("XMinioStorageFull") => {
+                tracing::warn!("⚠️  S3 Storage full: could not cache news items (non-critical)");
+            }
+            Err(e) => {
+                tracing::error!("❌ Failed to update news cache in S3: {}", e);
+            }
         }
     });
 

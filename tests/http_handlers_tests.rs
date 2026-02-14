@@ -266,9 +266,9 @@ async fn test_get_backups() {
 
     let app = Router::new()
         .route("/api/backups", get(get_backups_handler))
-        .route("/api/backups/:namespace", get(get_backups_by_namespace))
+        .route("/api/backups/{namespace}", get(get_backups_by_namespace))
         .route(
-            "/api/backups/:namespace/:name/trigger",
+            "/api/backups/{namespace}/{name}/trigger",
             post(trigger_backup_handler),
         )
         .with_state(state);
@@ -315,7 +315,7 @@ async fn test_get_backups_by_namespace() {
 
     let app = Router::new()
         .route("/api/backups", get(get_backups_handler))
-        .route("/api/backups/:namespace", get(get_backups_by_namespace))
+        .route("/api/backups/{namespace}", get(get_backups_by_namespace))
         .with_state(state);
 
     let response = app
@@ -344,7 +344,7 @@ async fn test_trigger_new_backup() {
 
     let app = Router::new()
         .route(
-            "/api/backups/:namespace/:name/trigger",
+            "/api/backups/{namespace}/{name}/trigger",
             post(trigger_backup_handler),
         )
         .with_state(state.clone());
@@ -389,7 +389,7 @@ async fn test_trigger_existing_backup() {
 
     let app = Router::new()
         .route(
-            "/api/backups/:namespace/:name/trigger",
+            "/api/backups/{namespace}/{name}/trigger",
             post(trigger_backup_handler),
         )
         .with_state(state.clone());
@@ -589,7 +589,7 @@ async fn test_get_security_reports() {
     let app = Router::new()
         .route("/api/security/reports", get(get_security_reports_handler))
         .route(
-            "/api/security/reports/:category/:name",
+            "/api/security/reports/{category}/{name}",
             get(get_security_report_handler),
         )
         .with_state(state);
@@ -627,7 +627,7 @@ async fn test_get_security_report_found() {
 
     let app = Router::new()
         .route(
-            "/api/security/reports/:category/:name",
+            "/api/security/reports/{category}/{name}",
             get(get_security_report_handler),
         )
         .with_state(state);
@@ -661,7 +661,7 @@ async fn test_get_security_report_not_found() {
 
     let app = Router::new()
         .route(
-            "/api/security/reports/:category/:name",
+            "/api/security/reports/{category}/{name}",
             get(get_security_report_handler),
         )
         .with_state(state);
