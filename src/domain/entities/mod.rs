@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 // ==================== Modules ====================
 pub mod diagnostic;
 pub mod llm;
+pub mod mcp;
 
 // Re-export Diagnostic entities
 pub use diagnostic::{
@@ -12,6 +13,13 @@ pub use diagnostic::{
 
 // Re-export LLM entities
 pub use llm::{LlmConfig, LlmConfigInfo, LlmError, LlmHealthResponse, LlmProvider, LlmResponse};
+
+// Re-export MCP entities
+pub use mcp::{
+    CiliumPolicy, CiliumPolicySummary, K8sResourceSummary, McpConfig, McpRequest, McpResponse,
+    PolicyReportOverview, PolicySummary, PolicyViolation, SteampipeResult, TrivyImageReport,
+    TrivyVulnerabilitySummary,
+};
 
 // ==================== Cluster Entities ====================
 #[derive(Debug, Clone, Serialize, Deserialize)]
