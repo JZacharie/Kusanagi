@@ -177,13 +177,15 @@ const K8sServices = {
     // === INGRESS ===
     async fetchIngress() {
         const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
+        const container = document.getElementById('ingress-content');
 
+        // Skip if we're definitely on a different tab (but allow if activeTab is undefined/unknown)
         if (activeTab && activeTab !== 'ingress') {
             console.log('⏭️ Skipping ingress fetch - not on ingress tab (current: ' + activeTab + ')');
             return;
         }
 
-        const container = document.getElementById('ingress-content');
+        // Check TTL unless container shows loading or error
         const now = Date.now();
         const isStale = !container || container.innerHTML.includes('Loading') || container.innerHTML.includes('Error');
 
@@ -192,12 +194,15 @@ const K8sServices = {
             return;
         }
 
+        // Try to load from cache first for instant display
         const cached = K8sState.loadFromCache('kusanagi_ingress_cache', K8sState.SERVICES_INGRESS_TTL);
         if (cached && cached.length > 0) {
             console.log('🌐 Displaying cached ingress:', cached.length);
             const countEl = document.getElementById('ingress-count');
             if (countEl) countEl.textContent = cached.length;
             this.renderIngressTable(cached);
+        } else if (container && !container.innerHTML.includes('Loading')) {
+            container.innerHTML = '<div class="loading">Loading ingress...</div>';
         }
 
         try {

@@ -325,6 +325,12 @@ async function switchTab(tabName) {
     } else if (tabName === "argocd" && window.K8sManager) {
         console.log("🔄 Switched to ArgoCD tab, fetching status...");
         K8sManager.fetchArgoStatus();
+    } else if (tabName === "services" && window.K8sServices) {
+        console.log("🔄 Switched to Services tab, fetching...");
+        K8sServices.fetchServices();
+    } else if (tabName === "ingress" && window.K8sServices) {
+        console.log("🔄 Switched to Ingress tab, fetching...");
+        K8sServices.fetchIngress();
     }
 }
 
