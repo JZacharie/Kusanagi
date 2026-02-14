@@ -11,10 +11,11 @@ use serde::{Deserialize, Serialize};
 // ==================== LLM Provider ====================
 
 /// LLM Provider types
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum LlmProvider {
     /// LiteLLM proxy (recommended for multi-provider)
+    #[default]
     Litellm,
     /// Ollama direct (local)
     Ollama,
@@ -22,13 +23,6 @@ pub enum LlmProvider {
     Openai,
     /// Anthropic Claude
     Anthropic,
-}
-
-impl Default for LlmProvider {
-    fn default() -> Self {
-        // Default to LiteLLM for Kubernetes deployments
-        LlmProvider::Litellm
-    }
 }
 
 // ==================== LLM Configuration ====================
