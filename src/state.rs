@@ -179,6 +179,7 @@ impl AppState {
         let cluster_repo: Arc<dyn crate::domain::ports::ClusterRepository> = Arc::new(
             crate::infrastructure::repositories::KubernetesClusterRepository::new(
                 http_client.clone(),
+                k8s_cache.clone(),
             ),
         );
         // We will update ChatUseCase to take ChatService later.

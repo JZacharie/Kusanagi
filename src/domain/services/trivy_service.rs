@@ -51,12 +51,20 @@ pub struct CachedReport {
 }
 
 /// Get vulnerability summary from Trivy server
-pub async fn get_vulnerabilities() -> Result<Value, String> {
+pub async fn get_vulnerabilities(cache: &crate::AdvancedCache<String>) -> Result<Value, String> {
+    const CACHE_KEY: &str = "kusanagi_trivy_vulnerabilities";
+
+    if let Some(cached) = cache.get(CACHE_KEY).await {
+        if let Ok(value) = serde_json::from_str::<Value>(&cached) {
+            return Ok(value);
+        }
+    }
+
     let trivy_url = env::var("TRIVY_SERVER_URL")
         .unwrap_or_else(|_| "http://trivy-json-server.trivy-system.svc:8080".to_string());
 
     // Try to fetch from Trivy server
-    match fetch_trivy_reports(&trivy_url).await {
+    let result = match fetch_trivy_reports(&trivy_url).await {
         Ok(reports) => {
             let summary = aggregate_vulnerabilities(&reports);
             Ok(summary)
@@ -75,7 +83,21 @@ pub async fn get_vulnerabilities() -> Result<Value, String> {
                 }
             }
         }
+    };
+
+    if let Ok(value) = &result {
+        if let Ok(json_str) = serde_json::to_string(value) {
+            cache
+                .set(
+                    CACHE_KEY.to_string(),
+                    json_str,
+                    Some(std::time::Duration::from_secs(600)), // 10 minutes cache
+                )
+                .await;
+        }
     }
+
+    result
 }
 
 /// Fetch reports from Trivy server

@@ -3,8 +3,16 @@ use k8s_openapi::api::networking::v1::Ingress;
 use kube::{api::ListParams, Api, Client};
 use serde_json::{json, Value};
 
-#[tracing::instrument(name = "k8s_get_pods")]
-pub async fn get_pods_status() -> Result<Value, String> {
+#[tracing::instrument(name = "k8s_get_pods", skip(cache))]
+pub async fn get_pods_status(cache: &crate::AdvancedCache<String>) -> Result<Value, String> {
+    const CACHE_KEY: &str = "kusanagi_pods_status";
+
+    if let Some(cached) = cache.get(CACHE_KEY).await {
+        if let Ok(value) = serde_json::from_str::<Value>(&cached) {
+            return Ok(value);
+        }
+    }
+
     metrics::counter!("kubernetes_requests_total", 1, "operation" => "get_pods");
     let client = Client::try_default().await.map_err(|e| e.to_string())?;
     let pods: Api<Pod> = Api::all(client);
@@ -120,20 +128,44 @@ pub async fn get_pods_status() -> Result<Value, String> {
         }
     }
 
-    Ok(json!({
+    let result = json!({
         "total_pods": total,
         "running_pods": running,
         "pending_pods": pending,
         "error_pods": pods_in_error.len(),
         "pods_in_error": pods_in_error,
         "pending_pods_list": pending_pods_list
-    }))
+    });
+
+    // Cache results (30s)
+    if let Ok(json_str) = serde_json::to_string(&result) {
+        cache
+            .set(
+                CACHE_KEY.to_string(),
+                json_str,
+                Some(std::time::Duration::from_secs(30)),
+            )
+            .await;
+    }
+
+    Ok(result)
 }
 
 // Imports are at top
 
-#[tracing::instrument(name = "k8s_get_nodes", skip(client))]
-pub async fn get_nodes_status(client: &reqwest::Client) -> Result<Value, String> {
+#[tracing::instrument(name = "k8s_get_nodes", skip(client, cache))]
+pub async fn get_nodes_status(
+    client: &reqwest::Client,
+    cache: &crate::AdvancedCache<String>,
+) -> Result<Value, String> {
+    const CACHE_KEY: &str = "kusanagi_nodes_status";
+
+    if let Some(cached) = cache.get(CACHE_KEY).await {
+        if let Ok(value) = serde_json::from_str::<Value>(&cached) {
+            return Ok(value);
+        }
+    }
+
     metrics::counter!("kubernetes_requests_total", 1, "operation" => "get_nodes");
     let kube_client = Client::try_default().await.map_err(|e| e.to_string())?;
     let nodes_api: Api<Node> = Api::all(kube_client.clone());
@@ -311,14 +343,27 @@ pub async fn get_nodes_status(client: &reqwest::Client) -> Result<Value, String>
         }));
     }
 
-    Ok(json!({
+    let result = json!({
         "total_nodes": total,
         "ready_nodes": ready,
         "not_ready_nodes": not_ready,
         "total_cpu": format!("{} cores", total_cpu),
         "total_memory": format!("{:.1} GB", total_memory_gb),
         "nodes": nodes_data
-    }))
+    });
+
+    // Cache results (30s)
+    if let Ok(json_str) = serde_json::to_string(&result) {
+        cache
+            .set(
+                CACHE_KEY.to_string(),
+                json_str,
+                Some(std::time::Duration::from_secs(30)),
+            )
+            .await;
+    }
+
+    Ok(result)
 }
 
 #[tracing::instrument(name = "k8s_cluster_overview", skip(client, kube_client, cache))]
@@ -328,7 +373,7 @@ pub async fn get_cluster_overview(
     cache: &crate::AdvancedCache<String>,
 ) -> Result<Value, String> {
     metrics::counter!("kubernetes_requests_total", 1, "operation" => "cluster_overview");
-    let pods = get_pods_status().await.unwrap_or_else(|_| {
+    let pods = get_pods_status(cache).await.unwrap_or_else(|_| {
         json!({
             "total_pods": 0,
             "running_pods": 0,
@@ -337,7 +382,7 @@ pub async fn get_cluster_overview(
         })
     });
 
-    let nodes = get_nodes_status(client).await.unwrap_or_else(|_| {
+    let nodes = get_nodes_status(client, cache).await.unwrap_or_else(|_| {
         json!({
             "total_nodes": 0,
             "ready_nodes": 0,

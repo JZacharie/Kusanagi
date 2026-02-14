@@ -7,11 +7,12 @@ use std::sync::Arc;
 
 pub struct KubernetesClusterRepository {
     client: Arc<reqwest::Client>,
+    cache: Arc<crate::AdvancedCache<String>>,
 }
 
 impl KubernetesClusterRepository {
-    pub fn new(client: Arc<reqwest::Client>) -> Self {
-        Self { client }
+    pub fn new(client: Arc<reqwest::Client>, cache: Arc<crate::AdvancedCache<String>>) -> Self {
+        Self { client, cache }
     }
 }
 
@@ -20,7 +21,7 @@ impl ClusterRepository for KubernetesClusterRepository {
     async fn get_cluster_info(&self) -> Result<ClusterInfo> {
         // We can get version and node count from get_nodes_status or get_cluster_overview
         // For now, let's use get_nodes_status as it gives us node count
-        let nodes_data = kubernetes_service::get_nodes_status(&self.client)
+        let nodes_data = kubernetes_service::get_nodes_status(&self.client, &self.cache)
             .await
             .map_err(|e| {
                 crate::error::KusanagiError::ExternalService(format!(
@@ -56,7 +57,7 @@ impl ClusterRepository for KubernetesClusterRepository {
     }
 
     async fn get_nodes(&self) -> Result<Vec<NodeInfo>> {
-        let nodes_data = kubernetes_service::get_nodes_status(&self.client)
+        let nodes_data = kubernetes_service::get_nodes_status(&self.client, &self.cache)
             .await
             .map_err(|e| {
                 crate::error::KusanagiError::ExternalService(format!(

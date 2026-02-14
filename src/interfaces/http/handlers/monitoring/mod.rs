@@ -36,7 +36,7 @@ pub async fn metrics_handler(
 
     // 1. Get nodes status for resource usage
     let (cpu_percent, mem_percent, node_count) =
-        match kubernetes_service::get_nodes_status(&state.http_client).await {
+        match kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache).await {
             Ok(data) => {
                 if let Some(nodes) = data["nodes"].as_array() {
                     let mut cpu_sum = 0.0;
@@ -79,7 +79,7 @@ pub async fn metrics_handler(
 
     // 4. Get Trivy vulnerabilities (don't block on error)
     let (trivy_critical, trivy_high, trivy_medium, trivy_low) =
-        match trivy_service::get_vulnerabilities().await {
+        match trivy_service::get_vulnerabilities(&state.k8s_cache).await {
             Ok(data) => (
                 data["critical"].as_i64().unwrap_or(0) as i32,
                 data["high"].as_i64().unwrap_or(0) as i32,
