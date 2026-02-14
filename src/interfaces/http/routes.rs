@@ -105,7 +105,7 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/k8s/cluster", get(cluster_overview))
         .route("/api/k8s/nodes", get(nodes_status))
         .route("/api/k8s/pods", get(pods_status))
-        .route("/api/k8s/pods/:namespace/:name/logs", get(pod_logs))
+        .route("/api/k8s/pods/{namespace}/{name}/logs", get(pod_logs))
         .route(
             "/api/pods/delete-error-pods",
             post(delete_error_pods_handler),
@@ -145,7 +145,5 @@ pub fn configure_routes(state: AppState) -> Router {
         // State (must be last)
         .with_state(state)
         // Global Rate Limiting Layer
-        .layer(GovernorLayer {
-            config: governor_conf,
-        })
+        .layer(GovernorLayer::new(governor_conf))
 }
