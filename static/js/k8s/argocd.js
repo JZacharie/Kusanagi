@@ -4,10 +4,10 @@ const K8sArgo = {
     },
 
     async fetchArgoStatus() {
-        // Only fetch if we're on the ArgoCD tab
+        // Only fetch if we're on the ArgoCD tab (or unknown tab for initial load)
         const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
-        if (activeTab !== 'argocd') {
-            console.log('Skipping ArgoCD fetch (not active tab)');
+        if (activeTab && activeTab !== 'argocd') {
+            console.log('Skipping ArgoCD fetch (not active tab:', activeTab + ')');
             return;
         }
 

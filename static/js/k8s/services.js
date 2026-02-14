@@ -148,8 +148,8 @@ const K8sServices = {
     async fetchIngress() {
         const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
 
-        if (activeTab !== 'ingress') {
-            console.log('⏭️ Skipping ingress fetch - not on ingress tab');
+        if (activeTab && activeTab !== 'ingress') {
+            console.log('⏭️ Skipping ingress fetch - not on ingress tab (current: ' + activeTab + ')');
             return;
         }
 
