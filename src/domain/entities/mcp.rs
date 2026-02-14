@@ -144,7 +144,7 @@ impl Default for McpConfig {
             timeout_secs: std::env::var("MCP_TIMEOUT_SECS")
                 .ok()
                 .and_then(|s| s.parse().ok())
-                .unwrap_or(30),
+                .unwrap_or(5),
         }
     }
 }

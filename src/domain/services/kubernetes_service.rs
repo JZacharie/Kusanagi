@@ -302,9 +302,10 @@ pub async fn get_nodes_status(client: &reqwest::Client) -> Result<Value, String>
     }))
 }
 
-#[tracing::instrument(name = "k8s_cluster_overview", skip(client, cache))]
+#[tracing::instrument(name = "k8s_cluster_overview", skip(client, kube_client, cache))]
 pub async fn get_cluster_overview(
     client: &reqwest::Client,
+    kube_client: &Option<std::sync::Arc<kube::Client>>,
     cache: &crate::AdvancedCache<String>,
 ) -> Result<Value, String> {
     metrics::counter!("kubernetes_requests_total", 1, "operation" => "cluster_overview");
@@ -325,7 +326,7 @@ pub async fn get_cluster_overview(
         })
     });
 
-    let services_count = match get_services(cache).await {
+    let services_count = match get_services(kube_client, cache).await {
         Ok(json) => json.as_array().map(|v| v.len()).unwrap_or(0),
         Err(_) => 0,
     };
@@ -341,7 +342,11 @@ pub async fn get_cluster_overview(
 
 // Imports are at top
 
-pub async fn get_services(cache: &crate::AdvancedCache<String>) -> Result<Value, String> {
+#[tracing::instrument(name = "k8s_get_services", skip(kube_client, cache))]
+pub async fn get_services(
+    kube_client: &Option<std::sync::Arc<kube::Client>>,
+    cache: &crate::AdvancedCache<String>,
+) -> Result<Value, String> {
     const CACHE_KEY: &str = "kusanagi_services";
 
     if let Some(cached) = cache.get(CACHE_KEY).await {
@@ -350,7 +355,12 @@ pub async fn get_services(cache: &crate::AdvancedCache<String>) -> Result<Value,
         }
     }
 
-    let client = Client::try_default().await.map_err(|e| e.to_string())?;
+    let client = if let Some(kc) = kube_client {
+        kc.as_ref().clone()
+    } else {
+        Client::try_default().await.map_err(|e| e.to_string())?
+    };
+
     let services: Api<Service> = Api::all(client);
     let list = services
         .list(&ListParams::default())
@@ -398,7 +408,7 @@ pub async fn get_services(cache: &crate::AdvancedCache<String>) -> Result<Value,
         .set(
             CACHE_KEY.to_string(),
             result.to_string(),
-            Some(std::time::Duration::from_secs(60)),
+            Some(std::time::Duration::from_secs(300)),
         )
         .await;
 
@@ -407,7 +417,11 @@ pub async fn get_services(cache: &crate::AdvancedCache<String>) -> Result<Value,
 
 // Imports are at top
 
-pub async fn get_ingress(cache: &crate::AdvancedCache<String>) -> Result<Value, String> {
+#[tracing::instrument(name = "k8s_get_ingress", skip(kube_client, cache))]
+pub async fn get_ingress(
+    kube_client: &Option<std::sync::Arc<kube::Client>>,
+    cache: &crate::AdvancedCache<String>,
+) -> Result<Value, String> {
     const CACHE_KEY: &str = "kusanagi_ingress";
 
     if let Some(cached) = cache.get(CACHE_KEY).await {
@@ -416,7 +430,12 @@ pub async fn get_ingress(cache: &crate::AdvancedCache<String>) -> Result<Value, 
         }
     }
 
-    let client = Client::try_default().await.map_err(|e| e.to_string())?;
+    let client = if let Some(kc) = kube_client {
+        kc.as_ref().clone()
+    } else {
+        Client::try_default().await.map_err(|e| e.to_string())?
+    };
+
     let ingresses: Api<Ingress> = Api::all(client);
     let list = ingresses
         .list(&ListParams::default())
@@ -460,7 +479,7 @@ pub async fn get_ingress(cache: &crate::AdvancedCache<String>) -> Result<Value, 
         .set(
             CACHE_KEY.to_string(),
             result.to_string(),
-            Some(std::time::Duration::from_secs(60)),
+            Some(std::time::Duration::from_secs(300)),
         )
         .await;
 

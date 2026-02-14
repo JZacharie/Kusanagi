@@ -15,11 +15,15 @@ pub struct McpService {
     config: McpConfig,
     http_client: reqwest::Client,
     kube_client: Option<kube::Client>,
+    cache: std::sync::Arc<crate::AdvancedCache<String>>,
 }
 
 impl McpService {
     /// Create a new MCP service
-    pub fn new(kube_client: Option<kube::Client>) -> Self {
+    pub fn new(
+        kube_client: Option<kube::Client>,
+        cache: std::sync::Arc<crate::AdvancedCache<String>>,
+    ) -> Self {
         let config = McpConfig::default();
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(config.timeout_secs))
@@ -30,6 +34,7 @@ impl McpService {
             config,
             http_client,
             kube_client,
+            cache,
         }
     }
 
@@ -195,11 +200,19 @@ impl McpService {
 
     /// Get Trivy vulnerability reports from S3 via MCP
     pub async fn get_trivy_vulnerabilities(&self) -> Result<TrivyVulnerabilitySummary, String> {
+        const CACHE_KEY: &str = "mcp_vulnerabilities";
+
+        if let Some(cached) = self.cache.get(CACHE_KEY).await {
+            if let Ok(value) = serde_json::from_str::<TrivyVulnerabilitySummary>(&cached) {
+                return Ok(value);
+            }
+        }
+
         info!("Fetching Trivy vulnerabilities via MCP");
 
         let params = serde_json::json!({});
 
-        match self
+        let result = match self
             .request(&self.config.trivy_url, "get_vulnerabilities", params)
             .await
         {
@@ -219,16 +232,23 @@ impl McpService {
             }
             Err(e) => {
                 warn!("MCP Trivy unavailable: {}", e);
-                Ok(TrivyVulnerabilitySummary {
-                    total_images: 0,
-                    critical: 0,
-                    high: 0,
-                    medium: 0,
-                    low: 0,
-                    images: vec![],
-                })
+                return Err(format!("MCP Trivy unavailable: {}", e));
+            }
+        };
+
+        if let Ok(ref data) = result {
+            if let Ok(serialized) = serde_json::to_string(data) {
+                self.cache
+                    .set(
+                        CACHE_KEY.to_string(),
+                        serialized,
+                        Some(std::time::Duration::from_secs(300)),
+                    )
+                    .await;
             }
         }
+
+        result
     }
 
     // ==================== Kyverno Policy Reports ====================
