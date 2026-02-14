@@ -11,7 +11,13 @@ RUN export KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt | t
     chmod +x /usr/local/bin/kubectl
 
 WORKDIR /app
+# Invalidate cache on static changes (v2 migration - modular k8s)
+ARG STATIC_VERSION=v2
+# Ensure old monolithic k8s.js is removed (migration to modular structure)
+RUN rm -f static/js/k8s.js 2>/dev/null || true
 COPY static ./static
+# Verify new structure exists
+RUN ls -la /app/static/js/k8s/ && test -f /app/static/js/k8s/main.js || exit 1
 RUN useradd -r -s /bin/false kusanagi && chown -R kusanagi:kusanagi /app
 
 # Ensure CA certificates are accessible
