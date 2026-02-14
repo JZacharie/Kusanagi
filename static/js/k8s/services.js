@@ -57,52 +57,82 @@ const K8sServices = {
     },
 
     renderServicesData(services) {
+        console.log('🔍 renderServicesData called with', services?.length, 'services');
+        
+        if (!services || !Array.isArray(services)) {
+            console.error('❌ Invalid services data:', services);
+            return;
+        }
+        
         const countEl = document.getElementById('services-count');
         if (countEl) countEl.textContent = services.length;
 
-        if (window.TableManager) {
-            TableManager.init('services', services, (svc) => this.renderServicesRows(svc), [
-                { key: 'name', label: 'Name' }, { key: 'namespace', label: 'Namespace' }, { key: 'type_', label: 'Type' },
-                { key: 'cluster_ip', label: 'Cluster IP' }, { key: 'external_ip', label: 'External IP' }, { key: 'ports', label: 'Ports' }, { key: 'age', label: 'Age' }
-            ]);
-            this.renderServicesStructure();
-        } else {
-            this.renderServicesSimple(services);
+        try {
+            if (window.TableManager) {
+                console.log('🔍 Using TableManager for rendering');
+                TableManager.init('services', services, (svc) => this.renderServicesRows(svc), [
+                    { key: 'name', label: 'Name' }, { key: 'namespace', label: 'Namespace' }, { key: 'type_', label: 'Type' },
+                    { key: 'cluster_ip', label: 'Cluster IP' }, { key: 'external_ip', label: 'External IP' }, { key: 'ports', label: 'Ports' }, { key: 'age', label: 'Age' }
+                ]);
+                this.renderServicesStructure();
+            } else {
+                console.log('🔍 Using renderServicesSimple (TableManager not available)');
+                this.renderServicesSimple(services);
+            }
+        } catch (e) {
+            console.error('❌ Error in renderServicesData:', e);
+            const container = document.getElementById('services-content');
+            if (container) {
+                container.innerHTML = `<div class="error-state">Render error: ${e.message}</div>`;
+            }
         }
     },
 
     renderServicesSimple(services) {
+        console.log('🔍 renderServicesSimple called, services:', services?.length);
         const container = document.getElementById('services-content');
-        if (!container) return;
-
-        if (!services || services.length === 0) {
-            container.innerHTML = '<div class="no-issues">No services found</div>';
+        if (!container) {
+            console.error('❌ services-content container not found!');
             return;
         }
 
-        container.innerHTML = `
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Name</th><th>Namespace</th><th>Type</th>
-                        <th>Cluster IP</th><th>External IP</th><th>Ports</th><th>Age</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${services.map(svc => `
+        if (!services || services.length === 0) {
+            console.log('🔍 No services to render');
+            container.innerHTML = '<div class="no-issues">No services found</div>';
+            return;
+        }
+        console.log('🔍 Rendering', services.length, 'services to table');
+
+        try {
+            const html = `
+                <table class="data-table">
+                    <thead>
                         <tr>
-                            <td class="app-name">${svc.name || '-'}</td>
-                            <td>${svc.namespace || '-'}</td>
-                            <td>${svc.type_ || '-'}</td>
-                            <td>${svc.cluster_ip || '-'}</td>
-                            <td>${svc.external_ip || '-'}</td>
-                            <td>${svc.ports || '-'}</td>
-                            <td>${svc.age || '-'}</td>
+                            <th>Name</th><th>Namespace</th><th>Type</th>
+                            <th>Cluster IP</th><th>External IP</th><th>Ports</th><th>Age</th>
                         </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
+                    </thead>
+                    <tbody>
+                        ${services.map(svc => `
+                            <tr>
+                                <td class="app-name">${(svc.name || '-').toString().replace(/</g, '&lt;')}</td>
+                                <td>${(svc.namespace || '-').toString().replace(/</g, '&lt;')}</td>
+                                <td>${(svc.type_ || '-').toString().replace(/</g, '&lt;')}</td>
+                                <td>${(svc.cluster_ip || '-').toString().replace(/</g, '&lt;')}</td>
+                                <td>${(svc.external_ip || '-').toString().replace(/</g, '&lt;')}</td>
+                                <td>${(svc.ports || '-').toString().replace(/</g, '&lt;')}</td>
+                                <td>${(svc.age || '-').toString().replace(/</g, '&lt;')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = html;
+            console.log('✅ Table rendered successfully');
+        } catch (e) {
+            console.error('❌ Error rendering table:', e);
+            container.innerHTML = `<div class="error-state">Error rendering table: ${e.message}</div>`;
+        }
     },
 
     renderServicesStructure() {

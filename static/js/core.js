@@ -385,6 +385,9 @@ window.KusanagiDashboard = {
     activeTab: 'argocd'
 };
 
+// Export TableManager for module access
+window.TableManager = TableManager;
+
 // Initialize WebSocket on page load
 document.addEventListener('DOMContentLoaded', () => {
     initWebSocket();
