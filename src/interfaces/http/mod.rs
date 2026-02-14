@@ -4,6 +4,7 @@
 pub mod docs;
 pub mod handlers;
 pub mod helpers;
+pub mod middleware;
 pub mod routes;
 
 // Legacy individual handler files (will be removed once fully migrated to handlers/)

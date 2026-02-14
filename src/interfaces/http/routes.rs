@@ -52,6 +52,8 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api", get(api_info))
         .route("/api/config", get(get_config))
         .route("/api/cache/stats", get(cache_stats))
+        .route("/metrics", get(core_metrics_handler))
+        .route("/api/metrics", get(core_metrics_handler)) // Alias
         .route("/api/slack/notify", post(send_slack_notification))
         .route("/docs", get(docs_handler))
         // LLM routes
@@ -121,8 +123,7 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/monitoring/alerts", get(alerts))
         .route("/api/monitoring/quotas", get(quotas))
         .route("/api/quotas", get(quotas)) // Alias for frontend
-        .route("/api/metrics", get(metrics_handler))
-        .route("/metrics", get(metrics_handler))
+        .route("/api/dashboard/metrics", get(metrics_handler)) // Dashboard metrics
         .route("/api/chat", post(post_chat_handler))
         .route("/api/prometheus/range", get(prometheus_range_handler))
         .route("/api/database/health", get(database_health_handler))
@@ -135,6 +136,9 @@ pub fn configure_routes(state: AppState) -> Router {
         .nest_service("/static", ServeDir::new("./static"))
         // Layers (applied in reverse order - last one is executed first)
         .layer(middleware::from_fn(log_request))
+        .layer(middleware::from_fn(
+            crate::interfaces::http::middleware::metrics::track_metrics,
+        ))
         .layer(CorsLayer::permissive())
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http())

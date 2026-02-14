@@ -43,5 +43,9 @@ utoipa = { version = "5.3", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "8.1", features = ["axum"] }
 tower_governor = "0.4"
 
+# Sprint 6: Monitoring & Tracing
+metrics = "0.21"
+metrics-exporter-prometheus = "0.12"
+
 [build-dependencies]
 chrono = "0.4"
