@@ -54,7 +54,11 @@ async fn main() -> anyhow::Result<()> {
     let listener = TcpListener::bind(&bind_addr).await?;
     info!("✅ Server ready at http://{}", bind_addr);
 
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .await?;
 
     Ok(())
 }
