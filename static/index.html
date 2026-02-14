@@ -5,6 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Kusanagi - Agent Controller for K3s Infrastructure">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- Force reload if old k8s.js is cached -->
+    <script>
+        // Check if we need to bust cache (v2 migration)
+        if (!localStorage.getItem('kusanagi_v2_migrated')) {
+            localStorage.setItem('kusanagi_v2_migrated', 'true');
+            // Force reload from server without cache
+            location.href = location.href.split('?')[0] + '?_=' + Date.now();
+        }
+    </script>
 
     <!-- PWA / Android Fullscreen -->
     <meta name="theme-color" content="#0a0f1e">
@@ -41,52 +54,52 @@
         rel="stylesheet">
 
     <!-- Core UI & Utilities -->
-    <script src="/static/js/theme.js"></script>
-    <script src="/static/js/utils.js"></script>
-    <script src="/static/js/api.js"></script>
-    <script src="/static/js/debug.js"></script>
-    <script src="/static/js/ansi-parser.js"></script>
+    <script src="/static/js/theme.js?v={{VERSION}}"></script>
+    <script src="/static/js/utils.js?v={{VERSION}}"></script>
+    <script src="/static/js/api.js?v={{VERSION}}"></script>
+    <script src="/static/js/debug.js?v={{VERSION}}"></script>
+    <script src="/static/js/ansi-parser.js?v={{VERSION}}"></script>
 
     <!-- OpenObserve RUM & Logs SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@openobserve/browser-rum@0.3.1/bundle/openobserve-rum.min.js"
         crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@openobserve/browser-logs@0.3.1/bundle/openobserve-logs.min.js"
         crossorigin="anonymous"></script>
-    <script src="/static/js/rum.js"></script>
+    <script src="/static/js/rum.js?v={{VERSION}}"></script>
 
     <!-- Configuration (must load before other modules) -->
-    <script src="/static/js/config.js"></script>
+    <script src="/static/js/config.js?v={{VERSION}}"></script>
 
     <!-- Monitoring & Infrastructure Modules -->
-    <script src="/static/js/api-tracker.js"></script>
-    <script src="/static/js/error-boundary.js"></script>
-    <script src="/static/js/core.js"></script>
-    <script src="/static/js/page-loader.js"></script>
-    
-    <!-- Kubernetes Modules -->
-    <script src="/static/js/k8s/state.js"></script>
-    <script src="/static/js/k8s/pods.js"></script>
-    <script src="/static/js/k8s/nodes.js"></script>
-    <script src="/static/js/k8s/services.js"></script>
-    <script src="/static/js/k8s/storage.js"></script>
-    <script src="/static/js/k8s/argocd.js"></script>
-    <script src="/static/js/k8s/main.js"></script>
-    
+    <script src="/static/js/api-tracker.js?v={{VERSION}}"></script>
+    <script src="/static/js/error-boundary.js?v={{VERSION}}"></script>
+    <script src="/static/js/core.js?v={{VERSION}}"></script>
+    <script src="/static/js/page-loader.js?v={{VERSION}}"></script>
+
+    <!-- Kubernetes Modules (v2) -->
+    <script src="/static/js/k8s/state.js?v={{VERSION}}"></script>
+    <script src="/static/js/k8s/pods.js?v={{VERSION}}"></script>
+    <script src="/static/js/k8s/nodes.js?v={{VERSION}}"></script>
+    <script src="/static/js/k8s/services.js?v={{VERSION}}"></script>
+    <script src="/static/js/k8s/storage.js?v={{VERSION}}"></script>
+    <script src="/static/js/k8s/argocd.js?v={{VERSION}}"></script>
+    <script src="/static/js/k8s/main.js?v={{VERSION}}"></script>
+
     <!-- Dashboard Modules -->
-    <script src="/static/js/proxmox.js"></script>
-    <script src="/static/js/homeassistant.js"></script>
-    <script src="/static/js/weather.js"></script>
-    <script src="/static/js/monitors.js"></script>
-    <script src="/static/js/security.js"></script>
-    <script src="/static/js/cilium-network.js"></script>
-    <script src="/static/js/mqtt.js"></script>
-    <script src="/static/js/setup.js"></script>
-    <script src="/static/js/system.js"></script>
+    <script src="/static/js/proxmox.js?v={{VERSION}}"></script>
+    <script src="/static/js/homeassistant.js?v={{VERSION}}"></script>
+    <script src="/static/js/weather.js?v={{VERSION}}"></script>
+    <script src="/static/js/monitors.js?v={{VERSION}}"></script>
+    <script src="/static/js/security.js?v={{VERSION}}"></script>
+    <script src="/static/js/cilium-network.js?v={{VERSION}}"></script>
+    <script src="/static/js/mqtt.js?v={{VERSION}}"></script>
+    <script src="/static/js/setup.js?v={{VERSION}}"></script>
+    <script src="/static/js/system.js?v={{VERSION}}"></script>
 
     <!-- Main Orchestrator -->
-    <script src="/static/js/dashboard.js"></script>
-    <script src="/static/js/sidebar.js"></script>
-    <script src="/static/js/pwa.js"></script>
+    <script src="/static/js/dashboard.js?v={{VERSION}}"></script>
+    <script src="/static/js/sidebar.js?v={{VERSION}}"></script>
+    <script src="/static/js/pwa.js?v={{VERSION}}"></script>
 </head>
 
 
@@ -276,7 +289,8 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="clearKusanagiCache(); return false;" title="Clear cache and reload">
+                        <a class="nav-link" href="#" onclick="clearKusanagiCache(); return false;"
+                            title="Clear cache and reload">
                             <i class="mdi mdi-refresh" style="color: var(--neon-orange);"></i>
                             <span class="nav-link-text" style="color: var(--neon-orange);">Refresh Site</span>
                         </a>
