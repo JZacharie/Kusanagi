@@ -21,6 +21,7 @@ pub struct AppState {
     pub kube_client: Option<Arc<kube::Client>>,
     pub http_client: Arc<reqwest::Client>,
     pub cilium_cache: Arc<crate::domain::services::cilium_service::CiliumCache>,
+    pub llm_service: Arc<crate::domain::services::llm_service::LlmService>,
 }
 
 impl AppState {
@@ -85,15 +86,48 @@ impl AppState {
         let ha_use_case = Arc::new(GetHomeAssistantUseCase::new(ha_repo));
         let backup_use_case = Arc::new(BackupUseCase::new(backup_repo));
 
+        // LLM Service
+        let llm_service = Arc::new(crate::domain::services::llm_service::LlmService::new());
+
+        // Chat Service
+        let chat_service = Arc::new(crate::domain::services::chat_service::ChatService::new(
+            llm_service.clone(),
+            http_client.as_ref().clone(),
+            k8s_cache.clone(),
+        ));
+
         // Chat Use Case
+        // We now pass the ChatService to the ChatUseCase
+        // Note: We might need to update ChatUseCase to accept ChatService
+        // For now, let's assume we will update ChatUseCase in the next step.
+        // But wait, if I update AppState first, it won't compile because ChatUseCase::new expects repositories.
+        // So I must update ChatUseCase FIRST. But ChatUseCase needs ChatService which is here.
+        // I will temporarily comment out ChatUseCase params or pass them as is, and then update ChatUseCase file.
+        // Actually, I can just update the ChatUseCase signature in the other file FIRST, then this file.
+        // But I am editing this file now.
+        // I'll update ChatUseCase first in the next turn, then come back here?
+        // No, I can do multi_replace if I want, but let's stick to ReplaceFile.
+        // I will update ChatUseCase file NOW in parallel or sequentially before this one?
+        // Sequential is safer. I will CANCEL this tool call and update ChatUseCase first.
+        // Wait, I can't cancel.
+        // I will proceed with updating AppState but I know it will break compilation until I fix ChatUseCase.
+        // I will comment out the ChatUseCase init line change and do it properly.
+
+        // Actually, let's just initialize repositories as before for now to keep it compiling,
+        // AND initialize ChatService. Then I'll change ChatUseCase to take ChatService.
+
         let cluster_repo: Arc<dyn crate::domain::ports::ClusterRepository> = Arc::new(
             crate::infrastructure::repositories::KubernetesClusterRepository::new(
                 http_client.clone(),
             ),
         );
+        // We will update ChatUseCase to take ChatService later.
+        // For now, let's keep it as is, but we need to satisfy the struct definition which now has llm_service.
+
         let chat_use_case = Arc::new(crate::application::use_cases::ChatUseCase::new(
             cluster_repo,
             alert_repo.clone(),
+            chat_service.clone(), // Adding this requires ChatUseCase update
         ));
 
         Ok(Self {
@@ -109,6 +143,7 @@ impl AppState {
             kube_client,
             http_client,
             cilium_cache: Arc::new(crate::domain::services::cilium_service::CiliumCache::new()),
+            llm_service,
         })
     }
 }

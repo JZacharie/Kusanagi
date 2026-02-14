@@ -8,25 +8,9 @@
 // - 'homeassistant' -> Use crate::interfaces::http::homeassistant_handlers
 // - 'proxmox' -> Use crate::interfaces::http::proxmox_handlers
 
-pub mod argocd;
-pub mod cluster;
-pub mod events;
 pub mod health;
-pub mod ingress;
-pub mod nodes;
-pub mod pods;
 pub mod prometheus;
-pub mod services;
-pub mod storage;
 
 // Re-exports
-pub use argocd::*;
-pub use cluster::*;
-pub use events::*;
 pub use health::*;
-pub use ingress::*;
-pub use nodes::*;
-pub use pods::*;
 pub use prometheus::*;
-pub use services::*;
-pub use storage::*;

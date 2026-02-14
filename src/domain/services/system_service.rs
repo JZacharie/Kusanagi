@@ -1,0 +1,124 @@
+use serde::{Deserialize, Serialize};
+use sysinfo::System;
+use tokio::process::Command;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SystemStatus {
+    pub status: String,
+    pub uptime_secs: u64,
+    pub cpu_usage: f32,
+    pub memory_usage_mb: u64,
+    pub version: String,
+}
+
+pub struct SystemService;
+
+impl SystemService {
+    pub fn get_status() -> SystemStatus {
+        let mut sys = System::new_all();
+        sys.refresh_all();
+
+        let cpu_usage = sys.global_cpu_usage();
+        // Try to get container memory usage, fallback to whole system usage
+        let memory_used = Self::get_container_memory_usage().unwrap_or_else(|| sys.used_memory());
+        let uptime = System::uptime();
+
+        SystemStatus {
+            status: "operational".to_string(),
+            uptime_secs: uptime,
+            cpu_usage,
+            memory_usage_mb: memory_used / 1024 / 1024,
+            version: env!("CARGO_PKG_VERSION").to_string(),
+        }
+    }
+
+    /// Try to read memory usage from cgroup v2
+    fn get_container_memory_usage() -> Option<u64> {
+        // Try cgroup v2
+        if let Ok(contents) = std::fs::read_to_string("/sys/fs/cgroup/memory.current") {
+            if let Ok(bytes) = contents.trim().parse::<u64>() {
+                return Some(bytes);
+            }
+        }
+
+        // Try cgroup v1 (less likely in modern k8s but good fallback)
+        if let Ok(contents) = std::fs::read_to_string("/sys/fs/cgroup/memory/memory.usage_in_bytes")
+        {
+            if let Ok(bytes) = contents.trim().parse::<u64>() {
+                return Some(bytes);
+            }
+        }
+
+        None
+    }
+
+    pub async fn get_logs() -> Result<String, String> {
+        // Try to read from local log file first (for Docker/k8s support)
+        let log_dir = "/tmp/kusanagi-logs";
+        let mut latest_log_content = String::new();
+        let debug_info = match std::fs::read_dir(log_dir) {
+            Ok(entries) => {
+                let mut files: Vec<_> = entries
+                    .filter_map(|e| e.ok())
+                    .filter(|e| {
+                        e.path().is_file()
+                            && e.file_name().to_string_lossy().starts_with("kusanagi.log")
+                    })
+                    .collect();
+
+                let info = format!("checked {} candidates in {}", files.len(), log_dir);
+
+                // Sort by name (which includes date) descending
+                files.sort_by_key(|e| std::cmp::Reverse(e.file_name()));
+
+                if let Some(latest) = files.first() {
+                    if let Ok(content) = std::fs::read_to_string(latest.path()) {
+                        // Get last 200 lines to avoid sending huge payload
+                        latest_log_content = content
+                            .lines()
+                            .rev()
+                            .take(200)
+                            .collect::<Vec<_>>()
+                            .into_iter()
+                            .rev()
+                            .collect::<Vec<_>>()
+                            .join("\n");
+                    }
+                }
+                info
+            }
+            Err(e) => {
+                format!("failed to read directory {}: {}", log_dir, e)
+            }
+        };
+
+        tracing::debug!("Log search result: {}", debug_info);
+
+        if !latest_log_content.is_empty() {
+            return Ok(latest_log_content);
+        }
+
+        // Fallback to journalctl
+        match Command::new("journalctl")
+            .args(["-n", "50", "-o", "short", "--no-pager"])
+            .output()
+            .await
+        {
+            Ok(output) => {
+                if output.status.success() {
+                    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+                } else {
+                    let err = String::from_utf8_lossy(&output.stderr);
+                    Err(format!(
+                        "Failed to retrieve logs ({} and using journalctl): {}",
+                        debug_info, err
+                    ))
+                }
+            }
+            Err(e) => Err(format!(
+                "Failed to retrieve logs: Local file not found/empty ({}) and journalctl failed: {}",
+                debug_info, e
+            )),
+        }
+    }
+}

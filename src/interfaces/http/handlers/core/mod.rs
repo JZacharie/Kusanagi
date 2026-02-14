@@ -10,6 +10,7 @@ pub mod llm;
 pub mod mcp;
 pub mod prometheus;
 pub mod slack;
+pub mod system;
 pub mod websocket;
 
 pub use cache::*;
@@ -22,4 +23,5 @@ pub use llm::*;
 pub use mcp::*;
 pub use prometheus::*;
 pub use slack::*;
+pub use system::*;
 pub use websocket::*;

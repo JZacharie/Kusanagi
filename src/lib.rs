@@ -14,8 +14,7 @@ pub mod cache;
 pub mod config;
 pub mod error;
 pub mod event_bus;
-#[allow(dead_code)]
-pub mod handlers;
+
 pub mod init;
 #[allow(dead_code)]
 pub mod legacy;

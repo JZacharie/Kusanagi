@@ -19,7 +19,12 @@ pub async fn post_chat_handler(
     Json(payload): Json<ChatRequest>,
 ) -> impl IntoResponse {
     let message = payload.message.trim();
-    let response_text = state.chat_use_case.execute(message).await;
+    let language = if payload.language.is_empty() {
+        "fr"
+    } else {
+        &payload.language
+    };
+    let response_text = state.chat_use_case.execute(message, language).await;
 
     Json(ChatResponse {
         response: response_text,
