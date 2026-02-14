@@ -36,22 +36,10 @@ const KusanagiSystem = {
     fetchSystemStatus: async function () {
         console.log('🔍 Fetching system status...');
         try {
-            const response = await fetch('/api/system/status');
-            console.log('📡 System status response:', response.status);
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ System status data:', data);
-                this.updateStatusUI(data);
-            } else {
-                console.warn('⚠️ System status not OK:', response.status);
-                this.updateStatusUI({
-                    uptime: 'N/A',
-                    cpu_usage: 0,
-                    memory_usage_mb: 0,
-                    version: 'Unknown',
-                    _warning: 'System status unavailable'
-                });
-            }
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await api.get('/api/system/status');
+            console.log('✅ System status data:', data);
+            this.updateStatusUI(data);
         } catch (error) {
             console.error("❌ Failed to fetch system status:", error);
             this.updateStatusUI({
@@ -85,10 +73,10 @@ const KusanagiSystem = {
 
     fetchDatabaseHealth: async function () {
         try {
-            const response = await fetch('/api/database/health');
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await api.get('/api/database/health');
             const el = document.getElementById('kusanagi-db-status');
-            if (response.ok && el) {
-                const data = await response.json();
+            if (el) {
                 el.textContent = data.latency_ms + 'ms';
 
                 if (data.status === 'Healthy') {
@@ -99,9 +87,6 @@ const KusanagiSystem = {
                     el.textContent = 'ERR';
                     el.title = data.error || 'Unknown Error';
                 }
-            } else if (el) {
-                el.textContent = 'ERR';
-                el.style.color = '#ff4444';
             }
         } catch (error) {
             console.error("Failed to fetch DB health:", error);
@@ -123,6 +108,7 @@ const KusanagiSystem = {
                 container.textContent = 'Fetching...';
             }
 
+            // Note: System logs endpoint returns raw text, not JSON envelope
             const response = await fetch('/api/system/logs');
             if (response.ok) {
                 const logs = await response.text();

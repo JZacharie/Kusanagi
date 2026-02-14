@@ -5,11 +5,13 @@
 
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     response::IntoResponse,
-    Json,
 };
+use serde_json::json;
 use tracing::{debug, error, info};
 
+use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 
 /// Get backups status
@@ -25,14 +27,14 @@ pub async fn get_backups_handler(State(state): State<AppState>) -> impl IntoResp
                 "Backups status retrieved: {} CronJobs",
                 backups.total_cronjobs
             );
-            Json(backups).into_response()
+            api_success(serde_json::to_value(backups).unwrap_or_default())
         }
         Err(e) => {
             error!("Failed to get backups status: {}", e);
-            Json(serde_json::json!({
-                "error": format!("Failed to retrieve backups status: {}", e)
-            }))
-            .into_response()
+            api_error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to retrieve backups status: {}", e),
+            )
         }
     }
 }
@@ -54,17 +56,14 @@ pub async fn trigger_backup_handler(
     {
         Ok(message) => {
             info!("Backup triggered successfully: {}", message);
-            Json(serde_json::json!({
-                "message": message
-            }))
-            .into_response()
+            api_success(json!({"message": message}))
         }
         Err(e) => {
             error!("Failed to trigger backup: {}", e);
-            Json(serde_json::json!({
-                "error": format!("Failed to trigger backup: {}", e)
-            }))
-            .into_response()
+            api_error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to trigger backup: {}", e),
+            )
         }
     }
 }

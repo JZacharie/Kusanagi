@@ -135,20 +135,8 @@ const K8sManager = {
         }
 
         try {
-            const response = await fetch('/api/argocd/status');
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            // The backend returns { status: "success", data: { ... } } or { status: "error", error: "..." }
-            // We need to handle both cases and extract the actual data
-            const responseData = await response.json();
-            const data = responseData.data || responseData;
-
-            if (responseData.error || data.error) {
-                this.showArgoError(responseData.error || data.error);
-                return;
-            }
-
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await api.get('/api/argocd/status');
             this.updateArgoStats(data);
             this.updateArgoIssuesTable(data.apps_with_issues || []);
             this.updateArgoUpgradesTable(data.apps_with_upgrades || []);
@@ -273,12 +261,7 @@ const K8sManager = {
         btn.textContent = '⏳ Syncing...';
         btn.disabled = true;
         try {
-            const response = await fetch('/api/argocd/sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ app_name: appName })
-            });
-            const data = await response.json();
+            const data = await api.post('/api/argocd/sync', { app_name: appName });
             if (data.success) {
                 btn.textContent = '✓ Done';
                 btn.style.background = 'var(--neon-green)';
@@ -313,26 +296,15 @@ const K8sManager = {
         const startTime = performance.now();
 
         try {
-            const response = await fetch('/api/pods/status', { signal: controller.signal });
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await apiFetch('/api/pods/status', { signal: controller.signal });
             clearTimeout(timeoutId);
             const duration = performance.now() - startTime;
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
 
             // Debug logging
             if (window.KusanagiDebug) {
                 KusanagiDebug.logApiResponse('/api/pods/status', data, duration);
                 KusanagiDebug.validatePodsData(data);
-            }
-
-            if (data.error) {
-                const el = document.getElementById('pods-content');
-                if (el) el.innerHTML = `<div class="loading" style="color: #ff4444;">Error: ${data.error}</div>`;
-                return;
             }
 
             // Safely access data with defaults
@@ -447,11 +419,7 @@ const K8sManager = {
         try {
             if (window.showNotification) showNotification({ title: 'Processing', message: 'Starting bulk restart of error pods...', severity: 'info' });
 
-            const response = await fetch('/api/pods/delete-error-pods', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const data = await response.json();
+            const data = await api.post('/api/pods/delete-error-pods');
 
             if (data.success) {
                 if (window.showNotification) showNotification({
@@ -580,6 +548,7 @@ const K8sManager = {
         modal.style.display = 'flex';
 
         try {
+            // Note: Pod logs endpoint returns raw text, not JSON envelope
             const response = await fetch(`/api/pods/${namespace}/${podName}/logs?tail=500`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -607,12 +576,7 @@ const K8sManager = {
         const confirmed = confirm(`⚠️ Force Delete Pod\n\nAre you sure you want to force delete:\n\n${namespace}/${podName}\n\nThis action cannot be undone!`);
         if (!confirmed) return;
         try {
-            const response = await fetch('/api/pods/force-delete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ namespace, pod_name: podName })
-            });
-            const data = await response.json();
+            const data = await api.post('/api/pods/force-delete', { namespace, pod_name: podName });
             if (data.success) {
                 if (window.showNotification) showNotification({ title: 'Pod Deleted', message: `Successfully force deleted ${podName}`, severity: 'success' });
                 setTimeout(() => this.fetchPodsStatus(), 1000);
@@ -627,12 +591,9 @@ const K8sManager = {
     // === NODES MONITORING ===
     async fetchNodesStatus() {
         try {
-            const response = await fetch('/api/nodes/status');
-            const data = await response.json();
-            if (data.error) {
-                this.renderNodesError(data.error);
-                return;
-            }
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await api.get('/api/nodes/status');
+            
             if (data._warning) {
                 console.warn('Nodes warning:', data._warning);
             }
@@ -789,8 +750,7 @@ const K8sManager = {
         resultDiv.style.display = 'block';
         resultDiv.innerHTML = 'Testing components...\n';
         try {
-            const response = await fetch('/api/debug/nodes');
-            const data = await response.json();
+            const data = await api.get('/api/debug/nodes');
             let report = '🔍 DIAGNOSTIC REPORT\n====================\n\n';
             report += `[K8s Nodes] ${data.k8s_nodes_ok ? '✅ OK' : '❌ FAIL'}\n[K8s Pods]  ${data.k8s_pods_ok ? '✅ OK' : '❌ FAIL'}\n[Prometheus] ${data.prometheus_ok ? '✅ OK' : '❌ FAIL'}\n`;
             resultDiv.innerHTML = report;
@@ -805,26 +765,24 @@ const K8sManager = {
     // === CLUSTER OVERVIEW ===
     async fetchClusterOverview() {
         try {
-            const response = await fetch('/api/k8s/cluster');
-            const data = await response.json();
-            if (!data.error) {
-                const stats = {
-                    'ns-count': data.namespace_count || 0,
-                    'pvc-count': data.pvc_count || 0,
-                    'pvc-capacity': data.pvc_total_capacity || '-',
-                    'pvc-total-count': data.pvc_count || 0,
-                    'pvc-bound-count': (data.pvcs || []).filter(p => p.status === 'Bound').length,
-                    'pvc-pending-count': (data.pvcs || []).filter(p => p.status !== 'Bound').length,
-                    'pvc-total-storage': data.pvc_total_capacity || '-',
-                    'pvc-table-count': (data.pvcs || []).length,
-                    'services-count': data.services || 0,
-                    'pods-total': data.pods || 0,
-                    'node-total': data.nodes || 0
-                };
-                for (const [id, value] of Object.entries(stats)) {
-                    const el = document.getElementById(id);
-                    if (el) el.textContent = value;
-                }
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await api.get('/api/k8s/cluster');
+            
+            const stats = {
+                'ns-count': data.namespace_count || 0,
+                'pvc-count': data.pvc_count || 0,
+                'pvc-capacity': data.pvc_total_capacity || '-',
+                'pvc-total-count': data.pvc_count || 0,
+                'pvc-bound-count': (data.pvcs || []).filter(p => p.status === 'Bound').length,
+                'pvc-pending-count': (data.pvcs || []).filter(p => p.status !== 'Bound').length,
+                'pvc-total-storage': data.pvc_total_capacity || '-',
+                'services-count': data.services || 0,
+                'pods-total': data.pods || 0,
+                'node-total': data.nodes || 0
+            };
+            for (const [id, value] of Object.entries(stats)) {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
             }
         } catch (error) {
             console.error('Failed to fetch cluster overview:', error);
@@ -836,18 +794,9 @@ const K8sManager = {
     async fetchStorageStatus() {
         try {
             console.log('🔍 Fetching storage status...');
-            const response = await fetch('/api/storage');
-            if (!response.ok) {
-                throw new Error(`Server returned ${response.status}`);
-            }
-            const data = await response.json();
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await api.get('/api/storage');
             console.log('📡 Storage data received:', data);
-
-            if (data.status === 'error') {
-                console.warn('Storage API returned application error:', data.message);
-                this.renderStorageError(data.message || 'Error fetching storage data');
-                return;
-            }
 
             this.storageData = data.pvcs || [];
 
@@ -977,25 +926,8 @@ const K8sManager = {
     // === BACKUPS ===
     async fetchBackupsStatus() {
         try {
-            const response = await fetch('/api/backups');
-            const data = await response.json();
-
-            // Handle explicit error
-            if (data.error) {
-                console.error('Backups API error:', data.error);
-                const container = document.getElementById('backups-content');
-                if (container) {
-                    container.innerHTML = `
-                        <div class="error-state" style="padding: 2rem; text-align: center;">
-                            <span style="font-size: 2rem;">⚠️</span>
-                            <p>Failed to load backups</p>
-                            <p style="color: var(--neon-orange); font-size: 0.9rem;">${data.error}</p>
-                            <button onclick="K8sManager.fetchBackupsStatus()" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
-                        </div>
-                    `;
-                }
-                return;
-            }
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await api.get('/api/backups');
 
             // Handle warning (e.g., Kubernetes unavailable)
             if (data._warning) {
@@ -1098,18 +1030,8 @@ const K8sManager = {
         if (!confirm(`Are you sure you want to trigger backup '${name}'?`)) return;
 
         try {
-            const response = await fetch('/api/backups/trigger', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ namespace, cronjob_name: name })
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.message || 'Failed to trigger backup');
-            }
-
-            const result = await response.json();
+            const result = await api.post('/api/backups/trigger', { namespace, cronjob_name: name });
+            
             // Show toast or alert
             if (window.showNotification) {
                 window.showNotification(result.message, 'success');
@@ -1157,8 +1079,8 @@ const K8sManager = {
         }
 
         try {
-            const response = await fetch('/api/services');
-            const data = await response.json();
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await api.get('/api/services');
 
             this.saveServicesCache(data);
             this.lastServicesFetch = Date.now();
@@ -1226,8 +1148,8 @@ const K8sManager = {
         }
 
         try {
-            const response = await fetch('/api/ingress');
-            const data = await response.json();
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await api.get('/api/ingress');
 
             // Save to cache
             this.saveIngressCache(data);

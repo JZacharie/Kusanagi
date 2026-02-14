@@ -1,10 +1,12 @@
 //! Kubernetes handlers
 
 use axum::extract::{Path, State};
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::Json;
+use serde_json::json;
 
 use crate::domain::services::kubernetes_service;
+use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 
 /// Cluster overview endpoint
@@ -16,63 +18,32 @@ pub async fn cluster_overview(State(state): State<AppState>) -> impl IntoRespons
     )
     .await
     {
-        Ok(data) => Json(data).into_response(),
-        Err(e) => Json(serde_json::json!({
-            "status": "error",
-            "message": e,
-            "nodes": 0,
-            "pods": 0,
-            "services": 0,
-            "pods_running": 0,
-            "nodes_ready": 0
-        }))
-        .into_response(),
+        Ok(data) => api_success(json!(data)),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
 
 /// Nodes status endpoint
 pub async fn nodes_status(State(state): State<AppState>) -> impl IntoResponse {
     match kubernetes_service::get_nodes_status(&state.http_client).await {
-        Ok(data) => Json(data).into_response(),
-        Err(e) => Json(serde_json::json!({
-            "status": "error",
-            "message": e,
-            "ready_nodes": 0,
-            "not_ready_nodes": 0,
-            "total_nodes": 0
-        }))
-        .into_response(),
+        Ok(data) => api_success(json!(data)),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
 
 /// Pods status endpoint
 pub async fn pods_status() -> impl IntoResponse {
     match kubernetes_service::get_pods_status().await {
-        Ok(data) => Json(data).into_response(),
-        Err(e) => Json(serde_json::json!({
-            "status": "error",
-            "message": e,
-            "running_pods": 0,
-            "pending_pods": 0,
-            "error_pods": 0,
-            "total_pods": 0
-        }))
-        .into_response(),
+        Ok(data) => api_success(json!(data)),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
 
 /// Storage endpoint
 pub async fn storage(State(state): State<AppState>) -> impl IntoResponse {
     match kubernetes_service::get_storage(&state.http_client).await {
-        Ok(data) => Json(data).into_response(),
-        Err(e) => Json(serde_json::json!({
-            "status": "error",
-            "message": e,
-            "pvc_count": 0,
-            "pvc_total_capacity": "0 B",
-            "pvcs": []
-        }))
-        .into_response(),
+        Ok(data) => api_success(json!(data)),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
 
@@ -81,8 +52,8 @@ pub async fn ingress(State(state): State<AppState>) -> impl IntoResponse {
     use crate::domain::services::kubernetes_service::get_ingress;
 
     match get_ingress(&state.kube_client, &state.k8s_cache).await {
-        Ok(ingresses) => Json(ingresses).into_response(),
-        Err(_e) => Json(serde_json::json!([])).into_response(),
+        Ok(ingresses) => api_success(json!(ingresses)),
+        Err(_e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch ingress"),
     }
 }
 
@@ -91,8 +62,11 @@ pub async fn services(State(state): State<AppState>) -> impl IntoResponse {
     use crate::domain::services::kubernetes_service::get_services;
 
     match get_services(&state.kube_client, &state.k8s_cache).await {
-        Ok(services) => Json(services).into_response(),
-        Err(_e) => Json(serde_json::json!([])).into_response(),
+        Ok(services) => api_success(json!(services)),
+        Err(_e) => api_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to fetch services",
+        ),
     }
 }
 
@@ -101,33 +75,20 @@ pub async fn argocd_status() -> impl IntoResponse {
     use crate::domain::services::argocd_service::get_argocd_status;
 
     match get_argocd_status().await {
-        Ok(status) => Json(serde_json::json!({
-            "status": "success",
-            "data": status
-        }))
-        .into_response(),
-        Err(e) => Json(serde_json::json!({
-            "status": "error",
-            "message": e,
-            "data": {
-                "applications": [],
-                "total": 0,
-                "healthy": 0,
-                "synced": 0
-            }
-        }))
-        .into_response(),
+        Ok(status) => api_success(json!(status)),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
 
 /// Pod logs endpoint
+/// Note: Returns raw text, not JSON envelope, as logs are text-based
 pub async fn pod_logs(Path((namespace, name)): Path<(String, String)>) -> impl IntoResponse {
     use crate::domain::services::kubernetes_service::get_pod_logs;
 
     match get_pod_logs(&namespace, &name).await {
         Ok(logs) => logs.into_response(),
         Err(e) => (
-            axum::http::StatusCode::NOT_FOUND,
+            StatusCode::NOT_FOUND,
             format!("Failed to fetch logs: {}", e),
         )
             .into_response(),
@@ -139,12 +100,7 @@ pub async fn delete_error_pods_handler() -> impl IntoResponse {
     use crate::domain::services::kubernetes_service::delete_error_pods;
 
     match delete_error_pods().await {
-        Ok(result) => Json(result).into_response(),
-        Err(e) => Json(serde_json::json!({
-            "status": "error",
-            "message": e,
-            "success": false
-        }))
-        .into_response(),
+        Ok(result) => api_success(json!(result)),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }

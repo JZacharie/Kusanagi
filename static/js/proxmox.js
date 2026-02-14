@@ -44,21 +44,12 @@ const ProxmoxDashboard = {
     async fetchProxmoxData() {
         this.log('Fetching Proxmox data...');
 
-        const [vmsResponse, containersResponse, nodesResponse] = await Promise.all([
-            fetch('/api/proxmox/vms'),
-            fetch('/api/proxmox/containers'),
-            fetch('/api/proxmox/nodes')
+        // Use apiFetch to get unwrapped data from the standard envelope
+        const [vms, containers, nodes] = await Promise.all([
+            api.get('/api/proxmox/vms').catch(() => []),
+            api.get('/api/proxmox/containers').catch(() => []),
+            api.get('/api/proxmox/nodes').catch(() => [])
         ]);
-
-        this.log('Response status:', {
-            vms: vmsResponse.status,
-            containers: containersResponse.status,
-            nodes: nodesResponse.status
-        });
-
-        const vms = vmsResponse.ok ? await vmsResponse.json() : [];
-        const containers = containersResponse.ok ? await containersResponse.json() : [];
-        const nodes = nodesResponse.ok ? await nodesResponse.json() : [];
 
         this.log('Fetched data:', { vms: vms.length, containers: containers.length, nodes: nodes.length });
 
@@ -223,16 +214,8 @@ const ProxmoxDashboard = {
             const notify = typeof window.showNotification === 'function' ? window.showNotification : (m) => console.log(m);
             notify(`Sending ${action} order to VM ${vmid} on ${server}...`, 'info');
 
-            const response = await fetch(`/api/proxmox/vm/${vmid}/node/${node}/status/${action}?server=${encodeURIComponent(server)}`, {
-                method: 'POST'
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `Failed to ${action} VM`);
-            }
-
-            const result = await response.json();
+            const result = await api.post(`/api/proxmox/vm/${vmid}/node/${node}/status/${action}?server=${encodeURIComponent(server)}`);
+            
             notify(result.message, 'success');
             setTimeout(() => this.fetchAndRender(), 2000);
         } catch (error) {
@@ -326,16 +309,8 @@ const ProxmoxDashboard = {
             const notify = typeof window.showNotification === 'function' ? window.showNotification : (m) => console.log(m);
             notify(`Sending ${action} order to Container ${vmid} on ${server}...`, 'info');
 
-            const response = await fetch(`/api/proxmox/ct/${vmid}/node/${node}/status/${action}?server=${encodeURIComponent(server)}`, {
-                method: 'POST'
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `Failed to ${action} Container`);
-            }
-
-            const result = await response.json();
+            const result = await api.post(`/api/proxmox/ct/${vmid}/node/${node}/status/${action}?server=${encodeURIComponent(server)}`);
+            
             notify(result.message, 'success');
             setTimeout(() => this.fetchAndRender(), 2000);
         } catch (error) {

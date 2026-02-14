@@ -5,12 +5,13 @@
 
 use axum::{
     extract::{Query, State},
+    http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 use tracing::{debug, error};
 
 use crate::application::use_cases::GetAlertsInput;
+use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 
 /// Query parameters for alerts endpoint
@@ -42,14 +43,14 @@ pub async fn get_alerts_handler(
     match state.alerts_use_case.execute(input).await {
         Ok(alerts) => {
             debug!("Alerts retrieved successfully: {} total", alerts.total);
-            Json(alerts).into_response()
+            api_success(serde_json::to_value(alerts).unwrap_or_default())
         }
         Err(e) => {
             error!("Failed to get alerts: {}", e);
-            Json(serde_json::json!({
-                "error": format!("Failed to retrieve alerts: {}", e)
-            }))
-            .into_response()
+            api_error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to retrieve alerts: {}", e),
+            )
         }
     }
 }

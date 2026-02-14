@@ -16,16 +16,17 @@ const HomeAssistantDashboard = {
 
     async fetchAndRender() {
         try {
-            const [sensorsResp, automationsResp, devicesResp] = await Promise.all([
-                fetch('/api/ha/sensors').then(r => r.json()),
-                fetch('/api/ha/automations').then(r => r.json()),
-                fetch('/api/ha/devices').then(r => r.json())
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const [sensorsData, automationsData, devicesData] = await Promise.all([
+                api.get('/api/ha/sensors').catch(() => ({ sensors: [], count: 0 })),
+                api.get('/api/ha/automations').catch(() => ({ automations: [], count: 0 })),
+                api.get('/api/ha/devices').catch(() => ({ devices: [], count: 0 }))
             ]);
 
             // Extract arrays from response objects (API returns {sensors: [...], count: N})
-            const sensors = Array.isArray(sensorsResp) ? sensorsResp : (sensorsResp.sensors || []);
-            const automations = Array.isArray(automationsResp) ? automationsResp : (automationsResp.automations || []);
-            const devices = Array.isArray(devicesResp) ? devicesResp : (devicesResp.devices || []);
+            const sensors = sensorsData.sensors || [];
+            const automations = automationsData.automations || [];
+            const devices = devicesData.devices || [];
 
             this.sensors = sensors; // Store for detail view
             this.renderStats(sensors, automations, devices);
