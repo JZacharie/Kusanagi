@@ -1,4 +1,4 @@
-const K8sNetwork = {
+const K8sServices = {
     init() {
         console.log('🌐 K8s Network Module Initialized');
     },
@@ -49,7 +49,7 @@ const K8sNetwork = {
                         <span style="font-size: 2rem;">⚠️</span>
                         <p style="color: #ff4444;">Failed to load services</p>
                         <p style="color: var(--text-secondary); font-size: 0.9rem;">${error.message}</p>
-                        <button onclick="K8sNetwork.fetchServices()" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
+                        <button onclick="K8sServices.fetchServices()" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
                     </div>
                 `;
             }
@@ -189,7 +189,7 @@ const K8sNetwork = {
                         <span style="font-size: 2rem;">⚠️</span>
                         <p style="color: #ff4444;">Failed to load ingress</p>
                         <p style="color: var(--text-secondary); font-size: 0.9rem;">${error.message}</p>
-                        <button onclick="K8sNetwork.fetchIngress()" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
+                        <button onclick="K8sServices.fetchIngress()" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
                     </div>
                 `;
             }
@@ -227,4 +227,4 @@ const K8sNetwork = {
     }
 };
 
-window.K8sNetwork = K8sNetwork;
+window.K8sServices = K8sServices;

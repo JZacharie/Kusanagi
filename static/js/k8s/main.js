@@ -10,7 +10,7 @@ const K8sManager = {
         if (window.K8sNodes) K8sNodes.init();
         if (window.K8sArgo) K8sArgo.init();
         if (window.K8sStorage) K8sStorage.init();
-        if (window.K8sNetwork) K8sNetwork.init();
+        if (window.K8sServices) K8sServices.init();
 
         this.setupEventListeners();
 
@@ -30,9 +30,9 @@ const K8sManager = {
             K8sStorage.fetchStorageStatus();
             K8sStorage.fetchBackupsStatus();
         }
-        if (window.K8sNetwork) {
-            K8sNetwork.fetchServices();
-            K8sNetwork.fetchIngress();
+        if (window.K8sServices) {
+            K8sServices.fetchServices();
+            K8sServices.fetchIngress();
         }
     },
 
@@ -71,10 +71,10 @@ const K8sManager = {
                 const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
                 const now = Date.now();
 
-                if (activeTab === 'services' && window.K8sNetwork) {
-                    K8sNetwork.fetchServices();
-                } else if (activeTab === 'ingress' && window.K8sNetwork) {
-                    K8sNetwork.fetchIngress();
+                if (activeTab === 'services' && window.K8sServices) {
+                    K8sServices.fetchServices();
+                } else if (activeTab === 'ingress' && window.K8sServices) {
+                    K8sServices.fetchIngress();
                 } else if (activeTab === 'argocd' && window.K8sArgo) {
                     K8sArgo.fetchArgoStatus();
                 }
@@ -109,8 +109,8 @@ const K8sManager = {
     fetchArgoStatus() { K8sArgo.fetchArgoStatus(); },
 
     // Network
-    fetchServices() { K8sNetwork.fetchServices(); },
-    fetchIngress() { K8sNetwork.fetchIngress(); }
+    fetchServices() { K8sServices.fetchServices(); },
+    fetchIngress() { K8sServices.fetchIngress(); }
 };
 
 window.K8sManager = K8sManager;
