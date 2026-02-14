@@ -832,33 +832,42 @@ const K8sManager = {
     // === STORAGE ===
     async fetchStorageStatus() {
         try {
+            console.log('🔍 Fetching storage status...');
             const response = await fetch('/api/storage');
             if (!response.ok) {
                 throw new Error(`Server returned ${response.status}`);
             }
             const data = await response.json();
+            console.log('📡 Storage data received:', data);
 
-            // Update stats grid
-            const stats = {
-                'pvc-total-count': data.pvc_count || 0,
-                'pvc-bound-count': (data.pvcs || []).filter(p => p.status === 'Bound').length,
-                'pvc-pending-count': (data.pvcs || []).filter(p => p.status !== 'Bound').length,
-                'pvc-total-storage': data.pvc_total_capacity || '-'
-            };
-            for (const [id, value] of Object.entries(stats)) {
-                const el = document.getElementById(id);
-                if (el) el.textContent = value;
-            }
-
-            if (data.error) {
-                console.warn('Storage API returned error:', data.error);
-                this.renderStorageError(data.error);
+            if (data.status === 'error') {
+                console.warn('Storage API returned application error:', data.message);
+                this.renderStorageError(data.message || 'Error fetching storage data');
                 return;
             }
 
             this.storageData = data.pvcs || [];
+
+            // Update stats grid
+            const stats = {
+                'pvc-total-count': data.pvc_count ?? this.storageData.length,
+                'pvc-bound-count': this.storageData.filter(p => p.status === 'Bound').length,
+                'pvc-pending-count': this.storageData.filter(p => p.status !== 'Bound').length,
+                'pvc-total-storage': data.pvc_total_capacity || '-'
+            };
+
+            for (const [id, value] of Object.entries(stats)) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.textContent = value;
+                } else {
+                    console.debug(`Element ${id} not found in DOM yet`);
+                }
+            }
+
             const countEl = document.getElementById('pvc-table-count');
             if (countEl) countEl.textContent = this.storageData.length;
+
             this.renderStorageTable(data);
         } catch (error) {
             console.error('Failed to fetch storage status:', error);
@@ -918,11 +927,12 @@ const K8sManager = {
                     <th onclick="K8sManager.sortStorage('storage_class')" class="sortable">Class ${this.getSortArrow('storage_class')}</th>
                 </tr></thead>
                 <tbody>${pageData.map(pvc => {
-            const percent = pvc.usage_percent || 0;
+            const percent = pvc.usage_percent ?? 0;
             const barClass = percent > 90 ? 'bar-danger' : percent > 75 ? 'bar-warning' : 'bar-ok';
+            const displayPercent = percent > 1000 ? percent.toFixed(0) : percent.toFixed(1);
             return `<tr>
-                        <td class="app-name">${pvc.name}</td><td>${pvc.namespace}</td><td>${pvc.capacity}</td>
-                        <td><div class="usage-cell"><div class="pod-bar-container" title="${this.formatBytes(pvc.used_bytes) || '?'} / ${pvc.capacity}"><div class="pod-bar ${barClass}" style="width: ${Math.min(percent, 100)}%"></div></div><span class="usage-text">${percent.toFixed(1)}%</span></div></td>
+                        <td class="app-name">${pvc.name}</td><td>${pvc.namespace}</td><td>${pvc.capacity || format_bytes(pvc.capacity_bytes)}</td>
+                        <td><div class="usage-cell"><div class="pod-bar-container" title="${this.formatBytes(pvc.used_bytes) || '?'} / ${pvc.capacity}"><div class="pod-bar ${barClass}" style="width: ${Math.min(percent, 100)}%"></div></div><span class="usage-text">${displayPercent}%</span></div></td>
                         <td><span class="status-badge ${pvc.status.toLowerCase()}">${pvc.status}</span></td><td class="storage-class">${pvc.storage_class || '-'}</td>
                     </tr>`;
         }).join('')}</tbody>
