@@ -380,19 +380,8 @@ const MetricsManager = {
         }
 
         try {
-            const response = await fetch('/api/metrics');
-            if (!response.ok) {
-                let errorMsg = `Server returned ${response.status}`;
-                try {
-                    const errorData = await response.json();
-                    if (errorData.error) errorMsg = errorData.error;
-                } catch (e) {
-                    // Not JSON, use status
-                }
-                throw new Error(errorMsg);
-            }
-
-            const metrics = await response.json();
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const metrics = await api.get('/api/metrics');
 
             // Save to cache
             this.saveToCache(metrics);
@@ -413,9 +402,8 @@ const MetricsManager = {
             const start = end - (hours * 3600);
             const step = '15m'; // 15 minute resolution for 24h
 
-            const response = await fetch(`/api/prometheus/range?query=${encodeURIComponent(query)}&start=${start}&end=${end}&step=${step}`);
-            if (!response.ok) return null;
-            const data = await response.json();
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await api.get(`/api/prometheus/range?query=${encodeURIComponent(query)}&start=${start}&end=${end}&step=${step}`);
             return data.data?.result?.[0]?.values || null;
         } catch (e) {
             console.error('Range query failed:', e);
@@ -695,12 +683,8 @@ const QuotasManager = {
                 }, 1000);
             }
 
-            const response = await fetch('/api/quotas');
-            if (!response.ok) {
-                throw new Error('Failed to fetch quotas');
-            }
-
-            const data = await response.json();
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await api.get('/api/quotas');
             this.renderQuotas(data);
         } catch (error) {
             console.error('Quotas error:', error);

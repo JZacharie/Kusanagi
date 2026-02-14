@@ -14,9 +14,8 @@ const WeatherDashboard = {
         if (!container) return;
 
         try {
-            const response = await fetch('/api/weather/current');
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const data = await api.get('/api/weather/current');
             this.renderWeather(data);
         } catch (error) {
             console.error('Failed to fetch weather data:', error);
@@ -200,4 +199,3 @@ const WeatherDashboard = {
 
 // Registered globally to be called by switchTab
 window.WeatherDashboard = WeatherDashboard;
-

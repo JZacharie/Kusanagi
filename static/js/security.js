@@ -11,22 +11,13 @@ const SecurityDashboard = {
 
     async fetchAndRender() {
         try {
-            // Fetch Trivy vulnerability data
-            const vulnsRes = await fetch('/api/security/vulnerabilities');
-
-            if (!vulnsRes.ok) {
-                throw new Error('Trivy service unavailable');
-            }
-
-            const vulns = await vulnsRes.json();
+            // Use apiFetch to get unwrapped data from the standard envelope
+            const vulns = await api.get('/api/security/vulnerabilities');
 
             // Also fetch available reports for the selector
             try {
-                const reportsRes = await fetch('/api/security/reports');
-                if (reportsRes.ok) {
-                    const reportsData = await reportsRes.json();
-                    this.renderReportSelector(reportsData.reports || []);
-                }
+                const reportsData = await api.get('/api/security/reports');
+                this.renderReportSelector(reportsData || []);
             } catch (e) {
                 console.warn('Failed to fetch reports list:', e);
             }
@@ -107,10 +98,7 @@ const SecurityDashboard = {
         }
 
         try {
-            const res = await fetch(`/api/security/reports/${reportId}`);
-            if (!res.ok) throw new Error('Failed to load report');
-
-            const vulns = await res.json();
+            const vulns = await api.get(`/api/security/reports/${reportId}`);
             this.renderStats(vulns);
             this.renderVulnerabilities(vulns);
         } catch (error) {
