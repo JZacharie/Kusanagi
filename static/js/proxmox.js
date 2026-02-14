@@ -329,14 +329,15 @@ const ProxmoxDashboard = {
     },
 
     formatUptime(seconds) {
-        if (!seconds || seconds === 0) return '0s';
+        if (!seconds && seconds !== 0) return 'N/A';
         const days = Math.floor(seconds / 86400);
         const hours = Math.floor((seconds % 86400) / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
 
-        if (days > 0) return `${days}d ${hours}h`;
-        if (hours > 0) return `${hours}h ${minutes}m`;
-        return `${minutes}m`;
+        if (days > 0) return `${days}j ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        if (hours > 0) return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+        return `${minutes}m ${secs.toString().padStart(2, '0')}s`;
     }
 };
 

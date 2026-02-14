@@ -149,10 +149,15 @@ const KusanagiSystem = {
     },
 
     formatUptime: function (seconds) {
-        if (!seconds) return 'N/A';
-        const hours = Math.floor(seconds / 3600);
+        if (!seconds && seconds !== 0) return 'N/A';
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
         const secs = seconds % 60;
+        
+        if (days > 0) {
+            return `${days}j ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
 };
