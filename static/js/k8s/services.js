@@ -70,11 +70,13 @@ const K8sServices = {
         try {
             if (window.TableManager) {
                 console.log('🔍 Using TableManager for rendering');
-                TableManager.init('services', services, (svc) => this.renderServicesRows(svc), [
+                TableManager.init('services', services, (data) => this.renderServicesRows(data), [
                     { key: 'name', label: 'Name' }, { key: 'namespace', label: 'Namespace' }, { key: 'type_', label: 'Type' },
                     { key: 'cluster_ip', label: 'Cluster IP' }, { key: 'external_ip', label: 'External IP' }, { key: 'ports', label: 'Ports' }, { key: 'age', label: 'Age' }
                 ]);
                 this.renderServicesStructure();
+                // Trigger initial render
+                this.renderServicesRows(TableManager.tables['services'].filtered);
             } else {
                 console.log('🔍 Using renderServicesSimple (TableManager not available)');
                 this.renderServicesSimple(services);
@@ -136,8 +138,12 @@ const K8sServices = {
     },
 
     renderServicesStructure() {
+        console.log('🔍 renderServicesStructure called');
         const container = document.getElementById('services-content');
-        if (!container) return;
+        if (!container) {
+            console.error('❌ services-content not found in renderServicesStructure');
+            return;
+        }
         const searchHtml = window.TableManager ? TableManager.createSearchInput('services', 'Search services...') : '';
         container.innerHTML = `
             <div class="table-controls">${searchHtml}</div>
@@ -149,12 +155,16 @@ const K8sServices = {
                 <tbody id="services-table-body"></tbody>
             </table>
         `;
-        this.renderServicesRows(TableManager.tables['services'].filtered);
+        console.log('✅ Table structure rendered');
     },
 
     renderServicesRows(services) {
+        console.log('🔍 renderServicesRows called with', services?.length, 'services');
         const tbody = document.getElementById('services-table-body');
-        if (!tbody) return;
+        if (!tbody) {
+            console.error('❌ services-table-body element not found!');
+            return;
+        }
 
         if (!services || services.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No services found</td></tr>';
@@ -172,6 +182,7 @@ const K8sServices = {
                 <td>${svc.age || '-'}</td>
             </tr>
         `).join('');
+        console.log('✅ Rendered', services.length, 'service rows');
     },
 
     // === INGRESS ===
@@ -232,33 +243,44 @@ const K8sServices = {
     },
 
     renderIngressTable(ingresses) {
+        console.log('🔍 renderIngressTable called with', ingresses?.length, 'ingresses');
         const container = document.getElementById('ingress-content');
-        if (!container) return;
+        if (!container) {
+            console.error('❌ ingress-content not found');
+            return;
+        }
 
         if (!ingresses || ingresses.length === 0) {
+            console.log('🔍 No ingress rules to display');
             container.innerHTML = '<div class="no-issues" style="padding: 2rem; text-align: center;">No ingress rules found</div>';
             return;
         }
 
-        container.innerHTML = `
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Name</th><th>Namespace</th><th>Rules</th><th>Age</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${ingresses.map(ing => `
+        try {
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead>
                         <tr>
-                            <td class="app-name">${ing.name || '-'}</td>
-                            <td>${ing.namespace || '-'}</td>
-                            <td>${Array.isArray(ing.rules) ? ing.rules.join(', ') : (ing.rules || '-')}</td>
-                            <td>${ing.age || '-'}</td>
+                            <th>Name</th><th>Namespace</th><th>Rules</th><th>Age</th>
                         </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
+                    </thead>
+                    <tbody>
+                        ${ingresses.map(ing => `
+                            <tr>
+                                <td class="app-name">${ing.name || '-'}</td>
+                                <td>${ing.namespace || '-'}</td>
+                                <td>${Array.isArray(ing.rules) ? ing.rules.join(', ') : (ing.rules || '-')}</td>
+                                <td>${ing.age || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            console.log('✅ Ingress table rendered successfully');
+        } catch (e) {
+            console.error('❌ Error rendering ingress table:', e);
+            container.innerHTML = `<div class="error-state">Error: ${e.message}</div>`;
+        }
     }
 };
 
