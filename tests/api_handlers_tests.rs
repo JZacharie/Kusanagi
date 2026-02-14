@@ -569,7 +569,7 @@ async fn test_list_pods_endpoint() {
 
     let app = Router::new()
         .route("/api/k8s/pods", get(list_pods))
-        .route("/api/k8s/pods/:namespace/:name", get(get_pod))
+        .route("/api/k8s/pods/{namespace}/{name}", get(get_pod))
         .with_state(state);
 
     let response = app
@@ -605,7 +605,7 @@ async fn test_get_pod_found() {
 
     let app = Router::new()
         .route("/api/k8s/pods", get(list_pods))
-        .route("/api/k8s/pods/:namespace/:name", get(get_pod))
+        .route("/api/k8s/pods/{namespace}/{name}", get(get_pod))
         .with_state(state);
 
     let response = app
@@ -636,7 +636,7 @@ async fn test_get_pod_not_found() {
 
     let app = Router::new()
         .route("/api/k8s/pods", get(list_pods))
-        .route("/api/k8s/pods/:namespace/:name", get(get_pod))
+        .route("/api/k8s/pods/{namespace}/{name}", get(get_pod))
         .with_state(state);
 
     let response = app
@@ -742,7 +742,7 @@ async fn test_get_metrics_endpoint() {
 
     let app = Router::new()
         .route("/metrics", get(get_metrics))
-        .route("/metrics/:name", get(get_metric_by_name))
+        .route("/metrics/{name}", get(get_metric_by_name))
         .with_state(state);
 
     let response = app
@@ -781,7 +781,7 @@ async fn test_get_metric_by_name_endpoint() {
 
     let app = Router::new()
         .route("/metrics", get(get_metrics))
-        .route("/metrics/:name", get(get_metric_by_name))
+        .route("/metrics/{name}", get(get_metric_by_name))
         .with_state(state);
 
     let response = app
