@@ -1,6 +1,18 @@
 // Core Domain Entities
 use serde::{Deserialize, Serialize};
 
+// ==================== Modules ====================
+pub mod diagnostic;
+pub mod llm;
+
+// Re-export Diagnostic entities
+pub use diagnostic::{
+    CheckResult, CheckStatus, DiagnosticReport, DiagnosticSummary, QuickHealthResponse,
+};
+
+// Re-export LLM entities
+pub use llm::{LlmConfig, LlmConfigInfo, LlmError, LlmHealthResponse, LlmProvider, LlmResponse};
+
 // ==================== Cluster Entities ====================
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClusterInfo {
