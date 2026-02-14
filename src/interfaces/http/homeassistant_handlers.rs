@@ -1,18 +1,17 @@
 //! HomeAssistant HTTP Handlers
-//!
-//! Interface layer for HomeAssistant endpoints.
-//! Migrated from Actix-web to Axum.
 
-use axum::{extract::State, response::IntoResponse, Json};
+use axum::{extract::State, response::Response};
+use serde_json::json;
 use tracing::{debug, error};
 
+use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 
 /// Get sensors from Home Assistant
 ///
 /// # Endpoint
 /// GET /api/ha/sensors
-pub async fn get_sensors_handler(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn get_sensors_handler(State(state): State<AppState>) -> Response {
     debug!("HomeAssistant sensors request received");
 
     match state.ha_use_case.get_sensors().await {
@@ -21,16 +20,14 @@ pub async fn get_sensors_handler(State(state): State<AppState>) -> impl IntoResp
                 "HomeAssistant sensors retrieved successfully: {} sensors",
                 response.count
             );
-            Json(response).into_response()
+            api_success(serde_json::to_value(response).unwrap_or_default())
         }
         Err(e) => {
             error!("Failed to get HomeAssistant sensors: {}", e);
-            Json(serde_json::json!({
-                "sensors": [],
-                "count": 0,
-                "error": format!("Failed to fetch sensors: {}", e)
-            }))
-            .into_response()
+            api_error(
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to fetch sensors: {}", e),
+            )
         }
     }
 }
@@ -39,7 +36,7 @@ pub async fn get_sensors_handler(State(state): State<AppState>) -> impl IntoResp
 ///
 /// # Endpoint
 /// GET /api/ha/devices
-pub async fn get_devices_handler(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn get_devices_handler(State(state): State<AppState>) -> Response {
     debug!("HomeAssistant devices request received");
 
     match state.ha_use_case.get_devices().await {
@@ -48,16 +45,14 @@ pub async fn get_devices_handler(State(state): State<AppState>) -> impl IntoResp
                 "HomeAssistant devices retrieved successfully: {} devices",
                 response.count
             );
-            Json(response).into_response()
+            api_success(serde_json::to_value(response).unwrap_or_default())
         }
         Err(e) => {
             error!("Failed to get HomeAssistant devices: {}", e);
-            Json(serde_json::json!({
-                "devices": [],
-                "count": 0,
-                "error": format!("Failed to fetch devices: {}", e)
-            }))
-            .into_response()
+            api_error(
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to fetch devices: {}", e),
+            )
         }
     }
 }
@@ -66,7 +61,7 @@ pub async fn get_devices_handler(State(state): State<AppState>) -> impl IntoResp
 ///
 /// # Endpoint
 /// GET /api/ha/automations
-pub async fn get_automations_handler() -> impl IntoResponse {
+pub async fn get_automations_handler() -> Response {
     debug!("HomeAssistant automations request received");
 
     use crate::domain::services::homeassistant_service::get_ha_automations;
@@ -74,20 +69,17 @@ pub async fn get_automations_handler() -> impl IntoResponse {
     match get_ha_automations().await {
         Ok(automations) => {
             debug!("HomeAssistant automations retrieved successfully");
-            Json(serde_json::json!({
+            api_success(json!({
                 "automations": automations,
                 "count": automations.as_array().map(|a| a.len()).unwrap_or(0)
             }))
-            .into_response()
         }
         Err(e) => {
             error!("Failed to get HomeAssistant automations: {}", e);
-            Json(serde_json::json!({
-                "automations": [],
-                "count": 0,
-                "error": format!("Failed to fetch automations: {}", e)
-            }))
-            .into_response()
+            api_error(
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to fetch automations: {}", e),
+            )
         }
     }
 }
