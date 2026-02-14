@@ -3,7 +3,7 @@
  * Provides offline caching for PWA functionality
  */
 
-const CACHE_NAME = 'kusanagi-v1';
+const CACHE_NAME = 'kusanagi-v2';
 const STATIC_ASSETS = [
     '/',
     '/static/css/cyberpunk.css',
@@ -14,12 +14,21 @@ const STATIC_ASSETS = [
     '/static/css/sidebar-responsive.css',
     '/static/js/theme.js',
     '/static/js/utils.js',
+    '/static/js/api.js',
     '/static/js/debug.js',
     '/static/js/ansi-parser.js',
     '/static/js/api-tracker.js',
     '/static/js/error-boundary.js',
+    '/static/js/config.js',
     '/static/js/core.js',
-    '/static/js/k8s.js',
+    '/static/js/page-loader.js',
+    '/static/js/k8s/state.js',
+    '/static/js/k8s/pods.js',
+    '/static/js/k8s/nodes.js',
+    '/static/js/k8s/services.js',
+    '/static/js/k8s/storage.js',
+    '/static/js/k8s/argocd.js',
+    '/static/js/k8s/main.js',
     '/static/js/sidebar.js',
     '/static/js/pwa.js',
     '/static/images/logo.png',
