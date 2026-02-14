@@ -2,7 +2,7 @@
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::response::IntoResponse;
+use axum::response::{IntoResponse, Response};
 use serde_json::json;
 
 use crate::domain::services::kubernetes_service;
@@ -10,7 +10,7 @@ use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 
 /// Cluster overview endpoint
-pub async fn cluster_overview(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn cluster_overview(State(state): State<AppState>) -> Response {
     match kubernetes_service::get_cluster_overview(
         &state.http_client,
         &state.kube_client,
@@ -24,7 +24,7 @@ pub async fn cluster_overview(State(state): State<AppState>) -> impl IntoRespons
 }
 
 /// Nodes status endpoint
-pub async fn nodes_status(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn nodes_status(State(state): State<AppState>) -> Response {
     match kubernetes_service::get_nodes_status(&state.http_client).await {
         Ok(data) => api_success(json!(data)),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
@@ -32,7 +32,7 @@ pub async fn nodes_status(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// Pods status endpoint
-pub async fn pods_status() -> impl IntoResponse {
+pub async fn pods_status() -> Response {
     match kubernetes_service::get_pods_status().await {
         Ok(data) => api_success(json!(data)),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
@@ -40,7 +40,7 @@ pub async fn pods_status() -> impl IntoResponse {
 }
 
 /// Storage endpoint
-pub async fn storage(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn storage(State(state): State<AppState>) -> Response {
     match kubernetes_service::get_storage(&state.http_client).await {
         Ok(data) => api_success(json!(data)),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
@@ -48,7 +48,7 @@ pub async fn storage(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// Ingress endpoint
-pub async fn ingress(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn ingress(State(state): State<AppState>) -> Response {
     use crate::domain::services::kubernetes_service::get_ingress;
 
     match get_ingress(&state.kube_client, &state.k8s_cache).await {
@@ -58,7 +58,7 @@ pub async fn ingress(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// Services endpoint
-pub async fn services(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn services(State(state): State<AppState>) -> Response {
     use crate::domain::services::kubernetes_service::get_services;
 
     match get_services(&state.kube_client, &state.k8s_cache).await {
@@ -71,7 +71,7 @@ pub async fn services(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// ArgoCD status endpoint
-pub async fn argocd_status() -> impl IntoResponse {
+pub async fn argocd_status() -> Response {
     use crate::domain::services::argocd_service::get_argocd_status;
 
     match get_argocd_status().await {
@@ -96,7 +96,7 @@ pub async fn pod_logs(Path((namespace, name)): Path<(String, String)>) -> impl I
 }
 
 /// Delete pods in error state
-pub async fn delete_error_pods_handler() -> impl IntoResponse {
+pub async fn delete_error_pods_handler() -> Response {
     use crate::domain::services::kubernetes_service::delete_error_pods;
 
     match delete_error_pods().await {

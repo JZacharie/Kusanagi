@@ -1,0 +1,74 @@
+    Checking kusanagi v0.3.0 (/home/joseph/git/workspace/Kusanagi)
+error: cannot find macro `json` in this scope
+  --> src/interfaces/http/homeassistant_handlers.rs:71:25
+   |
+71 |             api_success(json!({
+   |                         ^^^^
+   |
+help: consider importing this macro
+   |
+ 3 + use serde_json::json;
+   |
+
+error: cannot find macro `json` in this scope
+  --> src/interfaces/http/security_handlers.rs:59:25
+   |
+59 |             api_success(json!(reports))
+   |                         ^^^^
+   |
+help: consider importing this macro
+   |
+ 3 + use serde_json::json;
+   |
+
+error: cannot find macro `json` in this scope
+   --> src/interfaces/http/security_handlers.rs:123:25
+    |
+123 |             api_success(json!(report))
+    |                         ^^^^
+    |
+help: consider importing this macro
+    |
+  3 + use serde_json::json;
+    |
+
+warning: unused import: `Json`
+ --> src/interfaces/http/alert_handlers.rs:9:5
+  |
+9 |     Json,
+  |     ^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Json`
+ --> src/interfaces/http/backup_handlers.rs:6:5
+  |
+6 |     Json,
+  |     ^^^^
+
+warning: unused import: `Json`
+ --> src/interfaces/http/homeassistant_handlers.rs:3:48
+  |
+3 | use axum::{extract::State, response::Response, Json};
+  |                                                ^^^^
+
+warning: unused import: `Json`
+ --> src/interfaces/http/proxmox_handlers.rs:6:5
+  |
+6 |     Json,
+  |     ^^^^
+
+warning: unused import: `Json`
+ --> src/interfaces/http/security_handlers.rs:6:5
+  |
+6 |     Json,
+  |     ^^^^
+
+warning: unused import: `Json`
+ --> src/interfaces/http/weather_handlers.rs:6:48
+  |
+6 | use axum::{extract::State, response::Response, Json};
+  |                                                ^^^^
+
+warning: `kusanagi` (lib) generated 6 warnings
+error: could not compile `kusanagi` (lib) due to 3 previous errors; 6 warnings emitted

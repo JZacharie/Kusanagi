@@ -1,22 +1,19 @@
 //! Backup HTTP Handlers
-//!
-//! Interface layer for backup endpoints.
-//! Migrated from Actix-web to Axum.
 
 use axum::{
     extract::{Path, State},
-    response::IntoResponse,
-    Json,
+    response::Response,
 };
 use tracing::{debug, error, info};
 
+use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 
 /// Get backups status
 ///
 /// # Endpoint
 /// GET /api/backups
-pub async fn get_backups_handler(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn get_backups_handler(State(state): State<AppState>) -> Response {
     debug!("Backups status request received");
 
     match state.backup_use_case.get_backups_status().await {
@@ -25,14 +22,14 @@ pub async fn get_backups_handler(State(state): State<AppState>) -> impl IntoResp
                 "Backups status retrieved: {} CronJobs",
                 backups.total_cronjobs
             );
-            Json(backups).into_response()
+            api_success(serde_json::to_value(backups).unwrap_or_default())
         }
         Err(e) => {
             error!("Failed to get backups status: {}", e);
-            Json(serde_json::json!({
-                "error": format!("Failed to retrieve backups status: {}", e)
-            }))
-            .into_response()
+            api_error(
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to retrieve backups status: {}", e),
+            )
         }
     }
 }
@@ -44,7 +41,7 @@ pub async fn get_backups_handler(State(state): State<AppState>) -> impl IntoResp
 pub async fn trigger_backup_handler(
     State(state): State<AppState>,
     Path((namespace, name)): Path<(String, String)>,
-) -> impl IntoResponse {
+) -> Response {
     info!("Backup trigger requested for {}/{}", namespace, name);
 
     match state
@@ -54,17 +51,16 @@ pub async fn trigger_backup_handler(
     {
         Ok(message) => {
             info!("Backup triggered successfully: {}", message);
-            Json(serde_json::json!({
+            api_success(serde_json::json!({
                 "message": message
             }))
-            .into_response()
         }
         Err(e) => {
             error!("Failed to trigger backup: {}", e);
-            Json(serde_json::json!({
-                "error": format!("Failed to trigger backup: {}", e)
-            }))
-            .into_response()
+            api_error(
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to trigger backup: {}", e),
+            )
         }
     }
 }
