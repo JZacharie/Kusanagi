@@ -136,11 +136,27 @@ pub async fn get_pods_status() -> Result<Value, String> {
 pub async fn get_nodes_status(client: &reqwest::Client) -> Result<Value, String> {
     metrics::counter!("kubernetes_requests_total", 1, "operation" => "get_nodes");
     let kube_client = Client::try_default().await.map_err(|e| e.to_string())?;
-    let nodes_api: Api<Node> = Api::all(kube_client);
-    let list = nodes_api
-        .list(&ListParams::default())
-        .await
-        .map_err(|e| e.to_string())?;
+    let nodes_api: Api<Node> = Api::all(kube_client.clone());
+    let list_params = ListParams::default();
+
+    // Fetch nodes and pods in parallel for efficiency
+    let (nodes_list, pods_list) = tokio::join!(nodes_api.list(&list_params), async {
+        let pods_api: Api<Pod> = Api::all(kube_client);
+        pods_api.list(&ListParams::default()).await.ok()
+    });
+
+    let list = nodes_list.map_err(|e| e.to_string())?;
+
+    // Count pods per node
+    let mut pod_count_by_node: std::collections::HashMap<String, i32> =
+        std::collections::HashMap::new();
+    if let Some(pods) = pods_list {
+        for pod in pods {
+            if let Some(node_name) = pod.spec.as_ref().and_then(|s| s.node_name.as_ref()) {
+                *pod_count_by_node.entry(node_name.clone()).or_insert(0) += 1;
+            }
+        }
+    }
 
     let mut ready = 0;
     let mut not_ready = 0;
@@ -274,6 +290,9 @@ pub async fn get_nodes_status(client: &reqwest::Client) -> Result<Value, String>
             0.0
         };
 
+        // Get actual pod count for this node
+        let actual_pod_count = pod_count_by_node.get(name).copied().unwrap_or(0);
+
         nodes_data.push(json!({
             "name": name,
             "status": if is_ready { "Ready" } else { "NotReady" },
@@ -286,7 +305,7 @@ pub async fn get_nodes_status(client: &reqwest::Client) -> Result<Value, String>
             "memory_allocatable": memory_allocatable,
             "memory_usage_percent": memory_usage_percent,
             "pod_capacity": pod_capacity,
-            "pod_count": 0, // Need to implement pod counting per node if needed, but not critical for this task
+            "pod_count": actual_pod_count,
             "age": age,
             "conditions": conditions_map
         }));
