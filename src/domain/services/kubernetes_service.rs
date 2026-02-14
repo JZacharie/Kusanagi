@@ -606,35 +606,55 @@ pub fn parse_k8s_quantity(q: &str) -> u64 {
         return 0;
     }
 
-    let digits: String = q.chars().take_while(|c| c.is_ascii_digit()).collect();
-    let suffix: String = q.chars().skip_while(|c| c.is_ascii_digit()).collect();
+    // Split numeric part and suffix
+    let split_pos = q.find(|c: char| !c.is_numeric() && c != '.');
+    let (num_str, suffix) = match split_pos {
+        Some(pos) => q.split_at(pos),
+        None => (q, ""),
+    };
 
-    let value = digits.parse::<u64>().unwrap_or(0);
+    let val = num_str.parse::<f64>().unwrap_or(0.0);
+    let suffix = suffix.trim();
 
-    match suffix.as_str() {
-        "Ki" => value * 1024,
-        "Mi" => value * 1024 * 1024,
-        "Gi" => value * 1024 * 1024 * 1024,
-        "Ti" => value * 1024 * 1024 * 1024 * 1024,
-        "Pi" => value * 1024 * 1024 * 1024 * 1024 * 1024,
-        "m" => 0, // Millibytes not relevant for storage
-        "" => value,
-        _ => value, // Unknown suffix, return raw
-    }
+    let multiplier: f64 = match suffix {
+        // Binary SI
+        "Ki" | "ki" => 1024.0,
+        "Mi" | "mi" => 1024.0 * 1024.0,
+        "Gi" | "gi" => 1024.0 * 1024.0 * 1024.0,
+        "Ti" | "ti" => 1024.0 * 1024.0 * 1024.0 * 1024.0,
+        "Pi" | "pi" => 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0,
+        "Ei" | "ei" => 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0,
+        // Decimal SI
+        "k" | "K" => 1000.0,
+        "M" => 1000.0 * 1000.0,
+        "g" | "G" => 1000.0 * 1000.0 * 1000.0,
+        "t" | "T" => 1000.0 * 1000.0 * 1000.0 * 1000.0,
+        "p" | "P" => 1000.0 * 1000.0 * 1000.0 * 1000.0 * 1000.0,
+        "e" | "E" => 1000.0 * 1000.0 * 1000.0 * 1000.0 * 1000.0 * 1000.0,
+        "m" => 0.001, // milli
+        "" => 1.0,
+        _ => 1.0,
+    };
+
+    (val * multiplier) as u64
 }
 
 pub fn format_bytes(bytes: u64) -> String {
     if bytes == 0 {
         return "0 B".to_string();
     }
-    let units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
+    let units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
     let mut b = bytes as f64;
     let mut i = 0;
     while b >= 1024.0 && i < units.len() - 1 {
         b /= 1024.0;
         i += 1;
     }
-    format!("{:.1} {}", b, units[i])
+    if b < 10.0 && i > 0 {
+        format!("{:.2} {}", b, units[i])
+    } else {
+        format!("{:.1} {}", b, units[i])
+    }
 }
 
 // Imports are at top
@@ -737,15 +757,19 @@ mod tests {
         assert_eq!(parse_k8s_quantity("1Ki"), 1024);
         assert_eq!(parse_k8s_quantity("1Mi"), 1048576);
         assert_eq!(parse_k8s_quantity("1Gi"), 1073741824);
+        assert_eq!(parse_k8s_quantity("1.5Gi"), 1610612736);
+        assert_eq!(parse_k8s_quantity("1.5G"), 1500000000);
+        assert_eq!(parse_k8s_quantity("100M"), 100000000);
+        assert_eq!(parse_k8s_quantity("100Mi"), 104857600);
         assert_eq!(parse_k8s_quantity(""), 0);
     }
 
     #[test]
     fn test_format_bytes() {
         assert_eq!(format_bytes(0), "0 B");
-        assert_eq!(format_bytes(1024), "1.0 KiB");
-        assert_eq!(format_bytes(1048576), "1.0 MiB");
-        assert_eq!(format_bytes(1073741824), "1.0 GiB");
+        assert_eq!(format_bytes(1024), "1.00 KiB");
+        assert_eq!(format_bytes(1048576), "1.00 MiB");
+        assert_eq!(format_bytes(1073741824), "1.00 GiB");
     }
 }
 

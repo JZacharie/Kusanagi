@@ -4,7 +4,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_k8s_quantity_millicores() {
-        assert_eq!(kubernetes_service::parse_k8s_quantity("1000m"), 0);
+        assert_eq!(kubernetes_service::parse_k8s_quantity("1000m"), 1);
         assert_eq!(kubernetes_service::parse_k8s_quantity("500m"), 0);
     }
 
@@ -50,25 +50,24 @@ mod tests {
 
     #[tokio::test]
     async fn test_format_bytes_kib() {
-        assert_eq!(kubernetes_service::format_bytes(1024), "1.0 KiB");
-        assert_eq!(kubernetes_service::format_bytes(2048), "2.0 KiB");
+        assert_eq!(kubernetes_service::format_bytes(1024), "1.00 KiB");
+        assert_eq!(kubernetes_service::format_bytes(2048), "2.00 KiB");
     }
 
     #[tokio::test]
     async fn test_format_bytes_mib() {
-        assert_eq!(kubernetes_service::format_bytes(1048576), "1.0 MiB");
-        assert_eq!(kubernetes_service::format_bytes(2097152), "2.0 MiB");
+        assert_eq!(kubernetes_service::format_bytes(1048576), "1.00 MiB");
+        assert_eq!(kubernetes_service::format_bytes(2097152), "2.00 MiB");
     }
 
     #[tokio::test]
     async fn test_format_bytes_gib() {
-        assert_eq!(kubernetes_service::format_bytes(1073741824), "1.0 GiB");
+        assert_eq!(kubernetes_service::format_bytes(1073741824), "1.00 GiB");
     }
 
     #[tokio::test]
     async fn test_format_bytes_fractional() {
         let result = kubernetes_service::format_bytes(1536);
-        assert!(result.starts_with("1.5"));
-        assert!(result.ends_with("KiB"));
+        assert_eq!(result, "1.50 KiB");
     }
 }
