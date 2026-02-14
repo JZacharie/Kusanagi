@@ -25,15 +25,15 @@ pub async fn cluster_overview(State(state): State<AppState>) -> Response {
 
 /// Nodes status endpoint
 pub async fn nodes_status(State(state): State<AppState>) -> Response {
-    match kubernetes_service::get_nodes_status(&state.http_client).await {
+    match kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache).await {
         Ok(data) => api_success(json!(data)),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
 
 /// Pods status endpoint
-pub async fn pods_status() -> Response {
-    match kubernetes_service::get_pods_status().await {
+pub async fn pods_status(State(state): State<AppState>) -> Response {
+    match kubernetes_service::get_pods_status(&state.k8s_cache).await {
         Ok(data) => api_success(json!(data)),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }

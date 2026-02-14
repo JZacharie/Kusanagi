@@ -73,7 +73,9 @@ impl ChatService {
         let mut parts = Vec::new();
 
         // Nodes
-        if let Ok(nodes) = kubernetes_service::get_nodes_status(&self.http_client).await {
+        if let Ok(nodes) =
+            kubernetes_service::get_nodes_status(&self.http_client, &self.k8s_cache).await
+        {
             if let Some(total) = nodes.get("total_nodes") {
                 parts.push(format!("Nodes: {} total", total));
             }
