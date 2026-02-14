@@ -16,8 +16,7 @@ pub mod error;
 pub mod event_bus;
 
 pub mod init;
-#[allow(dead_code)]
-pub mod legacy;
+
 pub mod perf_monitor;
 // pub mod routes; // Removed - router.rs is used instead
 pub mod utils;

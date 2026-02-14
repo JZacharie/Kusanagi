@@ -83,19 +83,12 @@ src/
 │   ├── middleware/        # HTTP middleware
 │   └── websocket/         # WebSocket handlers
 │
-├── legacy/                # Modules being refactored
-│   ├── argocd.rs
-│   ├── nodes.rs
-│   ├── events.rs
-│   ├── storage.rs
-│   ├── services.rs
-│   ├── ingress.rs
-│   ├── apps.rs
-│   ├── backups.rs
-│   ├── chat.rs
-│   ├── prometheus.rs
-│   ├── alertmanager.rs
-│   └── ... (36 files total)
+├── interfaces/            # Interface layer
+│   ├── http/              # HTTP handlers
+│   │   ├── mod.rs         # Route configuration
+│   │   ├── handlers/      # Organized handlers (core, business, k8s, monitoring)
+│   │   ├── middleware/    # HTTP middleware
+│   │   └── websocket.rs   # WebSocket handlers
 │
 ├── event_bus/             # Event system
 ├── jobs/                  # Background jobs
@@ -131,11 +124,8 @@ Dependencies point inward:
 | Alertmanager | ✅ Refactored | Hexagonal |
 | Chat | ✅ Refactored | Hexagonal |
 | Weather | ✅ Refactored | Hexagonal |
-| Alertmanager | ✅ Refactored | Hexagonal |
-| Backups | ✅ Refactored | Hexagonal |
-| Security | ✅ Refactored | Hexagonal |
 | HomeAssistant | ✅ Refactored | Hexagonal |
-| ... | 🔄 Pending | Legacy |
+| Legacy Modules | 🗑️ Removed | - |
 
 ### 3. API Endpoints
 
