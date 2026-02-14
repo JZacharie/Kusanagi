@@ -36,21 +36,15 @@ const K8sManager = {
         }
     },
 
-    // Cluster overview matches what was in k8s.js
+    // Cluster overview - basic cluster stats only
+    // Note: PVC/Services details are handled by their respective modules
     async fetchClusterOverview() {
         try {
             const data = await api.get('/api/k8s/cluster');
 
-            // We use K8sState for some of these if we want, or just update UI directly
-            // The previous implementation updated UI directly
+            // Only update elements that this endpoint actually provides
             const stats = {
                 'ns-count': data.namespace_count || 0,
-                'pvc-count': data.pvc_count || 0,
-                'pvc-capacity': data.pvc_total_capacity || '-',
-                'pvc-total-count': data.pvc_count || 0,
-                'pvc-bound-count': (data.pvcs || []).filter(p => p.status === 'Bound').length,
-                'pvc-pending-count': (data.pvcs || []).filter(p => p.status !== 'Bound').length,
-                'pvc-total-storage': data.pvc_total_capacity || '-',
                 'services-count': data.services || 0,
                 'pods-total': data.pods || 0,
                 'node-total': data.nodes || 0
