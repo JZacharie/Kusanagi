@@ -1,0 +1,104 @@
+// HTTP Routes configuration
+// Extracted from main.rs for better organization
+
+use axum::{
+    middleware,
+    routing::{get, post},
+    Router,
+};
+use tower_http::{
+    compression::CompressionLayer, cors::CorsLayer, services::ServeDir, trace::TraceLayer,
+};
+
+use crate::state::AppState;
+
+// Import handlers from the new structure
+use crate::interfaces::http::handlers::{business::*, core::*, k8s::*, monitoring::*};
+
+// Import helpers
+use super::helpers::{api_info, index_handler, log_request};
+
+// Import other handlers
+use crate::domain::services::fusion_service::fusion_handler;
+use crate::handlers::system::{news, system_logs, system_status};
+use crate::interfaces::http::chat_handlers::post_chat_handler;
+
+/// Configure all application routes
+pub fn configure_routes(state: AppState) -> Router {
+    Router::new()
+        // Core routes
+        .route("/", get(index_handler))
+        .route("/health", get(health_check))
+        .route("/api", get(api_info))
+        .route("/api/config", get(get_config))
+        .route("/api/cache/stats", get(cache_stats))
+        .route("/api/slack/notify", post(send_slack_notification))
+        .route("/docs", get(docs_handler))
+        // WebSocket
+        .route("/api/ws/notifications", get(ws_notifications_handler))
+        // Hexagonal routes
+        .route("/api/alerts", get(get_alerts_handler))
+        .route("/api/backups", get(get_backups_handler))
+        .route(
+            "/api/backups/{namespace}/{name}/trigger",
+            post(trigger_backup_handler),
+        )
+        .route("/api/ha/devices", get(get_devices_handler))
+        .route("/api/ha/sensors", get(get_sensors_handler))
+        .route("/api/ha/automations", get(get_automations_handler))
+        .route("/api/security/summary", get(get_security_handler))
+        .route("/api/security/reports", get(get_security_reports_handler))
+        .route(
+            "/api/security/reports/{category}/{name}",
+            get(get_security_report_handler),
+        )
+        .route(
+            "/api/security/vulnerabilities",
+            get(get_vulnerabilities_handler),
+        )
+        .route("/api/weather/current", get(get_weather_handler))
+        // System routes
+        .route("/api/system/status", get(system_status))
+        .route("/api/system/logs", get(system_logs))
+        // Kubernetes routes
+        .route("/api/k8s/cluster", get(cluster_overview))
+        .route("/api/k8s/nodes", get(nodes_status))
+        .route("/api/k8s/pods", get(pods_status))
+        .route("/api/k8s/pods/:namespace/:name/logs", get(pod_logs))
+        .route(
+            "/api/pods/delete-error-pods",
+            post(delete_error_pods_handler),
+        )
+        .route("/api/storage", get(storage))
+        .route("/api/ingress", get(ingress))
+        .route("/api/services", get(services))
+        .route("/api/argocd/status", get(argocd_status))
+        .route("/api/news", get(news))
+        // Legacy/Expected Kubernetes routes
+        .route("/api/cluster/overview", get(cluster_overview))
+        .route("/api/nodes/status", get(nodes_status))
+        .route("/api/pods/status", get(pods_status))
+        // Monitoring routes
+        .route("/api/monitoring/alerts", get(alerts))
+        .route("/api/monitoring/quotas", get(quotas))
+        .route("/api/quotas", get(quotas)) // Alias for frontend
+        .route("/api/metrics", get(metrics_handler))
+        .route("/metrics", get(metrics_handler))
+        .route("/api/chat", post(post_chat_handler))
+        .route("/api/prometheus/range", get(prometheus_range_handler))
+        .route("/api/database/health", get(database_health_handler))
+        .route("/api/fusion", get(fusion_handler))
+        // Proxmox routes
+        .route("/api/proxmox/vms", get(get_vms_handler))
+        .route("/api/proxmox/containers", get(get_containers_handler))
+        .route("/api/proxmox/nodes", get(get_nodes_handler))
+        // Static files (must be after API routes)
+        .nest_service("/static", ServeDir::new("./static"))
+        // Layers (applied in reverse order - last one is executed first)
+        .layer(middleware::from_fn(log_request))
+        .layer(CorsLayer::permissive())
+        .layer(CompressionLayer::new())
+        .layer(TraceLayer::new_for_http())
+        // State (must be last)
+        .with_state(state)
+}

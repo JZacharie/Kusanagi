@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
-    use kusanagi::legacy::alertmanager::{Alert, AlertsResponse};
+    use kusanagi::domain::entities::{Alert, AlertsResponse};
 
     #[test]
     fn test_alerts_response_new() {
