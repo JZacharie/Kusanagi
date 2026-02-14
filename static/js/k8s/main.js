@@ -5,6 +5,14 @@
 const K8sManager = {
     init() {
         console.log('🚀 K8s Facade Initialized');
+        // Check which modules are available
+        console.log('📦 Available modules:', {
+            K8sPods: !!window.K8sPods,
+            K8sNodes: !!window.K8sNodes,
+            K8sArgo: !!window.K8sArgo,
+            K8sStorage: !!window.K8sStorage,
+            K8sServices: !!window.K8sServices
+        });
         // Initialize submodules
         if (window.K8sPods) K8sPods.init();
         if (window.K8sNodes) K8sNodes.init();
