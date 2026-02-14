@@ -655,9 +655,52 @@ const K8sManager = {
                 console.log(`Node ${node.name} - CPU: ${cpuPercent}%, Mem: ${memPercent}%, Raw data:`, node);
             }
 
-            const getCpuClass = (p) => p > 90 ? 'bar-danger' : p > 75 ? 'bar-warning' : 'bar-ok';
-            const getMemClass = (p) => p > 90 ? 'bar-danger' : p > 75 ? 'bar-warning' : 'bar-ok';
-            const getPodClass = (p) => p > 90 ? 'bar-danger' : p > 75 ? 'bar-warning' : 'bar-ok';
+            const getColor = (p) => p > 90 ? '#ef4444' : p > 75 ? '#f59e0b' : '#22c55e';
+            const getCpuColor = getColor(cpuPercent);
+            const getMemColor = getColor(memPercent);
+            const getPodColor = getColor(podPercent);
+
+            // Helper function for circular progress gauge
+            const renderGauge = (percent, label, sublabel, color) => {
+                const radius = 28;
+                const stroke = 6;
+                const normalizedRadius = radius - stroke * 2;
+                const circumference = normalizedRadius * 2 * Math.PI;
+                const strokeDashoffset = circumference - (percent / 100) * circumference;
+                
+                return `
+                    <div class="gauge-item" style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                        <div class="gauge-svg" style="position: relative; width: 60px; height: 60px;">
+                            <svg height="60" width="60" style="transform: rotate(-90deg);">
+                                <circle
+                                    stroke="rgba(255,255,255,0.1)"
+                                    stroke-width="${stroke}"
+                                    fill="transparent"
+                                    r="${normalizedRadius}"
+                                    cx="30"
+                                    cy="30"
+                                />
+                                <circle
+                                    stroke="${color}"
+                                    stroke-width="${stroke}"
+                                    stroke-dasharray="${circumference} ${circumference}"
+                                    style="stroke-dashoffset: ${strokeDashoffset}; transition: stroke-dashoffset 0.5s ease; filter: drop-shadow(0 0 4px ${color});"
+                                    stroke-linecap="round"
+                                    fill="transparent"
+                                    r="${normalizedRadius}"
+                                    cx="30"
+                                    cy="30"
+                                />
+                            </svg>
+                            <div class="gauge-value" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.85rem; font-weight: bold; color: ${color}; font-family: 'JetBrains Mono', monospace;">
+                                ${percent.toFixed(0)}%
+                            </div>
+                        </div>
+                        <div class="gauge-label" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">${label}</div>
+                        <div class="gauge-sublabel" style="font-size: 0.65rem; color: var(--text-muted);">${sublabel}</div>
+                    </div>
+                `;
+            };
 
             return `
                 <div class="node-card ${isReady ? 'ready' : 'not-ready'}">
@@ -685,43 +728,15 @@ const K8sManager = {
                         </div>
                     </div>
                     
-                    <div class="node-resources">
-                        <div class="resource-bar">
-                            <div class="resource-label">
-                                <span>CPU</span>
-                                <span>${cpuPercent.toFixed(1)}% (${node.cpu_capacity || 'N/A'})</span>
-                            </div>
-                            <div class="pod-bar-container">
-                                <div class="pod-bar ${getCpuClass(cpuPercent)}" style="width: ${Math.min(cpuPercent, 100)}%"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="resource-bar">
-                            <div class="resource-label">
-                                <span>Memory</span>
-                                <span>${memPercent.toFixed(1)}% (${node.memory_allocatable || 'N/A'})</span>
-                            </div>
-                            <div class="pod-bar-container">
-                                <div class="pod-bar ${getMemClass(memPercent)}" style="width: ${Math.min(memPercent, 100)}%"></div>
-                            </div>
-                        </div>
-
-                        <div class="resource-bar">
-                            <div class="resource-label">
-                                <span>Pods</span>
-                                <span>${podCount} / ${podCapacity || 'N/A'}</span>
-                            </div>
-                            <div class="pod-bar-container">
-                                <div class="pod-bar ${getPodClass(podPercent)}" style="width: ${Math.min(podPercent, 100)}%"></div>
-                            </div>
-                        </div>
-
-                        <div class="resource-bar" style="margin-top: 5px;">
-                            <div class="resource-label">
-                                <span>Node Age</span>
-                                <span>${node.age || 'N/A'}</span>
-                            </div>
-                        </div>
+                    <div class="node-resources-gauges" style="display: flex; justify-content: space-around; padding: 1.5rem 0; background: rgba(0,0,0,0.2); border-radius: 12px; margin: 1rem 0;">
+                        ${renderGauge(cpuPercent, 'CPU', node.cpu_capacity || '-', getCpuColor)}
+                        ${renderGauge(memPercent, 'Memory', node.memory_allocatable || '-', getMemColor)}
+                        ${renderGauge(podPercent, 'Pods', `${podCount}/${podCapacity}`, getPodColor)}
+                    </div>
+                    
+                    <div class="node-age-bar" style="text-align: center; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 10px;">
+                        <span style="font-size: 0.75rem; color: var(--text-secondary);">Node Age: </span>
+                        <span style="font-size: 0.85rem; font-weight: bold; color: var(--neon-cyan); font-family: 'JetBrains Mono', monospace;">${node.age || 'N/A'}</span>
                     </div>
                     
                     ${node.conditions ? `
