@@ -5,6 +5,8 @@ use std::sync::Arc;
 use crate::application::use_cases::{
     BackupUseCase, GetAlertsUseCase, GetHomeAssistantUseCase, GetSecurityUseCase, GetWeatherUseCase,
 };
+use crate::domain::entities::BackupsResponse;
+use crate::domain::ports::BackupRepository;
 
 /// Application state shared across all handlers
 #[derive(Clone)]
@@ -74,10 +76,66 @@ impl AppState {
         let backup_repo: Arc<dyn BackupRepository> = if let Some(ref kc) = kube_client {
             Arc::new(BackupRepositoryImpl::new(kc.clone()))
         } else {
-            // Create a dummy backup repo when kube is unavailable
-            Arc::new(BackupRepositoryImpl::new(Arc::new(
-                kube::Client::try_default().await?,
-            )))
+            // In CI/Offline mode, we might not have a kube client.
+            // If we can't create one, we should probably use a mock or just fail gracefully if possible.
+            // However, BackupRepositoryImpl::new REQUIRES a Client.
+            // We can try to create a client, but if it fails, we are stuck unless we change BackupRepositoryImpl
+            // or use a Mock implementation of BackupRepository.
+
+            // For now, let's try to return a dummy/mock if we can't get a client,
+            // OR just log a warning and return a dummy that panics on use (better than crashing on startup for assets).
+
+            // Since we don't have a MockBackupRepository easily available here without more code,
+            // let's try to construct a client that doesn't fail immediately or catch the error.
+            // But kube::Client::try_default() fails if no config.
+
+            // HACK: for verified assets, we just need startup.
+            // Let's create a "NoOp" implementation or similar?
+            // Or better: ensure we don't call `try_default().await?` if we know it failed before.
+
+            // If kube_client is None, it means try_default failed (implied by previous lines).
+            // So calling it again IS GUARANTEED TO FAIL.
+
+            // We need a proper fallback.
+            // Let's mock it or panic lazily?
+
+            // Let's modify BackupRepositoryImpl or Create a struct NoOpBackupRepository.
+            // But I can't easily add a struct here without importing it.
+
+            // Maybe I can leave it generating an error, BUT catch it?
+            // But `BackupRepositoryImpl::new` takes `Arc<Client>`.
+
+            // Quick fix: define a mock struct locally if possible, or modify `BackupRepositoryImpl` signature?
+            // Modifying `BackupRepositoryImpl` is risky.
+
+            // Let's see if we can create a `Client` from custom/empty config?
+            // `kube::Config::new(...)`?
+
+            // EASIEST FIX: check for `VERIFY_ASSETS` env var and skip this?
+            // But `backup_repo` is required for `AppState`.
+
+            // I'll define a simple unit struct `NoOpBackupRepo` here and impl `BackupRepository` for it.
+            // Wait, `BackupRepository` trait needs to be imported or visible. It is: `use crate::domain::ports::BackupRepository`.
+
+            match kube::Client::try_default().await {
+                Ok(c) => Arc::new(BackupRepositoryImpl::new(Arc::new(c))),
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to create K8s client for backup repo: {}. Using NoOp repo.",
+                        e
+                    );
+                    // We need a NoOp implementation.
+                    // Since I cannot ensure `NoOpBackupRepository` exists, I will implement it here temporarily or strictly for this case.
+                    // A cleaner way is to ALLOW `BackupRepositoryImpl` to take `Option<Client>`.
+
+                    // Let's look at `BackupRepositoryImpl`.
+
+                    // For now, I will modify `state.rs` to include a local struct `NoOpBackupRepository`
+                    // and use it when K8s is missing.
+
+                    Arc::new(NoOpBackupRepository {})
+                }
+            }
         };
 
         // Initialize use cases
@@ -151,5 +209,29 @@ impl AppState {
             llm_service,
             prometheus_handle,
         })
+    }
+}
+
+// ==================== NoOp Implementations ====================
+
+/// No-op implementation of BackupRepository for when K8s is unavailable
+pub struct NoOpBackupRepository;
+
+#[async_trait::async_trait]
+impl BackupRepository for NoOpBackupRepository {
+    async fn get_backups_status(&self) -> crate::error::Result<BackupsResponse> {
+        Ok(BackupsResponse {
+            total_cronjobs: 0,
+            active_jobs: 0,
+            succeeded_jobs: 0,
+            failed_jobs: 0,
+            cronjobs: vec![],
+        })
+    }
+
+    async fn trigger_backup(&self, _namespace: &str, _name: &str) -> crate::error::Result<String> {
+        Err(crate::error::KusanagiError::ExternalService(
+            "Backup not available in offline mode".to_string(),
+        ))
     }
 }
