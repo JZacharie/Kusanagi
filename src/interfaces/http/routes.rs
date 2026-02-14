@@ -33,11 +33,11 @@ use std::sync::Arc;
 /// Configure all application routes
 pub fn configure_routes(state: AppState) -> Router {
     // Rate Limiting Configuration
-    // Allow 10 requests per second with a burst of 30
+    // Allow 100 requests per second with a burst of 150
     let governor_conf = Arc::new(
         GovernorConfigBuilder::default()
-            .per_second(10)
-            .burst_size(30)
+            .per_second(100)
+            .burst_size(150)
             .key_extractor(SmartIpKeyExtractor)
             .finish()
             .unwrap(),

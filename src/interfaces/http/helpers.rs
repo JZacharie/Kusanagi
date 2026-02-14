@@ -48,12 +48,20 @@ pub async fn api_info() -> impl IntoResponse {
 pub async fn log_request(request: Request, next: Next) -> impl IntoResponse {
     let method = request.method().clone();
     let uri = request.uri().clone();
+    let path = uri.path();
 
-    info!("📥 {} {}", method, uri);
+    // Skip logging for noisy monitoring endpoints
+    let skip_log = path == "/api/metrics" || path == "/metrics" || path == "/health";
+
+    if !skip_log {
+        info!("📥 {} {}", method, uri);
+    }
 
     let response = next.run(request).await;
 
-    info!("📤 {} - Status: {}", uri, response.status());
+    if !skip_log {
+        info!("📤 {} - Status: {}", uri, response.status());
+    }
 
     response
 }
