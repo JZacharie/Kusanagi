@@ -3,12 +3,14 @@
 pub mod cilium;
 
 use axum::response::IntoResponse;
-use axum::Json;
+
 pub use cilium::*;
+
+use crate::interfaces::http::response::api_success;
 
 /// Alerts endpoint
 pub async fn alerts() -> impl IntoResponse {
-    Json(serde_json::json!({
+    api_success(serde_json::json!({
         "alerts": [],
         "total": 0
     }))
@@ -16,7 +18,7 @@ pub async fn alerts() -> impl IntoResponse {
 
 /// Quotas endpoint
 pub async fn quotas() -> impl IntoResponse {
-    Json(serde_json::json!({
+    api_success(serde_json::json!({
         "antigravity_percentage": 15,
         "notebooklm_percentage": 30,
         "storage_used_gb": 45.5,
@@ -74,7 +76,7 @@ pub async fn metrics_handler(
         Err(_) => 0,
     };
 
-    Json(serde_json::json!({
+    api_success(serde_json::json!({
         "cpu_usage_percent": cpu_percent,
         "memory_usage_percent": mem_percent,
         "pod_count": pod_count,

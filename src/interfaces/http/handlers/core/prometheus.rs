@@ -1,4 +1,4 @@
-use axum::{extract::Query, response::IntoResponse, Json};
+use axum::{extract::Query, response::IntoResponse};
 use serde::Deserialize;
 use serde_json::json;
 
@@ -10,10 +10,12 @@ pub struct RangeQuery {
     pub step: Option<String>,
 }
 
+use crate::interfaces::http::response::api_success;
+
 pub async fn prometheus_range_handler(Query(_params): Query<RangeQuery>) -> impl IntoResponse {
     // Mock response or proxy logic could go here.
     // For now, return empty data to prevent 404s and keep frontend happy.
-    Json(json!({
+    api_success(json!({
         "status": "success",
         "data": {
             "resultType": "matrix",
