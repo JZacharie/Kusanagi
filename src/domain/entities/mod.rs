@@ -2,6 +2,7 @@
 use serde::{Deserialize, Serialize};
 
 // ==================== Modules ====================
+pub mod chat;
 pub mod cilium;
 pub mod diagnostic;
 pub mod llm;

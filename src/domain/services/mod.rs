@@ -1,5 +1,6 @@
 pub mod alert_service;
 pub mod argocd_service;
+pub mod chat_service;
 pub mod cilium_service;
 pub mod diagnostic_service;
 pub mod fusion_service;
@@ -13,5 +14,6 @@ pub mod mqtt_service;
 pub mod news_service;
 pub mod proxmox_service;
 pub mod slack_service;
+pub mod system_service;
 pub mod trivy_service;
 pub mod weather_service;

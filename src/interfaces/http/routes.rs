@@ -20,8 +20,7 @@ use super::helpers::{api_info, index_handler, log_request};
 
 // Import other handlers
 use crate::domain::services::fusion_service::fusion_handler;
-use crate::handlers::system::{news, system_logs, system_status};
-use crate::interfaces::http::chat_handlers::post_chat_handler;
+use crate::interfaces::http::handlers::business::chat::post_chat_handler;
 
 /// Configure all application routes
 pub fn configure_routes(state: AppState) -> Router {
