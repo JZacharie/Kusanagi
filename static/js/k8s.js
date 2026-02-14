@@ -594,6 +594,8 @@ const K8sManager = {
             // Use apiFetch to get unwrapped data from the standard envelope
             const data = await api.get('/api/nodes/status');
             
+            console.log('📊 Nodes data received:', data);
+            
             if (data._warning) {
                 console.warn('Nodes warning:', data._warning);
             }
@@ -638,11 +640,20 @@ const K8sManager = {
 
         nodes.sort((a, b) => a.name.localeCompare(b.name));
 
-        container.innerHTML = nodes.map(node => {
+        console.log(`🖥️ Rendering ${nodes.length} nodes`);
+
+        container.innerHTML = nodes.map((node, idx) => {
             const isReady = node.status === 'Ready';
-            const cpuPercent = node.cpu_usage_percent || 0;
-            const memPercent = node.memory_usage_percent || 0;
-            const podPercent = node.pod_capacity ? Math.round((node.pod_count / parseInt(node.pod_capacity)) * 100) : 0;
+            // Parse numeric values carefully - backend may return strings or numbers
+            const cpuPercent = parseFloat(node.cpu_usage_percent) || 0;
+            const memPercent = parseFloat(node.memory_usage_percent) || 0;
+            const podCount = parseInt(node.pod_count) || 0;
+            const podCapacity = parseInt(node.pod_capacity) || 0;
+            const podPercent = podCapacity ? Math.round((podCount / podCapacity) * 100) : 0;
+            
+            if (idx === 0) {
+                console.log(`Node ${node.name} - CPU: ${cpuPercent}%, Mem: ${memPercent}%, Raw data:`, node);
+            }
 
             const getCpuClass = (p) => p > 90 ? 'bar-danger' : p > 75 ? 'bar-warning' : 'bar-ok';
             const getMemClass = (p) => p > 90 ? 'bar-danger' : p > 75 ? 'bar-warning' : 'bar-ok';
@@ -698,7 +709,7 @@ const K8sManager = {
                         <div class="resource-bar">
                             <div class="resource-label">
                                 <span>Pods</span>
-                                <span>${node.pod_count || 0} / ${node.pod_capacity || 'N/A'}</span>
+                                <span>${podCount} / ${podCapacity || 'N/A'}</span>
                             </div>
                             <div class="pod-bar-container">
                                 <div class="pod-bar ${getPodClass(podPercent)}" style="width: ${Math.min(podPercent, 100)}%"></div>
@@ -714,9 +725,9 @@ const K8sManager = {
                     </div>
                     
                     ${node.conditions ? `
-                    <div class="node-conditions">
+                    <div class="node-conditions" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
                         ${Object.entries(node.conditions).map(([key, value]) =>
-                `<span class="condition-item ${key} ${value === 'True' ? 'true' : 'false'}">${key}: ${value}</span>`
+                `<span class="condition-item ${key} ${value === 'True' ? 'true' : 'false'}" style="padding: 4px 8px; border-radius: 4px; font-size: 0.85em; background: rgba(255,255,255,0.1);">${key}: ${value}</span>`
             ).join('')}
                     </div>
                     ` : ''}
