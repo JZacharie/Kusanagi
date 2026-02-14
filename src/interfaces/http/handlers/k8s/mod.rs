@@ -71,10 +71,10 @@ pub async fn services(State(state): State<AppState>) -> Response {
 }
 
 /// ArgoCD status endpoint
-pub async fn argocd_status() -> Response {
+pub async fn argocd_status(State(state): State<AppState>) -> Response {
     use crate::domain::services::argocd_service::get_argocd_status;
 
-    match get_argocd_status().await {
+    match get_argocd_status(&state.k8s_cache).await {
         Ok(status) => api_success(json!(status)),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }

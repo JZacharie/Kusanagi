@@ -1,9 +1,37 @@
 use serde_json::{json, Value};
 use tokio::process::Command;
 
-pub async fn get_argocd_status() -> Result<Value, String> {
-    tracing::info!("🔍 Fetching ArgoCD status (JSON mode)...");
+use crate::AdvancedCache;
 
+pub async fn get_argocd_status(cache: &AdvancedCache<String>) -> Result<Value, String> {
+    let cache_key = "argocd_status";
+
+    // Try cache first
+    if let Some(cached_json) = cache.get(cache_key).await {
+        if let Ok(json) = serde_json::from_str::<Value>(&cached_json) {
+            return Ok(json);
+        }
+    }
+
+    let result = fetch_argocd_status_from_cluster().await;
+
+    if let Ok(ref json) = result {
+        if let Ok(s) = serde_json::to_string(json) {
+            cache
+                .set(
+                    cache_key.to_string(),
+                    s,
+                    Some(std::time::Duration::from_secs(300)),
+                )
+                .await;
+        }
+    }
+
+    result
+}
+
+async fn fetch_argocd_status_from_cluster() -> Result<Value, String> {
+    // ... original body ...
     let kubectl_output = Command::new("kubectl")
         .args(["get", "applications", "-n", "argocd", "-o", "json"])
         .output()

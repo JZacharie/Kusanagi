@@ -143,7 +143,7 @@ impl AppState {
         let weather_use_case = Arc::new(GetWeatherUseCase::new(weather_repo));
         let security_use_case = Arc::new(GetSecurityUseCase::new(security_repo));
         let ha_use_case = Arc::new(GetHomeAssistantUseCase::new(ha_repo));
-        let backup_use_case = Arc::new(BackupUseCase::new(backup_repo));
+        let backup_use_case = Arc::new(BackupUseCase::new(backup_repo, k8s_cache.clone()));
 
         // LLM Service
         let llm_service = Arc::new(crate::domain::services::llm_service::LlmService::new());

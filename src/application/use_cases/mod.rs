@@ -113,21 +113,50 @@ use crate::domain::ports::BackupRepository;
 /// Use case for backup operations
 pub struct BackupUseCase {
     repository: Arc<dyn BackupRepository>,
+    cache: Arc<crate::AdvancedCache<String>>,
 }
 
 impl BackupUseCase {
     /// Create a new use case instance
-    pub fn new(repository: Arc<dyn BackupRepository>) -> Self {
-        Self { repository }
+    pub fn new(
+        repository: Arc<dyn BackupRepository>,
+        cache: Arc<crate::AdvancedCache<String>>,
+    ) -> Self {
+        Self { repository, cache }
     }
 
-    /// Get backup status
+    /// Get backup status with caching
     pub async fn get_backups_status(&self) -> Result<BackupsResponse> {
-        self.repository.get_backups_status().await
+        let cache_key = "backups_status";
+
+        // Try cache first
+        if let Some(cached_json) = self.cache.get(cache_key).await {
+            if let Ok(response) = serde_json::from_str::<BackupsResponse>(&cached_json) {
+                return Ok(response);
+            }
+        }
+
+        // Fetch from repository
+        let response = self.repository.get_backups_status().await?;
+
+        // Cache result (TTL 5 minutes)
+        if let Ok(json) = serde_json::to_string(&response) {
+            self.cache
+                .set(
+                    cache_key.to_string(),
+                    json,
+                    Some(std::time::Duration::from_secs(300)),
+                )
+                .await;
+        }
+
+        Ok(response)
     }
 
     /// Trigger a backup
     pub async fn trigger_backup(&self, namespace: &str, name: &str) -> Result<String> {
+        // Invalidate cache on trigger
+        self.cache.delete("backups_status").await;
         self.repository.trigger_backup(namespace, name).await
     }
 }
