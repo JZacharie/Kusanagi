@@ -362,10 +362,13 @@ pub async fn get_services(
     };
 
     let services: Api<Service> = Api::all(client);
-    let list = services
-        .list(&ListParams::default())
-        .await
-        .map_err(|e| e.to_string())?;
+    let list = tokio::time::timeout(
+        std::time::Duration::from_secs(20),
+        services.list(&ListParams::default()),
+    )
+    .await
+    .map_err(|_| "Timeout fetching services".to_string())?
+    .map_err(|e| e.to_string())?;
 
     let services_json: Vec<Value> = list.iter().map(|svc| {
         let age = if let Some(ts) = &svc.metadata.creation_timestamp {
@@ -437,10 +440,13 @@ pub async fn get_ingress(
     };
 
     let ingresses: Api<Ingress> = Api::all(client);
-    let list = ingresses
-        .list(&ListParams::default())
-        .await
-        .map_err(|e| e.to_string())?;
+    let list = tokio::time::timeout(
+        std::time::Duration::from_secs(20),
+        ingresses.list(&ListParams::default()),
+    )
+    .await
+    .map_err(|_| "Timeout fetching ingresses".to_string())?
+    .map_err(|e| e.to_string())?;
 
     let ingresses_json: Vec<Value> = list
         .iter()
@@ -492,10 +498,13 @@ pub async fn get_storage(client: &reqwest::Client) -> Result<Value, String> {
     let kube_client = Client::try_default().await.map_err(|e| e.to_string())?;
 
     let pvcs: Api<PersistentVolumeClaim> = Api::all(kube_client);
-    let pvc_list = pvcs
-        .list(&ListParams::default())
-        .await
-        .map_err(|e| e.to_string())?;
+    let pvc_list = tokio::time::timeout(
+        std::time::Duration::from_secs(20),
+        pvcs.list(&ListParams::default()),
+    )
+    .await
+    .map_err(|_| "Timeout fetching PVCs".to_string())?
+    .map_err(|e| e.to_string())?;
 
     // Fetch usage metrics from Prometheus
     let usage_map = fetch_storage_usage(client).await.unwrap_or_default();
