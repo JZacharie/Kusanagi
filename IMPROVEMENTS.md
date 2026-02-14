@@ -108,31 +108,28 @@ App::new()
 ```toml
 # Cargo.toml
 [dependencies]
-utoipa = "4.0"
-utoipa-swagger-ui = { version = "4.0", features = ["actix-web"] }
+utoipa = { version = "5.3", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
 ```
 
 ```rust
-use utoipa::{OpenApi, ToSchema};
+use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        pods_status,
-        nodes_status,
-        cluster_overview,
+        pods_status_handler,
+        nodes_status_handler,
+        cluster_overview_handler,
     ),
     components(schemas(PodInfo, NodeInfo, ClusterOverview))
 )]
 struct ApiDoc;
 
-// Dans main.rs
-App::new()
-    .service(
-        SwaggerUi::new("/swagger-ui/{_:.*}")
-            .url("/api-docs/openapi.json", ApiDoc::openapi())
-    )
+// Dans routes.rs
+let app = Router::new()
+    .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 ```
 
 **Impact**: Meilleure expérience développeur, documentation auto-générée
@@ -149,41 +146,18 @@ App::new()
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix_web::{test, App};
+    use ax_test_helper::TestClient; // Hypothetical or custom helper
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_pods_status() {
-        let app = test::init_service(
-            App::new().route("/api/pods/status", web::get().to(pods_status))
-        ).await;
+        let app = configure_routes(AppState::mock().await);
+        let client = TestClient::new(app);
         
-        let req = test::TestRequest::get()
-            .uri("/api/pods/status")
-            .to_request();
+        let res = client.get("/api/pods/status").send().await;
+        assert_eq!(res.status(), StatusCode::OK);
         
-        let resp = test::call_service(&app, req).await;
-        assert!(resp.status().is_success());
-        
-        let body: Value = test::read_body_json(resp).await;
+        let body: Value = res.json().await;
         assert!(body["total"].as_u64().unwrap() > 0);
-    }
-
-    #[actix_web::test]
-    async fn test_cluster_overview() {
-        // Test avec mock Kubernetes client
-        let mock_client = MockKubeClient::new();
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(mock_client))
-                .route("/api/cluster/overview", web::get().to(cluster_overview))
-        ).await;
-        
-        let req = test::TestRequest::get()
-            .uri("/api/cluster/overview")
-            .to_request();
-        
-        let resp = test::call_service(&app, req).await;
-        assert!(resp.status().is_success());
     }
 }
 ```
@@ -306,24 +280,23 @@ actix-governor = "0.5"
 ```
 
 ```rust
-use actix_governor::{Governor, GovernorConfigBuilder};
+use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    let governor_conf = GovernorConfigBuilder::default()
-        .per_second(10)
-        .burst_size(20)
-        .finish()
-        .unwrap();
+#[tokio::main]
+async fn main() {
+    let governor_conf = Arc::new(
+        GovernorConfigBuilder::default()
+            .per_second(10)
+            .burst_size(20)
+            .finish()
+            .unwrap()
+    );
 
-    HttpServer::new(move || {
-        App::new()
-            .wrap(Governor::new(&governor_conf))
-            .route("/api/pods/status", web::get().to(pods_status))
-    })
-    .bind("0.0.0.0:8080")?
-    .run()
-    .await
+    let app = Router::new()
+        .route("/api/pods/status", get(pods_status))
+        .layer(GovernorLayer { config: governor_conf });
+    
+    // ... serve app
 }
 ```
 
@@ -388,36 +361,17 @@ actix-web-prom = "0.7"
 ```
 
 ```rust
-use prometheus::{IntCounterVec, HistogramVec, Registry};
-use actix_web_prom::PrometheusMetricsBuilder;
+use metrics_exporter_prometheus::PrometheusBuilder;
 
-lazy_static! {
-    static ref HTTP_REQUESTS: IntCounterVec = IntCounterVec::new(
-        Opts::new("kusanagi_http_requests_total", "Total HTTP requests"),
-        &["endpoint", "method", "status"]
-    ).unwrap();
+#[tokio::main]
+async fn main() {
+    let builder = PrometheusBuilder::new();
+    builder.install().expect("failed to install recorder/exporter");
+
+    let app = Router::new()
+        .route("/api/pods/status", get(pods_status));
     
-    static ref HTTP_DURATION: HistogramVec = HistogramVec::new(
-        HistogramOpts::new("kusanagi_http_duration_seconds", "HTTP request duration"),
-        &["endpoint", "method"]
-    ).unwrap();
-}
-
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    let prometheus = PrometheusMetricsBuilder::new("kusanagi")
-        .endpoint("/metrics")
-        .build()
-        .unwrap();
-
-    HttpServer::new(move || {
-        App::new()
-            .wrap(prometheus.clone())
-            .route("/api/pods/status", web::get().to(pods_status))
-    })
-    .bind("0.0.0.0:8080")?
-    .run()
-    .await
+    // ... serve app
 }
 ```
 
