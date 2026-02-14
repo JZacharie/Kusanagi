@@ -373,7 +373,7 @@ MIT License - See [LICENSE](LICENSE) for details.
 ## 🙏 Acknowledgments
 
 - Inspired by Ghost in the Shell (攻殻機動隊)
-- Built with Rust and Actix-Web
+- Built with Rust and Axum
 - UI design inspired by cyberpunk aesthetics
 - Community contributions and feedback
 
@@ -385,4 +385,4 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-**Kusanagi v0.2.0** - Built with ❤️ by the community
+**Kusanagi v0.3.0** - Built with ❤️ by the community
