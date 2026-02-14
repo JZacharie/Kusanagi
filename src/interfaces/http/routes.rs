@@ -75,10 +75,6 @@ pub fn configure_routes(state: AppState) -> Router {
             "/api/security/reports/{category}/{name}",
             get(get_security_report_handler),
         )
-        .route(
-            "/api/security/vulnerabilities",
-            get(get_vulnerabilities_handler),
-        )
         .route("/api/weather/current", get(get_weather_handler))
         // System routes
         .route("/api/system/status", get(system_status))
