@@ -20,6 +20,7 @@ pub struct AppState {
     pub chat_use_case: Arc<crate::application::use_cases::ChatUseCase>,
     pub kube_client: Option<Arc<kube::Client>>,
     pub http_client: Arc<reqwest::Client>,
+    pub cilium_cache: Arc<crate::domain::services::cilium_service::CiliumCache>,
 }
 
 impl AppState {
@@ -107,6 +108,7 @@ impl AppState {
             chat_use_case,
             kube_client,
             http_client,
+            cilium_cache: Arc::new(crate::domain::services::cilium_service::CiliumCache::new()),
         })
     }
 }

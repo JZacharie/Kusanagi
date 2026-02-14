@@ -2,9 +2,15 @@
 use serde::{Deserialize, Serialize};
 
 // ==================== Modules ====================
+pub mod cilium;
 pub mod diagnostic;
 pub mod llm;
 pub mod mcp;
+
+// Re-export Cilium entities
+pub use cilium::{
+    BandwidthMetrics, FlowMatrixEntry, HubbleFlowsResponse, NetworkAnomaly, NetworkFlow,
+};
 
 // Re-export Diagnostic entities
 pub use diagnostic::{

@@ -38,6 +38,15 @@ async fn main() -> anyhow::Result<()> {
     // Create application state
     let state = AppState::new().await?;
 
+    // Start Cilium background refresh task
+    if let Some(client) = &state.kube_client {
+        let cilium_service = kusanagi::domain::services::cilium_service::CiliumService::new(
+            client.as_ref().clone(),
+            state.cilium_cache.clone(),
+        );
+        cilium_service.start_background_refresh();
+    }
+
     // Build router using the routes module
     let app = kusanagi::interfaces::http::routes::configure_routes(state);
 

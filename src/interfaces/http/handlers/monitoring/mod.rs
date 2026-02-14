@@ -1,7 +1,10 @@
 //! Monitoring handlers
 
+pub mod cilium;
+
 use axum::response::IntoResponse;
 use axum::Json;
+pub use cilium::*;
 
 /// Alerts endpoint
 pub async fn alerts() -> impl IntoResponse {
