@@ -12,12 +12,17 @@ use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
+/// Cache types
+type FlowsCache = Arc<RwLock<Option<(HubbleFlowsResponse, Instant)>>>;
+type NamespacesCache = Arc<RwLock<Option<(Vec<String>, Instant)>>>;
+type MetricsCache = Arc<RwLock<Option<(Vec<BandwidthMetrics>, Instant)>>>;
+
 /// Cache for network data to improve performance
 #[derive(Clone)]
 pub struct CiliumCache {
-    pub flows: Arc<RwLock<Option<(HubbleFlowsResponse, Instant)>>>,
-    pub namespaces: Arc<RwLock<Option<(Vec<String>, Instant)>>>,
-    pub metrics: Arc<RwLock<Option<(Vec<BandwidthMetrics>, Instant)>>>,
+    pub flows: FlowsCache,
+    pub namespaces: NamespacesCache,
+    pub metrics: MetricsCache,
 }
 
 impl CiliumCache {
