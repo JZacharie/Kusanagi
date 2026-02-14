@@ -6,27 +6,48 @@ use tracing::info;
 
 /// Setup logging with file appender and rotation
 pub fn setup_logging() -> Result<()> {
-    // Use /tmp as it's usually writable in containers
-    let log_dir = "/tmp/kusanagi-logs";
+    // Use /tmp as it's usually writable in containers, or allow override
+    let log_dir_env =
+        std::env::var("KUSANAGI_LOG_DIR").unwrap_or_else(|_| "/tmp/kusanagi-logs".to_string());
+    let log_dir = log_dir_env.as_str();
 
     // Check if we can write to the log directory
     let file_appender = match std::fs::create_dir_all(log_dir) {
         Ok(_) => {
             // Create a placeholder file to ensure the directory is not empty
-            // This prevents system_logs from failing before the first log rotation/flush
             let init_file = std::path::Path::new(log_dir).join("kusanagi.log.0000-init");
             if let Err(e) = std::fs::write(&init_file, "Initializing Kusanagi logs...\n") {
-                eprintln!("Failed to create init log file: {}", e);
+                if e.kind() == std::io::ErrorKind::ReadOnlyFilesystem
+                    || e.raw_os_error() == Some(30)
+                {
+                    eprintln!(
+                        "ℹ️ Log directory '{}' is read-only. File logging disabled.",
+                        log_dir
+                    );
+                } else {
+                    eprintln!(
+                        "⚠️ Failed to create init log file in '{}': {}. File logging disabled.",
+                        log_dir, e
+                    );
+                }
+                None
+            } else {
+                let appender = tracing_appender::rolling::minutely(log_dir, "kusanagi.log");
+                Some(tracing_appender::non_blocking(appender))
             }
-
-            let appender = tracing_appender::rolling::minutely(log_dir, "kusanagi.log");
-            Some(tracing_appender::non_blocking(appender))
         }
         Err(e) => {
-            eprintln!(
-                "⚠️ Failed to create log directory '{}': {}. File logging disabled.",
-                log_dir, e
-            );
+            if e.kind() == std::io::ErrorKind::ReadOnlyFilesystem || e.raw_os_error() == Some(30) {
+                eprintln!(
+                    "ℹ️ Log directory '{}' is read-only. File logging disabled.",
+                    log_dir
+                );
+            } else {
+                eprintln!(
+                    "⚠️ Failed to create log directory '{}': {}. File logging disabled.",
+                    log_dir, e
+                );
+            }
             None
         }
     };
@@ -38,12 +59,13 @@ pub fn setup_logging() -> Result<()> {
 
     // Spawn background task to clean up old logs ONLY if file logging is enabled
     if _guard.is_some() {
+        let log_dir_for_cleanup = log_dir_env.clone();
         tokio::spawn(async move {
             // Wait a bit before first cleanup
             tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
 
             loop {
-                if let Ok(entries) = std::fs::read_dir(log_dir) {
+                if let Ok(entries) = std::fs::read_dir(&log_dir_for_cleanup) {
                     let now = std::time::SystemTime::now();
                     let retention_period = std::time::Duration::from_secs(15 * 60); // 15 minutes
 

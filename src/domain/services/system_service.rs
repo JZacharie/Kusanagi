@@ -59,7 +59,9 @@ impl SystemService {
     pub async fn get_logs() -> Result<String, String> {
         metrics::counter!("system_logs_access_total", 1);
         // Try to read from local log file first (for Docker/k8s support)
-        let log_dir = "/tmp/kusanagi-logs";
+        let log_dir_env =
+            std::env::var("KUSANAGI_LOG_DIR").unwrap_or_else(|_| "/tmp/kusanagi-logs".to_string());
+        let log_dir = log_dir_env.as_str();
         let mut latest_log_content = String::new();
         let debug_info = match std::fs::read_dir(log_dir) {
             Ok(entries) => {

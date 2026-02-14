@@ -34,6 +34,7 @@ async fn fetch_fresh_news() -> Result<Value, String> {
 
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(5))
+        .user_agent("Kusanagi/0.3.0 (https://github.com/JZacharie/Kusanagi)")
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -397,23 +398,31 @@ async fn fetch_rss_feed(
     source_name: &str,
     icon: &str,
 ) -> Result<Vec<Value>, String> {
-    let response = client.get(url).send().await.map_err(|e| e.to_string())?;
+    let response = client.get(url).send().await.map_err(|e| {
+        tracing::error!("❌ Failed to fetch RSS feed from {}: {}", url, e);
+        e.to_string()
+    })?;
 
     if !response.status().is_success() {
+        tracing::error!("❌ RSS feed {} returned status {}", url, response.status());
         return Err(format!("HTTP {}", response.status()));
     }
 
-    let xml_content = response.text().await.map_err(|e| e.to_string())?;
+    let xml_content = response.text().await.map_err(|e| {
+        tracing::error!("❌ Failed to get text from {}: {}", url, e);
+        e.to_string()
+    })?;
+    tracing::debug!("📰 Fetched {} bytes from {}", xml_content.len(), url);
     // Remove BOM if present
     let xml_content = xml_content.trim_start_matches('\u{feff}');
 
     let mut news_items = Vec::new();
 
     // Determine if RSS or Atom
-    // This is a naive heuristic but works for most standard feeds
-    let is_atom = xml_content.contains("<feed")
-        || xml_content.contains("xmlns=\"http://www.w3.org/2005/Atom\"");
+    // Use a more robust check: Atom feeds must have <feed as the root tag or default namespace
+    let is_atom = xml_content.contains("<feed") && !xml_content.contains("<rss");
     let item_tag = if is_atom { "entry" } else { "item" };
+    tracing::debug!("📰 Parsing {} as {} (is_atom: {})", url, item_tag, is_atom);
 
     // Find all items
     // We scan the parsing manually to handle multi-line and minified XML
@@ -436,6 +445,8 @@ async fn fetch_rss_feed(
                 // Parse fields within this block
                 if let Some(item) = parse_item_block(item_block, source_name, icon, is_atom) {
                     news_items.push(item);
+                } else {
+                    tracing::warn!("⚠️ Failed to parse item block from {}", source_name);
                 }
 
                 // Move past this item
@@ -455,6 +466,11 @@ async fn fetch_rss_feed(
         }
     }
 
+    tracing::info!(
+        "✅ Found {} items from source {}",
+        news_items.len(),
+        source_name
+    );
     Ok(news_items)
 }
 
