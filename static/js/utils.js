@@ -97,54 +97,7 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// === GLOBAL REFRESH TRIGGER ===
-function refreshAllKusanagiData() {
-    console.log("🔄 Global Kusanagi refresh triggered...");
-
-    // Visual feedback
-    const logo = document.querySelector('.header-logo');
-    if (logo) {
-        logo.classList.add('refreshing');
-        setTimeout(() => logo.classList.remove('refreshing'), 1000);
-    }
-
-    if (window.showNotification) {
-        showNotification({
-            title: "System Refresh",
-            message: "Syncing all components with real-time cluster state...",
-            severity: "info"
-        });
-    }
-
-    // Call K8sManager refresh if available
-    if (window.K8sManager) {
-        K8sManager.fetchAll();
-    }
-
-    // Individual fetchers fallback (deprecated)
-    const fetchers = [
-        'fetchArgoStatus', 'fetchNodesStatus', 'fetchClusterOverview',
-        'fetchBackupsStatus', 'fetchStorageStatus', 'fetchServices', 'fetchIngress', 'fetchEvents'
-    ];
-
-    fetchers.forEach(f => {
-        if (typeof window[f] === 'function') window[f]();
-    });
-
-    // Refresh Managers
-    if (window.MetricsManager) MetricsManager.loadMetrics();
-    if (window.AlertsManager) AlertsManager.loadAlerts();
-    if (window.QuotasManager) {
-        // QuotasManager.fetchQuotas(); // Disabled
-    }
-    if (window.NewsManager) NewsManager.fetchNews();
-
-    // Refresh current active tab if it's a dashboard
-    const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
-    if (activeTab && typeof switchTab === 'function') {
-        switchTab(activeTab);
-    }
-}
+// Global refresh trigger removed: consolidated in core.js
 
 window.refreshAllKusanagiData = refreshAllKusanagiData;
 window.sendChatMessage = sendChatMessage;

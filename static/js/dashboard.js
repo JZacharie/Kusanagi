@@ -96,14 +96,11 @@ const SystemStatusManager = {
             const data = await response.json();
 
             // Check if backend restarted
-            /* 
             if (this.startTime && this.startTime !== data.start_time) {
-                console.log('🔄 Backend restart detected! Refreshing UI disabled by user request.');
-                // showNotification('Kusanagi updated. Refreshing dashboard...', 'info');
-                // setTimeout(() => window.location.reload(), 2000);
-                // return;
+                console.log('🔄 Backend restart detected! Refreshing data...');
+                // Automatically refresh all data if backend restarted
+                if (window.refreshAllKusanagiData) refreshAllKusanagiData(false);
             }
-            */
             this.startTime = data.start_time;
 
             this.updateUI(data);
@@ -120,12 +117,16 @@ const SystemStatusManager = {
         const dbEl = document.getElementById('kusanagi-db-status');
         const indicator = document.getElementById('kusanagi-refresh-indicator');
 
-        if (uptimeEl) uptimeEl.textContent = data.uptime || this.formatUptime(data.uptime_secs ?? 0);
+        // Use backend provided uptime_secs or fallback to uptime string
+        if (uptimeEl) {
+            uptimeEl.textContent = this.formatUptime(data.uptime_secs ?? 0);
+        }
+
         // Backend returns cpu_usage (percent) and memory_usage_mb (MB)
         if (cpuEl) cpuEl.textContent = `${(data.cpu_usage ?? data.cpu_usage_percent ?? 0).toFixed(1)}%`;
         if (ramEl) ramEl.textContent = `${(data.memory_usage_mb ?? (data.memory_usage_bytes / 1048576) ?? 0).toFixed(0)} MB`;
-        if (versionEl) versionEl.textContent = data.version ?? '0.2.0';
-        if (dbEl) dbEl.textContent = 'SQLite'; // Hardcoded for now as Kusanagi uses embedded/cache
+        if (versionEl) versionEl.textContent = data.version ?? '0.3.0';
+        if (dbEl) dbEl.textContent = 'SQLite';
 
         // Visual flash on update
         if (indicator) {
@@ -135,10 +136,11 @@ const SystemStatusManager = {
     },
 
     formatUptime(seconds) {
+        if (!seconds && seconds !== 0) return '--:--:--';
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
         const s = seconds % 60;
-        return [h, m, s].map(v => v < 10 ? '0' + v : v).join(':');
+        return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
     }
 };
 

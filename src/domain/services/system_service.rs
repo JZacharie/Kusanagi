@@ -3,14 +3,21 @@ use sysinfo::System;
 use tokio::process::Command;
 use utoipa::ToSchema;
 
+use std::sync::OnceLock;
+use std::time::Instant;
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct SystemStatus {
     pub status: String,
     pub uptime_secs: u64,
+    pub start_time: String,
     pub cpu_usage: f32,
     pub memory_usage_mb: u64,
     pub version: String,
 }
+
+static START_TIME: OnceLock<Instant> = OnceLock::new();
+static START_TIME_STR: OnceLock<String> = OnceLock::new();
 
 pub struct SystemService;
 
@@ -18,17 +25,24 @@ impl SystemService {
     #[tracing::instrument(name = "system_get_status")]
     pub fn get_status() -> SystemStatus {
         metrics::counter!("system_status_check_total", 1);
+
+        let now_instant = Instant::now();
+        let start_instant = START_TIME.get_or_init(Instant::now);
+        let uptime = now_instant.duration_since(*start_instant).as_secs();
+
+        let start_time_str = START_TIME_STR.get_or_init(|| chrono::Utc::now().to_rfc3339());
+
         let mut sys = System::new_all();
         sys.refresh_all();
 
         let cpu_usage = sys.global_cpu_usage();
         // Try to get container memory usage, fallback to whole system usage
         let memory_used = Self::get_container_memory_usage().unwrap_or_else(|| sys.used_memory());
-        let uptime = System::uptime();
 
         SystemStatus {
             status: "operational".to_string(),
             uptime_secs: uptime,
+            start_time: start_time_str.clone(),
             cpu_usage,
             memory_usage_mb: memory_used / 1024 / 1024,
             version: env!("CARGO_PKG_VERSION").to_string(),

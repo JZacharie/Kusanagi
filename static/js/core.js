@@ -307,21 +307,21 @@ async function switchTab(tabName) {
         }
     }
 
-    // Load data for specific tabs
+    // Load data for specific tabs (avoiding duplicates if already handled by PageLoader/initScripts)
     if (tabName === "proxmox" && window.ProxmoxDashboard) {
         if (typeof window.ProxmoxDashboard.activate === 'function') {
             window.ProxmoxDashboard.activate();
         }
     } else if (tabName === "homeassistant" && window.HomeAssistantDashboard) {
-        HomeAssistantDashboard.init();
+        // init is handled by PageLoader.initScripts
     } else if (tabName === "weather" && window.WeatherDashboard) {
-        WeatherDashboard.init();
+        // init is handled by PageLoader.initScripts
     } else if (tabName === "security" && window.SecurityDashboard) {
-        SecurityDashboard.init();
+        // init is handled by PageLoader.initScripts
     } else if (tabName === "monitors" && window.MonitorsManager) {
-        MonitorsManager.init();
+        // init is handled by PageLoader.initScripts
     } else if (tabName === "system" && window.KusanagiSystem) {
-        KusanagiSystem.activate();
+        // activate is handled by PageLoader.initScripts
     } else if (tabName === "argocd" && window.K8sManager) {
         console.log("🔄 Switched to ArgoCD tab, fetching status...");
         K8sManager.fetchArgoStatus();
@@ -330,9 +330,10 @@ async function switchTab(tabName) {
 
 /**
  * Centralized refresh function for all Kusanagi data
+ * @param {boolean} manualTrigger - Whether this was called by user interaction (shows notification)
  */
-function refreshAllKusanagiData() {
-    console.log("🔄 Global Kusanagi refresh triggered...");
+function refreshAllKusanagiData(manualTrigger = false) {
+    console.log("🔄 Global Kusanagi refresh triggered (manual: " + manualTrigger + ")...");
 
     // Visual feedback
     const logo = document.querySelector('.header-logo');
@@ -341,7 +342,7 @@ function refreshAllKusanagiData() {
         setTimeout(() => logo.classList.remove('refreshing'), 1000);
     }
 
-    if (typeof showNotification === 'function') {
+    if (manualTrigger && typeof showNotification === 'function') {
         showNotification({
             title: "System Refresh",
             message: "Syncing all components with real-time cluster state...",
@@ -351,31 +352,31 @@ function refreshAllKusanagiData() {
 
     // Core Kubernetes & ArgoCD Status
     if (window.K8sManager) {
-        if (K8sManager.fetchArgoStatus) K8sManager.fetchArgoStatus();
-        if (K8sManager.fetchNodesStatus) K8sManager.fetchNodesStatus();
-        if (K8sManager.fetchClusterOverview) K8sManager.fetchClusterOverview();
-        if (K8sManager.fetchClusterOverview) K8sManager.fetchClusterOverview();
-        // if (K8sManager.fetchEvents) K8sManager.fetchEvents(window.currentEventFilter || 'all', 1); // REPLACED BY MONITORS
-        if (K8sManager.fetchBackupsStatus) K8sManager.fetchBackupsStatus();
-        if (K8sManager.fetchStorageStatus) K8sManager.fetchStorageStatus();
-        if (K8sManager.fetchServices) K8sManager.fetchServices();
-        if (K8sManager.fetchIngress) K8sManager.fetchIngress();
+        if (K8sManager.fetchAll) {
+            K8sManager.fetchAll();
+        } else {
+            if (K8sManager.fetchArgoStatus) K8sManager.fetchArgoStatus();
+            if (K8sManager.fetchNodesStatus) K8sManager.fetchNodesStatus();
+            if (K8sManager.fetchClusterOverview) K8sManager.fetchClusterOverview();
+            if (K8sManager.fetchBackupsStatus) K8sManager.fetchBackupsStatus();
+            if (K8sManager.fetchStorageStatus) K8sManager.fetchStorageStatus();
+            if (K8sManager.fetchServices) K8sManager.fetchServices();
+            if (K8sManager.fetchIngress) K8sManager.fetchIngress();
+        }
     }
+
+    // Extra fetchers
     if (typeof fetchAppsWithResources === 'function') fetchAppsWithResources();
 
     // Component Managers
-    if (window.MetricsManager && MetricsManager.init) MetricsManager.init();
+    if (window.MetricsManager && MetricsManager.loadMetrics) MetricsManager.loadMetrics();
     if (window.MonitorsManager && MonitorsManager.fetchMonitors) MonitorsManager.fetchMonitors();
     if (window.NewsManager && NewsManager.fetchNews) NewsManager.fetchNews();
-    if (window.QuotasManager && QuotasManager.fetchQuotas) {
-        // QuotasManager.fetchQuotas(); // Disabled
-    }
     if (window.MqttManager && MqttManager.fetchInitialData) MqttManager.fetchInitialData();
 
-    // Refresh current active tab if it's a dashboard
-    const activeTab = window.KusanagiDashboard ? KusanagiDashboard.activeTab : null;
-    if (activeTab && typeof switchTab === 'function') {
-        switchTab(activeTab);
+    // Update system status info (CPU/RAM/Uptime)
+    if (window.SystemStatusManager) {
+        SystemStatusManager.fetchStatus();
     }
 }
 
