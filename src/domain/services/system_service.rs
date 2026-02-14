@@ -26,9 +26,13 @@ impl SystemService {
     pub fn get_status() -> SystemStatus {
         metrics::counter!("system_status_check_total", 1);
 
-        let now_instant = Instant::now();
-        let start_instant = START_TIME.get_or_init(Instant::now);
-        let uptime = now_instant.duration_since(*start_instant).as_secs();
+        // Try to get system uptime from /proc/uptime for accuracy
+        // Fallback to Instant-based calculation if unavailable
+        let uptime = Self::get_system_uptime_secs().unwrap_or_else(|| {
+            let now_instant = Instant::now();
+            let start_instant = START_TIME.get_or_init(Instant::now);
+            now_instant.duration_since(*start_instant).as_secs()
+        });
 
         let start_time_str = START_TIME_STR.get_or_init(|| chrono::Utc::now().to_rfc3339());
 
@@ -47,6 +51,20 @@ impl SystemService {
             memory_usage_mb: memory_used / 1024 / 1024,
             version: env!("CARGO_PKG_VERSION").to_string(),
         }
+    }
+
+    /// Read system uptime from /proc/uptime (Linux)
+    /// This gives the real system uptime, not the process uptime
+    fn get_system_uptime_secs() -> Option<u64> {
+        // Try /proc/uptime first (most accurate for Linux systems)
+        if let Ok(contents) = std::fs::read_to_string("/proc/uptime") {
+            if let Some(first_part) = contents.split_whitespace().next() {
+                if let Ok(uptime_secs_f) = first_part.parse::<f64>() {
+                    return Some(uptime_secs_f as u64);
+                }
+            }
+        }
+        None
     }
 
     /// Try to read memory usage from cgroup v2
