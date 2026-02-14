@@ -40,6 +40,23 @@ pub fn configure_routes(state: AppState) -> Router {
         // Doctor routes
         .route("/api/doctor", get(doctor_handler))
         .route("/api/doctor/quick", get(doctor_quick_handler))
+        // MCP routes
+        .route(
+            "/api/security/vulnerabilities",
+            get(mcp_vulnerabilities_handler),
+        )
+        .route("/api/security/policies", get(mcp_policies_handler))
+        .route(
+            "/api/security/policies/violations",
+            get(mcp_policy_violations_handler),
+        )
+        .route("/api/security/fence", get(mcp_fence_handler))
+        // Cilium routes
+        .route("/api/cilium/flows", get(get_flows_handler))
+        .route("/api/cilium/matrix", get(get_matrix_handler))
+        .route("/api/cilium/metrics", get(get_metrics_handler))
+        .route("/api/cilium/anomalies", get(get_anomalies_handler))
+        .route("/api/cilium/namespaces", get(get_namespaces_handler))
         // WebSocket
         .route("/api/ws/notifications", get(ws_notifications_handler))
         // Hexagonal routes
