@@ -141,7 +141,7 @@ const SystemStatusManager = {
         const h = Math.floor((seconds % 86400) / 3600);
         const m = Math.floor((seconds % 3600) / 60);
         const s = seconds % 60;
-        
+
         if (days > 0) {
             return `${days}j ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
@@ -386,7 +386,7 @@ const MetricsManager = {
 
         try {
             // Use apiFetch to get unwrapped data from the standard envelope
-            const metrics = await api.get('/api/metrics');
+            const metrics = await api.get('/api/dashboard/metrics');
 
             // Save to cache
             this.saveToCache(metrics);
