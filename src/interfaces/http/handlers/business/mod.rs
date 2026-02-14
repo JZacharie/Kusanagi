@@ -1,11 +1,6 @@
 // HTTP Controllers - Interface Layer
 // Migrated from Actix-web to Axum
 
-pub mod handlers;
-pub mod helpers;
-pub mod routes;
-
-// Legacy individual handler files (will be removed once fully migrated to handlers/)
 pub mod alert_handlers;
 pub mod backup_handlers;
 pub mod chat_handlers;
@@ -14,7 +9,7 @@ pub mod proxmox_handlers;
 pub mod security_handlers;
 pub mod weather_handlers;
 
-// Re-export handler functions for backward compatibility
+// Re-export handler functions (not configuration functions which are Actix-specific)
 pub use alert_handlers::get_alerts_handler;
 pub use backup_handlers::{get_backups_handler, trigger_backup_handler};
 pub use homeassistant_handlers::{
