@@ -22,6 +22,7 @@ pub struct AppState {
     pub http_client: Arc<reqwest::Client>,
     pub cilium_cache: Arc<crate::domain::services::cilium_service::CiliumCache>,
     pub llm_service: Arc<crate::domain::services::llm_service::LlmService>,
+    pub prometheus_handle: metrics_exporter_prometheus::PrometheusHandle,
 }
 
 impl AppState {
@@ -130,6 +131,9 @@ impl AppState {
             chat_service.clone(), // Adding this requires ChatUseCase update
         ));
 
+        // Metrics
+        let prometheus_handle = crate::infrastructure::metrics::setup_metrics()?;
+
         Ok(Self {
             k8s_cache,
             argocd_cache,
@@ -144,6 +148,7 @@ impl AppState {
             http_client,
             cilium_cache: Arc::new(crate::domain::services::cilium_service::CiliumCache::new()),
             llm_service,
+            prometheus_handle,
         })
     }
 }

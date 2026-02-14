@@ -15,7 +15,9 @@ pub struct SystemStatus {
 pub struct SystemService;
 
 impl SystemService {
+    #[tracing::instrument(name = "system_get_status")]
     pub fn get_status() -> SystemStatus {
+        metrics::counter!("system_status_check_total", 1);
         let mut sys = System::new_all();
         sys.refresh_all();
 
@@ -53,7 +55,9 @@ impl SystemService {
         None
     }
 
+    #[tracing::instrument(name = "system_get_logs")]
     pub async fn get_logs() -> Result<String, String> {
+        metrics::counter!("system_logs_access_total", 1);
         // Try to read from local log file first (for Docker/k8s support)
         let log_dir = "/tmp/kusanagi-logs";
         let mut latest_log_content = String::new();

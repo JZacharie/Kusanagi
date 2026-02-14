@@ -23,7 +23,10 @@ impl ChatService {
         }
     }
 
+    #[tracing::instrument(skip(self, message), fields(language = %language, response_type))]
     pub async fn process_message(&self, message: &str, language: &str) -> ChatResponse {
+        metrics::counter!("chat_requests_total", 1, "language" => language.to_string());
+
         // 1. Check for specific commands (optional, can be handled by LLM tool calling in future)
         // For now, we keep it simple and send everything to LLM with context,
         // unless it's a very simple static command.
@@ -41,19 +44,25 @@ impl ChatService {
         let full_prompt = format!("{}\n\nUser: {}", system_prompt, message);
 
         match self.llm_service.complete(&full_prompt).await {
-            Ok(response) => ChatResponse {
-                response,
-                response_type: "ai".to_string(),
-                data: None,
-            },
-            Err(e) => ChatResponse {
-                response: format!(
-                    "⚠️ **System Failure**: AI Module unresponsive. Error: {}",
-                    e
-                ),
-                response_type: "error".to_string(),
-                data: None,
-            },
+            Ok(response) => {
+                metrics::counter!("chat_llm_success_total", 1, "language" => language.to_string());
+                ChatResponse {
+                    response,
+                    response_type: "ai".to_string(),
+                    data: None,
+                }
+            }
+            Err(e) => {
+                metrics::counter!("chat_llm_errors_total", 1, "language" => language.to_string(), "error" => e.to_string());
+                ChatResponse {
+                    response: format!(
+                        "⚠️ **System Failure**: AI Module unresponsive. Error: {}",
+                        e
+                    ),
+                    response_type: "error".to_string(),
+                    data: None,
+                }
+            }
         }
     }
 

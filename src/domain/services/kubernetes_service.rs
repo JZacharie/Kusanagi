@@ -3,7 +3,9 @@ use k8s_openapi::api::networking::v1::Ingress;
 use kube::{api::ListParams, Api, Client};
 use serde_json::{json, Value};
 
+#[tracing::instrument(name = "k8s_get_pods")]
 pub async fn get_pods_status() -> Result<Value, String> {
+    metrics::counter!("kubernetes_requests_total", 1, "operation" => "get_pods");
     let client = Client::try_default().await.map_err(|e| e.to_string())?;
     let pods: Api<Pod> = Api::all(client);
 
@@ -130,7 +132,9 @@ pub async fn get_pods_status() -> Result<Value, String> {
 
 // Imports are at top
 
+#[tracing::instrument(name = "k8s_get_nodes", skip(client))]
 pub async fn get_nodes_status(client: &reqwest::Client) -> Result<Value, String> {
+    metrics::counter!("kubernetes_requests_total", 1, "operation" => "get_nodes");
     let kube_client = Client::try_default().await.map_err(|e| e.to_string())?;
     let nodes_api: Api<Node> = Api::all(kube_client);
     let list = nodes_api
@@ -298,10 +302,12 @@ pub async fn get_nodes_status(client: &reqwest::Client) -> Result<Value, String>
     }))
 }
 
+#[tracing::instrument(name = "k8s_cluster_overview", skip(client, cache))]
 pub async fn get_cluster_overview(
     client: &reqwest::Client,
     cache: &crate::AdvancedCache<String>,
 ) -> Result<Value, String> {
+    metrics::counter!("kubernetes_requests_total", 1, "operation" => "cluster_overview");
     let pods = get_pods_status().await.unwrap_or_else(|_| {
         json!({
             "total_pods": 0,
