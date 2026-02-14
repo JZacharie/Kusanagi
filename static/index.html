@@ -54,24 +54,31 @@
         crossorigin="anonymous"></script>
     <script src="/static/js/rum.js"></script>
 
+    <!-- Configuration (must load before other modules) -->
+    <script src="/static/js/config.js"></script>
+
     <!-- Monitoring & Infrastructure Modules -->
     <script src="/static/js/api-tracker.js"></script>
     <script src="/static/js/error-boundary.js"></script>
     <script src="/static/js/core.js"></script>
     <script src="/static/js/page-loader.js"></script>
+    
+    <!-- Kubernetes Modules -->
     <script src="/static/js/k8s/state.js"></script>
     <script src="/static/js/k8s/pods.js"></script>
     <script src="/static/js/k8s/nodes.js"></script>
-    <script src="/static/js/k8s/network.js"></script>
+    <script src="/static/js/k8s/services.js"></script>
     <script src="/static/js/k8s/storage.js"></script>
     <script src="/static/js/k8s/argocd.js"></script>
     <script src="/static/js/k8s/main.js"></script>
+    
+    <!-- Dashboard Modules -->
     <script src="/static/js/proxmox.js"></script>
     <script src="/static/js/homeassistant.js"></script>
     <script src="/static/js/weather.js"></script>
     <script src="/static/js/monitors.js"></script>
     <script src="/static/js/security.js"></script>
-    <script src="/static/js/network.js"></script>
+    <script src="/static/js/cilium-network.js"></script>
     <script src="/static/js/mqtt.js"></script>
     <script src="/static/js/setup.js"></script>
     <script src="/static/js/system.js"></script>
