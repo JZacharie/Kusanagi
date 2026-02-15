@@ -45,6 +45,12 @@ const KusanagiSystem = {
     updateStatusUI: function (data) {
         console.log('🎨 Updating status UI with:', data);
 
+        // Guard against undefined/null data
+        if (!data) {
+            console.warn('⚠️ updateStatusUI called with no data');
+            data = {};
+        }
+
         // Handle uptime - favor uptime_secs for consistency
         const uptimeDisplay = this.formatUptime(data.uptime_secs) || data.uptime || 'N/A';
 
@@ -65,9 +71,14 @@ const KusanagiSystem = {
         try {
             // Use apiFetch to get unwrapped data from the standard envelope
             const data = await api.get('/api/database/health');
+            // Guard against undefined/null data
+            if (!data) {
+                console.warn('⚠️ Database health data is undefined');
+                throw new Error('No data received');
+            }
             const el = document.getElementById('kusanagi-db-status');
             if (el) {
-                el.textContent = data.latency_ms + 'ms';
+                el.textContent = (data.latency_ms ?? 'N/A') + 'ms';
 
                 if (data.status === 'Healthy') {
                     el.style.color = 'var(--neon-green)';
