@@ -412,24 +412,27 @@ async fn fetch_gpu_from_hot_service(client: &reqwest::Client) -> (f64, f64, f64)
         }
     };
 
-    // Extract metrics from the JSON response
-    // Expected format: {"utilization": 45.5, "temperature": 65.0, "power": 120.5, ...}
-    let gpu_util = data["utilization"]
+    // The response format is: {"gpus": {"0": {...}}, "timestamp": "..."}
+    // Get the first GPU's data
+    let gpu_data = data["gpus"]
+        .as_object()
+        .and_then(|gpus| gpus.values().next())
+        .unwrap_or(&data);
+
+    tracing::debug!("GPU data extracted: {:?}", gpu_data);
+
+    // Extract metrics from the GPU data
+    // Fields: utilization, temperature, power_draw
+    let gpu_util = gpu_data["utilization"]
         .as_f64()
-        .or_else(|| data["gpu_utilization"].as_f64())
-        .or_else(|| data["util"].as_f64())
         .unwrap_or(0.0);
 
-    let gpu_temp = data["temperature"]
+    let gpu_temp = gpu_data["temperature"]
         .as_f64()
-        .or_else(|| data["gpu_temperature"].as_f64())
-        .or_else(|| data["temp"].as_f64())
         .unwrap_or(0.0);
 
-    let gpu_power = data["power"]
+    let gpu_power = gpu_data["power_draw"]
         .as_f64()
-        .or_else(|| data["gpu_power"].as_f64())
-        .or_else(|| data["power_draw"].as_f64())
         .unwrap_or(0.0);
 
     if gpu_util > 0.0 || gpu_temp > 0.0 || gpu_power > 0.0 {
