@@ -45,10 +45,10 @@ jobs:
       - name: Install Tools
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-audit
+          tool: cargo-audit,nextest
 
-      - name: Run Tests
-        run: cargo test --package kusanagi
+      - name: Run Tests (Nextest)
+        run: cargo nextest run --package kusanagi
 
       - name: Run Validation (Clippy & Audit)
         run: |
@@ -74,7 +74,7 @@ jobs:
 
       - name: Install Gitleaks
         run: |
-          curl -sS https://raw.githubusercontent.com/zricethezav/gitleaks/master/install.sh | sudo bash
+          curl -ssfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.2/gitleaks_8.18.2_linux_x64.tar.gz | sudo tar xz -C /usr/local/bin gitleaks
 
       - name: Run Gitleaks
         run: gitleaks detect --redact --verbose
