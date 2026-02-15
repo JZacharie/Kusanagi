@@ -85,8 +85,8 @@ const TabManager = {
         // Démarrer le polling du nouvel onglet
         this._startPolling(tabName);
         
-        // Fetch immédiat
-        this._fetchForTab(tabName);
+        // Fetch avec léger délai pour éviter les pics de requêtes
+        setTimeout(() => this._fetchForTab(tabName), 100);
     },
 
     /**
@@ -186,9 +186,9 @@ const TabManager = {
     }
 };
 
-// Initialiser au chargement
+// Initialiser au chargement avec léger délai aléatoire pour éviter les pics
 document.addEventListener('DOMContentLoaded', () => {
-    TabManager.init();
+    setTimeout(() => TabManager.init(), Math.random() * 200);
 });
 
 window.TabManager = TabManager;
