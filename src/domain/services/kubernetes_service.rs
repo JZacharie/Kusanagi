@@ -303,9 +303,8 @@ pub async fn get_nodes_status(
         total_cpu += cpu_capacity;
         total_memory_gb += memory_capacity_gb;
 
-        // Metrics logic
-        let (cpu_usage_core, memory_usage_bytes) =
-            metrics_map.get(name).cloned().unwrap_or((0.0, 0.0));
+        // Metrics logic - try to find metrics with flexible name matching
+        let (cpu_usage_core, memory_usage_bytes) = find_node_metrics(name, &metrics_map);
 
         let cpu_usage_percent = if cpu_capacity > 0.0 {
             (cpu_usage_core / cpu_capacity) * 100.0
@@ -321,6 +320,17 @@ pub async fn get_nodes_status(
         } else {
             0.0
         };
+
+        tracing::debug!(
+            "Node {}: CPU={:.1}% ({:.2}/{:.0} cores), MEM={:.1}% ({:.0}/{:.0} bytes)",
+            name,
+            cpu_usage_percent,
+            cpu_usage_core,
+            cpu_capacity,
+            memory_usage_percent,
+            memory_usage_bytes,
+            memory_capacity_bytes
+        );
 
         // Get actual pod count for this node
         let actual_pod_count = pod_count_by_node.get(name).copied().unwrap_or(0);
@@ -984,10 +994,9 @@ pub async fn delete_error_pods() -> Result<Value, String> {
     }))
 }
 
-// Helper to fetch metrics
-// Returns Map<NodeName, (CpuUsageCores, MemoryUsageBytes)>
-// Helper to fetch metrics
-// Returns Map<NodeName, (CpuUsageCores, MemoryUsageBytes)>
+/// Helper to fetch node metrics from Prometheus
+/// Returns Map<NodeName, (CpuUsageCores, MemoryUsageBytes)>
+/// Tries multiple metric sources: node_exporter, kubelet, or kubernetes metrics
 pub async fn fetch_node_metrics(
     client: &reqwest::Client,
 ) -> Result<std::collections::HashMap<String, (f64, f64)>, String> {
@@ -996,81 +1005,195 @@ pub async fn fetch_node_metrics(
     });
 
     let url = format!("{}/api/v1/query", prometheus_url);
-    let mut metrics_map = std::collections::HashMap::new();
+    let mut metrics_map: std::collections::HashMap<String, (f64, f64)> =
+        std::collections::HashMap::new();
 
-    // 1. Fetch CPU Usage (cores)
-    // sum(rate(node_cpu_seconds_total{mode!="idle"}[5m])) by (node)
-    let cpu_query = "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (node)";
+    tracing::debug!(
+        "Fetching node metrics from Prometheus at {}",
+        prometheus_url
+    );
 
-    if let Ok(response) = client
-        .get(&url)
-        .query(&[("query", cpu_query)])
-        .timeout(std::time::Duration::from_secs(3))
-        .send()
-        .await
-    {
-        if let Ok(body) = response.json::<Value>().await {
-            if let Some(results) = body
-                .get("data")
-                .and_then(|d| d.get("result"))
-                .and_then(|r| r.as_array())
-            {
-                for result in results {
-                    if let (Some(metric), Some(value)) = (result.get("metric"), result.get("value"))
-                    {
-                        if let Some(node) = metric.get("node").and_then(|s| s.as_str()) {
-                            let val = value
-                                .get(1)
-                                .and_then(|v| v.as_str())
-                                .and_then(|s| s.parse::<f64>().ok())
-                                .unwrap_or(0.0);
+    // Try multiple CPU queries in order of preference
+    let cpu_queries = [
+        // node_exporter: CPU usage in cores (sum of all non-idle modes)
+        "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (node)",
+        // Alternative: 100 - idle percentage
+        "100 - (avg by (node) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+        // kubelet: container CPU usage
+        "sum(rate(container_cpu_usage_seconds_total{id=\"/\"}[5m])) by (node)",
+        // kubernetes metric: node CPU usage
+        "sum(rate(node_cpu_usage_seconds_total[5m])) by (node)",
+    ];
 
-                            metrics_map.insert(node.to_string(), (val, 0.0));
-                        }
+    for query in &cpu_queries {
+        match query_prometheus(client, &url, query).await {
+            Ok(results) => {
+                if !results.is_empty() {
+                    tracing::info!("CPU metrics found using query: {}", query);
+                    for (node, value) in results {
+                        // If the query returns percentage (0-100), convert to cores
+                        // If it returns cores (could be > 100 for multi-core), keep as is
+                        let cpu_cores = if value > 100.0 {
+                            // Likely already in percentage, convert to cores assuming 1 core = 100%
+                            value / 100.0
+                        } else {
+                            value
+                        };
+                        metrics_map.insert(node, (cpu_cores, 0.0));
                     }
+                    break;
                 }
+            }
+            Err(e) => {
+                tracing::warn!("CPU query failed: {} - {}", query, e);
             }
         }
     }
 
-    // 2. Fetch Memory Usage (bytes)
-    // sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) by (node)
-    let mem_query = "sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) by (node)";
+    // Try multiple memory queries
+    let mem_queries = [
+        // node_exporter: memory used in bytes
+        "sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) by (node)",
+        // Alternative calculation
+        "sum(node_memory_MemTotal_bytes - node_memory_Buffers_bytes - node_memory_Cached_bytes - node_memory_MemFree_bytes) by (node)",
+        // kubelet: container memory usage
+        "sum(container_memory_working_set_bytes{id=\"/\"}) by (node)",
+        // kubernetes metric
+        "sum(node_memory_usage_bytes) by (node)",
+    ];
 
-    if let Ok(response) = client
-        .get(&url)
-        .query(&[("query", mem_query)])
-        .timeout(std::time::Duration::from_secs(3))
-        .send()
-        .await
-    {
-        if let Ok(body) = response.json::<Value>().await {
-            if let Some(results) = body
-                .get("data")
-                .and_then(|d| d.get("result"))
-                .and_then(|r| r.as_array())
-            {
-                for result in results {
-                    if let (Some(metric), Some(value)) = (result.get("metric"), result.get("value"))
-                    {
-                        if let Some(node) = metric.get("node").and_then(|s| s.as_str()) {
-                            let val = value
-                                .get(1)
-                                .and_then(|v| v.as_str())
-                                .and_then(|s| s.parse::<f64>().ok())
-                                .unwrap_or(0.0);
-
-                            if let Some(entry) = metrics_map.get_mut(node) {
-                                entry.1 = val;
-                            } else {
-                                metrics_map.insert(node.to_string(), (0.0, val));
-                            }
+    for query in &mem_queries {
+        match query_prometheus(client, &url, query).await {
+            Ok(results) => {
+                if !results.is_empty() {
+                    tracing::info!("Memory metrics found using query: {}", query);
+                    for (node, value) in results {
+                        if let Some(entry) = metrics_map.get_mut(&node) {
+                            entry.1 = value;
+                        } else {
+                            // Node exists in memory metrics but not CPU
+                            metrics_map.insert(node, (0.0, value));
                         }
                     }
+                    break;
                 }
             }
+            Err(e) => {
+                tracing::warn!("Memory query failed: {} - {}", query, e);
+            }
         }
+    }
+
+    tracing::info!("Fetched metrics for {} nodes", metrics_map.len());
+    for (node, (cpu, mem)) in &metrics_map {
+        tracing::debug!("Node {}: CPU={:.2} cores, MEM={:.2} bytes", node, cpu, mem);
     }
 
     Ok(metrics_map)
+}
+
+/// Query Prometheus and return a map of node -> value
+async fn query_prometheus(
+    client: &reqwest::Client,
+    url: &str,
+    query: &str,
+) -> Result<std::collections::HashMap<String, f64>, String> {
+    let response = client
+        .get(url)
+        .query(&[("query", query)])
+        .timeout(std::time::Duration::from_secs(5))
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("HTTP error: {}", response.status()));
+    }
+
+    let body: Value = response
+        .json()
+        .await
+        .map_err(|e| format!("JSON parse error: {}", e))?;
+
+    let mut results_map = std::collections::HashMap::new();
+
+    if let Some(results) = body
+        .get("data")
+        .and_then(|d| d.get("result"))
+        .and_then(|r| r.as_array())
+    {
+        for result in results {
+            if let (Some(metric), Some(value)) = (result.get("metric"), result.get("value")) {
+                // Try different node labels
+                let node_name = metric
+                    .get("node")
+                    .or_else(|| metric.get("instance"))
+                    .or_else(|| metric.get("kubernetes_node"))
+                    .and_then(|s| s.as_str());
+
+                if let Some(node) = node_name {
+                    // Clean up node name (remove port if present)
+                    let clean_node = node.split(':').next().unwrap_or(node).to_string();
+
+                    if let Some(val_str) = value.get(1).and_then(|v| v.as_str()) {
+                        if let Ok(val) = val_str.parse::<f64>() {
+                            results_map.insert(clean_node, val);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(results_map)
+}
+
+/// Find node metrics with flexible name matching
+/// Handles cases where Prometheus node name differs from Kubernetes node name
+fn find_node_metrics(
+    k8s_node_name: &str,
+    metrics_map: &std::collections::HashMap<String, (f64, f64)>,
+) -> (f64, f64) {
+    // First try exact match
+    if let Some(metrics) = metrics_map.get(k8s_node_name) {
+        return *metrics;
+    }
+
+    // Try matching without domain suffix (e.g., "node1.cluster.local" -> "node1")
+    let k8s_short = k8s_node_name.split('.').next().unwrap_or(k8s_node_name);
+
+    for (metric_node, metrics) in metrics_map {
+        // Exact match after cleaning
+        let metric_short = metric_node.split('.').next().unwrap_or(metric_node);
+
+        if k8s_short == metric_short {
+            tracing::debug!(
+                "Matched node {} to metrics for {} (short: {})",
+                k8s_node_name,
+                metric_node,
+                metric_short
+            );
+            return *metrics;
+        }
+
+        // Check if one contains the other
+        if metric_node.contains(k8s_short) || k8s_node_name.contains(metric_short) {
+            tracing::debug!("Partial match: {} ~ {}", k8s_node_name, metric_node);
+            return *metrics;
+        }
+    }
+
+    // Try IP address matching - extract IP from instance label (e.g., "10.0.0.1:9100")
+    for (metric_node, metrics) in metrics_map {
+        let metric_ip = metric_node.split(':').next().unwrap_or(metric_node);
+
+        // Check if node name contains the IP or vice versa
+        if k8s_node_name.contains(metric_ip) || metric_node.contains(k8s_short) {
+            tracing::debug!("IP match: {} ~ {}", k8s_node_name, metric_node);
+            return *metrics;
+        }
+    }
+
+    tracing::warn!("No metrics found for node {}", k8s_node_name);
+    (0.0, 0.0)
 }

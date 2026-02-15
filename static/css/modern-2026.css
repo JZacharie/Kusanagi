@@ -217,7 +217,7 @@ body.theme-modern .issues-table {
 
 body.theme-modern .issues-table th {
     text-align: left;
-    padding: 1rem;
+    padding: 0.5rem 0.8rem;
     color: var(--text-muted);
     font-weight: 600;
     text-transform: uppercase;
@@ -226,7 +226,7 @@ body.theme-modern .issues-table th {
 }
 
 body.theme-modern .issues-table td {
-    padding: 1rem;
+    padding: 0.4rem 0.8rem;
     background: rgba(255, 255, 255, 0.02);
     border-top: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
@@ -239,6 +239,42 @@ body.theme-modern .issues-table tr td:first-child {
 }
 
 body.theme-modern .issues-table tr td:last-child {
+    border-right: 1px solid var(--border-color);
+    border-top-right-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+}
+
+/* General Data Table (used by Services) */
+body.theme-modern .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 0.5rem;
+}
+
+body.theme-modern .data-table th {
+    text-align: left;
+    padding: 0.5rem 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+}
+
+body.theme-modern .data-table td {
+    padding: 0.4rem 0.8rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+body.theme-modern .data-table tr td:first-child {
+    border-left: 1px solid var(--border-color);
+    border-top-left-radius: var(--radius-md);
+    border-bottom-left-radius: var(--radius-md);
+}
+
+body.theme-modern .data-table tr td:last-child {
     border-right: 1px solid var(--border-color);
     border-top-right-radius: var(--radius-md);
     border-bottom-right-radius: var(--radius-md);
@@ -654,6 +690,7 @@ body.theme-modern .gauge-mini-fill.medium {
 body.theme-modern .gauge-mini-fill.high {
     background: var(--status-danger);
 }
+
 /* ============================================
    INGRESS LINKS STYLES - Modern 2026
    ============================================ */
@@ -720,7 +757,7 @@ body.theme-modern .data-table.ingress-table {
 
 body.theme-modern .data-table.ingress-table th {
     text-align: left;
-    padding: 1rem;
+    padding: 0.5rem 0.8rem;
     color: var(--text-muted);
     font-weight: 600;
     text-transform: uppercase;
@@ -729,7 +766,7 @@ body.theme-modern .data-table.ingress-table th {
 }
 
 body.theme-modern .data-table.ingress-table td {
-    padding: 1rem;
+    padding: 0.4rem 0.8rem;
     background: rgba(255, 255, 255, 0.02);
     border-top: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);

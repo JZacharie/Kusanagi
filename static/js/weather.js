@@ -152,7 +152,7 @@ const WeatherDashboard = {
                                         ${this.getSensorSVG('wind')}
                                         <span style="font-size: 0.75rem; letter-spacing: 1px; opacity: 0.5;">WIND</span>
                                     </div>
-                                    <span style="font-family: 'Orbitron', sans-serif; font-weight: bold; color: var(--neon-magenta);">${city.wind_speed}<span style="font-size: 0.6rem; margin-left: 2px;">KM/H</span></span>
+                                    <span style="font-family: 'Orbitron', sans-serif; font-weight: bold; color: var(--neon-magenta);">${Math.round(city.wind_speed)}<span style="font-size: 0.6rem; margin-left: 2px;">KM/H</span></span>
                                 </div>
                                 <div style="display: flex; align-items: center; justify-content: space-between;">
                                     <div style="display: flex; align-items: center; gap: 10px;">

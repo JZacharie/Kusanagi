@@ -109,6 +109,11 @@ const K8sNodes = {
             const os = node.os ? node.os.split(' ')[0] : 'N/A';
             const kubelet = node.kubelet_version ? node.kubelet_version.replace('v', '').split('+')[0] : 'N/A';
             const cpuCapacity = node.cpu_capacity || '-';
+            
+            // Debug: log metrics values
+            if (cpuPercent === 0 && memPercent === 0) {
+                console.warn(`Node ${node.name}: No metrics available (CPU: ${node.cpu_usage_percent}, MEM: ${node.memory_usage_percent})`);
+            }
 
             return `
                 <div class="node-card ${isReady ? 'ready' : 'not-ready'}">

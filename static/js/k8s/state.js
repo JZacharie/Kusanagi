@@ -7,14 +7,14 @@ const K8sState = {
     // Storage
     storageData: [],
     storagePage: 1,
-    storagePerPage: 10,
+    storagePerPage: 20,
     storageSortField: 'usage_percent',
     storageSortDir: 'desc',
 
     // Events
     currentEventFilter: 'all',
     currentEventPage: 1,
-    eventPerPage: 20,
+    eventPerPage: 50,
 
     // Cache Helpers
     loadFromCache(key, ttl = 300000) {
