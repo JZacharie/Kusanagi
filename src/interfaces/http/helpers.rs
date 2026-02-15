@@ -1,7 +1,7 @@
 // HTTP helpers - Utility functions for HTTP handlers
 
 use axum::{extract::Request, middleware::Next, response::IntoResponse, Json};
-use tracing::info;
+use tracing::{info, warn};
 
 // Static files
 static INDEX_HTML_TEMPLATE: &str = include_str!("../../../static/index.html");
@@ -66,9 +66,15 @@ pub async fn log_request(request: Request, next: Next) -> impl IntoResponse {
     }
 
     let response = next.run(request).await;
+    let status = response.status();
 
     if !skip_log {
-        info!("📤 {} - Status: {}", uri, response.status());
+        let status_code = status.as_u16();
+        if status_code >= 400 {
+            warn!("📤 {} - Status: {} {}", uri, status_code, status.canonical_reason().unwrap_or(""));
+        } else {
+            info!("📤 {} - Status: {}", uri, status);
+        }
     }
 
     response
