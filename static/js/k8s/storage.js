@@ -1,16 +1,14 @@
+/**
+ * K8sStorage - Storage and Backups management
+ * Note: Polling is handled by K8sManager (tab-aware)
+ */
 const K8sStorage = {
     init() {
-        console.log('💾 K8s Storage Module Initialized');
+        console.log('💾 K8s Storage Module Initialized (no internal polling)');
     },
 
     // === PVCs ===
     async fetchStorageStatus() {
-        // Only fetch if we're on the Storage tab (or unknown tab for initial load)
-        const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
-        if (activeTab && activeTab !== 'storage') {
-            return;
-        }
-
         try {
             console.log('🔍 Fetching storage status...');
             const data = await api.get('/api/storage');
@@ -132,12 +130,6 @@ const K8sStorage = {
 
     // === BACKUPS ===
     async fetchBackupsStatus() {
-        // Only fetch if we're on the Backups tab (or unknown tab for initial load)
-        const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
-        if (activeTab && activeTab !== 'backups') {
-            return;
-        }
-
         try {
             const data = await api.get('/api/backups');
 

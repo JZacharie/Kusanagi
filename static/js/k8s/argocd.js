@@ -1,16 +1,13 @@
+/**
+ * K8sArgo - ArgoCD management
+ * Note: Polling is handled by K8sManager (tab-aware)
+ */
 const K8sArgo = {
     init() {
-        console.log('🚀 K8s ArgoCD Module Initialized');
+        console.log('🚀 K8s ArgoCD Module Initialized (no internal polling)');
     },
 
     async fetchArgoStatus() {
-        // Only fetch if we're on the ArgoCD tab (or unknown tab for initial load)
-        const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
-        if (activeTab && activeTab !== 'argocd') {
-            console.log('Skipping ArgoCD fetch (not active tab:', activeTab + ')');
-            return;
-        }
-
         try {
             const data = await api.get('/api/argocd/status');
             this.updateArgoStats(data);
