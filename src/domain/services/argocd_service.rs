@@ -1,7 +1,7 @@
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
+use kube::{api::ListParams, Api, Client};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use kube::{api::ListParams, Api, Client};
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 
 use crate::AdvancedCache;
 
@@ -98,11 +98,13 @@ async fn fetch_argocd_status_from_cluster() -> Result<Value, String> {
 
     // Try to get ArgoCD applications from namespace argocd
     let apps_api: Api<ArgoCDApplication> = Api::namespaced(client.clone(), "argocd");
-    
+
     match tokio::time::timeout(
         std::time::Duration::from_secs(20),
         apps_api.list(&ListParams::default()),
-    ).await {
+    )
+    .await
+    {
         Ok(Ok(app_list)) => {
             tracing::info!("✅ Found {} ArgoCD applications", app_list.items.len());
             return parse_argocd_applications(&app_list.items);
@@ -117,38 +119,41 @@ async fn fetch_argocd_status_from_cluster() -> Result<Value, String> {
 
     // Check if ArgoCD is installed by checking for pods in argocd namespace
     let pods_api: Api<k8s_openapi::api::core::v1::Pod> = Api::namespaced(client, "argocd");
-    
-    match tokio::time::timeout(
+
+    if let Ok(Ok(pod_list)) = tokio::time::timeout(
         std::time::Duration::from_secs(10),
         pods_api.list(&ListParams::default()),
-    ).await {
-        Ok(Ok(pod_list)) => {
-            let total_pods = pod_list.items.len();
-            if total_pods > 0 {
-                let running_pods = pod_list.items.iter().filter(|p| {
+    )
+    .await
+    {
+        let total_pods = pod_list.items.len();
+        if total_pods > 0 {
+            let running_pods = pod_list
+                .items
+                .iter()
+                .filter(|p| {
                     p.status.as_ref().and_then(|s| s.phase.as_deref()) == Some("Running")
-                }).count();
-                
-                tracing::warn!(
-                    "⚠️ ArgoCD installed ({}/{} pods running) but applications API not accessible",
-                    running_pods,
-                    total_pods
-                );
-                return Ok(json!({
-                    "total": 0,
-                    "healthy": 0,
-                    "unhealthy": 0,
-                    "synced": 0,
-                    "out_of_sync": 0,
-                    "progressing": 0,
-                    "upgrades_available": 0,
-                    "apps_with_issues": [],
-                    "apps_with_upgrades": [],
-                    "message": format!("ArgoCD installed ({}/{} pods) but applications not accessible - check permissions", running_pods, total_pods)
-                }));
-            }
+                })
+                .count();
+
+            tracing::warn!(
+                "⚠️ ArgoCD installed ({}/{} pods running) but applications API not accessible",
+                running_pods,
+                total_pods
+            );
+            return Ok(json!({
+                "total": 0,
+                "healthy": 0,
+                "unhealthy": 0,
+                "synced": 0,
+                "out_of_sync": 0,
+                "progressing": 0,
+                "upgrades_available": 0,
+                "apps_with_issues": [],
+                "apps_with_upgrades": [],
+                "message": format!("ArgoCD installed ({}/{} pods) but applications not accessible - check permissions", running_pods, total_pods)
+            }));
         }
-        _ => {}
     }
 
     tracing::warn!("⚠️ ArgoCD not detected in cluster");
@@ -168,20 +173,23 @@ fn parse_argocd_applications(items: &[ArgoCDApplication]) -> Result<Value, Strin
     for item in items {
         let name = item.metadata.name.as_deref().unwrap_or("unknown");
         let namespace = item.metadata.namespace.as_deref().unwrap_or("argocd");
-        
-        let health_status = item.status
+
+        let health_status = item
+            .status
             .as_ref()
             .and_then(|s| s.health.as_ref())
             .and_then(|h| h.status.as_deref())
             .unwrap_or("Unknown");
 
-        let sync_status = item.status
+        let sync_status = item
+            .status
             .as_ref()
             .and_then(|s| s.sync.as_ref())
             .and_then(|sy| sy.status.as_deref())
             .unwrap_or("Unknown");
 
-        let revision = item.status
+        let revision = item
+            .status
             .as_ref()
             .and_then(|s| s.sync.as_ref())
             .and_then(|sy| sy.revision.as_deref())
@@ -249,8 +257,11 @@ pub async fn sync_app(app_name: &str) -> Result<String, String> {
     });
 
     let patch_params = kube::api::PatchParams::apply("kusanagi");
-    
-    match apps_api.patch(app_name, &patch_params, &kube::api::Patch::Merge(&patch)).await {
+
+    match apps_api
+        .patch(app_name, &patch_params, &kube::api::Patch::Merge(&patch))
+        .await
+    {
         Ok(_) => Ok(format!("Sync triggered for {}", app_name)),
         Err(e) => Err(format!("Sync failed: {}", e)),
     }
@@ -272,8 +283,10 @@ mod tests {
                     ..Default::default()
                 },
                 status: Some(ArgoCDApplicationStatus {
-                    health: Some(HealthStatus { status: Some("Healthy".to_string()) }),
-                    sync: Some(SyncStatus { 
+                    health: Some(HealthStatus {
+                        status: Some("Healthy".to_string()),
+                    }),
+                    sync: Some(SyncStatus {
                         status: Some("Synced".to_string()),
                         revision: Some("rev1".to_string()),
                     }),
@@ -288,8 +301,10 @@ mod tests {
                     ..Default::default()
                 },
                 status: Some(ArgoCDApplicationStatus {
-                    health: Some(HealthStatus { status: Some("Degraded".to_string()) }),
-                    sync: Some(SyncStatus { 
+                    health: Some(HealthStatus {
+                        status: Some("Degraded".to_string()),
+                    }),
+                    sync: Some(SyncStatus {
                         status: Some("OutOfSync".to_string()),
                         revision: Some("rev2".to_string()),
                     }),
