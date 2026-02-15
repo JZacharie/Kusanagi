@@ -269,38 +269,38 @@ async function switchTab(tabName) {
         }
     }
 
-    // Update buttons
-    document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.classList.remove("active");
-        if (btn.dataset.tab === tabName) {
-            btn.classList.add("active");
-        }
-    });
-
-    // Update content
-    document.querySelectorAll(".tab-content").forEach(section => {
-        if (section.dataset.tab === tabName) {
-            section.style.display = "block";
-            section.classList.add("active");
-        } else {
-            section.style.display = "none";
-            section.classList.remove("active");
-        }
-    });
-
-    // Show/hide dashboard header elements (only on ArgoCD page)
+    // Batch DOM reads
+    const tabButtons = document.querySelectorAll(".tab-btn");
+    const tabContents = document.querySelectorAll(".tab-content");
     const dashboardHeader = document.getElementById("dashboard-header-elements");
-    if (dashboardHeader) {
-        dashboardHeader.style.display = (tabName === "argocd") ? "block" : "none";
-    }
+
+    // Batch DOM writes in requestAnimationFrame
+    requestAnimationFrame(() => {
+        // Update buttons
+        tabButtons.forEach(btn => {
+            btn.classList.toggle("active", btn.dataset.tab === tabName);
+        });
+
+        // Update content
+        tabContents.forEach(section => {
+            const isTarget = section.dataset.tab === tabName;
+            section.classList.toggle("active", isTarget);
+            // Use CSS classes instead of inline display for better performance
+            section.hidden = !isTarget;
+        });
+
+        // Show/hide dashboard header elements (only on ArgoCD page)
+        if (dashboardHeader) {
+            dashboardHeader.hidden = (tabName !== "argocd");
+        }
+    });
 
     // Update active tab tracking
     if (window.KusanagiDashboard) {
         window.KusanagiDashboard.activeTab = tabName;
     }
 
-    // Emit tab change event for tab-aware modules
-    document.dispatchEvent(new CustomEvent('tabChanged', { detail: { tab: tabName } }));
+
 
     // Load partial if needed (for sections that support it)
     if (window.PageLoader && PageLoader.partials[tabName]) {
@@ -335,6 +335,9 @@ async function switchTab(tabName) {
         console.log("🔄 Switched to Ingress tab, fetching...");
         K8sServices.fetchIngress();
     }
+
+    // Emit tab change event for tab-aware modules (after DOM is ready)
+    document.dispatchEvent(new CustomEvent('tabChanged', { detail: { tab: tabName } }));
 }
 
 /**
