@@ -26,13 +26,10 @@ impl SystemService {
     pub fn get_status() -> SystemStatus {
         metrics::counter!("system_status_check_total", 1);
 
-        // Try to get system uptime from /proc/uptime for accuracy
-        // Fallback to Instant-based calculation if unavailable
-        let uptime = Self::get_system_uptime_secs().unwrap_or_else(|| {
-            let now_instant = Instant::now();
-            let start_instant = START_TIME.get_or_init(Instant::now);
-            now_instant.duration_since(*start_instant).as_secs()
-        });
+        // Use Instant-based calculation for process uptime (not system uptime)
+        // This gives the actual time since Kusanagi process started
+        let start_instant = START_TIME.get_or_init(Instant::now);
+        let uptime = Instant::now().duration_since(*start_instant).as_secs();
 
         let start_time_str = START_TIME_STR.get_or_init(|| chrono::Utc::now().to_rfc3339());
 
@@ -54,7 +51,9 @@ impl SystemService {
     }
 
     /// Read system uptime from /proc/uptime (Linux)
-    /// This gives the real system uptime, not the process uptime
+    /// Note: This gives the NODE uptime, not the process uptime
+    /// Kept for potential future use but not used for process status
+    #[allow(dead_code)]
     fn get_system_uptime_secs() -> Option<u64> {
         // Try /proc/uptime first (most accurate for Linux systems)
         if let Ok(contents) = std::fs::read_to_string("/proc/uptime") {
