@@ -19,12 +19,12 @@ const TabManager = {
         // Other tabs
         proxmox: { interval: 30000, module: 'ProxmoxDashboard', fetch: 'loadData' },
         homeassistant: { interval: 60000, module: 'HomeAssistantDashboard', fetch: 'loadData' },
-        weather: { interval: 600000, module: 'WeatherDashboard', fetch: 'refreshWeather' },
+        weather: { interval: 600000, module: 'WeatherDashboard', fetch: 'fetchAndRender' },
         monitors: { interval: 30000, module: 'MonitorsManager', fetch: 'fetchMonitors' },
         security: { interval: 300000, module: 'SecurityDashboard', fetch: 'loadSecurityData' },
         mqtt: { interval: 30000, module: 'MqttManager', fetch: 'fetchInitialData' },
-        metrics: { interval: 30000, module: 'MetricsManager', fetch: 'loadMetrics' },
-        network: { interval: 30000, module: 'CiliumNetwork', fetch: 'fetchNetworkData' },
+        // metrics: { interval: 30000, module: 'MetricsManager', fetch: 'loadMetrics' }, // TODO: Create metrics.js module
+        network: { interval: 30000, module: 'KusanagiNetwork', fetch: 'fetchNetworkData' },
         
         // No auto-refresh
         chat: { interval: null },
