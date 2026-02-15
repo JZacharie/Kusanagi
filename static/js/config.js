@@ -12,9 +12,9 @@ const KusanagiConfig = {
         baseUrl: '',  // Relative - same origin
         timeout: 30000,  // 30s default timeout
         endpoints: {
-            // Kubernetes
-            nodes: '/api/nodes/status',
-            pods: '/api/pods/status',
+            // Kubernetes - canonical paths (/api/k8s/*)
+            nodes: '/api/k8s/nodes',
+            pods: '/api/k8s/pods',
             services: '/api/services',
             ingress: '/api/ingress',
             storage: '/api/storage',

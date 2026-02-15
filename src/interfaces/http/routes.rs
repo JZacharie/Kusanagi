@@ -118,14 +118,11 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/argocd/status", get(argocd_status))
         .route("/api/argocd/sync", post(argocd_sync))
         .route("/api/news", get(news))
-        // Legacy/Expected Kubernetes routes
-        .route("/api/cluster/overview", get(cluster_overview))
-        .route("/api/nodes/status", get(nodes_status))
-        .route("/api/pods/status", get(pods_status))
+        // Kubernetes routes - canonical paths only
+        // Use /api/k8s/* paths (not legacy /api/cluster/overview, /api/nodes/status, /api/pods/status)
         // Monitoring routes
         .route("/api/monitoring/alerts", get(alerts))
         .route("/api/monitoring/quotas", get(quotas))
-        .route("/api/quotas", get(quotas)) // Alias for frontend
         .route("/api/dashboard/metrics", get(metrics_handler)) // Dashboard metrics
         .route("/api/chat", post(post_chat_handler))
         .route("/api/prometheus/range", get(prometheus_range_handler))

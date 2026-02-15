@@ -10,12 +10,12 @@ const K8sPods = {
         const startTime = performance.now();
 
         try {
-            const data = await apiFetch('/api/pods/status', { signal: controller.signal });
+            const data = await apiFetch('/api/k8s/pods', { signal: controller.signal });
             clearTimeout(timeoutId);
             const duration = performance.now() - startTime;
 
             if (window.KusanagiDebug) {
-                KusanagiDebug.logApiResponse('/api/pods/status', data, duration);
+                KusanagiDebug.logApiResponse('/api/k8s/pods', data, duration);
                 KusanagiDebug.validatePodsData(data);
             }
 

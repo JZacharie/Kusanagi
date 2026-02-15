@@ -170,8 +170,10 @@ const KusanagiDebug = {
         console.log('║     KUSANAGI DEBUG DIAGNOSTICS                         ║');
         console.log('╚════════════════════════════════════════════════════════╝');
         
-        // Test Pods API
-        await this.testEndpoint('/api/pods/status');
+        // Test Kubernetes APIs (canonical paths)
+        await this.testEndpoint('/api/k8s/pods');
+        await this.testEndpoint('/api/k8s/nodes');
+        await this.testEndpoint('/api/k8s/cluster');
         
         // Test Network APIs
         await this.testEndpoint('/api/cilium/namespaces');
@@ -180,7 +182,6 @@ const KusanagiDebug = {
         
         // Test other APIs
         await this.testEndpoint('/api/argocd/status');
-        await this.testEndpoint('/api/nodes/status');
         
         console.log('╔════════════════════════════════════════════════════════╗');
         console.log('║     DIAGNOSTICS COMPLETE                               ║');
