@@ -1,5 +1,13 @@
 name: Kusanagi Build
 
+# Workflow CI/CD pour le projet Kusanagi
+# Ce pipeline gère :
+# 1. Validation rapide (lint, check, audit)
+# 2. Scan de sécurité
+# 3. Compilation optimisée (cache Rust)
+# 4. Construction de l'image Docker (GHCR)
+# 5. Déploiement sur le cluster Kubernetes (Production)
+
 on:
   push:
     branches: [main, master]
@@ -14,6 +22,10 @@ env:
   RUST_BACKTRACE: short
 
 jobs:
+  # ============================================================================
+  # Phase 1: Validation Rapide
+  # Exécution parallèle des tests, linter et audit de dépendances
+  # ============================================================================
   fast-check:
     name: ⚡ Quick Validation
     runs-on: ubuntu-latest
@@ -42,7 +54,8 @@ jobs:
         run: cargo audit
 
   # ============================================================================
-  # Phase 2: Security Scan
+  # Phase 2: Audit de Sécurité
+  # Recherche de secrets exposés dans le code
   # ============================================================================
   security:
     name: 🔒 Security Audit
@@ -59,7 +72,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
-  # Build et test en parallèle
+  # ============================================================================
+  # Phase 3: Construction du binaire Rust
+  # Optimisation : On compile le binaire hors de Docker pour profiter du cache GitHub Actions
+  # ============================================================================
   build-rust:
     runs-on: ubuntu-latest
     steps:
@@ -80,16 +96,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Clean old files
-        run: |
-          rm -f static/js/k8s.js
-          cargo clean
-
       - name: Build Rust binary (cached)
         run: |
           cargo build --release --bin kusanagi
           ls -lh target/release/kusanagi
 
+      # Sauvegarde le binaire compilé pour qu'il soit utilisé par le job Docker
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
@@ -97,6 +109,10 @@ jobs:
           path: target/release/kusanagi
           retention-days: 1
 
+  # ============================================================================
+  # Phase 4: Containerisation
+  # Récupère le binaire compilé et le place dans une image Docker minimale
+  # ============================================================================
   build-docker:
     needs: build-rust
     runs-on: ubuntu-latest
@@ -107,6 +123,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Récupération du binaire compilé précédemment
       - name: Download binary
         uses: actions/download-artifact@v4
         with:
@@ -159,6 +176,10 @@ jobs:
           echo "|-------|-----|" >> $GITHUB_STEP_SUMMARY
           echo "| \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\` | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
 
+  # ============================================================================
+  # Phase 5: Déploiement Continu (CD)
+  # Déploie uniquement sur la branche main après succès du build
+  # ============================================================================
   deploy:
     name: 🚢 Deploy to Cluster
     needs: [build-docker]
