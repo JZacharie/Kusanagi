@@ -47,7 +47,7 @@ pub fn configure_routes(state: AppState) -> Router {
     let governor_conf = Arc::new(
         GovernorConfigBuilder::default()
             .per_second(u64::from(rate_limit))
-            .burst_size(burst_limit)
+            .burst_size(burst_limit * 2) // Double burst for initial load spikes
             .key_extractor(SmartIpKeyExtractor)
             .finish()
             .unwrap(),

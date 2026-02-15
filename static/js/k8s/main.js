@@ -39,9 +39,9 @@ const K8sManager = {
         // Setup tab change detection
         this.setupTabListeners();
 
-        // Initial fetch for current tab only
-        const currentTab = window.KusanagiDashboard?.activeTab || 'argocd';
-        this._fetchForTab(currentTab);
+        // Note: Initial fetch is handled by TabManager to avoid duplicates
+        // const currentTab = window.KusanagiDashboard?.activeTab || 'argocd';
+        // this._fetchForTab(currentTab);
 
         console.log('✅ K8sManager initialized (Tab-Aware)');
     },
