@@ -125,6 +125,7 @@ pub fn configure_routes(state: AppState) -> Router {
         // Use /api/k8s/* paths (not legacy /api/cluster/overview, /api/nodes/status, /api/pods/status)
         // Monitoring routes
         .route("/api/monitoring/alerts", get(alerts))
+        .route("/api/monitoring/gpu/debug", get(gpu_debug_handler))
         .route("/api/dashboard/metrics", get(metrics_handler)) // Dashboard metrics
         .route("/api/chat", post(post_chat_handler))
         .route("/api/prometheus/range", get(prometheus_range_handler))
