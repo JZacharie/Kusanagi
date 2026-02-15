@@ -10,14 +10,8 @@ RUN export KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt | t
     curl -L "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" -o /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl
 
+# Create base app structure (without static - will be added later)
 WORKDIR /app
-# Invalidate cache on static changes (v2 migration - modular k8s)
-ARG STATIC_VERSION=v2
-# Ensure old monolithic k8s.js is removed (migration to modular structure)
-RUN rm -f static/js/k8s.js 2>/dev/null || true
-COPY static ./static
-# Verify new structure exists
-RUN ls -la /app/static/js/k8s/ && test -f /app/static/js/k8s/main.js || exit 1
 RUN useradd -r -s /bin/false kusanagi && chown -R kusanagi:kusanagi /app
 
 # Ensure CA certificates are accessible
@@ -31,15 +25,22 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 CMD ["/usr/local/bin/kusanagi"]
 
 # --- CI Build (uses pre-built binary) ---
+# Start from runner but explicitly remove any cached static first
 FROM runner AS release-ci
-# Force cache invalidation when static changes (use --build-arg CACHE_BUST=$(date +%s))
-ARG CACHE_BUST=0
 ARG PREBUILT_BINARY
-# Re-copy static to ensure fresh version (overrides runner stage cache)
+
+# CRITICAL: Remove any cached static from base image
+RUN rm -rf /app/static/* 2>/dev/null || true
+
+# Copy fresh static from build context
 COPY static ./static
-# Verify static structure
+
+# Verify new structure exists
 RUN ls -la /app/static/js/k8s/ && test -f /app/static/js/k8s/main.js || (echo "Missing k8s modules!" && exit 1)
+RUN test ! -f /app/static/js/k8s.js || (echo "Old k8s.js still present!" && exit 1)
+
 COPY ${PREBUILT_BINARY} /usr/local/bin/kusanagi
+RUN chown -R kusanagi:kusanagi /app/static
 USER kusanagi
 
 # --- Full Build (local or fallback) ---
@@ -58,5 +59,9 @@ RUN chmod +x scripts/*.sh
 RUN cargo build --release
 
 FROM runner AS release
+# Remove any cached static
+RUN rm -rf /app/static/* 2>/dev/null || true
+COPY --from=builder /app/static ./static
 COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi
+RUN chown -R kusanagi:kusanagi /app
 USER kusanagi

@@ -57,7 +57,7 @@ echo ""
 echo -e "${YELLOW}🔍 Vérification de l'image...${NC}"
 
 # Vérifier que l'image ne contient pas l'ancien fichier
-if docker run --rm kusanagi:v0.3.0 ls /app/static/js/k8s.js 2>/dev/null; then
+if docker run --rm kusanagi:v0.3.0 test -f /app/static/js/k8s.js 2>/dev/null; then
     echo -e "${RED}❌ ÉCHEC: k8s.js trouvé dans l'image!${NC}"
     exit 1
 else

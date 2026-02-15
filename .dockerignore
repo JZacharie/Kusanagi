@@ -1,5 +1,7 @@
 # .dockerignore optimisé
 target/
+# Allow pre-built binary for CI builds
+!target/release/kusanagi
 .git/
 .gitignore
 README.md
