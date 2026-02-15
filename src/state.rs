@@ -39,14 +39,15 @@ impl AppState {
             SecurityRepositoryImpl, WeatherRepositoryImpl,
         };
 
+        // Increased TTL to reduce API pressure on Kubernetes
         let k8s_cache = Arc::new(crate::AdvancedCache::<String>::new(
-            std::time::Duration::from_secs(60),
+            std::time::Duration::from_secs(300), // 5 minutes
         ));
         let argocd_cache = Arc::new(crate::AdvancedCache::<String>::new(
-            std::time::Duration::from_secs(600),
+            std::time::Duration::from_secs(600), // 10 minutes
         ));
         let general_cache = Arc::new(crate::AdvancedCache::<String>::new(
-            std::time::Duration::from_secs(120),
+            std::time::Duration::from_secs(300), // 5 minutes
         ));
 
         // Initialize HTTP client

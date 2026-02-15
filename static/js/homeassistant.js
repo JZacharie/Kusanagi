@@ -15,6 +15,7 @@ const HomeAssistantDashboard = {
     },
 
     async fetchAndRender() {
+        if (document.hidden) return;
         try {
             // Use apiFetch to get unwrapped data from the standard envelope
             const [sensorsData, automationsData, devicesData] = await Promise.all([

@@ -76,7 +76,7 @@ const ProxmoxDashboard = {
         // Start auto-refresh while tab is active
         if (this.refreshInterval) clearInterval(this.refreshInterval);
         this.refreshInterval = setInterval(() => {
-            if (this.isActive) {
+            if (this.isActive && !document.hidden) {
                 this.fetchAndRender();
             }
         }, 60000);
