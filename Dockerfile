@@ -1,14 +1,14 @@
 FROM debian:trixie-slim AS runner
-RUN apt-get update && apt-get install -y ca-certificates libssl3 curl && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates libssl3 curl \
+    && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates \
     && chmod 644 /etc/ssl/certs/* \
-    && chmod 755 /etc/ssl/certs
-
-# Install kubectl - robust version fetch
-ARG TARGETARCH
-RUN export KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt | tr -d '\n' | tr -d '\r') && \
-    curl -L "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" -o /usr/local/bin/kubectl && \
-    chmod +x /usr/local/bin/kubectl
+    && chmod 755 /etc/ssl/certs \
+    # Install kubectl
+    && export KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt | tr -d '\n' | tr -d '\r') \
+    && curl -L "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" -o /usr/local/bin/kubectl \
+    && chmod +x /usr/local/bin/kubectl
 
 # Create base app structure (without static - will be added later)
 WORKDIR /app
@@ -29,18 +29,15 @@ CMD ["/usr/local/bin/kusanagi"]
 FROM runner AS release-ci
 ARG PREBUILT_BINARY
 
-# CRITICAL: Remove any cached static from base image
-RUN rm -rf /app/static/* 2>/dev/null || true
-
 # Copy fresh static from build context
 COPY static ./static
-
-# Verify new structure exists
-RUN ls -la /app/static/js/k8s/ && test -f /app/static/js/k8s/main.js || (echo "Missing k8s modules!" && exit 1)
-RUN test ! -f /app/static/js/k8s.js || (echo "Old k8s.js still present!" && exit 1)
-
 COPY ${PREBUILT_BINARY} /usr/local/bin/kusanagi
-RUN chown -R kusanagi:kusanagi /app/static
+
+# Verify and set permissions
+RUN ls -la /app/static/js/k8s/ && test -f /app/static/js/k8s/main.js \
+    && chown -R kusanagi:kusanagi /app/static \
+    && chmod +x /usr/local/bin/kusanagi
+
 USER kusanagi
 
 # --- Full Build (local or fallback) ---
@@ -59,8 +56,6 @@ RUN chmod +x scripts/*.sh
 RUN cargo build --release
 
 FROM runner AS release
-# Remove any cached static
-RUN rm -rf /app/static/* 2>/dev/null || true
 COPY --from=builder /app/static ./static
 COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi
 RUN chown -R kusanagi:kusanagi /app

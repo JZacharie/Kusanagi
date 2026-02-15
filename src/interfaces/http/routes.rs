@@ -33,35 +33,42 @@ use std::sync::Arc;
 /// Configure all application routes
 pub fn configure_routes(state: AppState) -> Router {
     // Rate Limiting Configuration
-    // Allow 100 requests per second with a burst of 150
+    // Load from environment variables or use defaults
+    let rate_limit = std::env::var("RATE_LIMIT_PER_SECOND")
+        .unwrap_or_else(|_| "100".to_string())
+        .parse::<u32>()
+        .unwrap_or(100);
+        
+    let burst_limit = std::env::var("RATE_LIMIT_BURST")
+        .unwrap_or_else(|_| "150".to_string())
+        .parse::<u32>()
+        .unwrap_or(150);
+
     let governor_conf = Arc::new(
         GovernorConfigBuilder::default()
-            .per_second(100)
-            .burst_size(150)
+            .per_second(u64::from(rate_limit))
+            .burst_size(burst_limit)
             .key_extractor(SmartIpKeyExtractor)
             .finish()
             .unwrap(),
     );
 
-    Router::new()
-        // Swagger UI
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        // Core routes
-        .route("/", get(index_handler))
-        .route("/health", get(health_check))
+    // API Routes which need rate limiting
+    let api_routes = Router::new()
         .route("/api", get(api_info))
         .route("/api/config", get(get_config))
         .route("/api/cache/stats", get(cache_stats))
-        .route("/metrics", get(core_metrics_handler))
         .route("/api/metrics", get(core_metrics_handler)) // Alias
         .route("/api/slack/notify", post(send_slack_notification))
-        .route("/docs", get(docs_handler))
+        
         // LLM routes
         .route("/api/llm/health", get(llm_health_check))
         .route("/api/llm/config", get(llm_config_info))
+        
         // Doctor routes
         .route("/api/doctor", get(doctor_handler))
         .route("/api/doctor/quick", get(doctor_quick_handler))
+        
         // MCP routes
         .route(
             "/api/security/vulnerabilities",
@@ -73,14 +80,17 @@ pub fn configure_routes(state: AppState) -> Router {
             get(mcp_policy_violations_handler),
         )
         .route("/api/security/fence", get(mcp_fence_handler))
+        
         // Cilium routes
         .route("/api/cilium/flows", get(get_flows_handler))
         .route("/api/cilium/matrix", get(get_matrix_handler))
         .route("/api/cilium/metrics", get(get_metrics_handler))
         .route("/api/cilium/anomalies", get(get_anomalies_handler))
         .route("/api/cilium/namespaces", get(get_namespaces_handler))
+        
         // WebSocket
         .route("/api/ws/notifications", get(ws_notifications_handler))
+        
         // Hexagonal routes
         .route("/api/alerts", get(get_alerts_handler))
         .route("/api/backups", get(get_backups_handler))
@@ -98,9 +108,11 @@ pub fn configure_routes(state: AppState) -> Router {
             get(get_security_report_handler),
         )
         .route("/api/weather/current", get(get_weather_handler))
+        
         // System routes
         .route("/api/system/status", get(system_status))
         .route("/api/system/logs", get(system_logs))
+        
         // Kubernetes routes
         .route("/api/k8s/cluster", get(cluster_overview))
         .route("/api/k8s/nodes", get(nodes_status))
@@ -115,10 +127,12 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/services", get(services))
         .route("/api/argocd/status", get(argocd_status))
         .route("/api/news", get(news))
+        
         // Legacy/Expected Kubernetes routes
         .route("/api/cluster/overview", get(cluster_overview))
         .route("/api/nodes/status", get(nodes_status))
         .route("/api/pods/status", get(pods_status))
+        
         // Monitoring routes
         .route("/api/monitoring/alerts", get(alerts))
         .route("/api/monitoring/quotas", get(quotas))
@@ -128,10 +142,25 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/prometheus/range", get(prometheus_range_handler))
         .route("/api/database/health", get(database_health_handler))
         .route("/api/fusion", get(fusion_handler))
+        
         // Proxmox routes
         .route("/api/proxmox/vms", get(get_vms_handler))
         .route("/api/proxmox/containers", get(get_containers_handler))
         .route("/api/proxmox/nodes", get(get_nodes_handler))
+        
+        // Apply rate limiting specifically to these routes
+        .layer(GovernorLayer::new(governor_conf));
+
+    Router::new()
+        // Swagger UI
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        // Core routes (No Rate Limit)
+        .route("/", get(index_handler))
+        .route("/health", get(health_check))
+        .route("/metrics", get(core_metrics_handler))
+        .route("/docs", get(docs_handler))
+        // Merge API routes (Win Rate Limit)
+        .merge(api_routes)
         // Static files (must be after API routes)
         .nest_service("/static", ServeDir::new("./static"))
         // Layers (applied in reverse order - last one is executed first)
@@ -144,6 +173,4 @@ pub fn configure_routes(state: AppState) -> Router {
         .layer(TraceLayer::new_for_http())
         // State (must be last)
         .with_state(state)
-        // Global Rate Limiting Layer
-        .layer(GovernorLayer::new(governor_conf))
 }
