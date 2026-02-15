@@ -39,14 +39,25 @@ const PageLoader = {
      * Load a partial for a given tab
      */
     async loadPartial(tabName) {
+        console.log(`📄 PageLoader: Loading partial for '${tabName}'`);
+        
         const section = document.querySelector(`section[data-tab="${tabName}"]`);
-        if (!section) return false;
+        if (!section) {
+            console.warn(`📄 PageLoader: No section found for '${tabName}'`);
+            return false;
+        }
 
         // Check if already loaded (has content other than empty or loading state)
-        if (section.dataset.loaded === 'true') return true;
+        if (section.dataset.loaded === 'true') {
+            console.log(`📄 PageLoader: '${tabName}' already loaded`);
+            return true;
+        }
 
         const partialFile = this.partials[tabName];
-        if (!partialFile) return false; // Static content, no partial needed
+        if (!partialFile) {
+            console.warn(`📄 PageLoader: No partial file configured for '${tabName}'`);
+            return false; // Static content, no partial needed
+        }
 
         try {
             // Check cache first
@@ -61,12 +72,16 @@ const PageLoader = {
             section.innerHTML = '<div class="loading">Loading...</div>';
 
             // Fetch partial
-            const response = await fetch(`${this.partialsBase}${partialFile}`);
+            const partialUrl = `${this.partialsBase}${partialFile}`;
+            console.log(`📄 PageLoader: Fetching ${partialUrl}`);
+            
+            const response = await fetch(partialUrl);
             if (!response.ok) {
-                console.warn(`Failed to load partial for ${tabName}:`, response.status);
+                console.error(`📄 PageLoader: Failed to load partial for ${tabName}: ${response.status} ${response.statusText}`);
                 section.innerHTML = `
                     <div style="padding: 2rem; text-align: center;">
-                        <p style="color: #ff4444;">⚠️ Failed to load section</p>
+                        <p style="color: #ff4444;">⚠️ Failed to load section '${tabName}'</p>
+                        <p style="color: #666; font-size: 0.8rem;">${response.status} ${response.statusText}</p>
                         <button onclick="PageLoader.loadPartial('${tabName}')" class="cyber-btn">Retry</button>
                     </div>
                 `;
@@ -74,21 +89,25 @@ const PageLoader = {
             }
 
             const html = await response.text();
+            console.log(`📄 PageLoader: Loaded ${html.length} bytes for '${tabName}'`);
 
             // Cache and inject
             this.cache.set(tabName, html);
             section.innerHTML = html;
             section.dataset.loaded = 'true';
+            console.log(`📄 PageLoader: Injected content into '${tabName}' section`);
 
             // Initialize any scripts for this section
             this.initScripts(tabName);
 
+            console.log(`📄 PageLoader: Successfully loaded '${tabName}'`);
             return true;
         } catch (error) {
-            console.error(`Error loading partial for ${tabName}:`, error);
+            console.error(`📄 PageLoader: Error loading partial for '${tabName}':`, error);
             section.innerHTML = `
                 <div style="padding: 2rem; text-align: center;">
-                    <p style="color: #ff4444;">⚠️ Failed to load section</p>
+                    <p style="color: #ff4444;">⚠️ Error loading '${tabName}'</p>
+                    <p style="color: #666; font-size: 0.8rem;">${error.message}</p>
                     <button onclick="PageLoader.loadPartial('${tabName}')" class="cyber-btn">Retry</button>
                 </div>
             `;
@@ -157,6 +176,19 @@ const PageLoader = {
                 break;
             case 'monitors':
                 if (window.MonitorsManager) MonitorsManager.init();
+                break;
+            case 'docs':
+                console.log('📖 Docs section loaded');
+                // No initialization needed - static content
+                break;
+            case 'chat':
+                console.log('💬 Chat section loaded');
+                break;
+            case 'news':
+                console.log('📰 News section loaded');
+                break;
+            case 'setup':
+                console.log('⚙️ Setup section loaded');
                 break;
         }
     },
