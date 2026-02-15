@@ -47,6 +47,7 @@ paths = [
     '''node_modules/''',
     '''\.cargo/''',
     '''DEPLOYMENT\.md''',  # Legacy doc with curl examples
+    '''kusanagi\.example\.toml''', # Example config with dummy secrets
 ]
 
 regexes = [
