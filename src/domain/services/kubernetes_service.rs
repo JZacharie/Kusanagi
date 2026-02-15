@@ -999,8 +999,8 @@ pub async fn fetch_node_metrics(
     let mut metrics_map = std::collections::HashMap::new();
 
     // 1. Fetch CPU Usage (cores)
-    // sum(rate(container_cpu_usage_seconds_total{id="/"}[5m])) by (node)
-    let cpu_query = "sum(rate(container_cpu_usage_seconds_total{id=\"/\"}[5m])) by (node)";
+    // sum(rate(node_cpu_seconds_total{mode!="idle"}[5m])) by (node)
+    let cpu_query = "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (node)";
 
     if let Ok(response) = client
         .get(&url)
@@ -1034,8 +1034,8 @@ pub async fn fetch_node_metrics(
     }
 
     // 2. Fetch Memory Usage (bytes)
-    // sum(container_memory_working_set_bytes{id="/"}) by (node)
-    let mem_query = "sum(container_memory_working_set_bytes{id=\"/\"}) by (node)";
+    // sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) by (node)
+    let mem_query = "sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) by (node)";
 
     if let Ok(response) = client
         .get(&url)
