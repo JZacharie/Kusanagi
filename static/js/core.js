@@ -299,6 +299,9 @@ async function switchTab(tabName) {
         window.KusanagiDashboard.activeTab = tabName;
     }
 
+    // Emit tab change event for tab-aware modules
+    document.dispatchEvent(new CustomEvent('tabChanged', { detail: { tab: tabName } }));
+
     // Load partial if needed (for sections that support it)
     if (window.PageLoader && PageLoader.partials[tabName]) {
         const section = document.querySelector(`section[data-tab="${tabName}"]`);
@@ -393,6 +396,9 @@ window.KusanagiDashboard = {
 
 // Export TableManager for module access
 window.TableManager = TableManager;
+
+// Export refresh function for module access
+window.refreshAllKusanagiData = refreshAllKusanagiData;
 
 // Initialize WebSocket on page load
 document.addEventListener('DOMContentLoaded', () => {

@@ -99,7 +99,7 @@ document.addEventListener('click', (e) => {
 
 // Global refresh trigger removed: consolidated in core.js
 
-window.refreshAllKusanagiData = refreshAllKusanagiData;
+// Note: refreshAllKusanagiData is defined in core.js and exported there
 window.sendChatMessage = sendChatMessage;
 window.handleChatKeypress = handleChatKeypress;
 window.toggleExportMenu = toggleExportMenu;

@@ -1,11 +1,26 @@
 /**
  * K8sManager Facade
- * Orchestrates calls to submodule and provides backward compatibility
+ * Orchestrates calls to submodule - TAB-AWARE architecture
+ * Each module only fetches when its tab is active
  */
+
 const K8sManager = {
+    // Poll intervals per tab (ms)
+    POLL_INTERVALS: {
+        argocd: 30000,
+        nodes: 60000,
+        pods: 30000,
+        storage: 60000,
+        backups: 60000,
+        services: 300000,  // 5 min - services don't change often
+        ingress: 300000,   // 5 min
+    },
+
+    // Active poll timers
+    _pollTimers: {},
+
     init() {
-        console.log('🚀 K8s Facade Initialized');
-        // Check which modules are available
+        console.log('🚀 K8s Facade Initialized (Tab-Aware)');
         console.log('📦 Available modules:', {
             K8sPods: !!window.K8sPods,
             K8sNodes: !!window.K8sNodes,
@@ -13,6 +28,7 @@ const K8sManager = {
             K8sStorage: !!window.K8sStorage,
             K8sServices: !!window.K8sServices
         });
+
         // Initialize submodules
         if (window.K8sPods) K8sPods.init();
         if (window.K8sNodes) K8sNodes.init();
@@ -20,66 +36,111 @@ const K8sManager = {
         if (window.K8sStorage) K8sStorage.init();
         if (window.K8sServices) K8sServices.init();
 
-        this.setupEventListeners();
+        // Setup tab change detection
+        this.setupTabListeners();
 
-        // Initial fetch
-        this.fetchAll();
+        // Initial fetch for current tab only
+        const currentTab = window.KusanagiDashboard?.activeTab || 'argocd';
+        this._fetchForTab(currentTab);
 
-        // Setup global polling
-        // No global polling - fetchAll is startup only
-        console.log('✅ K8sManager initialized (Startup fetch only)');
+        console.log('✅ K8sManager initialized (Tab-Aware)');
     },
 
-    // Rate limiting: delay between API calls (ms)
-    _apiDelay: 2000,
-    _lastApiCall: 0,
+    // Fetch data only for a specific tab
+    _fetchForTab(tabName) {
+        console.log(`🔄 Fetching data for tab: ${tabName}`);
 
-    async _rateLimitedCall(fn, ...args) {
-        const now = Date.now();
-        const timeSinceLastCall = now - this._lastApiCall;
-        if (timeSinceLastCall < this._apiDelay) {
-            await new Promise(r => setTimeout(r, this._apiDelay - timeSinceLastCall));
+        switch (tabName) {
+            case 'argocd':
+                if (window.K8sArgo) K8sArgo.fetchArgoStatus();
+                break;
+            case 'nodes':
+                if (window.K8sNodes) K8sNodes.fetchNodesStatus();
+                break;
+            case 'pods':
+                if (window.K8sPods) K8sPods.fetchPodsStatus();
+                break;
+            case 'storage':
+                if (window.K8sStorage) K8sStorage.fetchStorageStatus();
+                break;
+            case 'backups':
+                if (window.K8sStorage) K8sStorage.fetchBackupsStatus();
+                break;
+            case 'services':
+                if (window.K8sServices) K8sServices.fetchServices();
+                break;
+            case 'ingress':
+                if (window.K8sServices) K8sServices.fetchIngress();
+                break;
+            default:
+                // For dashboard/overview, fetch minimal data
+                this.fetchClusterOverview();
         }
-        this._lastApiCall = Date.now();
-        return fn(...args);
     },
 
-    async fetchAll() {
-        if (document.hidden) {
-            console.log('💤 Tab hidden, skipping K8s fetchAll');
-            return;
+    // Start polling for a specific tab
+    _startPolling(tabName) {
+        // Clear existing timer for this tab
+        this._stopPolling(tabName);
+
+        const interval = this.POLL_INTERVALS[tabName];
+        if (!interval) return; // No polling for this tab
+
+        console.log(`⏱️ Starting polling for ${tabName} (${interval}ms)`);
+
+        // Immediate fetch
+        this._fetchForTab(tabName);
+
+        // Set up interval
+        this._pollTimers[tabName] = setInterval(() => {
+            // Only fetch if tab is still active and page visible
+            if (window.KusanagiDashboard?.activeTab === tabName && !document.hidden) {
+                this._fetchForTab(tabName);
+            }
+        }, interval);
+    },
+
+    // Stop polling for a tab
+    _stopPolling(tabName) {
+        if (this._pollTimers[tabName]) {
+            clearInterval(this._pollTimers[tabName]);
+            delete this._pollTimers[tabName];
+            console.log(`🛑 Stopped polling for ${tabName}`);
         }
+    },
 
-        // Stagger API calls to avoid 429 Too Many Requests
-        const calls = [
-            { name: 'ArgoCD', fn: () => window.K8sArgo?.fetchArgoStatus() },
-            { name: 'Nodes', fn: () => window.K8sNodes?.fetchNodesStatus() },
-            { name: 'Pods', fn: () => window.K8sPods?.fetchPodsStatus() },
-            { name: 'Overview', fn: () => this.fetchClusterOverview() },
-            { name: 'Storage', fn: () => window.K8sStorage?.fetchStorageStatus() },
-            { name: 'Backups', fn: () => window.K8sStorage?.fetchBackupsStatus() },
-            { name: 'Services', fn: () => window.K8sServices?.fetchServices() },
-            { name: 'Ingress', fn: () => window.K8sServices?.fetchIngress() },
-        ];
+    // Handle tab switch
+    onTabChange(newTab) {
+        console.log(`🔄 Tab changed to: ${newTab}`);
 
-        for (const { name, fn } of calls) {
-            if (fn) {
-                try {
-                    await this._rateLimitedCall(fn);
-                } catch (e) {
-                    console.warn(`⚠️ ${name} fetch failed:`, e.message);
+        // Stop all polling
+        Object.keys(this._pollTimers).forEach(tab => this._stopPolling(tab));
+
+        // Start polling for new tab
+        this._startPolling(newTab);
+    },
+
+    setupTabListeners() {
+        // Listen for custom tab change event
+        document.addEventListener('tabChanged', (e) => {
+            this.onTabChange(e.detail.tab);
+        });
+
+        // Also refresh when page becomes visible (user comes back)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                const activeTab = window.KusanagiDashboard?.activeTab;
+                if (activeTab) {
+                    this._fetchForTab(activeTab);
                 }
             }
-        }
+        });
     },
 
     // Cluster overview - basic cluster stats only
-    // Note: PVC/Services details are handled by their respective modules
     async fetchClusterOverview() {
         try {
             const data = await api.get('/api/k8s/cluster');
-
-            // Only update elements that this endpoint actually provides
             const stats = {
                 'ns-count': data.namespace_count || 0,
                 'services-count': data.services || 0,
@@ -95,53 +156,29 @@ const K8sManager = {
         }
     },
 
-    setupEventListeners() {
-        // Refresh on page focus
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
-                const now = Date.now();
-
-                if (activeTab === 'services' && window.K8sServices) {
-                    K8sServices.fetchServices();
-                } else if (activeTab === 'ingress' && window.K8sServices) {
-                    K8sServices.fetchIngress();
-                } else if (activeTab === 'argocd' && window.K8sArgo) {
-                    K8sArgo.fetchArgoStatus();
-                }
-            }
-        });
+    // Manual refresh for current tab
+    refreshCurrentTab() {
+        const activeTab = window.KusanagiDashboard?.activeTab || 'argocd';
+        this._fetchForTab(activeTab);
     },
 
     // === FACADE METHODS FOR HTML COMPATIBILITY ===
-    // These methods are called by onclick handlers in the HTML
-    // We delegate them to the appropriate submodules
-
-    // Storage / Backups
-    sortStorage(field) { K8sStorage.sortStorage(field); },
-    changeStoragePage(delta) { K8sStorage.changeStoragePage(delta); },
-    fetchStorageStatus() { K8sStorage.fetchStorageStatus(); },
-    fetchBackupsStatus() { K8sStorage.fetchBackupsStatus(); },
-    triggerCronJob(ns, name) { K8sStorage.triggerCronJob(ns, name); },
-
-    // Pods
-    fetchPodsStatus() { K8sPods.fetchPodsStatus(); },
-    restartAllErrorPods() { K8sPods.restartAllErrorPods(); },
-    viewPodLogs(ns, name) { K8sPods.viewPodLogs(ns, name); },
-    forceDeletePod(ns, name) { K8sPods.forceDeletePod(ns, name); },
-    closeLogsModal() { K8sPods.closeLogsModal(); },
-
-    // Nodes
-    fetchNodesStatus() { K8sNodes.fetchNodesStatus(); },
-    runNodesDiagnostic() { K8sNodes.runNodesDiagnostic(); },
-
-    // ArgoCD
-    syncApp(event, appName) { K8sArgo.syncApp(event, appName); },
-    fetchArgoStatus() { K8sArgo.fetchArgoStatus(); },
-
-    // Network
-    fetchServices() { K8sServices.fetchServices(); },
-    fetchIngress() { K8sServices.fetchIngress(); }
+    sortStorage(field) { K8sStorage?.sortStorage(field); },
+    changeStoragePage(delta) { K8sStorage?.changeStoragePage(delta); },
+    fetchStorageStatus() { K8sStorage?.fetchStorageStatus(); },
+    fetchBackupsStatus() { K8sStorage?.fetchBackupsStatus(); },
+    triggerCronJob(ns, name) { K8sStorage?.triggerCronJob(ns, name); },
+    fetchPodsStatus() { K8sPods?.fetchPodsStatus(); },
+    restartAllErrorPods() { K8sPods?.restartAllErrorPods(); },
+    viewPodLogs(ns, name) { K8sPods?.viewPodLogs(ns, name); },
+    forceDeletePod(ns, name) { K8sPods?.forceDeletePod(ns, name); },
+    closeLogsModal() { K8sPods?.closeLogsModal(); },
+    fetchNodesStatus() { K8sNodes?.fetchNodesStatus(); },
+    runNodesDiagnostic() { K8sNodes?.runNodesDiagnostic(); },
+    syncApp(event, appName) { K8sArgo?.syncApp(event, appName); },
+    fetchArgoStatus() { K8sArgo?.fetchArgoStatus(); },
+    fetchServices() { K8sServices?.fetchServices(); },
+    fetchIngress() { K8sServices?.fetchIngress(); }
 };
 
 window.K8sManager = K8sManager;

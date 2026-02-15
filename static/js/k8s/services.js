@@ -1,16 +1,22 @@
+/**
+ * K8sServices - Services and Ingress management
+ * Note: Polling is handled by K8sManager (tab-aware)
+ */
 const K8sServices = {
     init() {
-        console.log('🌐 K8s Network Module Initialized');
+        console.log('🌐 K8s Services Module Initialized (no internal polling)');
     },
 
     // === SERVICES ===
     async fetchServices() {
-        const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
         const container = document.getElementById('services-content');
 
-        // Skip if we're definitely on a different tab (but allow if activeTab is undefined/unknown)
-        if (activeTab && activeTab !== 'services') {
-            console.log('⏭️ Skipping services fetch - not on services tab (current: ' + activeTab + ')');
+        // Check TTL unless container shows loading or error
+        const now = Date.now();
+        const isStale = !container || container.innerHTML.includes('Loading') || container.innerHTML.includes('Error');
+
+        if (K8sState.lastServicesFetch !== 0 && !isStale && (now - K8sState.lastServicesFetch < K8sState.SERVICES_INGRESS_TTL)) {
+            console.log('⏭️ Services fetch skipped - TTL not expired');
             return;
         }
 
@@ -187,14 +193,7 @@ const K8sServices = {
 
     // === INGRESS ===
     async fetchIngress() {
-        const activeTab = window.KusanagiDashboard ? window.KusanagiDashboard.activeTab : null;
         const container = document.getElementById('ingress-content');
-
-        // Skip if we're definitely on a different tab (but allow if activeTab is undefined/unknown)
-        if (activeTab && activeTab !== 'ingress') {
-            console.log('⏭️ Skipping ingress fetch - not on ingress tab (current: ' + activeTab + ')');
-            return;
-        }
 
         // Check TTL unless container shows loading or error
         const now = Date.now();
