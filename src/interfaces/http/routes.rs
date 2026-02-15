@@ -141,13 +141,14 @@ pub fn configure_routes(state: AppState) -> Router {
         ));
 
     Router::new()
-        // Swagger UI
+        // Swagger UI - FastAPI-like interactive API documentation
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         // Core routes (No Rate Limit)
         .route("/", get(index_handler))
         .route("/health", get(health_check))
         .route("/metrics", get(core_metrics_handler))
-        .route("/docs", get(docs_handler))
+        // Redirect /docs to Swagger UI for interactive API testing
+        .route("/docs", get(|| async { axum::response::Redirect::permanent("/swagger-ui") }))
         // WebSocket (No Rate Limit - handled separately)
         .route("/api/ws/notifications", get(ws_notifications_handler))
         // Merge API routes (With Rate Limit)
