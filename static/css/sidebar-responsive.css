@@ -569,17 +569,4 @@
   border-width: 0;
 }
 
-/* Hidden attribute support - ensures elements with hidden are not displayed */
-[hidden] {
-  display: none !important;
-}
-
-/* Tab content visibility */
-.tab-content[hidden] {
-  display: none !important;
-}
-
-.tab-content:not([hidden]) {
-  display: block;
-}
 

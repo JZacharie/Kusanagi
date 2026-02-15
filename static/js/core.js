@@ -280,16 +280,16 @@ async function switchTab(tabName) {
         btn.classList.toggle("active", btn.dataset.tab === tabName);
     });
 
-    // Update content - use CSS hidden attribute instead of display
+    // Update content visibility - must clear inline display:none from HTML
     tabContents.forEach(section => {
         const isTarget = section.dataset.tab === tabName;
         section.classList.toggle("active", isTarget);
-        section.hidden = !isTarget;
+        section.style.display = isTarget ? "" : "none";
     });
 
     // Show/hide dashboard header elements (only on ArgoCD page)
     if (dashboardHeader) {
-        dashboardHeader.hidden = (tabName !== "argocd");
+        dashboardHeader.style.display = (tabName === "argocd") ? "" : "none";
     }
 
     // Update active tab tracking
