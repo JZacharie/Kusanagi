@@ -1,4 +1,55 @@
 <!-- mqtt section -->
+<h2 class="section-title">📡 MQTT Monitoring</h2>
+
+<div class="argocd-stats" id="mqtt-stats-grid" style="margin-bottom: 1.5rem;">
+    <div class="stat-box info">
+        <div class="stat-value" id="mqtt-device-count">-</div>
+        <div class="stat-label">Devices</div>
+    </div>
+    <div class="stat-box healthy">
+        <div class="stat-value" id="mqtt-total-msg">-</div>
+        <div class="stat-label">Total Messages</div>
+    </div>
+    <div class="stat-box warning">
+        <div class="stat-value" id="mqtt-msg-rate">-</div>
+        <div class="stat-label">Msg/Min</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem; height: calc(100vh - 280px);">
+    <!-- Left: Devices List -->
+    <div class="issues-table-container" style="border-color: var(--neon-cyan); display: flex; flex-direction: column;">
+        <div class="issues-table-header" style="background: rgba(0, 255, 249, 0.1); border-color: var(--neon-cyan);">
+            <span class="issues-table-title" style="color: var(--neon-cyan);">📱 Devices</span>
+            <span class="issues-count" id="mqtt-device-table-count" style="background: var(--neon-cyan);">0</span>
+        </div>
+        <div id="mqtt-devices-content" style="flex: 1; overflow-y: auto; padding: 0.5rem;">
+            <div class="loading">Loading devices...</div>
+        </div>
+    </div>
+
+    <!-- Right: Message Flux -->
+    <div class="issues-table-container"
+        style="border-color: var(--neon-magenta); display: flex; flex-direction: column;">
+        <div class="issues-table-header"
+            style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta); justify-content: space-between;">
+            <div>
+                <span class="issues-table-title" style="color: var(--neon-magenta);">📡 Message Flux</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="text" id="mqtt-filter-input" placeholder="Filter..." class="cyber-input small"
+                    onkeyup="MqttManager.applyFilter()">
+                <button class="cyber-btn small" onclick="MqttManager.clearFlux()">🗑️ Clear</button>
+                <button class="cyber-btn small" onclick="MqttManager.openLogsModal()">📜 Logs</button>
+            </div>
+        </div>
+        <div id="mqtt-flux-content"
+            style="flex: 1; overflow-y: auto; padding: 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: rgba(0,0,0,0.3);">
+            <div class="loading">Waiting for messages...</div>
+        </div>
+    </div>
+</div>
+
 <div id="mqtt-logs-modal" class="cyber-modal" style="display: none;">
     <div class="cyber-modal-content" style="max-width: 90%; width: 1000px; max-height: 80vh;">
         <div class="cyber-modal-header">

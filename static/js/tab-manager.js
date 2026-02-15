@@ -23,13 +23,12 @@ const TabManager = {
         monitors: { interval: 30000, module: 'MonitorsManager', fetch: 'fetchMonitors' },
         security: { interval: 300000, module: 'SecurityDashboard', fetch: 'loadSecurityData' },
         mqtt: { interval: 30000, module: 'MqttManager', fetch: 'fetchInitialData' },
-        // metrics: { interval: 30000, module: 'MetricsManager', fetch: 'loadMetrics' }, // TODO: Create metrics.js module
+        metrics: { interval: 30000, module: 'MetricsManager', fetch: 'loadMetrics' },
         network: { interval: 30000, module: 'KusanagiNetwork', fetch: 'fetchNetworkData' },
         
         // No auto-refresh
         chat: { interval: null },
         news: { interval: 60000, module: 'NewsManager', fetch: 'fetchNews' },
-        setup: { interval: null },
         docs: { interval: null },
         logs: { interval: null },
         calendar: { interval: null },

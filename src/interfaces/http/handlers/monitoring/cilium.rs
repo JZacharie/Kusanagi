@@ -20,6 +20,19 @@ pub struct CiliumParams {
 
 /// Get Hubble flows
 /// GET /api/cilium/flows
+#[utoipa::path(
+    get,
+    path = "/api/cilium/flows",
+    responses(
+        (status = 200, description = "List of network flows"),
+        (status = 503, description = "Kubernetes client not available")
+    ),
+    params(
+        ("namespace" = Option<String>, Query, description = "Namespace to filter by"),
+        ("limit" = Option<usize>, Query, description = "Limit number of flows")
+    ),
+    tag = "cilium"
+)]
 pub async fn get_flows_handler(
     State(state): State<AppState>,
     Query(params): Query<CiliumParams>,
@@ -57,6 +70,18 @@ pub async fn get_flows_handler(
 
 /// Get Flow Matrix (Aggregated)
 /// GET /api/cilium/matrix
+#[utoipa::path(
+    get,
+    path = "/api/cilium/matrix",
+    responses(
+        (status = 200, description = "Network flow matrix"),
+        (status = 503, description = "Kubernetes client not available")
+    ),
+    params(
+        ("namespace" = Option<String>, Query, description = "Namespace to filter by")
+    ),
+    tag = "cilium"
+)]
 pub async fn get_matrix_handler(
     State(state): State<AppState>,
     Query(params): Query<CiliumParams>,
@@ -90,6 +115,18 @@ pub async fn get_matrix_handler(
 
 /// Get Bandwidth Metrics
 /// GET /api/cilium/metrics
+#[utoipa::path(
+    get,
+    path = "/api/cilium/metrics",
+    responses(
+        (status = 200, description = "Cilium bandwidth metrics"),
+        (status = 503, description = "Kubernetes client not available")
+    ),
+    params(
+        ("namespace" = Option<String>, Query, description = "Namespace to filter by")
+    ),
+    tag = "cilium"
+)]
 pub async fn get_metrics_handler(
     State(state): State<AppState>,
     Query(params): Query<CiliumParams>,
@@ -126,6 +163,18 @@ pub async fn get_metrics_handler(
 
 /// Get Network Anomalies
 /// GET /api/cilium/anomalies
+#[utoipa::path(
+    get,
+    path = "/api/cilium/anomalies",
+    responses(
+        (status = 200, description = "Detected network anomalies"),
+        (status = 503, description = "Kubernetes client not available")
+    ),
+    params(
+        ("namespace" = Option<String>, Query, description = "Namespace to filter by")
+    ),
+    tag = "cilium"
+)]
 pub async fn get_anomalies_handler(
     State(state): State<AppState>,
     Query(params): Query<CiliumParams>,
@@ -159,6 +208,15 @@ pub async fn get_anomalies_handler(
 
 /// Get Namespaces
 /// GET /api/cilium/namespaces
+#[utoipa::path(
+    get,
+    path = "/api/cilium/namespaces",
+    responses(
+        (status = 200, description = "List of namespaces with Cilium enabled"),
+        (status = 503, description = "Kubernetes client not available")
+    ),
+    tag = "cilium"
+)]
 pub async fn get_namespaces_handler(State(state): State<AppState>) -> impl IntoResponse {
     let client = match &state.kube_client {
         Some(c) => c.as_ref().clone(),

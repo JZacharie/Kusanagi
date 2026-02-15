@@ -40,7 +40,6 @@ js/
     ├── security.js       # Scan Trivy
     ├── cilium-network.js # Visualisation Cilium (anciennement network.js)
     ├── mqtt.js           # MQTT
-    ├── setup.js          # Configuration wizard
     └── system.js         # Logs système
 ```
 

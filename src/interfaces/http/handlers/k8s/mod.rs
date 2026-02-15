@@ -129,3 +129,32 @@ pub async fn argocd_sync(
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
+
+#[derive(serde::Deserialize, utoipa::ToSchema)]
+pub struct DeletePodRequest {
+    pub namespace: String,
+    pub pod_name: String,
+}
+
+/// Force delete a pod
+#[utoipa::path(
+    post,
+    path = "/api/pods/force-delete",
+    request_body = DeletePodRequest,
+    responses(
+        (status = 200, description = "Pod deleted successfully"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "kubernetes"
+)]
+pub async fn force_delete_pod_handler(
+    State(_state): State<AppState>,
+    axum::Json(payload): axum::Json<DeletePodRequest>,
+) -> Response {
+    use crate::domain::services::kubernetes_service::force_delete_pod;
+
+    match force_delete_pod(&payload.namespace, &payload.pod_name).await {
+        Ok(result) => api_success(result),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+    }
+}

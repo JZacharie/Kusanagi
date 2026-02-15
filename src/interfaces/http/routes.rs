@@ -113,6 +113,7 @@ pub fn configure_routes(state: AppState) -> Router {
             "/api/pods/delete-error-pods",
             post(delete_error_pods_handler),
         )
+        .route("/api/pods/force-delete", post(force_delete_pod_handler))
         .route("/api/storage", get(storage))
         .route("/api/ingress", get(ingress))
         .route("/api/services", get(services))
@@ -123,7 +124,6 @@ pub fn configure_routes(state: AppState) -> Router {
         // Use /api/k8s/* paths (not legacy /api/cluster/overview, /api/nodes/status, /api/pods/status)
         // Monitoring routes
         .route("/api/monitoring/alerts", get(alerts))
-        .route("/api/monitoring/quotas", get(quotas))
         .route("/api/dashboard/metrics", get(metrics_handler)) // Dashboard metrics
         .route("/api/chat", post(post_chat_handler))
         .route("/api/prometheus/range", get(prometheus_range_handler))
@@ -133,6 +133,9 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/proxmox/vms", get(get_vms_handler))
         .route("/api/proxmox/containers", get(get_containers_handler))
         .route("/api/proxmox/nodes", get(get_nodes_handler))
+        // MQTT routes
+        .route("/api/mqtt/devices", get(get_mqtt_devices_handler))
+        .route("/api/mqtt/messages", get(get_mqtt_messages_handler))
         // Apply rate limiting specifically to these routes
         .layer(GovernorLayer::new(governor_conf))
         // Convert 429 errors to JSON

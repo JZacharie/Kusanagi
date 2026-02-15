@@ -22,13 +22,13 @@ const MqttManager = {
 
     fetchInitialData: async function () {
         try {
-            const [devRes, msgRes] = await Promise.all([
-                fetch('/api/mqtt/devices'),
-                fetch('/api/mqtt/messages')
+            const [devices, messages] = await Promise.all([
+                api.get('/api/mqtt/devices'),
+                api.get('/api/mqtt/messages')
             ]);
 
-            this.devices = await devRes.json();
-            this.messageBuffer = await msgRes.json();
+            this.devices = devices;
+            this.messageBuffer = messages;
 
             this.render();
         } catch (error) {

@@ -1,10 +1,12 @@
 //! Monitoring handlers
 
 pub mod cilium;
+pub mod mqtt;
 
 use axum::response::IntoResponse;
 
 pub use cilium::*;
+pub use mqtt::*;
 
 use crate::interfaces::http::response::api_success;
 
@@ -13,17 +15,6 @@ pub async fn alerts() -> impl IntoResponse {
     api_success(serde_json::json!({
         "alerts": [],
         "total": 0
-    }))
-}
-
-/// Quotas endpoint
-pub async fn quotas() -> impl IntoResponse {
-    api_success(serde_json::json!({
-        "antigravity_percentage": 15,
-        "notebooklm_percentage": 30,
-        "storage_used_gb": 45.5,
-        "storage_total_gb": 100.0,
-        "last_updated": chrono::Utc::now().to_rfc3339()
     }))
 }
 
