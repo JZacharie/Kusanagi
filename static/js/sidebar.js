@@ -99,20 +99,23 @@ class Sidebar {
   handleNavClick(e, tabName) {
     e.preventDefault();
     
-    // Close mobile sidebar after navigation (async to not block click)
-    if (this.isMobile) {
-      requestAnimationFrame(() => this.closeMobile());
-    }
-    
-    // Use existing switchTab function (defer to allow click feedback)
-    if (typeof switchTab === 'function') {
-      requestAnimationFrame(() => switchTab(tabName));
-    } else {
-      console.warn('switchTab function not found');
-    }
-    
-    // Update active state (defer to avoid forced reflow)
-    requestAnimationFrame(() => this.setActiveTab(tabName));
+    // Batch all UI updates in single animation frame
+    requestAnimationFrame(() => {
+      // Close mobile sidebar after navigation
+      if (this.isMobile) {
+        this.closeMobile();
+      }
+      
+      // Use existing switchTab function
+      if (typeof switchTab === 'function') {
+        switchTab(tabName);
+      } else {
+        console.warn('switchTab function not found');
+      }
+      
+      // Update active state
+      this.setActiveTab(tabName);
+    });
     
     // Update URL hash without triggering scroll
     history.pushState(null, null, `#${tabName}`);
@@ -124,25 +127,23 @@ class Sidebar {
     const activeLink = document.querySelector(`.nav-link[data-page="${tabName}"]`);
     const headerTitle = document.querySelector('.header-title');
     
-    // Write phase
-    requestAnimationFrame(() => {
-      links.forEach(link => link.classList.remove('active'));
-      if (activeLink) activeLink.classList.add('active');
-      
-      if (headerTitle) {
-        const titles = {
-          'argocd': 'ArgoCD', 'system': 'System', 'proxmox': 'Proxmox',
-          'alerts': 'Alerts', 'events': 'Events', 'nodes': 'Nodes',
-          'pods': 'Pods', 'services': 'Services', 'ingress': 'Ingress',
-          'storage': 'Storage', 'metrics': 'Metrics', 'network': 'Network',
-          'backups': 'Backups', 'security': 'Security', 'setup': 'Setup',
-          'homeassistant': 'Home Assistant', 'mqtt': 'MQTT', 'calendar': 'Calendar',
-          'weather': 'Weather', 'chat': 'AI Chat', 'docs': 'About',
-          'news': 'News', 'quotas': 'Quotas'
-        };
-        headerTitle.textContent = titles[tabName] || tabName.charAt(0).toUpperCase() + tabName.slice(1);
-      }
-    });
+    // Write phase - batch all DOM writes
+    links.forEach(link => link.classList.remove('active'));
+    if (activeLink) activeLink.classList.add('active');
+    
+    if (headerTitle) {
+      const titles = {
+        'argocd': 'ArgoCD', 'system': 'System', 'proxmox': 'Proxmox',
+        'alerts': 'Alerts', 'events': 'Events', 'nodes': 'Nodes',
+        'pods': 'Pods', 'services': 'Services', 'ingress': 'Ingress',
+        'storage': 'Storage', 'metrics': 'Metrics', 'network': 'Network',
+        'backups': 'Backups', 'security': 'Security', 'setup': 'Setup',
+        'homeassistant': 'Home Assistant', 'mqtt': 'MQTT', 'calendar': 'Calendar',
+        'weather': 'Weather', 'chat': 'AI Chat', 'docs': 'About',
+        'news': 'News', 'quotas': 'Quotas'
+      };
+      headerTitle.textContent = titles[tabName] || tabName.charAt(0).toUpperCase() + tabName.slice(1);
+    }
   }
   
   handleKeydown(e) {

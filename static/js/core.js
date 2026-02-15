@@ -269,31 +269,28 @@ async function switchTab(tabName) {
         }
     }
 
-    // Batch DOM reads
+    // Batch DOM reads first
     const tabButtons = document.querySelectorAll(".tab-btn");
     const tabContents = document.querySelectorAll(".tab-content");
     const dashboardHeader = document.getElementById("dashboard-header-elements");
 
-    // Batch DOM writes in requestAnimationFrame
-    requestAnimationFrame(() => {
-        // Update buttons
-        tabButtons.forEach(btn => {
-            btn.classList.toggle("active", btn.dataset.tab === tabName);
-        });
-
-        // Update content
-        tabContents.forEach(section => {
-            const isTarget = section.dataset.tab === tabName;
-            section.classList.toggle("active", isTarget);
-            // Use CSS classes instead of inline display for better performance
-            section.hidden = !isTarget;
-        });
-
-        // Show/hide dashboard header elements (only on ArgoCD page)
-        if (dashboardHeader) {
-            dashboardHeader.hidden = (tabName !== "argocd");
-        }
+    // Batch DOM writes (minimize reflows)
+    // Update buttons
+    tabButtons.forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tab === tabName);
     });
+
+    // Update content - use CSS hidden attribute instead of display
+    tabContents.forEach(section => {
+        const isTarget = section.dataset.tab === tabName;
+        section.classList.toggle("active", isTarget);
+        section.hidden = !isTarget;
+    });
+
+    // Show/hide dashboard header elements (only on ArgoCD page)
+    if (dashboardHeader) {
+        dashboardHeader.hidden = (tabName !== "argocd");
+    }
 
     // Update active tab tracking
     if (window.KusanagiDashboard) {
