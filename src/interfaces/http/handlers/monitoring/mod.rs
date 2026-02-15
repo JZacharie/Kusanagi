@@ -57,7 +57,7 @@ pub async fn gpu_debug_handler(
         .send()
         .await;
 
-    let (hot_util, hot_temp, hot_power) = fetch_gpu_from_hot_service(&state.http_client).await;
+    let hot_metrics = fetch_gpu_from_hot_service(&state.http_client).await;
 
     let raw_json = match hot_raw_response {
         Ok(r) if r.status().is_success() => r.json::<serde_json::Value>().await.unwrap_or_default(),
@@ -70,12 +70,18 @@ pub async fn gpu_debug_handler(
         "gpu_hot_api": api_url,
         "prometheus_queries": prometheus_results,
         "gpu_hot_metrics": {
-            "utilization": hot_util,
-            "temperature": hot_temp,
-            "power": hot_power,
+            "utilization": hot_metrics.utilization,
+            "temperature": hot_metrics.temperature,
+            "power": hot_metrics.power_draw,
+            "memory_used": hot_metrics.memory_used,
+            "memory_total": hot_metrics.memory_total,
+            "memory_utilization": hot_metrics.memory_utilization,
+            "fan_speed": hot_metrics.fan_speed,
+            "clock_graphics": hot_metrics.clock_graphics,
+            "clock_memory": hot_metrics.clock_memory,
         },
         "gpu_hot_raw_response": raw_json,
-        "status": if hot_util > 0.0 || hot_temp > 0.0 || hot_power > 0.0 {
+        "status": if hot_metrics.utilization > 0.0 || hot_metrics.temperature > 0.0 || hot_metrics.power_draw > 0.0 {
             "gpu_hot_working"
         } else if prometheus_results.values().any(|v| v != "N/A") {
             "prometheus_working"
@@ -151,8 +157,7 @@ pub async fn metrics_handler(
     let (vps_cpu, vps_disk, vps_net) = fetch_vps_metrics(&state.http_client).await;
 
     // 6. Try to get GPU and Enphase data from Home Assistant or Prometheus
-    let (gpu_util, gpu_temp, gpu_power, solar_prod, house_cons) =
-        fetch_gpu_and_energy_metrics(&state.http_client).await;
+    let gpu_metrics = fetch_gpu_and_energy_metrics(&state.http_client).await;
 
     api_success(serde_json::json!({
         "cpu_usage_percent": cpu_percent,
@@ -161,11 +166,17 @@ pub async fn metrics_handler(
         "node_count": node_count,
         "alerts_firing": alerts_firing,
         "container_count": pod_count, // Approximation
-        "gpu_utilization": gpu_util,
-        "gpu_temperature": gpu_temp,
-        "gpu_power_usage": gpu_power,
-        "energy_solar_production": solar_prod,
-        "energy_house_consumption": house_cons,
+        "gpu_utilization": gpu_metrics.utilization,
+        "gpu_temperature": gpu_metrics.temperature,
+        "gpu_power_usage": gpu_metrics.power_draw,
+        "gpu_memory_used": gpu_metrics.memory_used,
+        "gpu_memory_total": gpu_metrics.memory_total,
+        "gpu_memory_utilization": gpu_metrics.memory_utilization,
+        "gpu_fan_speed": gpu_metrics.fan_speed,
+        "gpu_clock_graphics": gpu_metrics.clock_graphics,
+        "gpu_clock_memory": gpu_metrics.clock_memory,
+        "energy_solar_production": gpu_metrics.solar_production,
+        "energy_house_consumption": gpu_metrics.house_consumption,
         "vps_cpu_usage": vps_cpu,
         "vps_disk_usage": vps_disk,
         "vps_net_receive": vps_net,
@@ -213,91 +224,105 @@ async fn fetch_vps_metrics(client: &reqwest::Client) -> (f64, f64, f64) {
     )
 }
 
+/// GPU Metrics structure
+#[derive(Debug, Default)]
+struct GpuMetrics {
+    utilization: f64,
+    temperature: f64,
+    power_draw: f64,
+    memory_used: f64,
+    memory_total: f64,
+    memory_utilization: f64,
+    fan_speed: f64,
+    clock_graphics: f64,
+    clock_memory: f64,
+    solar_production: f64,
+    house_consumption: f64,
+}
+
 /// Fetch GPU and Energy metrics from Prometheus or Home Assistant
-async fn fetch_gpu_and_energy_metrics(client: &reqwest::Client) -> (f64, f64, f64, f64, f64) {
+async fn fetch_gpu_and_energy_metrics(client: &reqwest::Client) -> GpuMetrics {
     let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
         "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
     });
 
     let url = format!("{}/api/v1/query", prometheus_url);
+    let mut metrics = GpuMetrics::default();
 
     // Try multiple GPU metric sources
-    let mut gpu_util = 0.0;
-    let mut gpu_temp = 0.0;
-    let mut gpu_power = 0.0;
-
     // 1. Try DCGM exporter (NVIDIA Data Center GPU Manager)
     if let Some(val) = query_prometheus_scalar(client, &url, r#"avg(DCGM_FI_DEV_GPU_UTIL)"#).await {
-        gpu_util = val;
+        metrics.utilization = val;
     }
     if let Some(val) = query_prometheus_scalar(client, &url, r#"avg(DCGM_FI_DEV_GPU_TEMP)"#).await {
-        gpu_temp = val;
+        metrics.temperature = val;
     }
     if let Some(val) = query_prometheus_scalar(client, &url, r#"avg(DCGM_FI_DEV_POWER_USAGE)"#).await {
-        gpu_power = val;
+        metrics.power_draw = val;
     }
 
     // 2. Try nvidia_gpu_exporter (https://github.com/utkuozdemir/nvidia_gpu_exporter)
-    if gpu_util == 0.0 {
+    if metrics.utilization == 0.0 {
         if let Some(val) = query_prometheus_scalar(client, &url, r#"nvidia_gpu_utilization_gpu_utilization"#).await {
-            gpu_util = val;
+            metrics.utilization = val;
         }
     }
-    if gpu_temp == 0.0 {
+    if metrics.temperature == 0.0 {
         if let Some(val) = query_prometheus_scalar(client, &url, r#"nvidia_gpu_temperature_gpu_temperature"#).await {
-            gpu_temp = val;
+            metrics.temperature = val;
         }
     }
-    if gpu_power == 0.0 {
+    if metrics.power_draw == 0.0 {
         if let Some(val) = query_prometheus_scalar(client, &url, r#"nvidia_gpu_power_usage_gpu_power_usage"#).await {
-            gpu_power = val;
+            metrics.power_draw = val;
         }
     }
 
     // 3. Try node_exporter with NVIDIA textfile collector
-    if gpu_util == 0.0 {
-        // nvidia-smi output via textfile collector
+    if metrics.utilization == 0.0 {
         if let Some(val) = query_prometheus_scalar(client, &url, r#"nvidia_gpu_utilization_percentage"#).await {
-            gpu_util = val;
+            metrics.utilization = val;
         }
     }
-    if gpu_temp == 0.0 {
+    if metrics.temperature == 0.0 {
         if let Some(val) = query_prometheus_scalar(client, &url, r#"nvidia_gpu_temperature_celsius"#).await {
-            gpu_temp = val;
+            metrics.temperature = val;
         }
     }
-    if gpu_power == 0.0 {
+    if metrics.power_draw == 0.0 {
         if let Some(val) = query_prometheus_scalar(client, &url, r#"nvidia_gpu_power_draw_watts"#).await {
-            gpu_power = val;
+            metrics.power_draw = val;
         }
     }
 
     // 4. Try generic node_exporter GPU metrics (if available)
-    if gpu_util == 0.0 {
+    if metrics.utilization == 0.0 {
         if let Some(val) = query_prometheus_scalar(client, &url, r#"gpu_utilization_percent"#).await {
-            gpu_util = val;
+            metrics.utilization = val;
         }
     }
 
     // 5. Try external GPU-HOT service as fallback
-    if gpu_util == 0.0 && gpu_temp == 0.0 && gpu_power == 0.0 {
+    if metrics.utilization == 0.0 && metrics.temperature == 0.0 && metrics.power_draw == 0.0 {
         tracing::info!("No GPU metrics from Prometheus, trying gpu-hot service");
-        let (hot_util, hot_temp, hot_power) = fetch_gpu_from_hot_service(client).await;
-        gpu_util = hot_util;
-        gpu_temp = hot_temp;
-        gpu_power = hot_power;
+        let hot_metrics = fetch_gpu_from_hot_service(client).await;
+        metrics.utilization = hot_metrics.utilization;
+        metrics.temperature = hot_metrics.temperature;
+        metrics.power_draw = hot_metrics.power_draw;
+        metrics.memory_used = hot_metrics.memory_used;
+        metrics.memory_total = hot_metrics.memory_total;
+        metrics.memory_utilization = hot_metrics.memory_utilization;
+        metrics.fan_speed = hot_metrics.fan_speed;
+        metrics.clock_graphics = hot_metrics.clock_graphics;
+        metrics.clock_memory = hot_metrics.clock_memory;
     }
 
     // Try Home Assistant for Enphase data if Prometheus doesn't have it
     let (solar_prod, house_cons) = fetch_enphase_from_ha(client).await;
+    metrics.solar_production = solar_prod;
+    metrics.house_consumption = house_cons;
 
-    (
-        gpu_util.max(0.0),
-        gpu_temp.max(0.0),
-        gpu_power.max(0.0),
-        solar_prod,
-        house_cons,
-    )
+    metrics
 }
 
 /// Helper to query Prometheus and extract a scalar value
@@ -380,7 +405,7 @@ async fn fetch_enphase_from_ha(client: &reqwest::Client) -> (f64, f64) {
 
 /// Fetch GPU metrics from gpu-hot external service
 /// https://gpu-hot.p.zacharie.org/api/gpu-data
-async fn fetch_gpu_from_hot_service(client: &reqwest::Client) -> (f64, f64, f64) {
+async fn fetch_gpu_from_hot_service(client: &reqwest::Client) -> GpuMetrics {
     let gpu_hot_url = std::env::var("GPU_HOT_URL")
         .unwrap_or_else(|_| "https://gpu-hot.p.zacharie.org".to_string());
 
@@ -396,11 +421,11 @@ async fn fetch_gpu_from_hot_service(client: &reqwest::Client) -> (f64, f64, f64)
         Ok(r) if r.status().is_success() => r,
         Ok(r) => {
             tracing::warn!("GPU-HOT API returned status: {}", r.status());
-            return (0.0, 0.0, 0.0);
+            return GpuMetrics::default();
         }
         Err(e) => {
             tracing::warn!("Failed to connect to GPU-HOT API: {}", e);
-            return (0.0, 0.0, 0.0);
+            return GpuMetrics::default();
         }
     };
 
@@ -408,7 +433,7 @@ async fn fetch_gpu_from_hot_service(client: &reqwest::Client) -> (f64, f64, f64)
         Ok(d) => d,
         Err(e) => {
             tracing::warn!("Failed to parse GPU-HOT JSON: {}", e);
-            return (0.0, 0.0, 0.0);
+            return GpuMetrics::default();
         }
     };
 
@@ -417,32 +442,33 @@ async fn fetch_gpu_from_hot_service(client: &reqwest::Client) -> (f64, f64, f64)
     let gpu_data = data["gpus"]
         .as_object()
         .and_then(|gpus| gpus.values().next())
-        .unwrap_or(&data);
+        .cloned()
+        .unwrap_or_default();
 
     tracing::debug!("GPU data extracted: {:?}", gpu_data);
 
-    // Extract metrics from the GPU data
-    // Fields: utilization, temperature, power_draw
-    let gpu_util = gpu_data["utilization"]
-        .as_f64()
-        .unwrap_or(0.0);
+    // Extract all metrics from the GPU data
+    let mut metrics = GpuMetrics::default();
+    
+    metrics.utilization = gpu_data["utilization"].as_f64().unwrap_or(0.0);
+    metrics.temperature = gpu_data["temperature"].as_f64().unwrap_or(0.0);
+    metrics.power_draw = gpu_data["power_draw"].as_f64().unwrap_or(0.0);
+    metrics.memory_used = gpu_data["memory_used"].as_f64().unwrap_or(0.0);
+    metrics.memory_total = gpu_data["memory_total"].as_f64().unwrap_or(0.0);
+    metrics.memory_utilization = gpu_data["memory_utilization"].as_f64().unwrap_or(0.0);
+    metrics.fan_speed = gpu_data["fan_speed"].as_f64().unwrap_or(0.0);
+    metrics.clock_graphics = gpu_data["clock_graphics"].as_f64().unwrap_or(0.0);
+    metrics.clock_memory = gpu_data["clock_memory"].as_f64().unwrap_or(0.0);
 
-    let gpu_temp = gpu_data["temperature"]
-        .as_f64()
-        .unwrap_or(0.0);
-
-    let gpu_power = gpu_data["power_draw"]
-        .as_f64()
-        .unwrap_or(0.0);
-
-    if gpu_util > 0.0 || gpu_temp > 0.0 || gpu_power > 0.0 {
+    if metrics.utilization > 0.0 || metrics.temperature > 0.0 || metrics.power_draw > 0.0 {
         tracing::info!(
-            "GPU-HOT API metrics: util={:.1}%, temp={:.1}°C, power={:.1}W",
-            gpu_util, gpu_temp, gpu_power
+            "GPU-HOT API: util={:.1}%, temp={:.1}°C, power={:.1}W, mem={:.0}/{:.0}MB, fan={:.0}%",
+            metrics.utilization, metrics.temperature, metrics.power_draw,
+            metrics.memory_used, metrics.memory_total, metrics.fan_speed
         );
     } else {
-        tracing::warn!("No GPU metrics found in GPU-HOT API response: {:?}", data);
+        tracing::warn!("No GPU metrics found in GPU-HOT API response");
     }
 
-    (gpu_util, gpu_temp, gpu_power)
+    metrics
 }
