@@ -687,7 +687,7 @@ const QuotasManager = {
             }
 
             // Use apiFetch to get unwrapped data from the standard envelope
-            const data = await api.get('/api/quotas');
+            const data = await api.get('/api/monitoring/quotas');
             this.renderQuotas(data);
         } catch (error) {
             console.error('Quotas error:', error);

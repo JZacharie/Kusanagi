@@ -5,7 +5,7 @@ const K8sNodes = {
 
     async fetchNodesStatus() {
         try {
-            const data = await api.get('/api/nodes/status');
+            const data = await api.get('/api/k8s/nodes');
 
             if (data._warning) {
                 console.warn('Nodes warning:', data._warning);
