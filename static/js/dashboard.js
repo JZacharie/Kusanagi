@@ -644,14 +644,47 @@ const MetricsManager = {
      * Load Enphase solar graph data
      */
     async loadSolarGraph() {
-        const query = 'avg(homeassistant_sensor_unit_w{entity="sensor.envoy_122304017410_current_power_production"}) or vector(0)';
-        const values = await this.fetchRangeData(query, 24);
         const container = document.getElementById('solar-24h-graph');
+        if (!container) return;
 
-        if (container && values) {
+        // Show loading state
+        container.innerHTML = '<span style="font-size: 0.7rem; opacity: 0.5;">LOADING_HISTORY...</span>';
+
+        // Try multiple Prometheus queries for solar production data
+        const queries = [
+            // Home Assistant metrics via prometheus_exporter
+            'avg(homeassistant_sensor_unit_w{entity=~".*production.*"}) or vector(0)',
+            // Enphase Envoy metrics
+            'avg(enphase_envoy_power_production_watts) or vector(0)',
+            // Generic solar metrics
+            'avg(solar_power_watts) or vector(0)',
+            'avg(power_production_watts) or vector(0)',
+        ];
+
+        let values = null;
+        for (const query of queries) {
+            try {
+                values = await this.fetchRangeData(query, 24);
+                if (values && values.length > 0) {
+                    console.log(`✅ Solar graph data found using query: ${query}`);
+                    break;
+                }
+            } catch (e) {
+                console.warn(`Query failed: ${query}`, e);
+            }
+        }
+
+        if (values && values.length > 0) {
             container.innerHTML = this.renderSparkline(values, container.clientWidth, 80, 'var(--neon-green)');
-        } else if (container) {
-            container.innerHTML = '<span style="font-size: 0.7rem; opacity: 0.3;">DATA_UNAVAILABLE</span>';
+        } else {
+            // If no historical data, show current value as fallback
+            const currentValue = document.getElementById('solar-current-value')?.textContent || '0W';
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 5px;">
+                    <span style="font-size: 0.8rem; color: var(--neon-green); font-weight: bold;">${currentValue}</span>
+                    <span style="font-size: 0.65rem; opacity: 0.5;">LIVE DATA (NO HISTORY)</span>
+                </div>
+            `;
         }
     },
 
