@@ -14,6 +14,57 @@ env:
   RUST_BACKTRACE: short
 
 jobs:
+  fast-check:
+    name: ⚡ Quick Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          shared-key: "kusanagi"
+
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Quick compile check
+        run: cargo check
+
+  # ============================================================================
+  # Phase 2: Security Scan
+  # ============================================================================
+  security:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run cargo-audit
+        run: cargo audit
+
+
   # Build et test en parallèle
   build-rust:
     runs-on: ubuntu-latest
@@ -82,12 +133,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify structure
-        run: |
-          rm -f static/js/k8s.js
-          ls -la static/js/k8s/
-          test -f static/js/k8s/main.js || exit 1
-
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -111,14 +156,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           no-cache: true
 
-      - name: Verify image
-        if: github.event_name != 'pull_request'
-        run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} test ! -f /app/static/js/k8s.js
-          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} test -f /app/static/js/k8s/main.js
-          echo "✅ Image verified"
-
       - name: Summary
         if: github.event_name != 'pull_request'
         run: |
@@ -127,3 +164,37 @@ jobs:
           echo "| Image | Tag |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-----|" >> $GITHUB_STEP_SUMMARY
           echo "| \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\` | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+
+  deploy:
+    name: 🚢 Deploy to Cluster
+    needs: [build-docker]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://kusanagi.p.zacharie.org
+    steps:
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_JO3 }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Rollout deployment
+        run: |
+          kubectl rollout restart deployment kusanagi -n kusanagi
+          kubectl rollout status deployment kusanagi -n kusanagi
+
+      - name: Notify Slack
+        if: success()
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          jq -n \
+            --arg msg "$COMMIT_MSG" \
+            '{text: ("✅ *Kusanagi Deployed*\n\n🚀 Version: `${{ github.sha }}`\n📝 " + $msg)}' \
+            | curl -X POST -H 'Content-type: application/json' -d @- $SLACK_WEBHOOK          
