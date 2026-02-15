@@ -49,14 +49,14 @@ COPY Cargo.toml ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && rm src/main.rs
 
 COPY src ./src
-COPY static ./static
+
 COPY build.rs ./
 COPY scripts ./scripts
 RUN chmod +x scripts/*.sh
 RUN cargo build --release
 
 FROM runner AS release
-COPY --from=builder /app/static ./static
+COPY static ./static
 COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi
 RUN chown -R kusanagi:kusanagi /app
 USER kusanagi
