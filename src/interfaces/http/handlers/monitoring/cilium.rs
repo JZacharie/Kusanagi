@@ -195,7 +195,7 @@ pub async fn get_cilium_status_handler(State(state): State<AppState>) -> impl In
         None => {
             return (
                 StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({ 
+                Json(serde_json::json!({
                     "error": "Kubernetes client not available",
                     "status": "unavailable"
                 })),
@@ -211,7 +211,7 @@ pub async fn get_cilium_status_handler(State(state): State<AppState>) -> impl In
             error!("Failed to get Cilium status: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ 
+                Json(serde_json::json!({
                     "error": e,
                     "status": "error"
                 })),

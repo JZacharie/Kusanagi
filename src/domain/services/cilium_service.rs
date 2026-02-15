@@ -286,7 +286,10 @@ impl CiliumService {
                         .as_ref()
                         .and_then(|s| {
                             s.conditions.as_ref().and_then(|conds| {
-                                conds.iter().find(|c| c.type_ == "Ready").map(|c| c.status == "True")
+                                conds
+                                    .iter()
+                                    .find(|c| c.type_ == "Ready")
+                                    .map(|c| c.status == "True")
                             })
                         })
                         .unwrap_or(false);
@@ -308,7 +311,10 @@ impl CiliumService {
         }
 
         // Try to get Cilium version from first running pod
-        let version = if let Some(_pod) = cilium_pods.iter().find(|p| p["ready"].as_bool() == Some(true)) {
+        let version = if let Some(_pod) = cilium_pods
+            .iter()
+            .find(|p| p["ready"].as_bool() == Some(true))
+        {
             // In a real implementation, we might exec into the pod to get version
             // For now, return "unknown" or parse from image tag
             "v1.15.x (detected)".to_string()
