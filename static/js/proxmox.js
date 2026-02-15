@@ -1,6 +1,8 @@
-// Proxmox Dashboard Module with Caching
+/**
+ * Proxmox Dashboard Module with Caching
+ * Note: Polling is handled by TabManager (tab-aware)
+ */
 const ProxmoxDashboard = {
-    refreshInterval: null,
     debug: false,
     initialized: false,
     cache: {
@@ -8,7 +10,6 @@ const ProxmoxDashboard = {
         timestamp: null,
         maxAge: 30000 // 30 seconds
     },
-    isActive: false,
 
     init() {
         if (this.initialized) {
@@ -16,11 +17,13 @@ const ProxmoxDashboard = {
             return;
         }
         this.initialized = true;
-        this.log('🔧 Proxmox Dashboard initializing with cache...');
+        this.log('🔧 Proxmox Dashboard initialized (no internal polling)');
+        // Ne pas fetch ici - TabManager s'en charge quand l'onglet est actif
+    },
 
-        // Load initial data in background
-        this.loadDataToCache();
-        this.log('✅ Proxmox Dashboard initialized (data loading in background)');
+    // Alias pour TabManager
+    loadData() {
+        return this.fetchAndRender();
     },
 
     log(message, data = null) {
@@ -57,38 +60,14 @@ const ProxmoxDashboard = {
     },
 
     async activate() {
-        this.isActive = true;
         this.log('🔄 Proxmox tab activated');
-
-        // Check if cache is still valid
-        const cacheAge = this.cache.timestamp ? Date.now() - this.cache.timestamp : Infinity;
-
-        if (this.cache.data && cacheAge < this.cache.maxAge) {
-            // Use cached data
-            this.log('✨ Using cached Proxmox data');
-            this.renderAll(this.cache.data);
-        } else {
-            // Fetch fresh data
-            this.log('🔄 Cache expired, fetching fresh data');
-            await this.fetchAndRender();
-        }
-
-        // Start auto-refresh while tab is active
-        if (this.refreshInterval) clearInterval(this.refreshInterval);
-        this.refreshInterval = setInterval(() => {
-            if (this.isActive && !document.hidden) {
-                this.fetchAndRender();
-            }
-        }, 60000);
+        // Le polling est géré par TabManager
+        await this.fetchAndRender();
     },
 
     deactivate() {
-        this.isActive = false;
         this.log('⏸️ Proxmox tab deactivated');
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
-            this.refreshInterval = null;
-        }
+        // Le polling est géré par TabManager
     },
 
     async fetchAndRender() {

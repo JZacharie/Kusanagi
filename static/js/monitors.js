@@ -1,18 +1,15 @@
 /**
  * Kusanagi Monitors Manager
  * Handles the unified view of Alerts and Events
+ * Note: Polling is handled by TabManager (tab-aware)
  */
 const MonitorsManager = {
     data: [],
     currentFilter: 'all',
-    refreshInterval: null,
 
     init() {
-        this.fetchMonitors();
-        // Refresh every 30 seconds
-        if (this.refreshInterval) clearInterval(this.refreshInterval);
-        this.refreshInterval = setInterval(() => this.fetchMonitors(), 30000);
-        console.log('✅ Monitors Manager initialized');
+        console.log('✅ Monitors Manager initialized (no internal polling)');
+        // Ne pas fetch ici - TabManager s'en charge quand l'onglet est actif
     },
 
     async fetchMonitors() {

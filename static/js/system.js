@@ -1,36 +1,26 @@
+/**
+ * KusanagiSystem - System status and logs
+ * Note: Polling is handled by TabManager (tab-aware)
+ */
 const KusanagiSystem = {
-    refreshInterval: null,
-
     init: function () {
-        console.log("KusanagiSystem initialized");
-        // Initial setup only, actual data fetching happens in activate()
+        console.log("KusanagiSystem initialized (no internal polling)");
     },
 
     activate: function () {
         console.log("KusanagiSystem activated");
-        this.fetchSystemStatus();
-        this.fetchSystemLogs();
-        this.fetchDatabaseHealth();
-
-        // Clear any existing interval
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
-        }
-
-        // Refresh every 10 seconds while active
-        this.refreshInterval = setInterval(() => {
-            this.fetchSystemStatus();
-            this.fetchSystemLogs();
-            this.fetchDatabaseHealth();
-        }, 10000);
+        this.refresh();
     },
 
     deactivate: function () {
         console.log("KusanagiSystem deactivated");
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
-            this.refreshInterval = null;
-        }
+    },
+
+    // Alias pour TabManager
+    refresh: function () {
+        this.fetchSystemStatus();
+        this.fetchSystemLogs();
+        this.fetchDatabaseHealth();
     },
 
     fetchSystemStatus: async function () {

@@ -1,12 +1,16 @@
-// Weather Dashboard Module
+/**
+ * Weather Dashboard Module
+ * Note: Polling is handled by TabManager (tab-aware)
+ */
 const WeatherDashboard = {
-    refreshInterval: null,
-
     init() {
-        this.fetchAndRender();
-        if (this.refreshInterval) clearInterval(this.refreshInterval);
-        this.refreshInterval = setInterval(() => this.fetchAndRender(), 300000); // 5 minutes
-        console.log('✅ Weather Dashboard initialized (5min refresh)');
+        console.log('✅ Weather Dashboard initialized (no internal polling)');
+        // Ne pas fetch ici - TabManager s'en charge quand l'onglet est actif
+    },
+
+    // Alias pour TabManager
+    loadData() {
+        return this.fetchAndRender();
     },
 
     async fetchAndRender() {

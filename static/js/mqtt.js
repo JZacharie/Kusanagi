@@ -1,3 +1,7 @@
+/**
+ * MQTT Manager
+ * Note: Polling is handled by TabManager (tab-aware)
+ */
 const MqttManager = {
     devices: [],
     messages: [],
@@ -5,16 +9,15 @@ const MqttManager = {
     isInitialized: false,
     messageBuffer: [],
 
-    init: async function () {
+    init: function () {
         if (this.isInitialized) return;
-
-        console.log('Initializing MqttManager...');
-        await this.fetchInitialData();
+        console.log('✅ MqttManager initialized (no internal polling)');
         this.isInitialized = true;
+    },
 
-        // Listen for new messages via the global WebSocket handler if possible
-        // Or we just rely on the periodic refresh if WS isn't unified yet
-        // In Kusanagi, WS sends 'mqtt_message' types now.
+    // Alias pour TabManager
+    loadData: function () {
+        return this.fetchInitialData();
     },
 
     fetchInitialData: async function () {
