@@ -8,10 +8,23 @@ class Sidebar {
     this.sidebar = document.querySelector('.sidebar');
     this.toggle = document.querySelector('.header-toggle, .sidebar-toggle');
     this.overlay = document.querySelector('.sidebar-overlay');
-    this.isMobile = window.innerWidth <= 768;
+    // Defer isMobile check to avoid forced reflow during construction
+    this._isMobile = null;
     this.isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
     
-    this.init();
+    // Defer init to next frame to avoid blocking initial render
+    requestAnimationFrame(() => this.init());
+  }
+  
+  get isMobile() {
+    if (this._isMobile === null) {
+      this._isMobile = window.innerWidth <= 768;
+    }
+    return this._isMobile;
+  }
+  
+  set isMobile(value) {
+    this._isMobile = value;
   }
   
   init() {
@@ -86,67 +99,50 @@ class Sidebar {
   handleNavClick(e, tabName) {
     e.preventDefault();
     
-    // Close mobile sidebar after navigation
+    // Close mobile sidebar after navigation (async to not block click)
     if (this.isMobile) {
-      this.closeMobile();
+      requestAnimationFrame(() => this.closeMobile());
     }
     
-    // Use existing switchTab function
+    // Use existing switchTab function (defer to allow click feedback)
     if (typeof switchTab === 'function') {
-      switchTab(tabName);
+      requestAnimationFrame(() => switchTab(tabName));
     } else {
       console.warn('switchTab function not found');
     }
     
-    // Update active state
-    this.setActiveTab(tabName);
+    // Update active state (defer to avoid forced reflow)
+    requestAnimationFrame(() => this.setActiveTab(tabName));
     
     // Update URL hash without triggering scroll
     history.pushState(null, null, `#${tabName}`);
   }
   
   setActiveTab(tabName) {
-    // Remove active from all links
-    document.querySelectorAll('.nav-link').forEach(link => {
-      link.classList.remove('active');
-    });
-    
-    // Add active to current tab
+    // Batch DOM reads and writes to avoid forced reflow
+    const links = document.querySelectorAll('.nav-link');
     const activeLink = document.querySelector(`.nav-link[data-page="${tabName}"]`);
-    if (activeLink) {
-      activeLink.classList.add('active');
-    }
-    
-    // Update header title
     const headerTitle = document.querySelector('.header-title');
-    if (headerTitle) {
-      const titles = {
-        'argocd': 'ArgoCD',
-        'system': 'System',
-        'proxmox': 'Proxmox',
-        'alerts': 'Alerts',
-        'events': 'Events',
-        'nodes': 'Nodes',
-        'pods': 'Pods',
-        'services': 'Services',
-        'ingress': 'Ingress',
-        'storage': 'Storage',
-        'metrics': 'Metrics',
-        'network': 'Network',
-        'backups': 'Backups',
-        'security': 'Security',
-        'setup': 'Setup',
-        'homeassistant': 'Home Assistant',
-        'mqtt': 'MQTT',
-        'calendar': 'Calendar',
-        'weather': 'Weather',
-        'chat': 'AI Chat',
-        'docs': 'About',
-        'news': 'News',
-        'quotas': 'Quotas'
-      };
-      headerTitle.textContent = titles[tabName] || tabName.charAt(0).toUpperCase() + tabName.slice(1);
-    }
+    
+    // Write phase
+    requestAnimationFrame(() => {
+      links.forEach(link => link.classList.remove('active'));
+      if (activeLink) activeLink.classList.add('active');
+      
+      if (headerTitle) {
+        const titles = {
+          'argocd': 'ArgoCD', 'system': 'System', 'proxmox': 'Proxmox',
+          'alerts': 'Alerts', 'events': 'Events', 'nodes': 'Nodes',
+          'pods': 'Pods', 'services': 'Services', 'ingress': 'Ingress',
+          'storage': 'Storage', 'metrics': 'Metrics', 'network': 'Network',
+          'backups': 'Backups', 'security': 'Security', 'setup': 'Setup',
+          'homeassistant': 'Home Assistant', 'mqtt': 'MQTT', 'calendar': 'Calendar',
+          'weather': 'Weather', 'chat': 'AI Chat', 'docs': 'About',
+          'news': 'News', 'quotas': 'Quotas'
+        };
+        headerTitle.textContent = titles[tabName] || tabName.charAt(0).toUpperCase() + tabName.slice(1);
+      }
+    });
   }
   
   handleKeydown(e) {
