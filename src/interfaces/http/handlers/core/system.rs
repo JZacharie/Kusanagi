@@ -2,6 +2,7 @@ use axum::{response::IntoResponse, Json};
 use serde_json::json;
 
 use crate::domain::services::system_service::{SystemService, SystemStatus};
+use crate::interfaces::http::response::{api_success, api_error};
 
 /// System status endpoint
 #[utoipa::path(
@@ -13,7 +14,7 @@ use crate::domain::services::system_service::{SystemService, SystemStatus};
 )]
 pub async fn system_status() -> impl IntoResponse {
     let status = SystemService::get_status();
-    Json(status)
+    api_success(json!(status))
 }
 
 /// System logs endpoint
@@ -27,12 +28,8 @@ pub async fn system_status() -> impl IntoResponse {
 )]
 pub async fn system_logs() -> impl IntoResponse {
     match SystemService::get_logs().await {
-        Ok(logs) => logs.into_response(),
-        Err(e) => (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to fetch logs: {}", e),
-        )
-            .into_response(),
+        Ok(logs) => api_success(json!({ "logs": logs })),
+        Err(e) => api_error(axum::http::StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
 

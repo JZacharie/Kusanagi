@@ -109,24 +109,17 @@ const KusanagiSystem = {
                 container.textContent = 'Fetching...';
             }
 
-            // Note: System logs endpoint returns raw text, not JSON envelope
-            const response = await fetch('/api/system/logs');
-            if (response.ok) {
-                const logs = await response.text();
+            // Use api.get for consistent JSON envelope handling
+            const data = await api.get('/api/system/logs');
+            const logs = data?.logs || "No logs available.";
 
-                // Parse ANSI codes if present
-                if (window.AnsiParser) {
-                    container.innerHTML = AnsiParser.parseToHtml(logs);
-                } else {
-                    container.textContent = logs || "No logs available.";
-                }
+            // Parse ANSI codes if present
+            if (window.AnsiParser) {
+                container.innerHTML = AnsiParser.parseToHtml(logs);
             } else {
-                // Handle non-ok response
-                container.innerHTML = `<div style="color: var(--neon-orange); padding: 1rem;">
-                    ⚠️ Logs unavailable. 
-                    <button onclick="KusanagiSystem.fetchSystemLogs()" class="cyber-btn" style="margin-left: 1rem;">Retry</button>
-                </div>`;
+                container.textContent = logs;
             }
+
             // Auto-scroll to bottom
             const logsContainer = document.getElementById('system-logs-container');
             if (logsContainer) {
@@ -137,7 +130,7 @@ const KusanagiSystem = {
             const container = document.getElementById('system-logs-content');
             if (container) {
                 container.innerHTML = `<div style="color: var(--neon-orange); padding: 1rem;">
-                    ⚠️ Error loading logs. 
+                    ⚠️ Logs unavailable: ${error.message}
                     <button onclick="KusanagiSystem.fetchSystemLogs()" class="cyber-btn" style="margin-left: 1rem;">Retry</button>
                 </div>`;
             }
