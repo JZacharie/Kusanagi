@@ -24,6 +24,7 @@ pub struct AppState {
     pub http_client: Arc<reqwest::Client>,
     pub cilium_cache: Arc<crate::domain::services::cilium_service::CiliumCache>,
     pub llm_service: Arc<crate::domain::services::llm_service::LlmService>,
+    pub mqtt_state: crate::domain::services::mqtt_service::MqttState,
     pub prometheus_handle: metrics_exporter_prometheus::PrometheusHandle,
 }
 
@@ -209,6 +210,7 @@ impl AppState {
             http_client,
             cilium_cache: Arc::new(crate::domain::services::cilium_service::CiliumCache::new()),
             llm_service,
+            mqtt_state: crate::domain::services::mqtt_service::MqttState::new(),
             prometheus_handle,
         })
     }

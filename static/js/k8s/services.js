@@ -246,9 +246,21 @@ const K8sServices = {
             return;
         }
 
+        // Helper to render rules as clickable HTTPS links
+        const renderRules = (rules) => {
+            if (!rules || rules.length === 0) return '-';
+            const ruleArray = Array.isArray(rules) ? rules : [rules];
+            return ruleArray.map(rule => {
+                const host = rule.trim();
+                if (!host || host === '-') return '-';
+                const httpsUrl = `https://${host}`;
+                return `<a href="${httpsUrl}" target="_blank" rel="noopener noreferrer" class="ingress-link" title="Open ${httpsUrl}">${host}</a>`;
+            }).join('');
+        };
+
         try {
             container.innerHTML = `
-                <table class="data-table">
+                <table class="data-table ingress-table">
                     <thead>
                         <tr>
                             <th>Name</th><th>Namespace</th><th>Rules</th><th>Age</th>
@@ -258,8 +270,8 @@ const K8sServices = {
                         ${ingresses.map(ing => `
                             <tr>
                                 <td class="app-name">${ing.name || '-'}</td>
-                                <td>${ing.namespace || '-'}</td>
-                                <td>${Array.isArray(ing.rules) ? ing.rules.join(', ') : (ing.rules || '-')}</td>
+                                <td><span class="namespace-badge">${ing.namespace || '-'}</span></td>
+                                <td class="ingress-rules">${renderRules(ing.rules)}</td>
                                 <td>${ing.age || '-'}</td>
                             </tr>
                         `).join('')}

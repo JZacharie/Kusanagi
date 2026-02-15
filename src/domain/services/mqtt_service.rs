@@ -10,14 +10,14 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::task;
 // Removed
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, utoipa::ToSchema)]
 pub struct MqttMessage {
     pub topic: String,
     pub payload: String,
     pub timestamp: u128,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, utoipa::ToSchema)]
 pub struct MqttDevice {
     pub id: String,
     pub name: String,

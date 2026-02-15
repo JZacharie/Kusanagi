@@ -39,24 +39,35 @@
     </div>
 </div>
 
-<!-- Node Cards Container -->
-<div class="nodes-container" id="nodes-container">
+<!-- Node Cards Container - Compact Grid -->
+<div class="nodes-grid-container" id="nodes-container">
     <div class="loading">Loading nodes status...</div>
 </div>
 
 <style>
+/* Grid container pour afficher tous les nodes en vue synthétique */
+.nodes-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+/* Node card compacte */
 .node-card {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--neon-cyan);
     border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
+    padding: 1rem;
     transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
 .node-card:hover {
     border-color: var(--neon-green);
     box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    transform: translateY(-2px);
 }
 
 .node-card.ready {
@@ -67,23 +78,25 @@
     border-left: 4px solid var(--neon-orange);
 }
 
+/* Header compact */
 .node-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .node-name {
-    font-size: 1.2rem;
+    font-size: 1rem;
     font-weight: bold;
     color: var(--neon-cyan);
 }
 
 .node-status {
-    padding: 0.25rem 0.75rem;
+    padding: 0.2rem 0.5rem;
     border-radius: 4px;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: bold;
 }
 
@@ -97,93 +110,252 @@
     color: var(--neon-orange);
 }
 
-.node-info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.node-info-item {
+/* Info en ligne compact */
+.node-info-compact {
     display: flex;
-    flex-direction: column;
-}
-
-.node-info-label {
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
     font-size: 0.75rem;
     color: #888;
-    margin-bottom: 0.25rem;
 }
 
-.node-info-value {
-    font-size: 0.95rem;
-    color: #fff;
-}
-
-.node-resources {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.resource-bar {
-    margin-bottom: 0.5rem;
-}
-
-.resource-label {
+.node-info-compact span {
     display: flex;
-    justify-content: space-between;
-    font-size: 0.85rem;
-    margin-bottom: 0.25rem;
+    align-items: center;
+    gap: 0.25rem;
 }
 
-.progress-bar {
-    height: 8px;
+.node-info-compact .label {
+    color: #666;
+}
+
+.node-info-compact .value {
+    color: #fff;
+    font-weight: 500;
+}
+
+/* Jauges compactes horizontales */
+.node-gauges {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.gauge-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.gauge-mini-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: #888;
+}
+
+.gauge-mini-value {
+    font-size: 0.8rem;
+    font-weight: bold;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.gauge-mini-bar {
+    width: 100%;
+    height: 4px;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+    border-radius: 2px;
     overflow: hidden;
 }
 
-.progress-fill {
+.gauge-mini-fill {
     height: 100%;
+    border-radius: 2px;
     transition: width 0.3s ease;
 }
 
-.progress-fill.low {
+.gauge-mini-fill.low {
     background: var(--neon-green);
 }
 
-.progress-fill.medium {
+.gauge-mini-fill.medium {
     background: var(--neon-cyan);
 }
 
-.progress-fill.high {
+.gauge-mini-fill.high {
     background: var(--neon-orange);
 }
 
+/* Age et Pods sur une ligne */
+.node-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    padding: 0.25rem 0;
+}
+
+.node-age {
+    color: var(--text-secondary);
+}
+
+.node-age-value {
+    color: var(--neon-cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: bold;
+}
+
+.node-pods {
+    color: var(--text-secondary);
+}
+
+.node-pods-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: bold;
+}
+
+/* Conditions avec icônes */
 .node-conditions {
-    margin-top: 1rem;
-    padding-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding-top: 0.5rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.condition-item {
-    display: inline-block;
+.condition-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+/* Icône grisée quand false */
+.condition-icon.false {
+    background: rgba(100, 100, 100, 0.15);
+    color: #666;
+    opacity: 0.5;
+}
+
+/* Icône en couleur quand true */
+.condition-icon.true {
+    opacity: 1;
+    box-shadow: 0 0 8px currentColor;
+}
+
+.condition-icon.Ready.true {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.condition-icon.DiskPressure.false {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.condition-icon.DiskPressure.true {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.condition-icon.MemoryPressure.false {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.condition-icon.MemoryPressure.true {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.condition-icon.NetworkUnavailable.false {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.condition-icon.NetworkUnavailable.true {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.condition-icon.PIDPressure.false {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.condition-icon.PIDPressure.true {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+/* Tooltip pour les conditions */
+.condition-icon {
+    position: relative;
+    cursor: help;
+}
+
+.condition-icon:hover::after {
+    content: attr(data-condition) ": " attr(data-status);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: #fff;
     padding: 0.25rem 0.5rem;
-    margin: 0.25rem;
     border-radius: 4px;
-    font-size: 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.7rem;
+    white-space: nowrap;
+    z-index: 100;
+    margin-bottom: 4px;
 }
 
-.condition-item.true {
-    background: rgba(0, 255, 0, 0.1);
-    color: var(--neon-green);
+/* Theme Modern overrides */
+body.theme-modern .node-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
 }
 
-.condition-item.false {
-    background: rgba(255, 0, 0, 0.1);
-    color: var(--neon-orange);
+body.theme-modern .node-card:hover {
+    border-color: var(--border-hover);
+}
+
+body.theme-modern .node-card.ready {
+    border-left: 4px solid var(--status-healthy);
+}
+
+body.theme-modern .node-card.not-ready {
+    border-left: 4px solid var(--status-danger);
+}
+
+body.theme-modern .node-name {
+    color: var(--text-primary);
+}
+
+body.theme-modern .node-gauges {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+body.theme-modern .gauge-mini-fill.low {
+    background: var(--status-healthy);
+}
+
+body.theme-modern .gauge-mini-fill.medium {
+    background: var(--status-warning);
+}
+
+body.theme-modern .gauge-mini-fill.high {
+    background: var(--status-danger);
+}
+
+body.theme-modern .node-age-value {
+    color: var(--accent-primary);
 }
 </style>

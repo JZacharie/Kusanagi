@@ -47,6 +47,24 @@ async fn main() -> anyhow::Result<()> {
         cilium_service.start_background_refresh();
     }
 
+    // Start MQTT client if configured
+    if let Ok(mqtt_host) = std::env::var("MQTT_HOST") {
+        let mqtt_port = std::env::var("MQTT_PORT")
+            .ok()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(1883);
+        let mqtt_user = std::env::var("MQTT_USER").ok();
+        let mqtt_pass = std::env::var("MQTT_PASS").ok();
+
+        kusanagi::domain::services::mqtt_service::start_mqtt_client(
+            state.mqtt_state.clone(),
+            mqtt_host,
+            mqtt_port,
+            mqtt_user,
+            mqtt_pass,
+        );
+    }
+
     // Build router using the routes module
     let app = kusanagi::interfaces::http::routes::configure_routes(state);
 

@@ -30,7 +30,6 @@ const PageLoader = {
         'proxmox': 'proxmox.html',
         'homeassistant': 'homeassistant.html',
         'weather': 'weather.html',
-        'setup': 'setup.html',
         'monitors': 'monitors.html',
         'docs': 'docs.html'
     },
@@ -186,9 +185,6 @@ const PageLoader = {
                 break;
             case 'news':
                 console.log('📰 News section loaded');
-                break;
-            case 'setup':
-                console.log('⚙️ Setup section loaded');
                 break;
         }
     },

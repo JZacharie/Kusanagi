@@ -38,7 +38,7 @@ const K8sNodes = {
 
         if (!nodes || nodes.length === 0) {
             container.innerHTML = `
-                <div class="no-issues" style="padding: 2rem; text-align: center;">
+                <div class="no-issues" style="padding: 2rem; text-align: center; grid-column: 1 / -1;">
                     <span style="font-size: 2rem;">🖥️</span>
                     <p>No nodes found</p>
                     ${warningMsg ? `<p style="color: var(--neon-orange); margin-top: 1rem; font-size: 0.9rem;">⚠️ ${warningMsg}</p>` : ''}
@@ -50,6 +50,15 @@ const K8sNodes = {
 
         nodes.sort((a, b) => a.name.localeCompare(b.name));
 
+        // Mapping des conditions vers des icônes
+        const conditionIcons = {
+            'Ready': '✓',
+            'DiskPressure': '💾',
+            'MemoryPressure': '🧠',
+            'NetworkUnavailable': '🌐',
+            'PIDPressure': '⚡'
+        };
+
         container.innerHTML = nodes.map((node) => {
             const isReady = node.status === 'Ready';
             const cpuPercent = parseFloat(node.cpu_usage_percent) || 0;
@@ -58,59 +67,97 @@ const K8sNodes = {
             const podCapacity = parseInt(node.pod_capacity) || 0;
             const podPercent = podCapacity ? Math.round((podCount / podCapacity) * 100) : 0;
 
-            const getColor = (p) => p > 90 ? '#ef4444' : p > 75 ? '#f59e0b' : '#22c55e';
-            const getCpuColor = getColor(cpuPercent);
-            const getMemColor = getColor(memPercent);
-            const getPodColor = getColor(podPercent);
+            // Déterminer la couleur pour chaque métrique
+            const getColorClass = (p) => p > 90 ? 'high' : p > 75 ? 'medium' : 'low';
+            const getColorValue = (p) => p > 90 ? '#ef4444' : p > 75 ? '#f59e0b' : '#22c55e';
+            
+            const cpuColorClass = getColorClass(cpuPercent);
+            const memColorClass = getColorClass(memPercent);
+            const podColorClass = getColorClass(podPercent);
 
-            const renderGauge = (percent, label, sublabel, color) => {
-                // ... gauge SVG logic ...
-                // Simplified for brevity, same as original
-                const radius = 28;
-                const stroke = 6;
-                const normR = radius - stroke * 2;
-                const circ = normR * 2 * Math.PI;
-                const dash = circ - (percent / 100) * circ;
-
-                return `
-                    <div class="gauge-item" style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                        <div class="gauge-svg" style="position: relative; width: 60px; height: 60px;">
-                            <svg height="60" width="60" style="transform: rotate(-90deg);">
-                                <circle stroke="rgba(255,255,255,0.1)" stroke-width="${stroke}" fill="transparent" r="${normR}" cx="30" cy="30" />
-                                <circle stroke="${color}" stroke-width="${stroke}" stroke-dasharray="${circ} ${circ}" style="stroke-dashoffset: ${dash}; transition: stroke-dashoffset 0.5s ease; filter: drop-shadow(0 0 4px ${color});" stroke-linecap="round" fill="transparent" r="${normR}" cx="30" cy="30" />
-                            </svg>
-                            <div class="gauge-value" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.85rem; font-weight: bold; color: ${color}; font-family: 'JetBrains Mono', monospace;">
-                                ${percent.toFixed(0)}%
-                            </div>
+            // Rendu des conditions avec icônes
+            const renderConditions = () => {
+                if (!node.conditions) return '';
+                
+                return Object.entries(node.conditions).map(([condition, status]) => {
+                    const icon = conditionIcons[condition] || '●';
+                    const isTrue = status === 'True';
+                    // Pour Ready: true = bon (vert), false = mauvais (gris)
+                    // Pour les autres (Pressure): false = bon (vert), true = mauvais (rouge)
+                    const isPositive = condition === 'Ready' ? isTrue : !isTrue;
+                    const statusClass = isTrue ? 'true' : 'false';
+                    
+                    return `
+                        <div class="condition-icon ${condition} ${statusClass}" 
+                             data-condition="${condition}" 
+                             data-status="${status}"
+                             title="${condition}: ${status}">
+                            ${icon}
                         </div>
-                        <div class="gauge-label" style="font-size: 0.7rem; text-transform: uppercase;">${label}</div>
-                        <div class="gauge-sublabel" style="font-size: 0.65rem; color: var(--text-muted);">${sublabel}</div>
-                    </div>
-                `;
+                    `;
+                }).join('');
             };
+
+            // Format compact des infos système
+            const arch = node.architecture || 'N/A';
+            const os = node.os ? node.os.split(' ')[0] : 'N/A';
+            const kubelet = node.kubelet_version ? node.kubelet_version.replace('v', '').split('+')[0] : 'N/A';
+            const cpuCapacity = node.cpu_capacity || '-';
 
             return `
                 <div class="node-card ${isReady ? 'ready' : 'not-ready'}">
+                    <!-- Header -->
                     <div class="node-header">
                         <div class="node-name">${node.name}</div>
                         <div class="node-status ${isReady ? 'ready' : 'not-ready'}">${node.status}</div>
                     </div>
-                    <div class="node-info-grid">
-                        <div class="node-info-item"><div class="node-info-label">Arch</div><div class="node-info-value">${node.architecture || 'N/A'}</div></div>
-                        <div class="node-info-item"><div class="node-info-label">OS</div><div class="node-info-value">${node.os || 'N/A'}</div></div>
-                        <div class="node-info-item"><div class="node-info-label">Kernel</div><div class="node-info-value">${node.kernel_version || 'N/A'}</div></div>
-                        <div class="node-info-item"><div class="node-info-label">Kubelet</div><div class="node-info-value">${node.kubelet_version || 'N/A'}</div></div>
+
+                    <!-- Info compacte -->
+                    <div class="node-info-compact">
+                        <span><span class="label">Arch:</span> <span class="value">${arch}</span></span>
+                        <span><span class="label">OS:</span> <span class="value">${os}</span></span>
+                        <span><span class="label">Kubelet:</span> <span class="value">${kubelet}</span></span>
                     </div>
-                    <div class="node-resources-gauges" style="display: flex; justify-content: space-around; padding: 1.5rem 0; background: rgba(0,0,0,0.2); border-radius: 12px; margin: 1rem 0;">
-                        ${renderGauge(cpuPercent, 'CPU', node.cpu_capacity || '-', getCpuColor)}
-                        ${renderGauge(memPercent, 'Memory', node.memory_allocatable || '-', getMemColor)}
-                        ${renderGauge(podPercent, 'Pods', `${podCount}/${podCapacity}`, getPodColor)}
+
+                    <!-- Jauges compactes -->
+                    <div class="node-gauges">
+                        <div class="gauge-mini">
+                            <div class="gauge-mini-label">CPU</div>
+                            <div class="gauge-mini-value" style="color: ${getColorValue(cpuPercent)}">${cpuPercent.toFixed(0)}%</div>
+                            <div class="gauge-mini-bar">
+                                <div class="gauge-mini-fill ${cpuColorClass}" style="width: ${Math.min(cpuPercent, 100)}%"></div>
+                            </div>
+                        </div>
+                        <div class="gauge-mini">
+                            <div class="gauge-mini-label">Mem</div>
+                            <div class="gauge-mini-value" style="color: ${getColorValue(memPercent)}">${memPercent.toFixed(0)}%</div>
+                            <div class="gauge-mini-bar">
+                                <div class="gauge-mini-fill ${memColorClass}" style="width: ${Math.min(memPercent, 100)}%"></div>
+                            </div>
+                        </div>
+                        <div class="gauge-mini">
+                            <div class="gauge-mini-label">Pods</div>
+                            <div class="gauge-mini-value" style="color: ${getColorValue(podPercent)}">${podCount}/${podCapacity}</div>
+                            <div class="gauge-mini-bar">
+                                <div class="gauge-mini-fill ${podColorClass}" style="width: ${Math.min(podPercent, 100)}%"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="node-age-bar" style="text-align: center; padding: 8px;">
-                        <span style="font-size: 0.75rem; color: var(--text-secondary);">Node Age: </span>
-                        <span style="font-size: 0.85rem; font-weight: bold; color: var(--neon-cyan); font-family: 'JetBrains Mono', monospace;">${node.age || 'N/A'}</span>
+
+                    <!-- Age et capacité -->
+                    <div class="node-meta-row">
+                        <div class="node-age">
+                            Age: <span class="node-age-value">${node.age || 'N/A'}</span>
+                        </div>
+                        <div class="node-pods">
+                            ${cpuCapacity} • ${node.memory_allocatable || '-'}
+                        </div>
                     </div>
-                    ${node.conditions ? `<div class="node-conditions" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">${Object.entries(node.conditions).map(([k, v]) => `<span class="condition-item ${v === 'True' ? 'true' : 'false'}" style="font-size: 0.8em; padding: 2px 4px; background: rgba(255,255,255,0.1); border-radius: 4px;">${k}:${v}</span>`).join('')}</div>` : ''}
+
+                    <!-- Conditions avec icônes -->
+                    <div class="node-conditions">
+                        ${renderConditions()}
+                    </div>
                 </div>
             `;
         }).join('');
@@ -120,7 +167,7 @@ const K8sNodes = {
         const container = document.getElementById('nodes-container');
         if (!container) return;
         container.innerHTML = `
-            <div class="error-state" style="padding: 2rem; text-align: center;">
+            <div class="error-state" style="padding: 2rem; text-align: center; grid-column: 1 / -1;">
                 <span style="font-size: 2rem;">⚠️</span>
                 <p style="color: #ff4444;">Failed to load nodes</p>
                 <p style="color: var(--text-secondary); font-size: 0.9rem;">${message}</p>

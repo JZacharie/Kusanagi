@@ -601,10 +601,17 @@ pub async fn get_storage(client: &reqwest::Client) -> Result<Value, String> {
 
             // Get usage from map
             let key = format!("{}/{}", namespace, name);
-            let used_bytes = usage_map.get(&key).cloned().unwrap_or(0);
+            let (used_bytes, prom_capacity) = usage_map.get(&key).cloned().unwrap_or((0, 0));
 
-            let usage_percent = if capacity_bytes > 0 {
-                (used_bytes as f64 / capacity_bytes as f64) * 100.0
+            // Use Prometheus capacity if available (more accurate for NFS/CSI), fallback to PVC status
+            let effective_capacity = if prom_capacity > 0 {
+                prom_capacity
+            } else {
+                capacity_bytes
+            };
+
+            let usage_percent = if effective_capacity > 0 {
+                (used_bytes as f64 / effective_capacity as f64) * 100.0
             } else {
                 0.0
             };
@@ -614,8 +621,8 @@ pub async fn get_storage(client: &reqwest::Client) -> Result<Value, String> {
                 "namespace": namespace,
                 "status": status,
                 "storage_class": storage_class,
-                "capacity": capacity_str,
-                "capacity_bytes": capacity_bytes,
+                "capacity": if prom_capacity > 0 { format_bytes(prom_capacity) } else { capacity_str },
+                "capacity_bytes": effective_capacity,
                 "used_bytes": used_bytes,
                 "usage_percent": usage_percent
             })
@@ -637,12 +644,12 @@ pub async fn get_storage(client: &reqwest::Client) -> Result<Value, String> {
 
 async fn fetch_storage_usage(
     client: &reqwest::Client,
-) -> Result<std::collections::HashMap<String, u64>, String> {
+) -> Result<std::collections::HashMap<String, (u64, u64)>, String> {
     let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
         "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
     });
 
-    let query = "kubelet_volume_stats_used_bytes";
+    let query = "{__name__=~'kubelet_volume_stats_used_bytes|kubelet_volume_stats_capacity_bytes'}";
     let url = format!("{}/api/v1/query", prometheus_url);
 
     let response = client
@@ -678,12 +685,25 @@ async fn fetch_storage_usage(
                     .unwrap_or("");
 
                 if !namespace.is_empty() && !pvc_name.is_empty() {
+                    let metric_name = metric
+                        .get("__name__")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
                     let bytes = value
                         .get(1)
                         .and_then(|v| v.as_str())
                         .and_then(|s| s.parse::<f64>().ok())
                         .unwrap_or(0.0) as u64;
-                    usage_map.insert(format!("{}/{}", namespace, pvc_name), bytes);
+
+                    let entry = usage_map
+                        .entry(format!("{}/{}", namespace, pvc_name))
+                        .or_insert((0, 0));
+
+                    if metric_name == "kubelet_volume_stats_used_bytes" {
+                        entry.0 = bytes;
+                    } else if metric_name == "kubelet_volume_stats_capacity_bytes" {
+                        entry.1 = bytes;
+                    }
                 }
             }
         }
@@ -781,6 +801,27 @@ pub async fn get_events() -> Result<Value, String> {
         .collect();
 
     Ok(json!(events))
+}
+
+pub async fn force_delete_pod(namespace: &str, name: &str) -> Result<Value, String> {
+    let client = Client::try_default().await.map_err(|e| e.to_string())?;
+    let pods: Api<Pod> = Api::namespaced(client, namespace);
+
+    // Force delete = grace period 0
+    let dp = kube::api::DeleteParams {
+        grace_period_seconds: Some(0),
+        dry_run: false,
+        preconditions: None,
+        propagation_policy: None,
+    };
+
+    match pods.delete(name, &dp).await {
+        Ok(_) => Ok(json!({
+            "success": true,
+            "message": format!("Pod {} deleted successfully (force)", name)
+        })),
+        Err(e) => Err(format!("Failed to delete pod {}: {}", name, e)),
+    }
 }
 
 pub async fn get_pod_logs(namespace: &str, name: &str) -> Result<String, String> {
