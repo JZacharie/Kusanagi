@@ -26,11 +26,11 @@ const K8sManager = {
         this.fetchAll();
 
         // Setup global polling
-        setInterval(() => this.fetchAll(), 30000);
+        setInterval(() => this.fetchAll(), 60000);
     },
 
     // Rate limiting: delay between API calls (ms)
-    _apiDelay: 500,
+    _apiDelay: 1000,
     _lastApiCall: 0,
 
     async _rateLimitedCall(fn, ...args) {

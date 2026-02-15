@@ -85,7 +85,7 @@ const SystemStatusManager = {
 
     init() {
         this.fetchStatus();
-        this.refreshInterval = setInterval(() => this.fetchStatus(), 5000);
+        this.refreshInterval = setInterval(() => this.fetchStatus(), 30000);
         console.log('✅ System Status Manager initialized');
     },
 
@@ -323,7 +323,7 @@ const MetricsManager = {
     init() {
         this.loadMetrics();
         // Refresh every 30 seconds
-        this.refreshInterval = setInterval(() => this.loadMetrics(), 30000);
+        this.refreshInterval = setInterval(() => this.loadMetrics(), 60000);
     },
 
     /**
@@ -790,7 +790,7 @@ const NewsManager = {
     init() {
         this.fetchNews();
         // Auto-refresh every 10 minutes (optimized from 5 minutes)
-        setInterval(() => this.fetchNews(), 600000);
+        setInterval(() => this.fetchNews(), 1800000);
     },
 
     /**
