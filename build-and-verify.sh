@@ -39,10 +39,14 @@ echo ""
 echo -e "${YELLOW}🐳 Build Docker (NO CACHE)...${NC}"
 echo -e "${BLUE}   Cela peut prendre plusieurs minutes...${NC}"
 
+# Generate cache bust timestamp
+CACHE_BUST=$(date +%s)
+
 # Build avec vérification explicite
 docker build \
     --no-cache \
     --build-arg STATIC_VERSION=v2 \
+    --build-arg CACHE_BUST=${CACHE_BUST} \
     -f Dockerfile \
     --target release-ci \
     --build-arg PREBUILT_BINARY=target/release/kusanagi \
