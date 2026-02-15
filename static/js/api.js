@@ -18,12 +18,31 @@
  */
 async function apiFetch(url, options = {}) {
     const response = await fetch(url, options);
-    const body = await response.json();
-    
-    if (!response.ok || body.success === false) {
-        throw new Error(body.error || `Request failed (${response.status})`);
+
+    // Check if the response is actually JSON before parsing
+    const contentType = response.headers.get("content-type");
+    if (!response.ok) {
+        let errorMessage = `Request failed (${response.status})`;
+        if (contentType && contentType.includes("application/json")) {
+            try {
+                const body = await response.json();
+                errorMessage = body.error || errorMessage;
+            } catch (e) {
+                // Ignore parse error if we're already in an error state
+            }
+        }
+        throw new Error(errorMessage);
     }
-    
+
+    if (!contentType || !contentType.includes("application/json")) {
+        throw new Error(`Unexpected response format: ${contentType || 'unknown'}`);
+    }
+
+    const body = await response.json();
+    if (body.success === false) {
+        throw new Error(body.error || "Application error");
+    }
+
     return body.data;
 }
 

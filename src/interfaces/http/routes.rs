@@ -107,6 +107,7 @@ pub fn configure_routes(state: AppState) -> Router {
         // Kubernetes routes
         .route("/api/k8s/cluster", get(cluster_overview))
         .route("/api/k8s/nodes", get(nodes_status))
+        .route("/api/debug/nodes", get(nodes_debug))
         .route("/api/k8s/pods", get(pods_status))
         .route("/api/k8s/pods/{namespace}/{name}/logs", get(pod_logs))
         .route(

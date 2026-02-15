@@ -31,6 +31,29 @@ pub async fn nodes_status(State(state): State<AppState>) -> Response {
     }
 }
 
+/// Nodes debug/diagnostic endpoint
+pub async fn nodes_debug(State(state): State<AppState>) -> Response {
+    let k8s_nodes_ok = kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache).await.is_ok();
+    let k8s_pods_ok = kubernetes_service::get_pods_status(&state.k8s_cache).await.is_ok();
+    
+    // Check prometheus connectivity
+    let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
+        "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
+    });
+    let prometheus_ok = state.http_client.get(format!("{}/-/healthy", prometheus_url))
+        .timeout(std::time::Duration::from_secs(2))
+        .send()
+        .await
+        .map(|r| r.status().is_success())
+        .unwrap_or(false);
+
+    api_success(json!({
+        "k8s_nodes_ok": k8s_nodes_ok,
+        "k8s_pods_ok": k8s_pods_ok,
+        "prometheus_ok": prometheus_ok
+    }))
+}
+
 /// Pods status endpoint
 pub async fn pods_status(State(state): State<AppState>) -> Response {
     match kubernetes_service::get_pods_status(&state.k8s_cache).await {

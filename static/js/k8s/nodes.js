@@ -59,6 +59,12 @@ const K8sNodes = {
             'PIDPressure': '⚡'
         };
 
+        const archIcons = {
+            'amd64': '<i class="mdi mdi-cpu-64-bit" title="x86_64 / amd64"></i>',
+            'arm64': '<i class="mdi mdi-chip" title="ARM64"></i>'
+        };
+
+
         container.innerHTML = nodes.map((node) => {
             const isReady = node.status === 'Ready';
             const cpuPercent = parseFloat(node.cpu_usage_percent) || 0;
@@ -70,7 +76,7 @@ const K8sNodes = {
             // Déterminer la couleur pour chaque métrique
             const getColorClass = (p) => p > 90 ? 'high' : p > 75 ? 'medium' : 'low';
             const getColorValue = (p) => p > 90 ? '#ef4444' : p > 75 ? '#f59e0b' : '#22c55e';
-            
+
             const cpuColorClass = getColorClass(cpuPercent);
             const memColorClass = getColorClass(memPercent);
             const podColorClass = getColorClass(podPercent);
@@ -78,7 +84,7 @@ const K8sNodes = {
             // Rendu des conditions avec icônes
             const renderConditions = () => {
                 if (!node.conditions) return '';
-                
+
                 return Object.entries(node.conditions).map(([condition, status]) => {
                     const icon = conditionIcons[condition] || '●';
                     const isTrue = status === 'True';
@@ -86,7 +92,7 @@ const K8sNodes = {
                     // Pour les autres (Pressure): false = bon (vert), true = mauvais (rouge)
                     const isPositive = condition === 'Ready' ? isTrue : !isTrue;
                     const statusClass = isTrue ? 'true' : 'false';
-                    
+
                     return `
                         <div class="condition-icon ${condition} ${statusClass}" 
                              data-condition="${condition}" 
@@ -114,7 +120,7 @@ const K8sNodes = {
 
                     <!-- Info compacte -->
                     <div class="node-info-compact">
-                        <span><span class="label">Arch:</span> <span class="value">${arch}</span></span>
+                        <span><span class="label">Arch:</span> <span class="value">${archIcons[arch.toLowerCase()] || ''}${arch}</span></span>
                         <span><span class="label">OS:</span> <span class="value">${os}</span></span>
                         <span><span class="label">Kubelet:</span> <span class="value">${kubelet}</span></span>
                     </div>
