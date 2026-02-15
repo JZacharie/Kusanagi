@@ -59,6 +59,50 @@
     </div>
 </div>
 
+<!-- Cilium Network -->
+<div class="issues-table-container" style="border-color: var(--neon-cyan); margin-bottom: 2rem;">
+    <div class="issues-table-header" style="background: rgba(0, 242, 255, 0.1); border-color: var(--neon-cyan);">
+        <span class="issues-table-title" style="color: var(--neon-cyan);">🌐 Cilium Network</span>
+    </div>
+    <div style="padding: 1.5rem;">
+        <p style="margin-bottom: 1.5rem;">Kusanagi integrates with <strong>Cilium</strong> for advanced network observability and security monitoring via Hubble.</p>
+        
+        <div class="grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
+                <h4 style="color: var(--neon-cyan);">🔍 Network Flows</h4>
+                <p style="font-size: 0.85rem; opacity: 0.8;">Real-time visualization of network traffic between pods with Hubble flows.</p>
+                <code style="display: block; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.5); border-radius: 4px; font-size: 0.75rem;">GET /api/cilium/flows</code>
+            </div>
+            <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
+                <h4 style="color: var(--neon-cyan);">📊 Flow Matrix</h4>
+                <p style="font-size: 0.85rem; opacity: 0.8;">Aggregated view of all network connections between services.</p>
+                <code style="display: block; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.5); border-radius: 4px; font-size: 0.75rem;">GET /api/cilium/matrix</code>
+            </div>
+            <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
+                <h4 style="color: var(--neon-cyan);">📈 Bandwidth Metrics</h4>
+                <p style="font-size: 0.85rem; opacity: 0.8;">Per-service bandwidth consumption and connection counts.</p>
+                <code style="display: block; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.5); border-radius: 4px; font-size: 0.75rem;">GET /api/cilium/metrics</code>
+            </div>
+            <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
+                <h4 style="color: var(--neon-cyan);">⚠️ Anomaly Detection</h4>
+                <p style="font-size: 0.85rem; opacity: 0.8;">Automatic detection of unusual network patterns.</p>
+                <code style="display: block; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.5); border-radius: 4px; font-size: 0.75rem;">GET /api/cilium/anomalies</code>
+            </div>
+            <div class="stat-box" style="text-align: left; background: rgba(0,0,0,0.3);">
+                <h4 style="color: var(--neon-cyan);">🔧 Cilium Status</h4>
+                <p style="font-size: 0.85rem; opacity: 0.8;">Health and version information of Cilium agents.</p>
+                <code style="display: block; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.5); border-radius: 4px; font-size: 0.75rem;">GET /api/cilium/status</code>
+            </div>
+        </div>
+        
+        <div style="text-align: center;">
+            <a href="/#network" class="cyber-btn" style="padding: 0.75rem 2rem;">
+                <span>🌐</span> Open Network Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
 <!-- Resources -->
 <div class="issues-table-container" style="border-color: var(--neon-magenta);">
     <div class="issues-table-header" style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
