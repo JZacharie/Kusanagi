@@ -1197,7 +1197,6 @@ if (typeof window !== 'undefined') {
     window.MetricsManager = MetricsManager;
     window.AlertsManager = AlertsManager;
     window.NewsManager = NewsManager;
-    window.QuotasManager = QuotasManager;
 
     document.addEventListener('DOMContentLoaded', () => {
         // Initialize Core UI systems first
@@ -1209,7 +1208,6 @@ if (typeof window !== 'undefined') {
         MetricsManager.init();
         AlertsManager.init();
         NewsManager.init();
-        QuotasManager.init();
 
         // Initialize Specialized Managers (without auto-fetch - TabManager handles it)
         if (window.K8sManager) K8sManager.init();
