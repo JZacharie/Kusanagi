@@ -2,7 +2,7 @@ use axum::{response::IntoResponse, Json};
 use serde_json::json;
 
 use crate::domain::services::system_service::{SystemService, SystemStatus};
-use crate::interfaces::http::response::{api_success, api_error};
+use crate::interfaces::http::response::{api_error, api_success};
 
 /// System status endpoint
 #[utoipa::path(
