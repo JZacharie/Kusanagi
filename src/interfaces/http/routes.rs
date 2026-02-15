@@ -148,7 +148,10 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/health", get(health_check))
         .route("/metrics", get(core_metrics_handler))
         // Redirect /docs to Swagger UI for interactive API testing
-        .route("/docs", get(|| async { axum::response::Redirect::permanent("/swagger-ui") }))
+        .route(
+            "/docs",
+            get(|| async { axum::response::Redirect::permanent("/swagger-ui") }),
+        )
         // WebSocket (No Rate Limit - handled separately)
         .route("/api/ws/notifications", get(ws_notifications_handler))
         // Merge API routes (With Rate Limit)

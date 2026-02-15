@@ -71,6 +71,14 @@ pub async fn services(State(state): State<AppState>) -> Response {
 }
 
 /// ArgoCD status endpoint
+#[utoipa::path(
+    get,
+    path = "/api/argocd/status",
+    responses(
+        (status = 200, description = "ArgoCD status retrieved successfully", body = Object),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn argocd_status(State(state): State<AppState>) -> Response {
     use crate::domain::services::argocd_service::get_argocd_status;
 

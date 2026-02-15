@@ -131,9 +131,7 @@ async fn fetch_argocd_status_from_cluster() -> Result<Value, String> {
             let running_pods = pod_list
                 .items
                 .iter()
-                .filter(|p| {
-                    p.status.as_ref().and_then(|s| s.phase.as_deref()) == Some("Running")
-                })
+                .filter(|p| p.status.as_ref().and_then(|s| s.phase.as_deref()) == Some("Running"))
                 .count();
 
             tracing::warn!(
