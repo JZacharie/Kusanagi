@@ -11,19 +11,13 @@ const K8sArgo = {
         try {
             const data = await api.get('/api/argocd/status');
             
-            // Check for backend-reported error (ArgoCD not installed/inaccessible)
-            if (data.error) {
-                console.warn('ArgoCD not available:', data.error);
-                this.showArgoNotAvailable(data.error);
-                return;
-            }
-            
             this.updateArgoStats(data);
             this.updateArgoIssuesTable(data.apps_with_issues || []);
             this.updateArgoUpgradesTable(data.apps_with_upgrades || []);
         } catch (error) {
-            console.error('ArgoCD fetch error:', error);
-            this.showArgoError(`Failed to connect to ArgoCD API: ${error.message}`);
+            console.warn('ArgoCD not available:', error.message);
+            // HTTP error (503/500) means ArgoCD is not installed or not accessible
+            this.showArgoNotAvailable(error.message || 'ArgoCD not detected');
         }
     },
 

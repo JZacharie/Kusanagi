@@ -37,7 +37,7 @@ async fn fetch_argocd_status_from_cluster() -> Result<Value, String> {
         .output()
         .await;
 
-    let applications_error = if let Ok(result) = kubectl_output {
+    let _applications_error = if let Ok(result) = kubectl_output {
         if result.status.success() {
             let stdout = String::from_utf8_lossy(&result.stdout);
             tracing::debug!("✅ kubectl output length: {}", stdout.len());
@@ -87,25 +87,14 @@ async fn fetch_argocd_status_from_cluster() -> Result<Value, String> {
                     "upgrades_available": 0,
                     "apps_with_issues": [],
                     "apps_with_upgrades": [],
-                    "message": format!("ArgoCD installed ({}/{} pods running) but app fetch failed: {}", running_pods, pod_lines.len(), applications_error)
+                    "message": format!("ArgoCD installed ({}/{} pods) but no apps accessible", running_pods, pod_lines.len())
                 }));
             }
         }
     }
 
     tracing::error!("❌ ArgoCD not detected or not accessible");
-    Ok(json!({
-        "total": 0,
-        "healthy": 0,
-        "unhealthy": 0,
-        "synced": 0,
-        "out_of_sync": 0,
-        "progressing": 0,
-        "upgrades_available": 0,
-        "apps_with_issues": [],
-        "apps_with_upgrades": [],
-        "error": "ArgoCD not detected or not accessible"
-    }))
+    Err("ArgoCD not detected or not accessible".to_string())
 }
 
 fn parse_argocd_apps_json(json_str: &str) -> Result<Value, String> {
