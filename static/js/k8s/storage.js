@@ -162,11 +162,20 @@ const K8sStorage = {
             console.error('Failed to fetch backups:', error);
             const container = document.getElementById('backups-content');
             if (container) {
+                // Check for 429 rate limit error
+                const isRateLimit = error.message?.includes('429') || 
+                                   error.message?.includes('Too many requests');
+                const errorTitle = isRateLimit ? '⏳ Rate Limited' : '⚠️ API Error';
+                const errorColor = isRateLimit ? 'var(--neon-yellow)' : 'var(--neon-orange)';
+                const errorMsg = isRateLimit 
+                    ? 'Kubernetes API rate limit reached. Please wait a moment...'
+                    : error.message;
+                
                 container.innerHTML = `
                     <div class="error-state" style="padding: 2rem; text-align: center;">
-                        <span style="font-size: 2rem;">⚠️</span>
-                        <p>Failed to connect to backups API</p>
-                        <p style="color: var(--neon-orange); font-size: 0.9rem;">${error.message}</p>
+                        <span style="font-size: 2rem;">${isRateLimit ? '⏳' : '⚠️'}</span>
+                        <p style="color: ${errorColor};">${errorTitle}</p>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">${errorMsg}</p>
                         <button onclick="K8sStorage.fetchBackupsStatus()" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
                     </div>
                 `;

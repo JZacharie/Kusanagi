@@ -29,18 +29,41 @@ const K8sManager = {
         setInterval(() => this.fetchAll(), 30000);
     },
 
-    fetchAll() {
-        if (window.K8sArgo) K8sArgo.fetchArgoStatus();
-        if (window.K8sNodes) K8sNodes.fetchNodesStatus();
-        if (window.K8sPods) K8sPods.fetchPodsStatus();
-        this.fetchClusterOverview(); // Kept internal or move to separate util
-        if (window.K8sStorage) {
-            K8sStorage.fetchStorageStatus();
-            K8sStorage.fetchBackupsStatus();
+    // Rate limiting: delay between API calls (ms)
+    _apiDelay: 500,
+    _lastApiCall: 0,
+
+    async _rateLimitedCall(fn, ...args) {
+        const now = Date.now();
+        const timeSinceLastCall = now - this._lastApiCall;
+        if (timeSinceLastCall < this._apiDelay) {
+            await new Promise(r => setTimeout(r, this._apiDelay - timeSinceLastCall));
         }
-        if (window.K8sServices) {
-            K8sServices.fetchServices();
-            K8sServices.fetchIngress();
+        this._lastApiCall = Date.now();
+        return fn(...args);
+    },
+
+    async fetchAll() {
+        // Stagger API calls to avoid 429 Too Many Requests
+        const calls = [
+            { name: 'ArgoCD', fn: () => window.K8sArgo?.fetchArgoStatus() },
+            { name: 'Nodes', fn: () => window.K8sNodes?.fetchNodesStatus() },
+            { name: 'Pods', fn: () => window.K8sPods?.fetchPodsStatus() },
+            { name: 'Overview', fn: () => this.fetchClusterOverview() },
+            { name: 'Storage', fn: () => window.K8sStorage?.fetchStorageStatus() },
+            { name: 'Backups', fn: () => window.K8sStorage?.fetchBackupsStatus() },
+            { name: 'Services', fn: () => window.K8sServices?.fetchServices() },
+            { name: 'Ingress', fn: () => window.K8sServices?.fetchIngress() },
+        ];
+
+        for (const { name, fn } of calls) {
+            if (fn) {
+                try {
+                    await this._rateLimitedCall(fn);
+                } catch (e) {
+                    console.warn(`⚠️ ${name} fetch failed:`, e.message);
+                }
+            }
         }
     },
 
