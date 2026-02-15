@@ -165,6 +165,43 @@ pub fn get_routes() -> Vec<RouteInfo> {
             description: "Fusion stats".to_string(),
             category: "Monitoring".to_string(),
         },
+        // Network (Cilium)
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/cilium/flows".to_string(),
+            description: "Hubble network flows".to_string(),
+            category: "Network".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/cilium/matrix".to_string(),
+            description: "Flow matrix visualization".to_string(),
+            category: "Network".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/cilium/metrics".to_string(),
+            description: "Bandwidth metrics".to_string(),
+            category: "Network".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/cilium/anomalies".to_string(),
+            description: "Network anomaly detection".to_string(),
+            category: "Network".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/cilium/namespaces".to_string(),
+            description: "Network namespaces".to_string(),
+            category: "Network".to_string(),
+        },
+        RouteInfo {
+            method: "GET".to_string(),
+            path: "/api/cilium/status".to_string(),
+            description: "Cilium health status".to_string(),
+            category: "Network".to_string(),
+        },
         // Hexagonal (Integrations)
         RouteInfo {
             method: "GET".to_string(),
