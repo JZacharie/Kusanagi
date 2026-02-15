@@ -14,17 +14,59 @@ use kube::{
     Client,
 };
 use std::sync::Arc;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 use tracing::info;
 
-/// Backup repository implementation
+/// Cache entry for backups
+struct BackupCache {
+    data: BackupsResponse,
+    timestamp: Instant,
+}
+
+/// Backup repository implementation with caching
 pub struct BackupRepositoryImpl {
     client: Arc<Client>,
+    cache: Mutex<Option<BackupCache>>,
 }
 
 impl BackupRepositoryImpl {
     /// Create a new repository instance
     pub fn new(client: Arc<Client>) -> Self {
-        Self { client }
+        Self {
+            client,
+            cache: Mutex::new(None),
+        }
+    }
+
+    /// Cache TTL in seconds
+    const CACHE_TTL: Duration = Duration::from_secs(30);
+
+    /// Check if cache is valid
+    fn get_cached(&self) -> Option<BackupsResponse> {
+        let cache = self.cache.lock().ok()?;
+        if let Some(ref entry) = *cache {
+            if entry.timestamp.elapsed() < Self::CACHE_TTL {
+                return Some(BackupsResponse {
+                    total_cronjobs: entry.data.total_cronjobs,
+                    active_jobs: entry.data.active_jobs,
+                    succeeded_jobs: entry.data.succeeded_jobs,
+                    failed_jobs: entry.data.failed_jobs,
+                    cronjobs: entry.data.cronjobs.clone(),
+                });
+            }
+        }
+        None
+    }
+
+    /// Store in cache
+    fn set_cached(&self, data: BackupsResponse) {
+        if let Ok(mut cache) = self.cache.lock() {
+            *cache = Some(BackupCache {
+                data,
+                timestamp: Instant::now(),
+            });
+        }
     }
 
     /// Format duration as human-readable string
@@ -119,6 +161,12 @@ impl BackupRepositoryImpl {
 #[async_trait]
 impl BackupRepository for BackupRepositoryImpl {
     async fn get_backups_status(&self) -> Result<BackupsResponse> {
+        // Check cache first
+        if let Some(cached) = self.get_cached() {
+            info!("📦 Returning cached backups data ({} cronjobs)", cached.total_cronjobs);
+            return Ok(cached);
+        }
+
         // Get all CronJobs
         let cronjobs_api: Api<CronJob> = Api::all(self.client.as_ref().clone());
         let cronjobs = cronjobs_api
@@ -203,13 +251,19 @@ impl BackupRepository for BackupRepositoryImpl {
             });
         }
 
-        Ok(BackupsResponse {
+        let response = BackupsResponse {
             total_cronjobs: cronjob_infos.len(),
             active_jobs: total_active,
             succeeded_jobs: total_succeeded,
             failed_jobs: total_failed,
             cronjobs: cronjob_infos,
-        })
+        };
+
+        // Store in cache
+        self.set_cached(response.clone());
+        info!("💾 Cached backups data ({} cronjobs)", response.total_cronjobs);
+
+        Ok(response)
     }
 
     async fn trigger_backup(&self, namespace: &str, name: &str) -> Result<String> {

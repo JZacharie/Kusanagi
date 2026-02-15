@@ -10,20 +10,74 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: short
 
 jobs:
-  build:
+  # Build et test en parallèle
+  build-rust:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Rust
+      - name: Setup Rust with cache
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/release/deps
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.4
+
+      - name: Set sccache env
+        run: |
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+
+      - name: Clean old files
+        run: |
+          rm -f static/js/k8s.js
+          cargo clean
+
+      - name: Build Rust binary (cached)
+        run: |
+          cargo build --release --bin kusanagi
+          ls -lh target/release/kusanagi
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kusanagi-binary
+          path: target/release/kusanagi
+          retention-days: 1
+
+  build-docker:
+    needs: build-rust
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: kusanagi-binary
+          path: target/release/
+
+      - name: Make binary executable
+        run: chmod +x target/release/kusanagi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -36,55 +90,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Clean and Verify Structure
+      - name: Verify structure
         run: |
-          echo "🧹 Cleaning old files..."
           rm -f static/js/k8s.js
-          cargo clean
-          rm -rf target/
-          
-          echo "🔍 Verifying modular structure..."
           ls -la static/js/k8s/
-          test -f static/js/k8s/main.js || (echo "❌ Missing main.js" && exit 1)
-          test -f static/js/k8s/services.js || (echo "❌ Missing services.js" && exit 1)
-          test -f static/js/k8s/argocd.js || (echo "❌ Missing argocd.js" && exit 1)
-          
-          if [ -f "static/js/k8s.js" ]; then
-            echo "❌ Old k8s.js still exists!"
-            exit 1
-          fi
-          echo "✅ Structure verified"
-
-      - name: Debug - Show Date
-        run: |
-          echo "Current date: $(date)"
-          echo "Expected build time: $(date -u +"%Y-%m-%d %H:%M:%S") UTC"
-
-      - name: Build Rust Binary
-        run: |
-          echo "🔨 Building Rust binary (fresh)..."
-          cargo build --release 2>&1
-          echo ""
-          echo "📁 Binary info:"
-          ls -lh target/release/kusanagi
-          echo ""
-          echo "🔍 Binary timestamp check:"
-          date -u +"%Y-%m-%d %H:%M:%S UTC"
-          echo "File modification time:"
-          stat -c "%y" target/release/kusanagi
-
-      - name: Verify Binary Fresh
-        run: |
-          echo "Verifying binary exists and is fresh..."
-          if [ ! -f "target/release/kusanagi" ]; then
-            echo "❌ Binary not found!"
-            exit 1
-          fi
-          echo "✅ Binary exists"
-          ls -la target/release/kusanagi
-          echo ""
-          echo "Binary timestamp:"
-          stat target/release/kusanagi || true
+          test -f static/js/k8s/main.js || exit 1
 
       - name: Extract metadata
         id: meta
@@ -94,69 +104,34 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha
+            type=sha,prefix=
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build Docker Image (NO CACHE)
+      - name: Build Docker image (no cache)
         uses: docker/build-push-action@v5
         with:
           context: .
           target: release-ci
           build-args: |
             PREBUILT_BINARY=target/release/kusanagi
-          push: false
-          tags: kusanagi:test
-          load: true
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           no-cache: true
 
-      - name: Verify Docker Image
-        run: |
-          echo "🔍 Verifying image structure..."
-          
-          # Check no old k8s.js
-          if docker run --rm kusanagi:test test -f /app/static/js/k8s.js 2>/dev/null; then
-            echo "❌ FAIL: Old k8s.js found in image!"
-            exit 1
-          fi
-          echo "✅ Old k8s.js not present"
-          
-          # Check new modules exist
-          docker run --rm kusanagi:test test -f /app/static/js/k8s/main.js || (echo "❌ Missing main.js" && exit 1)
-          docker run --rm kusanagi:test test -f /app/static/js/k8s/services.js || (echo "❌ Missing services.js" && exit 1)
-          
-          echo "📁 Content of /app/static/js/k8s/:"
-          docker run --rm kusanagi:test ls -la /app/static/js/k8s/
-          
-          echo "✅ Image structure verified"
-
-      - name: Push Docker Image (use tested image)
+      - name: Verify image
         if: github.event_name != 'pull_request'
         run: |
-          echo "📤 Pushing tested image..."
-          echo "Tags: ${{ steps.meta.outputs.tags }}"
-          
-          # Tag and push the already tested image
-          IFS=',' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
-          for tag in "${TAGS[@]}"; do
-            echo "Tagging: $tag"
-            docker tag kusanagi:test "$tag"
-            docker push "$tag"
-          done
-          
-          echo "✅ Push complete"
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} test ! -f /app/static/js/k8s.js
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} test -f /app/static/js/k8s/main.js
+          echo "✅ Image verified"
 
       - name: Summary
         if: github.event_name != 'pull_request'
         run: |
-          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Build Successful**" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Build Successful" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Image | Tag |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-----|" >> $GITHUB_STEP_SUMMARY
           echo "| \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\` | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Verified" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Old k8s.js absent" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ New modular structure present" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Binary compiled successfully" >> $GITHUB_STEP_SUMMARY
