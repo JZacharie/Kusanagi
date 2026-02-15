@@ -20,15 +20,6 @@ const K8sServices = {
             return;
         }
 
-        // Check TTL unless container shows loading or error
-        const now = Date.now();
-        const isStale = !container || container.innerHTML.includes('Loading') || container.innerHTML.includes('Error');
-
-        if (K8sState.lastServicesFetch !== 0 && !isStale && (now - K8sState.lastServicesFetch < K8sState.SERVICES_INGRESS_TTL)) {
-            console.log('⏭️ Services fetch skipped - TTL not expired');
-            return;
-        }
-
         // Try to load from cache first for instant display
         const cached = K8sState.loadFromCache('kusanagi_services_cache', K8sState.SERVICES_INGRESS_TTL);
         if (cached && cached.length > 0) {
