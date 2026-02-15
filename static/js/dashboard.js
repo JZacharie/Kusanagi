@@ -510,9 +510,41 @@ const MetricsManager = {
                 <div class="metric-card">
                     <div class="metric-icon">⚡</div>
                     <div class="metric-value">${metrics.gpu_power_usage?.toFixed(1) || 0}W</div>
-                    <div class="metric-label">GPU Power usage</div>
+                    <div class="metric-label">GPU Power Draw</div>
                     <div class="metric-bar">
                         <div class="metric-bar-fill" style="width: ${Math.min((metrics.gpu_power_usage || 0) / 350 * 100, 100)}%; background: var(--neon-yellow);"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">💾</div>
+                    <div class="metric-value">${metrics.gpu_memory_utilization?.toFixed(1) || 0}%</div>
+                    <div class="metric-label">VRAM Usage (${(metrics.gpu_memory_used / 1024)?.toFixed(1) || 0}/${(metrics.gpu_memory_total / 1024)?.toFixed(1) || 0} GB)</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${metrics.gpu_memory_utilization || 0}%; background: var(--neon-cyan);"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🌀</div>
+                    <div class="metric-value">${metrics.gpu_fan_speed?.toFixed(0) || 0}%</div>
+                    <div class="metric-label">Fan Speed</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${metrics.gpu_fan_speed || 0}%; background: var(--neon-blue);"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">📊</div>
+                    <div class="metric-value">${(metrics.gpu_clock_graphics / 1000)?.toFixed(2) || 0} GHz</div>
+                    <div class="metric-label">GPU Clock</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${Math.min((metrics.gpu_clock_graphics || 0) / 2500 * 100, 100)}%; background: var(--neon-magenta);"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🧠</div>
+                    <div class="metric-value">${(metrics.gpu_clock_memory / 1000)?.toFixed(2) || 0} GHz</div>
+                    <div class="metric-label">Memory Clock</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" style="width: ${Math.min((metrics.gpu_clock_memory || 0) / 8000 * 100, 100)}%; background: var(--neon-pink);"></div>
                     </div>
                 </div>
             </div>
