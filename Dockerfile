@@ -32,7 +32,13 @@ CMD ["/usr/local/bin/kusanagi"]
 
 # --- CI Build (uses pre-built binary) ---
 FROM runner AS release-ci
+# Force cache invalidation when static changes (use --build-arg CACHE_BUST=$(date +%s))
+ARG CACHE_BUST=0
 ARG PREBUILT_BINARY
+# Re-copy static to ensure fresh version (overrides runner stage cache)
+COPY static ./static
+# Verify static structure
+RUN ls -la /app/static/js/k8s/ && test -f /app/static/js/k8s/main.js || (echo "Missing k8s modules!" && exit 1)
 COPY ${PREBUILT_BINARY} /usr/local/bin/kusanagi
 USER kusanagi
 
