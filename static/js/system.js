@@ -3,6 +3,9 @@
  * Note: Polling is handled by TabManager (tab-aware)
  */
 const KusanagiSystem = {
+    _logsInterval: null,
+    _lastLogsContent: '',
+
     init: function () {
         console.log("KusanagiSystem initialized (no internal polling)");
     },
@@ -10,10 +13,12 @@ const KusanagiSystem = {
     activate: function () {
         console.log("KusanagiSystem activated");
         this.refresh();
+        this.startLiveLogs();
     },
 
     deactivate: function () {
         console.log("KusanagiSystem deactivated");
+        this.stopLiveLogs();
     },
 
     // Alias pour TabManager
@@ -21,6 +26,25 @@ const KusanagiSystem = {
         this.fetchSystemStatus();
         this.fetchSystemLogs();
         this.fetchDatabaseHealth();
+    },
+
+    // Start live log polling (every 3 seconds when tab is active)
+    startLiveLogs: function () {
+        if (this._logsInterval) return;
+        console.log('📋 Starting live logs polling');
+        this._logsInterval = setInterval(() => {
+            if (!document.hidden) {
+                this.fetchSystemLogs(true); // true = silent mode (no loading indicator)
+            }
+        }, 3000);
+    },
+
+    stopLiveLogs: function () {
+        if (this._logsInterval) {
+            clearInterval(this._logsInterval);
+            this._logsInterval = null;
+            console.log('📋 Stopped live logs polling');
+        }
     },
 
     fetchSystemStatus: async function () {
@@ -99,19 +123,23 @@ const KusanagiSystem = {
         }
     },
 
-    fetchSystemLogs: async function () {
+    fetchSystemLogs: async function (silent = false) {
         try {
             const container = document.getElementById('system-logs-content');
             if (!container) return;
 
-            // Show loading state if empty
-            if (container.textContent === 'Loading logs...') {
+            // Show loading indicator (only if not silent)
+            if (!silent && container.textContent === 'Loading logs...') {
                 container.textContent = 'Fetching...';
             }
 
             // Use api.get for consistent JSON envelope handling
             const data = await api.get('/api/system/logs');
             const logs = data?.logs || "No logs available.";
+
+            // Check if content changed (for live indicator)
+            const hasNewContent = this._lastLogsContent && logs !== this._lastLogsContent;
+            this._lastLogsContent = logs;
 
             // Parse ANSI codes if present
             if (window.AnsiParser) {
@@ -120,21 +148,64 @@ const KusanagiSystem = {
                 container.textContent = logs;
             }
 
-            // Auto-scroll to bottom
+            // Show live indicator if new content
+            if (hasNewContent && silent) {
+                this.showLiveIndicator();
+            }
+
+            // Auto-scroll to bottom (only if user hasn't scrolled up)
             const logsContainer = document.getElementById('system-logs-container');
             if (logsContainer) {
-                logsContainer.scrollTop = logsContainer.scrollHeight;
+                const isScrolledToBottom = logsContainer.scrollHeight - logsContainer.clientHeight <= logsContainer.scrollTop + 50;
+                if (isScrolledToBottom) {
+                    logsContainer.scrollTop = logsContainer.scrollHeight;
+                }
             }
         } catch (error) {
             console.error("Failed to fetch logs:", error);
-            const container = document.getElementById('system-logs-content');
-            if (container) {
-                container.innerHTML = `<div style="color: var(--neon-orange); padding: 1rem;">
-                    ⚠️ Logs unavailable: ${error.message}
-                    <button onclick="KusanagiSystem.fetchSystemLogs()" class="cyber-btn" style="margin-left: 1rem;">Retry</button>
-                </div>`;
+            if (!silent) {
+                const container = document.getElementById('system-logs-content');
+                if (container) {
+                    container.innerHTML = `<div style="color: var(--neon-orange); padding: 1rem;">
+                        ⚠️ Logs unavailable: ${error.message}
+                        <button onclick="KusanagiSystem.fetchSystemLogs()" class="cyber-btn" style="margin-left: 1rem;">Retry</button>
+                    </div>`;
+                }
             }
         }
+    },
+
+    showLiveIndicator: function () {
+        let indicator = document.getElementById('logs-live-indicator');
+        if (!indicator) {
+            const container = document.getElementById('system-logs-container');
+            if (!container) return;
+            indicator = document.createElement('div');
+            indicator.id = 'logs-live-indicator';
+            indicator.style.cssText = `
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                background: var(--neon-green);
+                color: #000;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 0.7rem;
+                font-weight: bold;
+                z-index: 10;
+                animation: pulse 1s infinite;
+            `;
+            indicator.textContent = '● LIVE';
+            container.style.position = 'relative';
+            container.appendChild(indicator);
+        }
+        // Clear previous timeout
+        if (indicator._timeout) clearTimeout(indicator._timeout);
+        indicator.style.display = 'block';
+        // Hide after 2 seconds
+        indicator._timeout = setTimeout(() => {
+            indicator.style.display = 'none';
+        }, 2000);
     },
 
     manualRefresh: function () {
