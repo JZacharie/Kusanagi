@@ -137,7 +137,7 @@ impl SystemService {
             return Ok(latest_log_content);
         }
 
-        // Fallback to journalctl
+        // Fallback to journalctl (may not be available in Docker)
         match Command::new("journalctl")
             .args(["-n", "50", "-o", "short", "--no-pager"])
             .output()
@@ -148,16 +148,22 @@ impl SystemService {
                     Ok(String::from_utf8_lossy(&output.stdout).to_string())
                 } else {
                     let err = String::from_utf8_lossy(&output.stderr);
-                    Err(format!(
-                        "Failed to retrieve logs ({} and using journalctl): {}",
-                        debug_info, err
+                    tracing::warn!("journalctl failed: {}", err);
+                    // Return empty logs rather than error - application still works
+                    Ok(format!(
+                        "No local logs available ({}). journalctl not accessible in container environment.",
+                        debug_info
                     ))
                 }
             }
-            Err(e) => Err(format!(
-                "Failed to retrieve logs: Local file not found/empty ({}) and journalctl failed: {}",
-                debug_info, e
-            )),
+            Err(e) => {
+                tracing::warn!("journalctl not available: {}", e);
+                // Return informative message rather than error 500
+                Ok(format!(
+                    "No local logs available ({}). Log collection requires file logging to be configured or journalctl access.",
+                    debug_info
+                ))
+            }
         }
     }
 }
