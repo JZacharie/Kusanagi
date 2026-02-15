@@ -163,7 +163,10 @@ impl BackupRepository for BackupRepositoryImpl {
     async fn get_backups_status(&self) -> Result<BackupsResponse> {
         // Check cache first
         if let Some(cached) = self.get_cached() {
-            info!("📦 Returning cached backups data ({} cronjobs)", cached.total_cronjobs);
+            info!(
+                "📦 Returning cached backups data ({} cronjobs)",
+                cached.total_cronjobs
+            );
             return Ok(cached);
         }
 
@@ -261,7 +264,10 @@ impl BackupRepository for BackupRepositoryImpl {
 
         // Store in cache
         self.set_cached(response.clone());
-        info!("💾 Cached backups data ({} cronjobs)", response.total_cronjobs);
+        info!(
+            "💾 Cached backups data ({} cronjobs)",
+            response.total_cronjobs
+        );
 
         Ok(response)
     }

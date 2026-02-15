@@ -47,6 +47,9 @@ jobs:
         with:
           tool: cargo-audit
 
+      - name: Run Tests
+        run: cargo test --package kusanagi
+
       - name: Run Validation (Clippy & Audit)
         run: |
           cargo clippy -- -D warnings
@@ -70,9 +73,8 @@ jobs:
           fetch-depth: 0
 
       - name: Install Gitleaks
-        uses: taiki-e/install-action@v2
-        with:
-          tool: gitleaks
+        run: |
+          curl -sS https://raw.githubusercontent.com/zricethezav/gitleaks/master/install.sh | sudo bash
 
       - name: Run Gitleaks
         run: gitleaks detect --redact --verbose
