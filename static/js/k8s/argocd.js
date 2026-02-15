@@ -10,6 +10,14 @@ const K8sArgo = {
     async fetchArgoStatus() {
         try {
             const data = await api.get('/api/argocd/status');
+            
+            // Check for backend-reported error (ArgoCD not installed/inaccessible)
+            if (data.error) {
+                console.warn('ArgoCD not available:', data.error);
+                this.showArgoNotAvailable(data.error);
+                return;
+            }
+            
             this.updateArgoStats(data);
             this.updateArgoIssuesTable(data.apps_with_issues || []);
             this.updateArgoUpgradesTable(data.apps_with_upgrades || []);
@@ -136,6 +144,33 @@ const K8sArgo = {
         const container = document.getElementById('issues-content');
         if (container) {
             container.innerHTML = `<div class="loading" style="color: #ff4444;">Error: ${message}</div>`;
+        }
+    },
+
+    showArgoNotAvailable(reason) {
+        // Reset stats to zero
+        this.updateArgoStats({
+            total: 0, healthy: 0, unhealthy: 0,
+            synced: 0, out_of_sync: 0, progressing: 0, upgrades_available: 0
+        });
+        
+        const issuesContainer = document.getElementById('issues-content');
+        if (issuesContainer) {
+            issuesContainer.innerHTML = `
+                <div class="no-issues" style="color: var(--text-secondary);">
+                    <p>🔌 ArgoCD is not available</p>
+                    <p style="font-size: 0.85rem; margin-top: 0.5rem;">${reason}</p>
+                </div>
+            `;
+        }
+        
+        const upgradesContainer = document.getElementById('upgrades-content');
+        if (upgradesContainer) {
+            upgradesContainer.innerHTML = `
+                <div class="no-issues" style="color: var(--text-secondary);">
+                    <p>ArgoCD is not available</p>
+                </div>
+            `;
         }
     }
 };
