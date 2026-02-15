@@ -1,0 +1,83 @@
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+
+stages:
+  - build
+  - docker
+  - verify
+
+# Build Rust binary
+build:rust:
+  stage: build
+  image: rust:1.93-slim
+  before_script:
+    - apt-get update && apt-get install -y pkg-config libssl-dev
+  script:
+    # Clean old files
+    - rm -f static/js/k8s.js
+    # Verify structure
+    - ls -la static/js/k8s/
+    - test -f static/js/k8s/main.js || exit 1
+    # Build
+    - cargo build --release
+    # Save binary
+    - mkdir -p artifacts
+    - cp target/release/kusanagi artifacts/
+  artifacts:
+    paths:
+      - artifacts/kusanagi
+      - static/
+    expire_in: 1 hour
+
+# Build Docker image
+docker:build:
+  stage: docker
+  image: docker:latest
+  services:
+    - docker:dind
+  dependencies:
+    - build:rust
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    # Build without cache
+    - docker build --no-cache
+        --target release-ci
+        --build-arg PREBUILT_BINARY=artifacts/kusanagi
+        -t $IMAGE_TAG .
+    # Push
+    - docker push $IMAGE_TAG
+
+# Verify image
+verify:image:
+  stage: verify
+  image: docker:latest
+  services:
+    - docker:dind
+  dependencies: []
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $IMAGE_TAG
+    # Verify no old k8s.js
+    - docker run --rm $IMAGE_TAG test ! -f /app/static/js/k8s.js
+    # Verify new modules
+    - docker run --rm $IMAGE_TAG test -f /app/static/js/k8s/main.js
+    - docker run --rm $IMAGE_TAG ls -la /app/static/js/k8s/
+    - echo "✅ Image verified successfully"
+
+# Optional: Tag as latest on main branch
+docker:tag:latest:
+  stage: verify
+  image: docker:latest
+  services:
+    - docker:dind
+  dependencies: []
+  only:
+    - main
+    - master
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $IMAGE_TAG
+    - docker tag $IMAGE_TAG $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:latest
