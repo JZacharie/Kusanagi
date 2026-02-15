@@ -38,6 +38,7 @@ const KusanagiNetwork = {
 
     /**
      * Initialize network visualization
+     * Note: Polling is handled by TabManager (tab-aware)
      */
     async init(containerId = 'network-visualization') {
         this.container = document.getElementById(containerId);
@@ -55,8 +56,12 @@ const KusanagiNetwork = {
         // Start with default namespace selected
         this.state.selectedNamespace = this.config.defaultNamespace;
 
-        await this.fetchAndRender();
-        this.startAutoRefresh();
+        console.log('✅ Network visualization initialized (no internal polling)');
+    },
+
+    // Alias pour TabManager
+    fetchNetworkData() {
+        return this.fetchAndRender();
     },
 
     /**

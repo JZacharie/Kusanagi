@@ -1,17 +1,20 @@
-// Home Assistant Dashboard Module
+/**
+ * Home Assistant Dashboard Module
+ * Note: Polling is handled by TabManager (tab-aware)
+ */
 const HomeAssistantDashboard = {
-    refreshInterval: null,
-
     init() {
-        this.fetchAndRender();
-        if (this.refreshInterval) clearInterval(this.refreshInterval);
-        this.refreshInterval = setInterval(() => this.fetchAndRender(), 60000);
-        console.log('✅ Home Assistant Dashboard initialized (MDI & Categories)');
+        console.log('✅ Home Assistant Dashboard initialized (no internal polling)');
 
         // Listen for Esc key to close modal
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') this.closeDetail();
         });
+    },
+
+    // Alias pour TabManager
+    loadData() {
+        return this.fetchAndRender();
     },
 
     async fetchAndRender() {

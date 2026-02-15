@@ -1,12 +1,15 @@
-// Security Dashboard Module - Trivy Integration
+/**
+ * Security Dashboard Module - Trivy Integration
+ * Note: Polling is handled by TabManager (tab-aware)
+ */
 const SecurityDashboard = {
-    refreshInterval: null,
-
     init() {
-        this.fetchAndRender();
-        if (this.refreshInterval) clearInterval(this.refreshInterval);
-        this.refreshInterval = setInterval(() => this.fetchAndRender(), 30000);
-        console.log('✅ Security Dashboard initialized');
+        console.log('✅ Security Dashboard initialized (no internal polling)');
+    },
+
+    // Alias pour TabManager
+    loadSecurityData() {
+        return this.fetchAndRender();
     },
 
     async fetchAndRender() {

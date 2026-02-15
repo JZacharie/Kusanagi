@@ -338,11 +338,13 @@ async function switchTab(tabName) {
 }
 
 /**
- * Centralized refresh function for all Kusanagi data
+ * Centralized refresh function - now tab-aware
+ * Only refreshes the currently active tab
  * @param {boolean} manualTrigger - Whether this was called by user interaction (shows notification)
  */
 function refreshAllKusanagiData(manualTrigger = false) {
-    console.log("🔄 Global Kusanagi refresh triggered (manual: " + manualTrigger + ")...");
+    const activeTab = window.KusanagiDashboard?.activeTab || 'argocd';
+    console.log(`🔄 Refresh requested for active tab: ${activeTab} (manual: ${manualTrigger})`);
 
     // Visual feedback
     const logo = document.querySelector('.header-logo');
@@ -353,39 +355,21 @@ function refreshAllKusanagiData(manualTrigger = false) {
 
     if (manualTrigger && typeof showNotification === 'function') {
         showNotification({
-            title: "System Refresh",
-            message: "Syncing all components with real-time cluster state...",
+            title: "Refresh",
+            message: `Refreshing ${activeTab} data...`,
             severity: "info"
         });
     }
 
-    // Core Kubernetes & ArgoCD Status
-    if (window.K8sManager) {
-        if (K8sManager.fetchAll) {
-            K8sManager.fetchAll();
-        } else {
-            if (K8sManager.fetchArgoStatus) K8sManager.fetchArgoStatus();
-            if (K8sManager.fetchNodesStatus) K8sManager.fetchNodesStatus();
-            if (K8sManager.fetchClusterOverview) K8sManager.fetchClusterOverview();
-            if (K8sManager.fetchBackupsStatus) K8sManager.fetchBackupsStatus();
-            if (K8sManager.fetchStorageStatus) K8sManager.fetchStorageStatus();
-            if (K8sManager.fetchServices) K8sManager.fetchServices();
-            if (K8sManager.fetchIngress) K8sManager.fetchIngress();
-        }
+    // Use TabManager if available (tab-aware)
+    if (window.TabManager) {
+        TabManager.refreshCurrentTab();
+        return;
     }
 
-    // Extra fetchers
-    if (typeof fetchAppsWithResources === 'function') fetchAppsWithResources();
-
-    // Component Managers
-    if (window.MetricsManager && MetricsManager.loadMetrics) MetricsManager.loadMetrics();
-    if (window.MonitorsManager && MonitorsManager.fetchMonitors) MonitorsManager.fetchMonitors();
-    if (window.NewsManager && NewsManager.fetchNews) NewsManager.fetchNews();
-    if (window.MqttManager && MqttManager.fetchInitialData) MqttManager.fetchInitialData();
-
-    // Update system status info (CPU/RAM/Uptime)
-    if (window.SystemStatusManager) {
-        SystemStatusManager.fetchStatus();
+    // Fallback: only refresh current tab via K8sManager
+    if (window.K8sManager && K8sManager.refreshCurrentTab) {
+        K8sManager.refreshCurrentTab();
     }
 }
 

@@ -81,12 +81,9 @@ const LocaleManager = {
  */
 const SystemStatusManager = {
     startTime: null,
-    refreshInterval: null,
 
     init() {
-        this.fetchStatus();
-        this.refreshInterval = setInterval(() => this.fetchStatus(), 30000);
-        console.log('✅ System Status Manager initialized');
+        console.log('✅ System Status Manager initialized (no internal polling)');
     },
 
     async fetchStatus() {
@@ -320,11 +317,10 @@ const MetricsManager = {
 
     /**
      * Initialize metrics display
+     * Note: Polling is handled by TabManager (tab-aware)
      */
     init() {
-        this.loadMetrics();
-        // Refresh every 30 seconds
-        this.refreshInterval = setInterval(() => this.loadMetrics(), 60000);
+        console.log('✅ Metrics Manager initialized (no internal polling)');
     },
 
     /**
@@ -789,10 +785,12 @@ const NewsManager = {
     /**
      * Initialize news feed
      */
+    /**
+     * Initialize news feed
+     * Note: Polling is handled by TabManager (tab-aware)
+     */
     init() {
-        this.fetchNews();
-        // Auto-refresh every 10 minutes (optimized from 5 minutes)
-        setInterval(() => this.fetchNews(), 1800000);
+        console.log('✅ News Manager initialized (no internal polling)');
     },
 
     /**
@@ -1321,14 +1319,14 @@ if (typeof window !== 'undefined') {
         if (window.LocaleManager) LocaleManager.init();
         if (window.ThemeManager) ThemeManager.init();
 
-        // Initialize Feature Managers
+        // Initialize Feature Managers (without auto-fetch - TabManager handles it)
         DashboardManager.init();
         MetricsManager.init();
         AlertsManager.init();
         QuotasManager.init();
         NewsManager.init();
 
-        // Initialize Specialized Managers
+        // Initialize Specialized Managers (without auto-fetch - TabManager handles it)
         if (window.K8sManager) K8sManager.init();
         if (window.ProxmoxDashboard) ProxmoxDashboard.init();
         if (window.HomeAssistantDashboard) HomeAssistantDashboard.init();
