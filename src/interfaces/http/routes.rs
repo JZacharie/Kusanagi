@@ -35,14 +35,14 @@ pub fn configure_routes(state: AppState) -> Router {
     // Rate Limiting Configuration
     // Load from environment variables or use defaults
     let rate_limit = std::env::var("RATE_LIMIT_PER_SECOND")
-        .unwrap_or_else(|_| "300".to_string())
+        .unwrap_or_else(|_| "1000".to_string())
         .parse::<u32>()
-        .unwrap_or(300);
+        .unwrap_or(1000);
 
     let burst_limit = std::env::var("RATE_LIMIT_BURST")
-        .unwrap_or_else(|_| "500".to_string())
+        .unwrap_or_else(|_| "1000".to_string())
         .parse::<u32>()
-        .unwrap_or(500);
+        .unwrap_or(1000);
 
     let governor_conf = Arc::new(
         GovernorConfigBuilder::default()
