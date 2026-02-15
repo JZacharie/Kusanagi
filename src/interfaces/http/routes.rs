@@ -33,21 +33,21 @@ use std::sync::Arc;
 /// Configure all application routes
 pub fn configure_routes(state: AppState) -> Router {
     // Rate Limiting Configuration
-    // Increased defaults to avoid conflicts with Kubernetes API rate limits
+    // Very high limits for SPA initial load - many requests fire simultaneously
     let rate_limit = std::env::var("KUSANAGI_RATE_LIMIT_PER_SECOND")
-        .unwrap_or_else(|_| "5000".to_string())
+        .unwrap_or_else(|_| "10000".to_string())
         .parse::<u32>()
-        .unwrap_or(5000);
+        .unwrap_or(10000);
 
     let burst_limit = std::env::var("KUSANAGI_RATE_LIMIT_BURST")
-        .unwrap_or_else(|_| "5000".to_string())
+        .unwrap_or_else(|_| "50000".to_string())
         .parse::<u32>()
-        .unwrap_or(5000);
+        .unwrap_or(50000);
 
     let governor_conf = Arc::new(
         GovernorConfigBuilder::default()
             .per_second(u64::from(rate_limit))
-            .burst_size(burst_limit * 2) // Double burst for initial load spikes
+            .burst_size(burst_limit)
             .key_extractor(SmartIpKeyExtractor)
             .finish()
             .unwrap(),
@@ -83,8 +83,6 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/cilium/metrics", get(get_metrics_handler))
         .route("/api/cilium/anomalies", get(get_anomalies_handler))
         .route("/api/cilium/namespaces", get(get_namespaces_handler))
-        // WebSocket
-        .route("/api/ws/notifications", get(ws_notifications_handler))
         // Hexagonal routes
         .route("/api/alerts", get(get_alerts_handler))
         .route("/api/backups", get(get_backups_handler))
@@ -152,7 +150,9 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/health", get(health_check))
         .route("/metrics", get(core_metrics_handler))
         .route("/docs", get(docs_handler))
-        // Merge API routes (Win Rate Limit)
+        // WebSocket (No Rate Limit - handled separately)
+        .route("/api/ws/notifications", get(ws_notifications_handler))
+        // Merge API routes (With Rate Limit)
         .merge(api_routes)
         // Static files (must be after API routes)
         .nest_service("/static", ServeDir::new("./static"))

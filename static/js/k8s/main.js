@@ -78,63 +78,25 @@ const K8sManager = {
         }
     },
 
-    // Start polling for a specific tab
+    // NOTE: Polling is now handled by TabManager only
+    // These methods are kept for compatibility but do nothing
     _startPolling(tabName) {
-        // Clear existing timer for this tab
-        this._stopPolling(tabName);
-
-        const interval = this.POLL_INTERVALS[tabName];
-        if (!interval) return; // No polling for this tab
-
-        console.log(`⏱️ Starting polling for ${tabName} (${interval}ms)`);
-
-        // Immediate fetch
-        this._fetchForTab(tabName);
-
-        // Set up interval
-        this._pollTimers[tabName] = setInterval(() => {
-            // Only fetch if tab is still active and page visible
-            if (window.KusanagiDashboard?.activeTab === tabName && !document.hidden) {
-                this._fetchForTab(tabName);
-            }
-        }, interval);
+        // Disabled - use TabManager instead
+        console.log(`⏸️ K8sManager polling disabled for ${tabName} (using TabManager)`);
     },
 
-    // Stop polling for a tab
     _stopPolling(tabName) {
-        if (this._pollTimers[tabName]) {
-            clearInterval(this._pollTimers[tabName]);
-            delete this._pollTimers[tabName];
-            console.log(`🛑 Stopped polling for ${tabName}`);
-        }
+        // Disabled - use TabManager instead
     },
 
-    // Handle tab switch
     onTabChange(newTab) {
-        console.log(`🔄 Tab changed to: ${newTab}`);
-
-        // Stop all polling
-        Object.keys(this._pollTimers).forEach(tab => this._stopPolling(tab));
-
-        // Start polling for new tab
-        this._startPolling(newTab);
+        // Disabled - TabManager handles this
+        console.log(`🔄 K8sManager: Tab change to ${newTab} ignored (using TabManager)`);
     },
 
     setupTabListeners() {
-        // Listen for custom tab change event
-        document.addEventListener('tabChanged', (e) => {
-            this.onTabChange(e.detail.tab);
-        });
-
-        // Also refresh when page becomes visible (user comes back)
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                const activeTab = window.KusanagiDashboard?.activeTab;
-                if (activeTab) {
-                    this._fetchForTab(activeTab);
-                }
-            }
-        });
+        // Disabled - TabManager handles all tab events
+        console.log('🔄 K8sManager tab listeners disabled (using TabManager)');
     },
 
     // Cluster overview - basic cluster stats only
