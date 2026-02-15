@@ -1,6 +1,31 @@
 <!-- docs section -->
 <h2 class="section-title">📖 About Kusanagi</h2>
 
+<!-- API Documentation (Swagger) -->
+<div class="argocd-stats" id="api-docs-grid" style="margin-bottom: 2rem;">
+    <div class="stat-box info" style="grid-column: span 3; padding: 2rem; border-color: var(--neon-green); background: rgba(0, 255, 128, 0.05);">
+        <h3 style="color: var(--neon-green); margin-top: 0; display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 1.5rem;">🔧</span>
+            Interactive API Documentation
+        </h3>
+        <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.9; margin-bottom: 1.5rem;">
+            Explore and test all Kusanagi API endpoints with our interactive Swagger UI. 
+            Click on any endpoint to see details, parameters, and try it directly from your browser.
+        </p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+            <a href="/swagger-ui" target="_blank" class="cyber-btn" style="padding: 1rem 2rem; font-size: 1.1rem; background: var(--neon-green); color: #000;">
+                <span>🚀</span> Open Swagger UI
+            </a>
+            <span style="color: var(--text-secondary); font-size: 0.9rem;">or preview below</span>
+        </div>
+        
+        <!-- Embedded Swagger UI -->
+        <div style="margin-top: 1.5rem; border: 1px solid var(--neon-green); border-radius: 8px; overflow: hidden; height: 600px;">
+            <iframe src="/swagger-ui" style="width: 100%; height: 100%; border: none; background: #fff;" title="Swagger API Documentation"></iframe>
+        </div>
+    </div>
+</div>
+
 <!-- Vision -->
 <div class="argocd-stats" id="docs-stats-grid" style="margin-bottom: 2rem;">
     <div class="stat-box info" style="grid-column: span 3; padding: 2rem;">
