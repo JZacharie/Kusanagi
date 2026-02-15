@@ -34,12 +34,12 @@ use std::sync::Arc;
 pub fn configure_routes(state: AppState) -> Router {
     // Rate Limiting Configuration
     // Load from environment variables or use defaults
-    let rate_limit = std::env::var("RATE_LIMIT_PER_SECOND")
+    let rate_limit = std::env::var("KUSANAGI_RATE_LIMIT_PER_SECOND")
         .unwrap_or_else(|_| "1000".to_string())
         .parse::<u32>()
         .unwrap_or(1000);
 
-    let burst_limit = std::env::var("RATE_LIMIT_BURST")
+    let burst_limit = std::env::var("KUSANAGI_RATE_LIMIT_BURST")
         .unwrap_or_else(|_| "1000".to_string())
         .parse::<u32>()
         .unwrap_or(1000);

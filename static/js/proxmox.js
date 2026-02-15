@@ -79,7 +79,7 @@ const ProxmoxDashboard = {
             if (this.isActive) {
                 this.fetchAndRender();
             }
-        }, 30000);
+        }, 60000);
     },
 
     deactivate() {
@@ -215,7 +215,7 @@ const ProxmoxDashboard = {
             notify(`Sending ${action} order to VM ${vmid} on ${server}...`, 'info');
 
             const result = await api.post(`/api/proxmox/vm/${vmid}/node/${node}/status/${action}?server=${encodeURIComponent(server)}`);
-            
+
             notify(result.message, 'success');
             setTimeout(() => this.fetchAndRender(), 2000);
         } catch (error) {
@@ -310,7 +310,7 @@ const ProxmoxDashboard = {
             notify(`Sending ${action} order to Container ${vmid} on ${server}...`, 'info');
 
             const result = await api.post(`/api/proxmox/ct/${vmid}/node/${node}/status/${action}?server=${encodeURIComponent(server)}`);
-            
+
             notify(result.message, 'success');
             setTimeout(() => this.fetchAndRender(), 2000);
         } catch (error) {

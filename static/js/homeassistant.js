@@ -5,7 +5,7 @@ const HomeAssistantDashboard = {
     init() {
         this.fetchAndRender();
         if (this.refreshInterval) clearInterval(this.refreshInterval);
-        this.refreshInterval = setInterval(() => this.fetchAndRender(), 30000);
+        this.refreshInterval = setInterval(() => this.fetchAndRender(), 60000);
         console.log('✅ Home Assistant Dashboard initialized (MDI & Categories)');
 
         // Listen for Esc key to close modal
