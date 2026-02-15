@@ -359,45 +359,85 @@ async fn query_prometheus_scalar(client: &reqwest::Client, url: &str, query: &st
 async fn fetch_enphase_from_ha(client: &reqwest::Client) -> (f64, f64) {
     use std::env;
 
-    let ha_url = env::var("HOMEASSISTANT_URL")
+    let ha_url = env::var("HOME_ASSISTANT_URL")
         .unwrap_or_else(|_| "http://homeassistant.local:8123".to_string());
-    let ha_token = env::var("HOMEASSISTANT_TOKEN").unwrap_or_default();
+    let ha_token = env::var("HOME_ASSISTANT_TOKEN").unwrap_or_default();
 
     if ha_token.is_empty() {
+        tracing::warn!("HOME_ASSISTANT_TOKEN not set, skipping Enphase data");
         return (0.0, 0.0);
     }
 
+    tracing::info!("Fetching Enphase data from Home Assistant at {}", ha_url);
+
+    // Try to get all states first
     let response = match client
         .get(format!("{}/api/states", ha_url))
         .header("Authorization", format!("Bearer {}", ha_token))
-        .timeout(std::time::Duration::from_secs(5))
+        .header("Content-Type", "application/json")
+        .timeout(std::time::Duration::from_secs(10))
         .send()
         .await
     {
         Ok(r) if r.status().is_success() => r,
-        _ => return (0.0, 0.0),
+        Ok(r) => {
+            tracing::warn!("Home Assistant returned status: {}", r.status());
+            return (0.0, 0.0);
+        }
+        Err(e) => {
+            tracing::warn!("Failed to connect to Home Assistant: {}", e);
+            return (0.0, 0.0);
+        }
     };
 
     let states: Vec<serde_json::Value> = match response.json().await {
         Ok(s) => s,
-        Err(_) => return (0.0, 0.0),
+        Err(e) => {
+            tracing::warn!("Failed to parse Home Assistant response: {}", e);
+            return (0.0, 0.0);
+        }
     };
 
     let mut solar_prod = 0.0;
     let mut house_cons = 0.0;
+    let mut found_solar = false;
+    let mut found_consumption = false;
 
     for state in states {
         let entity_id = state["entity_id"].as_str().unwrap_or("");
         let state_value = state["state"].as_str().unwrap_or("0");
+        
+        // Skip unavailable or unknown states
+        if state_value == "unavailable" || state_value == "unknown" || state_value == "null" {
+            continue;
+        }
+        
         let value = state_value.parse::<f64>().unwrap_or(0.0);
 
-        match entity_id {
-            "sensor.envoy_122304017410_current_power_production"
-            | "sensor.enphase_solar_production" => solar_prod = value,
-            "sensor.envoy_122304017410_current_power_consumption"
-            | "sensor.enphase_house_consumption" => house_cons = value,
-            _ => {}
+        // Match various Enphase entity ID patterns
+        if entity_id.contains("envoy") || entity_id.contains("enphase") {
+            tracing::debug!("Found Enphase entity: {} = {}", entity_id, value);
+            
+            if entity_id.contains("production") || entity_id.contains("power_production") {
+                if !found_solar || value > solar_prod {
+                    solar_prod = value;
+                    found_solar = true;
+                    tracing::info!("Solar production: {}W from {}", value, entity_id);
+                }
+            }
+            
+            if entity_id.contains("consumption") || entity_id.contains("power_consumption") {
+                if !found_consumption || value > house_cons {
+                    house_cons = value;
+                    found_consumption = true;
+                    tracing::info!("House consumption: {}W from {}", value, entity_id);
+                }
+            }
         }
+    }
+
+    if !found_solar && !found_consumption {
+        tracing::warn!("No Enphase data found in Home Assistant states");
     }
 
     (solar_prod, house_cons)
