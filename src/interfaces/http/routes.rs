@@ -83,6 +83,7 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/cilium/metrics", get(get_metrics_handler))
         .route("/api/cilium/anomalies", get(get_anomalies_handler))
         .route("/api/cilium/namespaces", get(get_namespaces_handler))
+        .route("/api/cilium/status", get(get_cilium_status_handler))
         // Hexagonal routes
         .route("/api/alerts", get(get_alerts_handler))
         .route("/api/backups", get(get_backups_handler))

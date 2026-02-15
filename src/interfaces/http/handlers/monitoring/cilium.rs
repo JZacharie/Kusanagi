@@ -186,3 +186,36 @@ pub async fn get_namespaces_handler(State(state): State<AppState>) -> impl IntoR
         }
     }
 }
+
+/// Get Cilium Status
+/// GET /api/cilium/status
+pub async fn get_cilium_status_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let client = match &state.kube_client {
+        Some(c) => c.as_ref().clone(),
+        None => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({ 
+                    "error": "Kubernetes client not available",
+                    "status": "unavailable"
+                })),
+            );
+        }
+    };
+
+    let service = CiliumService::new(client, state.cilium_cache.clone());
+
+    match service.get_cilium_status().await {
+        Ok(status) => (StatusCode::OK, Json(status)),
+        Err(e) => {
+            error!("Failed to get Cilium status: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ 
+                    "error": e,
+                    "status": "error"
+                })),
+            )
+        }
+    }
+}
