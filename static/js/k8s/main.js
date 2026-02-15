@@ -26,11 +26,12 @@ const K8sManager = {
         this.fetchAll();
 
         // Setup global polling
-        setInterval(() => this.fetchAll(), 60000);
+        // No global polling - fetchAll is startup only
+        console.log('✅ K8sManager initialized (Startup fetch only)');
     },
 
     // Rate limiting: delay between API calls (ms)
-    _apiDelay: 1000,
+    _apiDelay: 2000,
     _lastApiCall: 0,
 
     async _rateLimitedCall(fn, ...args) {
@@ -44,6 +45,11 @@ const K8sManager = {
     },
 
     async fetchAll() {
+        if (document.hidden) {
+            console.log('💤 Tab hidden, skipping K8s fetchAll');
+            return;
+        }
+
         // Stagger API calls to avoid 429 Too Many Requests
         const calls = [
             { name: 'ArgoCD', fn: () => window.K8sArgo?.fetchArgoStatus() },

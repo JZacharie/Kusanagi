@@ -90,6 +90,7 @@ const SystemStatusManager = {
     },
 
     async fetchStatus() {
+        if (document.hidden) return;
         try {
             const response = await fetch('/api/system/status');
             if (!response.ok) throw new Error('Status fetch failed');
@@ -367,6 +368,7 @@ const MetricsManager = {
      * Load Prometheus metrics
      */
     async loadMetrics() {
+        if (document.hidden) return;
         const container = document.getElementById('metrics-content');
 
         // Try to load from cache first for instant display
@@ -831,6 +833,7 @@ const NewsManager = {
      * Fetch news from API
      */
     async fetchNews() {
+        if (document.hidden) return;
         const container = document.getElementById('news-container');
 
         // Try to load from localStorage first for instant display

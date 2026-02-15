@@ -33,16 +33,16 @@ use std::sync::Arc;
 /// Configure all application routes
 pub fn configure_routes(state: AppState) -> Router {
     // Rate Limiting Configuration
-    // Load from environment variables or use defaults
+    // Increased defaults to avoid conflicts with Kubernetes API rate limits
     let rate_limit = std::env::var("KUSANAGI_RATE_LIMIT_PER_SECOND")
-        .unwrap_or_else(|_| "1000".to_string())
+        .unwrap_or_else(|_| "5000".to_string())
         .parse::<u32>()
-        .unwrap_or(1000);
+        .unwrap_or(5000);
 
     let burst_limit = std::env::var("KUSANAGI_RATE_LIMIT_BURST")
-        .unwrap_or_else(|_| "1000".to_string())
+        .unwrap_or_else(|_| "5000".to_string())
         .parse::<u32>()
-        .unwrap_or(1000);
+        .unwrap_or(5000);
 
     let governor_conf = Arc::new(
         GovernorConfigBuilder::default()
@@ -118,6 +118,7 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/ingress", get(ingress))
         .route("/api/services", get(services))
         .route("/api/argocd/status", get(argocd_status))
+        .route("/api/argocd/sync", post(argocd_sync))
         .route("/api/news", get(news))
         // Legacy/Expected Kubernetes routes
         .route("/api/cluster/overview", get(cluster_overview))
@@ -137,7 +138,11 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/proxmox/containers", get(get_containers_handler))
         .route("/api/proxmox/nodes", get(get_nodes_handler))
         // Apply rate limiting specifically to these routes
-        .layer(GovernorLayer::new(governor_conf));
+        .layer(GovernorLayer::new(governor_conf))
+        // Convert 429 errors to JSON
+        .layer(middleware::from_fn(
+            crate::interfaces::http::middleware::error_handler::error_handler,
+        ));
 
     Router::new()
         // Swagger UI

@@ -71,7 +71,12 @@ pub async fn log_request(request: Request, next: Next) -> impl IntoResponse {
     if !skip_log {
         let status_code = status.as_u16();
         if status_code >= 400 {
-            warn!("📤 {} - Status: {} {}", uri, status_code, status.canonical_reason().unwrap_or(""));
+            warn!(
+                "📤 {} - Status: {} {}",
+                uri,
+                status_code,
+                status.canonical_reason().unwrap_or("")
+            );
         } else {
             info!("📤 {} - Status: {}", uri, status);
         }

@@ -104,3 +104,20 @@ pub async fn delete_error_pods_handler() -> Response {
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
+#[derive(serde::Deserialize)]
+pub struct SyncAppRequest {
+    pub app_name: String,
+}
+
+/// Trigger ArgoCD app sync
+pub async fn argocd_sync(
+    State(_state): State<AppState>,
+    axum::Json(payload): axum::Json<SyncAppRequest>,
+) -> Response {
+    use crate::domain::services::argocd_service::sync_app;
+
+    match sync_app(&payload.app_name).await {
+        Ok(msg) => api_success(json!({ "success": true, "message": msg })),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+    }
+}
