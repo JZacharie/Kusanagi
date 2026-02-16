@@ -179,3 +179,6 @@ const MqttManager = {
 
 // MQTT Manager is ready
 console.log('📡 MqttManager loaded');
+
+// Expose to window for TabManager
+window.MqttManager = MqttManager;
