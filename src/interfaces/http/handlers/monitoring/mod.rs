@@ -9,7 +9,7 @@ use serde_json::json;
 pub use cilium::*;
 pub use mqtt::*;
 
-use crate::interfaces::http::response::{api_success, api_error};
+use crate::interfaces::http::response::{api_error, api_success};
 
 /// Alerts endpoint
 pub async fn alerts() -> impl IntoResponse {
@@ -52,23 +52,24 @@ pub async fn enphase_history_handler(
     let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
         "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
     });
-    
+
     // Query for the specific Enphase entity over 24h
     let entity_id = "envoy_122304017410_current_power_production";
     let query = format!(
         r#"homeassistant_sensor_unit_w{{entity="sensor.{}"}}"#,
         entity_id
     );
-    
+
     let end = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs() as i64;
     let start = end - (24 * 3600); // 24 hours ago
-    
+
     let url = format!("{}/api/v1/query_range", prometheus_url);
-    
-    let result = state.http_client
+
+    let result = state
+        .http_client
         .get(&url)
         .query(&[
             ("query", query.as_str()),
@@ -79,7 +80,7 @@ pub async fn enphase_history_handler(
         .timeout(std::time::Duration::from_secs(10))
         .send()
         .await;
-    
+
     match result {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(data) = resp.json::<serde_json::Value>().await {
@@ -92,22 +93,18 @@ pub async fn enphase_history_handler(
             } else {
                 api_error(
                     axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to parse Prometheus response"
+                    "Failed to parse Prometheus response",
                 )
             }
         }
-        Ok(resp) => {
-            api_error(
-                axum::http::StatusCode::BAD_GATEWAY,
-                format!("Prometheus returned status: {}", resp.status())
-            )
-        }
-        Err(e) => {
-            api_error(
-                axum::http::StatusCode::BAD_GATEWAY,
-                format!("Failed to fetch from Prometheus: {}", e)
-            )
-        }
+        Ok(resp) => api_error(
+            axum::http::StatusCode::BAD_GATEWAY,
+            format!("Prometheus returned status: {}", resp.status()),
+        ),
+        Err(e) => api_error(
+            axum::http::StatusCode::BAD_GATEWAY,
+            format!("Failed to fetch from Prometheus: {}", e),
+        ),
     }
 }
 
@@ -116,22 +113,22 @@ pub async fn enphase_debug_handler(
     axum::extract::State(_state): axum::extract::State<crate::state::AppState>,
 ) -> impl IntoResponse {
     use std::env;
-    
+
     let ha_url = env::var("HOME_ASSISTANT_URL")
         .unwrap_or_else(|_| "http://homeassistant.local:8123".to_string());
     let ha_token = env::var("HOME_ASSISTANT_TOKEN").unwrap_or_default();
-    
+
     if ha_token.is_empty() {
         return api_error(
             axum::http::StatusCode::SERVICE_UNAVAILABLE,
-            "HOME_ASSISTANT_TOKEN not configured"
+            "HOME_ASSISTANT_TOKEN not configured",
         );
     }
-    
+
     // Fetch specific entity
     let entity_id = "sensor.envoy_122304017410_current_power_production";
     let entity_url = format!("{}/api/states/{}", ha_url, entity_id);
-    
+
     let client = reqwest::Client::new();
     let result = client
         .get(&entity_url)
@@ -139,7 +136,7 @@ pub async fn enphase_debug_handler(
         .timeout(std::time::Duration::from_secs(5))
         .send()
         .await;
-    
+
     match result {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(data) = resp.json::<serde_json::Value>().await {
@@ -152,22 +149,18 @@ pub async fn enphase_debug_handler(
             } else {
                 api_error(
                     axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to parse entity data"
+                    "Failed to parse entity data",
                 )
             }
         }
-        Ok(resp) => {
-            api_error(
-                axum::http::StatusCode::BAD_GATEWAY,
-                format!("Home Assistant returned status: {}", resp.status())
-            )
-        }
-        Err(e) => {
-            api_error(
-                axum::http::StatusCode::BAD_GATEWAY,
-                format!("Failed to connect to Home Assistant: {}", e)
-            )
-        }
+        Ok(resp) => api_error(
+            axum::http::StatusCode::BAD_GATEWAY,
+            format!("Home Assistant returned status: {}", resp.status()),
+        ),
+        Err(e) => api_error(
+            axum::http::StatusCode::BAD_GATEWAY,
+            format!("Failed to connect to Home Assistant: {}", e),
+        ),
     }
 }
 
@@ -553,9 +546,6 @@ async fn fetch_enphase_from_ha(client: &reqwest::Client) -> (f64, f64) {
     // Try specific entity endpoints first
     let prod_entity = "sensor.envoy_122304017410_current_power_production";
     let cons_entity = "sensor.envoy_122304017410_current_power_consumption";
-    
-    let mut solar_prod = 0.0;
-    let mut house_cons = 0.0;
 
     // Helper function to fetch a specific entity
     async fn fetch_entity_value(
@@ -577,10 +567,18 @@ async fn fetch_enphase_from_ha(client: &reqwest::Client) -> (f64, f64) {
                     let entity_id = state["entity_id"].as_str().unwrap_or("");
                     let state_value = state["state"].as_str().unwrap_or("0");
                     let attrs = state["attributes"].as_object().cloned().unwrap_or_default();
-                    let unit = attrs.get("unit_of_measurement").and_then(|u| u.as_str()).unwrap_or("W");
-                    
-                    tracing::info!("Found Enphase entity: {} = {} {}", entity_id, state_value, unit);
-                    
+                    let unit = attrs
+                        .get("unit_of_measurement")
+                        .and_then(|u| u.as_str())
+                        .unwrap_or("W");
+
+                    tracing::info!(
+                        "Found Enphase entity: {} = {} {}",
+                        entity_id,
+                        state_value,
+                        unit
+                    );
+
                     // Parse value, handling different units
                     if let Ok(val) = state_value.parse::<f64>() {
                         // Convert to Watts if needed
@@ -591,7 +589,7 @@ async fn fetch_enphase_from_ha(client: &reqwest::Client) -> (f64, f64) {
                             "kWh" => val * 1000.0,
                             _ => val, // Assume Watts
                         };
-                        
+
                         // If value is extremely large (like 28 million), it might be lifetime energy
                         if watts > 1_000_000.0 && unit.contains("Wh") {
                             tracing::warn!("Large energy value detected ({} {}), this is likely cumulative energy, not power", val, unit);
@@ -608,8 +606,8 @@ async fn fetch_enphase_from_ha(client: &reqwest::Client) -> (f64, f64) {
     }
 
     // Fetch both production and consumption
-    solar_prod = fetch_entity_value(client, &ha_url, &ha_token, prod_entity).await;
-    house_cons = fetch_entity_value(client, &ha_url, &ha_token, cons_entity).await;
+    let mut solar_prod = fetch_entity_value(client, &ha_url, &ha_token, prod_entity).await;
+    let mut house_cons = fetch_entity_value(client, &ha_url, &ha_token, cons_entity).await;
 
     // If we didn't get consumption from specific endpoint, try all states
     let response = match client
@@ -646,7 +644,10 @@ async fn fetch_enphase_from_ha(client: &reqwest::Client) -> (f64, f64) {
         let entity_id = state["entity_id"].as_str().unwrap_or("");
         let state_value = state["state"].as_str().unwrap_or("0");
         let attrs = state["attributes"].as_object().cloned().unwrap_or_default();
-        let unit = attrs.get("unit_of_measurement").and_then(|u| u.as_str()).unwrap_or("W");
+        let unit = attrs
+            .get("unit_of_measurement")
+            .and_then(|u| u.as_str())
+            .unwrap_or("W");
 
         // Skip unavailable or unknown states
         if state_value == "unavailable" || state_value == "unknown" || state_value == "null" {
@@ -654,7 +655,7 @@ async fn fetch_enphase_from_ha(client: &reqwest::Client) -> (f64, f64) {
         }
 
         let raw_value = state_value.parse::<f64>().unwrap_or(0.0);
-        
+
         // Convert to Watts if needed
         let value = match unit {
             "kW" => raw_value * 1000.0,
@@ -664,7 +665,12 @@ async fn fetch_enphase_from_ha(client: &reqwest::Client) -> (f64, f64) {
 
         // Match various Enphase entity ID patterns
         if entity_id.contains("envoy") || entity_id.contains("enphase") {
-            tracing::debug!("Found Enphase entity: {} = {} {}", entity_id, raw_value, unit);
+            tracing::debug!(
+                "Found Enphase entity: {} = {} {}",
+                entity_id,
+                raw_value,
+                unit
+            );
 
             if entity_id.contains("production") || entity_id.contains("power_production") {
                 // Skip if we already have a value from the specific endpoint

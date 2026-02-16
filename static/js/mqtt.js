@@ -36,51 +36,12 @@ const MqttManager = {
         }
     },
 
-    handleWsMessage: function (msg) {
-        if (msg.type === 'mqtt_message') {
-            console.log('📡 MQTT Message Received:', msg.topic, msg.payload);
-            const newMsg = {
-                topic: msg.topic,
-                payload: msg.payload,
-                timestamp: msg.timestamp
-            };
-
-            this.messageBuffer.unshift(newMsg);
-            if (this.messageBuffer.length > 500) {
-                this.messageBuffer.pop();
-            }
-
-            // Update device info locally to avoid full fetch
-            this.updateDeviceFromMessage(newMsg);
-
-            if (window.KusanagiDashboard && window.KusanagiDashboard.activeTab === 'mqtt') {
-                this.render();
-                // Also update log modal if it is open
-                const modal = document.getElementById('mqtt-logs-modal');
-                if (modal && modal.style.display === 'flex') {
-                    this.renderLogsModalContent();
-                }
-            }
-        }
-    },
-
-    updateDeviceFromMessage: function (msg) {
-        const deviceId = msg.topic.split('/')[0];
-        let device = this.devices.find(d => d.id === deviceId);
-
-        if (device) {
-            device.last_seen = msg.timestamp;
-            device.last_topic = msg.topic;
-            device.message_count++;
-        } else {
-            this.devices.push({
-                id: deviceId,
-                name: deviceId,
-                last_seen: msg.timestamp,
-                last_topic: msg.topic,
-                message_count: 1
-            });
-        }
+    // Note: Real-time WebSocket updates not implemented in backend
+    // Polling via TabManager (every 30s) is sufficient
+    
+    refresh: async function() {
+        // Called by TabManager - fetch latest data
+        return this.fetchInitialData();
     },
 
     applyFilter: function () {
@@ -216,9 +177,5 @@ const MqttManager = {
     }
 };
 
-// Hook into the global WebSocket message handling
-window.addEventListener('kusanagi-ws-message', (e) => {
-    if (MqttManager) {
-        MqttManager.handleWsMessage(e.detail);
-    }
-});
+// MQTT Manager is ready
+console.log('📡 MqttManager loaded');
