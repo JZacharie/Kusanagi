@@ -634,6 +634,15 @@ const MetricsManager = {
                     <div class="metric-label">Low</div>
                 </div>
             </div>
+            ${metrics.trivy_total === 0 ? `
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,165,0,0.1); border-left: 3px solid var(--neon-orange); border-radius: 4px;">
+                <p style="margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
+                    ⚠️ <strong>Trivy scanning not configured</strong> - No vulnerability data available.<br>
+                    Configure <code>TRIVY_SERVER_URL</code> or S3 cache to enable security scanning.
+                    <a href="/api/monitoring/trivy/debug" target="_blank" style="color: var(--neon-cyan);">View debug info →</a>
+                </p>
+            </div>
+            ` : ''}
         `;
 
         // Load 24h graph data asynchronously
@@ -641,7 +650,7 @@ const MetricsManager = {
     },
 
     /**
-     * Load Enphase solar graph data
+     * Load Enphase solar graph data (24h history)
      */
     async loadSolarGraph() {
         const container = document.getElementById('solar-24h-graph');
@@ -650,15 +659,31 @@ const MetricsManager = {
         // Show loading state
         container.innerHTML = '<span style="font-size: 0.7rem; opacity: 0.5;">LOADING_HISTORY...</span>';
 
-        // Try multiple Prometheus queries for solar production data
+        // Try to fetch from our dedicated endpoint first
+        try {
+            const response = await api.get('/api/monitoring/enphase/history');
+            if (response.data && response.data.result && response.data.result.length > 0) {
+                const result = response.data.result[0];
+                if (result.values && result.values.length > 0) {
+                    // Parse values from Prometheus format: [[timestamp, value], ...]
+                    const values = result.values.map(v => [v[0], parseFloat(v[1])]);
+                    container.innerHTML = this.renderSparkline(values, container.clientWidth, 80, 'var(--neon-green)');
+                    console.log('✅ Enphase 24h graph loaded from API');
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to fetch from enphase history endpoint:', e);
+        }
+
+        // Fallback: Try multiple Prometheus queries
         const queries = [
-            // Home Assistant metrics via prometheus_exporter
-            'avg(homeassistant_sensor_unit_w{entity=~".*production.*"}) or vector(0)',
-            // Enphase Envoy metrics
+            // Specific Home Assistant entity
+            'homeassistant_sensor_unit_w{entity="sensor.envoy_122304017410_current_power_production"}',
+            // Generic patterns
+            'homeassistant_sensor_unit_w{entity=~".*production.*"}',
             'avg(enphase_envoy_power_production_watts) or vector(0)',
-            // Generic solar metrics
             'avg(solar_power_watts) or vector(0)',
-            'avg(power_production_watts) or vector(0)',
         ];
 
         let values = null;

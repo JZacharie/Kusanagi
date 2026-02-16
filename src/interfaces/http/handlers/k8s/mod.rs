@@ -34,7 +34,7 @@ pub async fn nodes_status(State(state): State<AppState>) -> Response {
 /// Nodes debug/diagnostic endpoint
 pub async fn nodes_debug(State(state): State<AppState>) -> Response {
     use crate::domain::services::kubernetes_service::fetch_node_metrics;
-    
+
     let k8s_nodes_ok = kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache)
         .await
         .is_ok();
@@ -54,16 +54,21 @@ pub async fn nodes_debug(State(state): State<AppState>) -> Response {
         .await
         .map(|r| r.status().is_success())
         .unwrap_or(false);
-    
+
     // Fetch raw metrics for debugging
-    let metrics_debug = fetch_node_metrics(&state.http_client).await.unwrap_or_default();
+    let metrics_debug = fetch_node_metrics(&state.http_client)
+        .await
+        .unwrap_or_default();
     let metrics_info: serde_json::Map<String, serde_json::Value> = metrics_debug
         .into_iter()
         .map(|(node, (cpu, mem))| {
-            (node, json!({
-                "cpu_cores": cpu,
-                "memory_bytes": mem
-            }))
+            (
+                node,
+                json!({
+                    "cpu_cores": cpu,
+                    "memory_bytes": mem
+                }),
+            )
         })
         .collect();
 
