@@ -28,82 +28,17 @@ spec:
     spec:
       containers:
         - name: app
-          image: node:20-alpine
-          workingDir: /app
-          command:
-            - sh
-            - -c
-            - |
-              set -e
-              
-              # Fonction de cleanup
-              cleanup() {
-                echo "🛑 Received termination signal, shutting down..."
-                kill -TERM "$PID" 2>/dev/null || true
-                wait "$PID" 2>/dev/null || true
-                exit 0
-              }
-              trap cleanup SIGTERM SIGINT
-              
-              # Clone et build si nécessaire
-              if [ ! -d ".next" ]; then
-                echo "📦 First start - Building RageCheck..."
-                echo "⏳ This may take 2-3 minutes..."
-                
-                apk add --no-cache git
-                
-                # Clone avec retry
-                for i in 1 2 3; do
-                  echo "🔄 Clone attempt $i..."
-                  rm -rf /tmp/repo
-                  if git clone --depth 1 https://github.com/aagoldberg/ragecheck.git /tmp/repo; then
-                    break
-                  fi
-                  sleep 5
-                done
-                
-                cp -r /tmp/repo/* .
-                
-                # Build
-                echo "🔨 Installing dependencies..."
-                npm ci --prefer-offline --no-audit --silent
-                
-                echo "🏗️ Building application..."
-                npm run build
-                
-                echo "✅ Build complete!"
-              else
-                echo "📦 Using existing build"
-              fi
-              
-              # Démarrer l'application avec exec pour PID 1
-              echo "🚀 Starting RageCheck..."
-              exec npm start &
-              PID=$!
-              
-              # Attendre que le processus fils termine
-              wait "$PID"
-          env:
-            - name: NODE_ENV
-              value: "production"
+          image: ghcr.io/jzacharie/ragecheck:latest
           ports:
             - containerPort: 3000
               name: http
           resources:
             requests:
-              memory: 512Mi
-              cpu: 250m
+              memory: 256Mi
+              cpu: 100m
             limits:
-              memory: 1Gi  # Augmenté pour le build
-              cpu: 1000m
-          # Startup probe - plus long pour le premier build
-          startupProbe:
-            httpGet:
-              path: /
-              port: 3000
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            failureThreshold: 30  # 5 minutes pour le build + démarrage
+              memory: 512Mi
+              cpu: 500m
           livenessProbe:
             httpGet:
               path: /
@@ -116,13 +51,6 @@ spec:
               port: 3000
             periodSeconds: 10
             failureThreshold: 3
-          volumeMounts:
-            - name: data
-              mountPath: /app
-      volumes:
-        - name: data
-          emptyDir:
-            sizeLimit: 1Gi
       # Redémarrage automatique en cas d'échec
       restartPolicy: Always
 
