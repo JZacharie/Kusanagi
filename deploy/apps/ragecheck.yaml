@@ -1,0 +1,167 @@
+# RageCheck - Version robuste avec restart automatique
+# 
+# ⚠️ NOTE: Ce déploiement build l'application au premier démarrage.
+# Le premier démarrage peut prendre 2-3 minutes.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ragecheck
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ragecheck
+  namespace: ragecheck
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Évite les conflits de build
+  selector:
+    matchLabels:
+      app: ragecheck
+  template:
+    metadata:
+      labels:
+        app: ragecheck
+    spec:
+      containers:
+        - name: app
+          image: node:20-alpine
+          workingDir: /app
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              
+              # Fonction de cleanup
+              cleanup() {
+                echo "🛑 Received termination signal, shutting down..."
+                kill -TERM "$PID" 2>/dev/null || true
+                wait "$PID" 2>/dev/null || true
+                exit 0
+              }
+              trap cleanup SIGTERM SIGINT
+              
+              # Clone et build si nécessaire
+              if [ ! -d ".next" ]; then
+                echo "📦 First start - Building RageCheck..."
+                echo "⏳ This may take 2-3 minutes..."
+                
+                apk add --no-cache git
+                
+                # Clone avec retry
+                for i in 1 2 3; do
+                  echo "🔄 Clone attempt $i..."
+                  rm -rf /tmp/repo
+                  if git clone --depth 1 https://github.com/aagoldberg/ragecheck.git /tmp/repo; then
+                    break
+                  fi
+                  sleep 5
+                done
+                
+                cp -r /tmp/repo/* .
+                
+                # Build
+                echo "🔨 Installing dependencies..."
+                npm ci --prefer-offline --no-audit --silent
+                
+                echo "🏗️ Building application..."
+                npm run build
+                
+                echo "✅ Build complete!"
+              else
+                echo "📦 Using existing build"
+              fi
+              
+              # Démarrer l'application avec exec pour PID 1
+              echo "🚀 Starting RageCheck..."
+              exec npm start &
+              PID=$!
+              
+              # Attendre que le processus fils termine
+              wait "$PID"
+          env:
+            - name: NODE_ENV
+              value: "production"
+          ports:
+            - containerPort: 3000
+              name: http
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 1Gi  # Augmenté pour le build
+              cpu: 1000m
+          # Startup probe - plus long pour le premier build
+          startupProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 30  # 5 minutes pour le build + démarrage
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            periodSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /app
+      volumes:
+        - name: data
+          emptyDir:
+            sizeLimit: 1Gi
+      # Redémarrage automatique en cas d'échec
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ragecheck
+  namespace: ragecheck
+spec:
+  selector:
+    app: ragecheck
+  ports:
+    - port: 80
+      targetPort: 3000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ragecheck
+  namespace: ragecheck
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - ragecheck.zacharie.org
+      secretName: ragecheck-tls
+  rules:
+    - host: ragecheck.zacharie.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ragecheck
+                port:
+                  number: 80
