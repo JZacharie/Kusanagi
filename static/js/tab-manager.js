@@ -22,7 +22,7 @@ const TabManager = {
         weather: { interval: 600000, module: 'WeatherDashboard', fetch: 'fetchAndRender' },
         monitors: { interval: 30000, module: 'MonitorsManager', fetch: 'fetchMonitors' },
         security: { interval: 300000, module: 'SecurityDashboard', fetch: 'loadSecurityData' },
-        mqtt: { interval: 30000, module: 'MqttManager', fetch: 'fetchInitialData' },
+        mqtt: { interval: 30000, module: 'MqttManager', fetch: 'refresh' },
         metrics: { interval: 30000, module: 'MetricsManager', fetch: 'loadMetrics' },
         network: { interval: 30000, module: 'KusanagiNetwork', fetch: 'fetchNetworkData' },
         

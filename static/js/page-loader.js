@@ -186,6 +186,9 @@ const PageLoader = {
             case 'news':
                 console.log('📰 News section loaded');
                 break;
+            case 'mqtt':
+                if (window.MqttManager) MqttManager.init();
+                break;
         }
     },
 
