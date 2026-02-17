@@ -299,57 +299,121 @@ const SecurityDashboard = {
         const container = document.getElementById('security-report-selector');
         if (!container) return;
 
-        if (!reports || reports.length === 0) {
-            container.innerHTML = '';
+        // Store all reports for filtering
+        if (reports) {
+            this.allReports = reports;
+        }
+
+        const safeReports = this.allReports || [];
+
+        // Setup container with filters if not already set up or if it's empty
+        if (!document.getElementById('report-filters') || container.innerHTML === '') {
+            container.innerHTML = `
+                <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 0.75rem;">
+                    <div id="report-filters" style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
+                        <span style="color: var(--neon-cyan); font-size: 0.9rem; font-weight: bold; margin-right: auto; white-space: nowrap;">📊 Reports <span id="report-count">(${safeReports.length})</span></span>
+                        
+                        <!-- Filters -->
+                        <select id="report-filter-type" onchange="SecurityDashboard.filterReports()" class="cyber-input" style="padding: 0.25rem; width: 100px; font-size: 0.8rem; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid #444; border-radius: 4px;">
+                            <option value="all">Type</option>
+                        </select>
+                        <input type="text" id="report-filter-namespace" oninput="SecurityDashboard.filterReports()" placeholder="Namespace..." class="cyber-input" style="padding: 0.25rem 0.5rem; width: 110px; font-size: 0.8rem; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid #444; border-radius: 4px;">
+                        <input type="text" id="report-filter-name" oninput="SecurityDashboard.filterReports()" placeholder="Search name..." class="cyber-input" style="padding: 0.25rem 0.5rem; width: 140px; font-size: 0.8rem; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid #444; border-radius: 4px;">
+                    </div>
+                    <div id="report-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.5rem; max-height: 250px; overflow-y: auto;">
+                        <!-- Grid content -->
+                        <div class="loading">Loading reports...</div>
+                    </div>
+                </div>
+            `;
+
+            // Populate Types dynamically
+            const types = new Set();
+            safeReports.forEach(r => {
+                const category = (typeof r === 'string' ? r.split('/')[0] : (r.category || 'general'));
+                if (category) types.add(category);
+            });
+            const typeSelect = document.getElementById('report-filter-type');
+            if (typeSelect && types.size > 0) {
+                Array.from(types).sort().forEach(t => {
+                    typeSelect.innerHTML += `<option value="${t}">${t}</option>`;
+                });
+            }
+        }
+
+        this.filterReports();
+    },
+
+    filterReports() {
+        const typeFilter = document.getElementById('report-filter-type')?.value || 'all';
+        const nsFilter = document.getElementById('report-filter-namespace')?.value?.toLowerCase() || '';
+        const nameFilter = document.getElementById('report-filter-name')?.value?.toLowerCase() || '';
+
+        const filtered = (this.allReports || []).filter(r => {
+            const isString = typeof r === 'string';
+            const category = isString ? r.split('/')[0] : (r.category || 'general');
+            const name = isString ? r.split('/').pop() : (r.name || r.report_id);
+            // Namespace heuristic: search in name for the namespace string since we don't have explicit field in list
+            const searchCtx = name.toLowerCase();
+
+            if (typeFilter !== 'all' && category !== typeFilter) return false;
+            if (nsFilter && !searchCtx.includes(nsFilter)) return false;
+            if (nameFilter && !searchCtx.includes(nameFilter)) return false;
+
+            return true;
+        });
+
+        this.renderReportGrid(filtered);
+    },
+
+    renderReportGrid(reports) {
+        const container = document.getElementById('report-grid');
+        const countEl = document.getElementById('report-count');
+        if (!container) return;
+
+        if (countEl) countEl.textContent = `(${reports.length})`;
+
+        if (reports.length === 0) {
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #666; padding: 1rem;">No reports match filters</div>';
             return;
         }
 
-        // Si c'est juste un tableau de strings (noms de rapports)
-        const isStringArray = typeof reports[0] === 'string';
-        
-        container.innerHTML = `
-            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 0.75rem;">
-                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
-                    <span style="color: var(--neon-cyan); font-size: 0.9rem; font-weight: bold;">📊 Available Reports (${reports.length})</span>
+        const isStringArray = reports.length > 0 && typeof reports[0] === 'string';
+
+        container.innerHTML = reports.map((r, index) => {
+            const reportId = isStringArray ? r : (r.report_id || r.name);
+            const reportName = isStringArray ? r.split('/').pop() : (r.name || r.report_id);
+            const category = isStringArray ? r.split('/')[0] : (r.category || 'general');
+            const date = !isStringArray && r.timestamp ? new Date(r.timestamp).toLocaleString() : '';
+
+            return `
+                <div onclick="SecurityDashboard.viewReportDetail('${reportId}')" 
+                     class="report-card" 
+                     style="cursor: pointer; padding: 0.5rem; background: rgba(0,255,255,0.05); border: 1px solid rgba(0,255,255,0.2); border-radius: 4px; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem;"
+                     onmouseover="this.style.background='rgba(0,255,255,0.1)'; this.style.borderColor='var(--neon-cyan)'" 
+                     onmouseout="this.style.background='rgba(0,255,255,0.05)'; this.style.borderColor='rgba(0,255,255,0.2)'">
+                    <span style="font-size: 1.2rem;">📄</span>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-size: 0.85rem; color: var(--neon-cyan); font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${reportName}">${reportName}</div>
+                        <div style="font-size: 0.7rem; color: #888; display: flex; justify-content: space-between;">
+                            <span>${category}</span>
+                            <span>${date}</span>
+                        </div>
+                    </div>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.5rem; max-height: 150px; overflow-y: auto;">
-                    ${reports.map((r, index) => {
-                        const reportId = isStringArray ? r : (r.report_id || r.name);
-                        const reportName = isStringArray ? r.split('/').pop() : (r.name || r.report_id);
-                        const category = isStringArray ? r.split('/')[0] : (r.category || 'general');
-                        const date = !isStringArray && r.timestamp ? new Date(r.timestamp).toLocaleString() : '';
-                        
-                        return `
-                            <div onclick="SecurityDashboard.viewReportDetail('${reportId}')" 
-                                 class="report-card" 
-                                 style="cursor: pointer; padding: 0.5rem; background: rgba(0,255,255,0.05); border: 1px solid rgba(0,255,255,0.2); border-radius: 4px; transition: all 0.2s;"
-                                 onmouseover="this.style.background='rgba(0,255,255,0.1)'; this.style.borderColor='var(--neon-cyan)'" 
-                                 onmouseout="this.style.background='rgba(0,255,255,0.05)'; this.style.borderColor='rgba(0,255,255,0.2)'">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <span style="font-size: 1.2rem;">📄</span>
-                                    <div style="flex: 1; min-width: 0;">
-                                        <div style="font-size: 0.85rem; color: var(--neon-cyan); font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${reportName}">${reportName}</div>
-                                        <div style="font-size: 0.7rem; color: #888;">${category}${date ? ' • ' + date : ''}</div>
-                                    </div>
-                                    <span style="color: var(--neon-magenta); font-size: 0.8rem;">→</span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        `;
+            `;
+        }).join('');
     },
 
     async viewReportDetail(reportId) {
         const modal = document.getElementById('report-detail-modal');
         const content = document.getElementById('report-detail-content');
-        
+
         if (!modal || !content) return;
-        
+
         modal.style.display = 'flex';
         content.innerHTML = '<div class="loading">Loading report details...</div>';
-        
+
         try {
             // Parse category/name from reportId
             const parts = reportId.split('/');
@@ -362,7 +426,7 @@ const SecurityDashboard = {
                 // Si c'est juste un ID simple
                 url = `/api/security/reports/general/${encodeURIComponent(reportId)}`;
             }
-            
+
             const report = await api.get(url);
             this.renderReportDetail(report, reportId);
         } catch (error) {
@@ -386,7 +450,7 @@ const SecurityDashboard = {
         const originalData = report.original_data || {};
         const vulnerabilities = originalData.vulnerabilities || [];
         const metadata = originalData.metadata || {};
-        
+
         // Compter les vulnérabilités par sévérité
         const severityCount = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, UNKNOWN: 0 };
         vulnerabilities.forEach(v => {
@@ -461,12 +525,12 @@ const SecurityDashboard = {
                 <!-- Vulnerabilities List -->
                 <div style="margin-bottom: 1.5rem;">
                     <h3 style="margin: 0 0 1rem 0; color: var(--neon-cyan);">🔍 Vulnerabilities (${vulnerabilities.length})</h3>
-                    ${vulnerabilities.length === 0 ? 
-                        '<div style="color: #888; text-align: center; padding: 2rem;">No vulnerabilities found in this report</div>' :
-                        `<div style="max-height: 400px; overflow-y: auto;">
+                    ${vulnerabilities.length === 0 ?
+                '<div style="color: #888; text-align: center; padding: 2rem;">No vulnerabilities found in this report</div>' :
+                `<div style="max-height: 400px; overflow-y: auto;">
                             ${vulnerabilities.map((v, i) => this.renderVulnerabilityItem(v, i)).join('')}
                         </div>`
-                    }
+            }
                 </div>
 
                 <!-- Metadata -->
@@ -490,14 +554,14 @@ const SecurityDashboard = {
             UNKNOWN: '#888'
         };
         const color = colors[severity] || colors.UNKNOWN;
-        
+
         const vulnId = vuln.vulnerability_id || vuln.id || `vuln-${index}`;
         const pkgName = vuln.pkg_name || vuln.package_name || 'Unknown Package';
         const installedVer = vuln.installed_version || vuln.version || 'N/A';
         const fixedVer = vuln.fixed_version || vuln.fixed_in || null;
         const title = vuln.title || vuln.name || 'No title';
         const description = vuln.description || vuln.summary || '';
-        
+
         return `
             <div style="background: rgba(0,0,0,0.3); border-left: 3px solid ${color}; margin-bottom: 0.5rem; border-radius: 0 4px 4px 0; overflow: hidden;">
                 <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'" 
@@ -600,13 +664,13 @@ const SecurityDashboard = {
                 </thead>
                 <tbody>
                     ${sortedImages.map(img => {
-                        const riskScore = img.critical_count * 10 + img.high_count * 5 + img.medium_count * 2 + img.low_count;
-                        let riskClass = 'healthy';
-                        if (img.critical_count > 0) riskClass = 'unhealthy';
-                        else if (img.high_count > 0) riskClass = 'warning';
-                        else if (img.medium_count > 0) riskClass = 'info';
+            const riskScore = img.critical_count * 10 + img.high_count * 5 + img.medium_count * 2 + img.low_count;
+            let riskClass = 'healthy';
+            if (img.critical_count > 0) riskClass = 'unhealthy';
+            else if (img.high_count > 0) riskClass = 'warning';
+            else if (img.medium_count > 0) riskClass = 'info';
 
-                        return `
+            return `
                             <tr class="vuln-row" data-image="${img.image}" style="cursor: pointer;" onclick="SecurityDashboard.toggleDetails('${this.escapeId(img.image)}')">
                                 <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
                                     <code title="${img.image}" style="font-size: 0.8rem;">${this.truncate(img.image, 45)}</code>
@@ -635,7 +699,7 @@ const SecurityDashboard = {
                                 </td>
                             </tr>
                         `;
-                    }).join('')}
+        }).join('')}
                 </tbody>
             </table>
         `;
@@ -711,13 +775,13 @@ const SecurityDashboard = {
         container.innerHTML = `
             <div style="padding: 0.5rem;">
                 ${topRisk.map((img, i) => {
-                    const riskScore = img.critical_count * 10 + img.high_count * 5;
-                    let riskColor = '#44ff44';
-                    if (img.critical_count > 0) riskColor = '#ff4444';
-                    else if (img.high_count > 0) riskColor = '#ff8800';
-                    else if (img.medium_count > 0) riskColor = '#ffdd00';
+            const riskScore = img.critical_count * 10 + img.high_count * 5;
+            let riskColor = '#44ff44';
+            if (img.critical_count > 0) riskColor = '#ff4444';
+            else if (img.high_count > 0) riskColor = '#ff8800';
+            else if (img.medium_count > 0) riskColor = '#ffdd00';
 
-                    return `
+            return `
                         <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); ${i === 0 ? 'background: rgba(255,0,0,0.1);' : ''}">
                             <span style="font-size: 1.2rem;">${i === 0 ? '🔥' : i < 3 ? '⚠️' : '⚡'}</span>
                             <div style="flex: 1; min-width: 0;">
@@ -732,7 +796,7 @@ const SecurityDashboard = {
                             </div>
                         </div>
                     `;
-                }).join('')}
+        }).join('')}
             </div>
         `;
     },
@@ -812,7 +876,7 @@ const SecurityDashboard = {
     renderCiliumMetrics(metrics) {
         const container = document.getElementById('cilium-metrics-content');
         const countEl = document.getElementById('cilium-metrics-count');
-        
+
         if (!container) return;
 
         // Handle empty or error case
@@ -858,20 +922,20 @@ const SecurityDashboard = {
                 </thead>
                 <tbody>
                     ${sorted.map(m => {
-                        const ingress = m.ingress_bytes_per_sec || 0;
-                        const egress = m.egress_bytes_per_sec || 0;
-                        const total = ingress + egress;
-                        const connections = m.connection_count || 0;
-                        
-                        // Calculate utilization bar (max 10MB/s for 100%)
-                        const maxBandwidth = 10 * 1024 * 1024; // 10 MB/s
-                        const utilization = Math.min((total / maxBandwidth) * 100, 100);
-                        let barColor = '#44ff44';
-                        if (utilization > 75) barColor = '#ff4444';
-                        else if (utilization > 50) barColor = '#ff8800';
-                        else if (utilization > 25) barColor = '#ffdd00';
+            const ingress = m.ingress_bytes_per_sec || 0;
+            const egress = m.egress_bytes_per_sec || 0;
+            const total = ingress + egress;
+            const connections = m.connection_count || 0;
 
-                        return `
+            // Calculate utilization bar (max 10MB/s for 100%)
+            const maxBandwidth = 10 * 1024 * 1024; // 10 MB/s
+            const utilization = Math.min((total / maxBandwidth) * 100, 100);
+            let barColor = '#44ff44';
+            if (utilization > 75) barColor = '#ff4444';
+            else if (utilization > 50) barColor = '#ff8800';
+            else if (utilization > 25) barColor = '#ffdd00';
+
+            return `
                             <tr>
                                 <td><span class="status-badge info">${m.namespace}</span></td>
                                 <td><code style="font-size: 0.8rem;">${m.service}</code></td>
@@ -888,7 +952,7 @@ const SecurityDashboard = {
                                 </td>
                             </tr>
                         `;
-                    }).join('')}
+        }).join('')}
                 </tbody>
             </table>
         `;
