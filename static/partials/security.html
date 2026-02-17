@@ -20,19 +20,19 @@
 <!-- Cilium Network Stats -->
 <div class="cilium-stats-grid" id="cilium-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
     <div class="stat-box" style="border-color: var(--neon-purple, #a855f7);">
-        <div class="stat-value" id="cilium-total-ingress" style="color: var(--neon-purple, #a855f7);">-</div>
+        <div class="stat-value" id="cilium-total-ingress" style="color: var(--neon-purple, #a855f7);">0 B</div>
         <div class="stat-label">Ingress/s</div>
     </div>
     <div class="stat-box" style="border-color: var(--neon-blue, #3b82f6);">
-        <div class="stat-value" id="cilium-total-egress" style="color: var(--neon-blue, #3b82f6);">-</div>
+        <div class="stat-value" id="cilium-total-egress" style="color: var(--neon-blue, #3b82f6);">0 B</div>
         <div class="stat-label">Egress/s</div>
     </div>
     <div class="stat-box" style="border-color: var(--neon-teal, #14b8a6);">
-        <div class="stat-value" id="cilium-total-connections" style="color: var(--neon-teal, #14b8a6);">-</div>
+        <div class="stat-value" id="cilium-total-connections" style="color: var(--neon-teal, #14b8a6);">0</div>
         <div class="stat-label">Connections</div>
     </div>
     <div class="stat-box" style="border-color: var(--neon-pink, #ec4899);">
-        <div class="stat-value" id="cilium-monitored-services" style="color: var(--neon-pink, #ec4899);">-</div>
+        <div class="stat-value" id="cilium-monitored-services" style="color: var(--neon-pink, #ec4899);">0</div>
         <div class="stat-label">Services</div>
     </div>
 </div>
@@ -40,23 +40,23 @@
 <!-- Stats Cards -->
 <div class="security-stats-grid" id="security-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
     <div class="stat-box unhealthy">
-        <div class="stat-value" id="security-critical-vulns">-</div>
+        <div class="stat-value" id="security-critical-vulns">0</div>
         <div class="stat-label">Critical</div>
     </div>
     <div class="stat-box warning">
-        <div class="stat-value" id="security-high-vulns">-</div>
+        <div class="stat-value" id="security-high-vulns">0</div>
         <div class="stat-label">High</div>
     </div>
     <div class="stat-box info">
-        <div class="stat-value" id="security-medium-vulns">-</div>
+        <div class="stat-value" id="security-medium-vulns">0</div>
         <div class="stat-label">Medium</div>
     </div>
     <div class="stat-box healthy">
-        <div class="stat-value" id="security-low-vulns">-</div>
+        <div class="stat-value" id="security-low-vulns">0</div>
         <div class="stat-label">Low</div>
     </div>
     <div class="stat-box" style="border-color: var(--neon-cyan);">
-        <div class="stat-value" id="security-total-vulns" style="color: var(--neon-cyan);">-</div>
+        <div class="stat-value" id="security-total-vulns" style="color: var(--neon-cyan);">0</div>
         <div class="stat-label">Total</div>
     </div>
 </div>
