@@ -11,9 +11,15 @@ use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 
 /// Get current weather for multiple cities
-///
-/// # Endpoint
-/// GET /api/weather/current
+#[utoipa::path(
+    get,
+    path = "/api/weather/current",
+    responses(
+        (status = 200, description = "Weather data retrieved successfully"),
+        (status = 500, description = "Failed to retrieve weather")
+    ),
+    tag = "weather"
+)]
 pub async fn get_weather_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Weather request received");
 

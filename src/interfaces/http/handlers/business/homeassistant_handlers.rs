@@ -11,9 +11,15 @@ use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 
 /// Get sensors from Home Assistant
-///
-/// # Endpoint
-/// GET /api/ha/sensors
+#[utoipa::path(
+    get,
+    path = "/api/ha/sensors",
+    responses(
+        (status = 200, description = "Sensors retrieved successfully"),
+        (status = 500, description = "Failed to fetch sensors")
+    ),
+    tag = "homeassistant"
+)]
 pub async fn get_sensors_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("HomeAssistant sensors request received");
 
@@ -39,9 +45,15 @@ pub async fn get_sensors_handler(State(state): State<AppState>) -> impl IntoResp
 }
 
 /// Get devices from Home Assistant
-///
-/// # Endpoint
-/// GET /api/ha/devices
+#[utoipa::path(
+    get,
+    path = "/api/ha/devices",
+    responses(
+        (status = 200, description = "Devices retrieved successfully"),
+        (status = 500, description = "Failed to fetch devices")
+    ),
+    tag = "homeassistant"
+)]
 pub async fn get_devices_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("HomeAssistant devices request received");
 
@@ -67,9 +79,15 @@ pub async fn get_devices_handler(State(state): State<AppState>) -> impl IntoResp
 }
 
 /// Get automations from Home Assistant
-///
-/// # Endpoint
-/// GET /api/ha/automations
+#[utoipa::path(
+    get,
+    path = "/api/ha/automations",
+    responses(
+        (status = 200, description = "Automations retrieved successfully"),
+        (status = 500, description = "Failed to fetch automations")
+    ),
+    tag = "homeassistant"
+)]
 pub async fn get_automations_handler() -> impl IntoResponse {
     debug!("HomeAssistant automations request received");
 

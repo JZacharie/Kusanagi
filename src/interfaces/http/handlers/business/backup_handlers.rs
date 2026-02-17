@@ -15,9 +15,15 @@ use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 
 /// Get backups status
-///
-/// # Endpoint
-/// GET /api/backups
+#[utoipa::path(
+    get,
+    path = "/api/backups",
+    responses(
+        (status = 200, description = "Backups status retrieved successfully"),
+        (status = 500, description = "Failed to retrieve backups status")
+    ),
+    tag = "backups"
+)]
 pub async fn get_backups_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Backups status request received");
 
@@ -40,9 +46,19 @@ pub async fn get_backups_handler(State(state): State<AppState>) -> impl IntoResp
 }
 
 /// Trigger a backup
-///
-/// # Endpoint
-/// POST /api/backups/{namespace}/{name}/trigger
+#[utoipa::path(
+    post,
+    path = "/api/backups/{namespace}/{name}/trigger",
+    params(
+        ("namespace" = String, Path, description = "Namespace of the CronJob"),
+        ("name" = String, Path, description = "Name of the CronJob")
+    ),
+    responses(
+        (status = 200, description = "Backup triggered successfully"),
+        (status = 500, description = "Failed to trigger backup")
+    ),
+    tag = "backups"
+)]
 pub async fn trigger_backup_handler(
     State(state): State<AppState>,
     Path((namespace, name)): Path<(String, String)>,
