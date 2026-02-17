@@ -15,16 +15,22 @@ use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 
 /// Path parameters for getting a specific report
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
 pub struct ReportPath {
     pub category: String,
     pub name: String,
 }
 
 /// Get security summary
-///
-/// # Endpoint
-/// GET /api/security/summary
+#[utoipa::path(
+    get,
+    path = "/api/security/summary",
+    responses(
+        (status = 200, description = "Security summary retrieved successfully"),
+        (status = 500, description = "Failed to retrieve security summary")
+    ),
+    tag = "security"
+)]
 pub async fn get_security_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Security summary request received");
 
@@ -51,9 +57,15 @@ pub async fn get_security_handler(State(state): State<AppState>) -> impl IntoRes
 }
 
 /// Get list of all security reports
-///
-/// # Endpoint
-/// GET /api/security/reports
+#[utoipa::path(
+    get,
+    path = "/api/security/reports",
+    responses(
+        (status = 200, description = "Security reports retrieved successfully"),
+        (status = 500, description = "Failed to retrieve security reports")
+    ),
+    tag = "security"
+)]
 pub async fn get_security_reports_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Security reports list request received");
 
@@ -70,9 +82,15 @@ pub async fn get_security_reports_handler(State(state): State<AppState>) -> impl
 }
 
 /// Get vulnerabilities summary
-///
-/// # Endpoint
-/// GET /api/security/vulnerabilities
+#[utoipa::path(
+    get,
+    path = "/api/security/vulnerabilities",
+    responses(
+        (status = 200, description = "Vulnerabilities retrieved successfully"),
+        (status = 500, description = "Failed to retrieve vulnerabilities")
+    ),
+    tag = "security"
+)]
 pub async fn get_vulnerabilities_handler(State(state): State<AppState>) -> impl IntoResponse {
     debug!("Security vulnerabilities request received");
 
@@ -102,9 +120,19 @@ pub async fn get_vulnerabilities_handler(State(state): State<AppState>) -> impl 
 }
 
 /// Get a specific security report
-///
-/// # Endpoint
-/// GET /api/security/reports/{category}/{name}
+#[utoipa::path(
+    get,
+    path = "/api/security/reports/{category}/{name}",
+    params(
+        ("category" = String, Path, description = "Report category"),
+        ("name" = String, Path, description = "Report name")
+    ),
+    responses(
+        (status = 200, description = "Security report retrieved successfully"),
+        (status = 404, description = "Report not found")
+    ),
+    tag = "security"
+)]
 pub async fn get_security_report_handler(
     State(state): State<AppState>,
     Path(path): Path<ReportPath>,

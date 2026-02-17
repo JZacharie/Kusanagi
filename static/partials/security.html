@@ -1,63 +1,131 @@
 <!-- security section -->
-<h2 class="section-title">🛡️ Security & Policies</h2>
+<h2 class="section-title">🛡️ Security Center</h2>
 
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
-    <a href="https://powerpipe.p.zacharie.org/kubernetes_compliance.benchmark.cis_v170" target="_blank"
-        class="cyber-btn"
-        style="border-color: var(--neon-cyan); color: var(--neon-cyan); text-decoration: none; display: flex; align-items: center; gap: 8px;">
-        <span>📜</span> CIS Compliance (Powerpipe)
+<!-- Quick Links -->
+<div class="security-quick-links" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+    <a href="https://powerpipe.p.zacharie.org/kubernetes_compliance.benchmark.cis_v170" target="_blank" class="cyber-btn"
+        style="border-color: var(--neon-cyan); color: var(--neon-cyan); text-decoration: none; display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
+        <span>📜</span> CIS Compliance
     </a>
+    <a href="https://trivy.p.zacharie.org" target="_blank" class="cyber-btn"
+        style="border-color: var(--neon-magenta); color: var(--neon-magenta); text-decoration: none; display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
+        <span>🔍</span> Trivy Server
+    </a>
+    <button onclick="SecurityDashboard.refreshAll()" class="cyber-btn"
+        style="border-color: var(--neon-green); color: var(--neon-green); display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
+        <span>🔄</span> Refresh All
+    </button>
 </div>
 
-<div class="argocd-stats" id="security-stats-grid" style="margin-bottom: 1.5rem;">
+<!-- Stats Cards -->
+<div class="security-stats-grid" id="security-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
     <div class="stat-box unhealthy">
         <div class="stat-value" id="security-critical-vulns">-</div>
-        <div class="stat-label">Critical Vulns</div>
+        <div class="stat-label">Critical</div>
     </div>
     <div class="stat-box warning">
         <div class="stat-value" id="security-high-vulns">-</div>
-        <div class="stat-label">High Vulns</div>
+        <div class="stat-label">High</div>
     </div>
     <div class="stat-box info">
-        <div class="stat-value" id="security-total-policies">-</div>
-        <div class="stat-label">Network Policies</div>
+        <div class="stat-value" id="security-medium-vulns">-</div>
+        <div class="stat-label">Medium</div>
     </div>
-    <div class="stat-box healthy" id="fence-status-box">
-        <div class="stat-value" id="fence-status-text">-</div>
-        <div class="stat-label">Fence Status</div>
+    <div class="stat-box healthy">
+        <div class="stat-value" id="security-low-vulns">-</div>
+        <div class="stat-label">Low</div>
+    </div>
+    <div class="stat-box" style="border-color: var(--neon-cyan);">
+        <div class="stat-value" id="security-total-vulns" style="color: var(--neon-cyan);">-</div>
+        <div class="stat-label">Total</div>
     </div>
 </div>
 
+<!-- Charts & Filters Row -->
+<div style="display: grid; grid-template-columns: 300px 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+    <!-- Vulnerability Chart -->
+    <div class="issues-table-container" style="border-color: var(--neon-orange);">
+        <div class="issues-table-header" style="background: rgba(255, 165, 0, 0.1); border-color: var(--neon-orange);">
+            <span class="issues-table-title" style="color: var(--neon-orange);">📊 Distribution</span>
+        </div>
+        <div id="security-chart-container" style="padding: 1rem; height: 200px; display: flex; align-items: center; justify-content: center;">
+            <canvas id="vuln-chart"></canvas>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="issues-table-container" style="border-color: var(--neon-blue, #4169e1);">
+        <div class="issues-table-header" style="background: rgba(65, 105, 225, 0.1); border-color: var(--neon-blue, #4169e1);">
+            <span class="issues-table-title" style="color: var(--neon-blue, #4169e1);">🔧 Filters</span>
+            <span id="last-updated" style="font-size: 0.75rem; color: #888;">Last updated: Never</span>
+        </div>
+        <div style="padding: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+            <div>
+                <label style="display: block; font-size: 0.75rem; color: #888; margin-bottom: 0.25rem;">Severity</label>
+                <select id="filter-severity" class="cyber-input small" onchange="SecurityDashboard.applyFilters()"
+                    style="background: rgba(0,0,0,0.5); color: var(--neon-cyan); border: 1px solid var(--neon-cyan);">
+                    <option value="all">All Severities</option>
+                    <option value="critical">Critical Only</option>
+                    <option value="high">High & Critical</option>
+                    <option value="medium">Medium+</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.75rem; color: #888; margin-bottom: 0.25rem;">Namespace</label>
+                <select id="filter-namespace" class="cyber-input small" onchange="SecurityDashboard.applyFilters()"
+                    style="background: rgba(0,0,0,0.5); color: var(--neon-cyan); border: 1px solid var(--neon-cyan);">
+                    <option value="all">All Namespaces</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.75rem; color: #888; margin-bottom: 0.25rem;">Search</label>
+                <input type="text" id="filter-search" class="cyber-input small" placeholder="Image name..."
+                    onkeyup="SecurityDashboard.applyFilters()"
+                    style="background: rgba(0,0,0,0.5); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); width: 200px;">
+            </div>
+            <div style="margin-left: auto; display: flex; gap: 0.5rem;">
+                <button onclick="SecurityDashboard.exportCSV()" class="cyber-btn small" title="Export to CSV">
+                    📥 CSV
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Selector -->
+<div id="security-report-selector" style="margin-bottom: 1rem;"></div>
+
+<!-- Vulnerabilities Table -->
 <div class="issues-table-container" style="border-color: var(--neon-magenta); margin-bottom: 1.5rem;">
     <div class="issues-table-header" style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
-        <span class="issues-table-title" style="color: var(--neon-magenta);">🔍 Container Vulnerabilities
-            (Trivy)</span>
-        <span class="issues-count" id="security-vuln-count" style="background: var(--neon-magenta);">0</span>
+        <span class="issues-table-title" style="color: var(--neon-magenta);">🔍 Container Vulnerabilities</span>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span id="filtered-count" style="font-size: 0.75rem; color: #888;"></span>
+            <span class="issues-count" id="security-vuln-count" style="background: var(--neon-magenta);">0</span>
+        </div>
     </div>
     <div id="security-vulns-content">
         <div class="loading">Loading vulnerability reports...</div>
     </div>
 </div>
 
-<div class="issues-table-container" style="border-color: var(--neon-cyan); margin-bottom: 1.5rem;">
-    <div class="issues-table-header" style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
-        <span class="issues-table-title" style="color: var(--neon-cyan);">🛡️ Network Policies (Cilium)</span>
-        <span class="issues-count" id="security-policies-count" style="background: var(--neon-cyan);">0</span>
+<!-- Summary by Namespace -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+    <div class="issues-table-container" style="border-color: var(--neon-cyan);">
+        <div class="issues-table-header" style="background: rgba(0, 255, 255, 0.1); border-color: var(--neon-cyan);">
+            <span class="issues-table-title" style="color: var(--neon-cyan);">🏢 By Namespace</span>
+        </div>
+        <div id="security-by-namespace">
+            <div class="loading">Loading...</div>
+        </div>
     </div>
-    <div id="security-policies-content">
-        <div class="loading">Loading network policies...</div>
-    </div>
-</div>
 
-<div class="issues-table-container" style="border-color: var(--neon-yellow, #ffff00);">
-    <div class="issues-table-header"
-        style="background: rgba(255, 255, 0, 0.1); border-color: var(--neon-yellow, #ffff00);">
-        <span class="issues-table-title" style="color: var(--neon-yellow, #ffff00);">⚖️ Policy Violations
-            (Kyverno)</span>
-        <span class="issues-count" id="security-violations-count"
-            style="background: var(--neon-yellow, #ffff00);">0</span>
-    </div>
-    <div id="security-violations-content">
-        <div class="loading">Loading policy reports...</div>
+    <div class="issues-table-container" style="border-color: var(--neon-yellow, #ffff00);">
+        <div class="issues-table-header" style="background: rgba(255, 255, 0, 0.1); border-color: var(--neon-yellow, #ffff00);">
+            <span class="issues-table-title" style="color: var(--neon-yellow, #ffff00);">⚠️ Top Risk Images</span>
+        </div>
+        <div id="security-top-risk">
+            <div class="loading">Loading...</div>
+        </div>
     </div>
 </div>

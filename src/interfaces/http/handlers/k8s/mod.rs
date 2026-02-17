@@ -10,6 +10,15 @@ use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 
 /// Cluster overview endpoint
+#[utoipa::path(
+    get,
+    path = "/api/k8s/cluster",
+    responses(
+        (status = 200, description = "Cluster overview retrieved successfully"),
+        (status = 500, description = "Failed to retrieve cluster overview")
+    ),
+    tag = "kubernetes"
+)]
 pub async fn cluster_overview(State(state): State<AppState>) -> Response {
     match kubernetes_service::get_cluster_overview(
         &state.http_client,
@@ -24,6 +33,15 @@ pub async fn cluster_overview(State(state): State<AppState>) -> Response {
 }
 
 /// Nodes status endpoint
+#[utoipa::path(
+    get,
+    path = "/api/k8s/nodes",
+    responses(
+        (status = 200, description = "Nodes status retrieved successfully"),
+        (status = 500, description = "Failed to retrieve nodes status")
+    ),
+    tag = "kubernetes"
+)]
 pub async fn nodes_status(State(state): State<AppState>) -> Response {
     match kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache).await {
         Ok(data) => api_success(json!(data)),
@@ -32,6 +50,15 @@ pub async fn nodes_status(State(state): State<AppState>) -> Response {
 }
 
 /// Nodes debug/diagnostic endpoint
+#[utoipa::path(
+    get,
+    path = "/api/debug/nodes",
+    responses(
+        (status = 200, description = "Node debug info retrieved successfully"),
+        (status = 500, description = "Failed to retrieve node debug info")
+    ),
+    tag = "kubernetes"
+)]
 pub async fn nodes_debug(State(state): State<AppState>) -> Response {
     use crate::domain::services::kubernetes_service::fetch_node_metrics;
 
@@ -82,6 +109,15 @@ pub async fn nodes_debug(State(state): State<AppState>) -> Response {
 }
 
 /// Pods status endpoint
+#[utoipa::path(
+    get,
+    path = "/api/k8s/pods",
+    responses(
+        (status = 200, description = "Pods status retrieved successfully"),
+        (status = 500, description = "Failed to retrieve pods status")
+    ),
+    tag = "kubernetes"
+)]
 pub async fn pods_status(State(state): State<AppState>) -> Response {
     match kubernetes_service::get_pods_status(&state.k8s_cache).await {
         Ok(data) => api_success(json!(data)),
@@ -90,6 +126,15 @@ pub async fn pods_status(State(state): State<AppState>) -> Response {
 }
 
 /// Storage endpoint
+#[utoipa::path(
+    get,
+    path = "/api/storage",
+    responses(
+        (status = 200, description = "Storage info retrieved successfully"),
+        (status = 500, description = "Failed to retrieve storage info")
+    ),
+    tag = "kubernetes"
+)]
 pub async fn storage(State(state): State<AppState>) -> Response {
     match kubernetes_service::get_storage(&state.http_client).await {
         Ok(data) => api_success(json!(data)),
@@ -98,6 +143,15 @@ pub async fn storage(State(state): State<AppState>) -> Response {
 }
 
 /// Ingress endpoint
+#[utoipa::path(
+    get,
+    path = "/api/ingress",
+    responses(
+        (status = 200, description = "Ingresses retrieved successfully"),
+        (status = 500, description = "Failed to fetch ingress")
+    ),
+    tag = "kubernetes"
+)]
 pub async fn ingress(State(state): State<AppState>) -> Response {
     use crate::domain::services::kubernetes_service::get_ingress;
 
@@ -108,6 +162,15 @@ pub async fn ingress(State(state): State<AppState>) -> Response {
 }
 
 /// Services endpoint
+#[utoipa::path(
+    get,
+    path = "/api/services",
+    responses(
+        (status = 200, description = "Services retrieved successfully"),
+        (status = 500, description = "Failed to fetch services")
+    ),
+    tag = "kubernetes"
+)]
 pub async fn services(State(state): State<AppState>) -> Response {
     use crate::domain::services::kubernetes_service::get_services;
 
@@ -125,9 +188,10 @@ pub async fn services(State(state): State<AppState>) -> Response {
     get,
     path = "/api/argocd/status",
     responses(
-        (status = 200, description = "ArgoCD status retrieved successfully", body = Object),
-        (status = 500, description = "Internal server error")
-    )
+        (status = 200, description = "ArgoCD status retrieved successfully"),
+        (status = 500, description = "Failed to retrieve ArgoCD status")
+    ),
+    tag = "kubernetes"
 )]
 pub async fn argocd_status(State(state): State<AppState>) -> Response {
     use crate::domain::services::argocd_service::get_argocd_status;
@@ -139,7 +203,19 @@ pub async fn argocd_status(State(state): State<AppState>) -> Response {
 }
 
 /// Pod logs endpoint
-/// Note: Returns raw text, not JSON envelope, as logs are text-based
+#[utoipa::path(
+    get,
+    path = "/api/k8s/pods/{namespace}/{name}/logs",
+    params(
+        ("namespace" = String, Path, description = "Pod namespace"),
+        ("name" = String, Path, description = "Pod name")
+    ),
+    responses(
+        (status = 200, description = "Pod logs retrieved successfully"),
+        (status = 404, description = "Failed to fetch logs")
+    ),
+    tag = "kubernetes"
+)]
 pub async fn pod_logs(Path((namespace, name)): Path<(String, String)>) -> impl IntoResponse {
     use crate::domain::services::kubernetes_service::get_pod_logs;
 
@@ -154,6 +230,15 @@ pub async fn pod_logs(Path((namespace, name)): Path<(String, String)>) -> impl I
 }
 
 /// Delete pods in error state
+#[utoipa::path(
+    post,
+    path = "/api/pods/delete-error-pods",
+    responses(
+        (status = 200, description = "Error pods deleted successfully"),
+        (status = 500, description = "Failed to delete error pods")
+    ),
+    tag = "kubernetes"
+)]
 pub async fn delete_error_pods_handler() -> Response {
     use crate::domain::services::kubernetes_service::delete_error_pods;
 
@@ -162,12 +247,23 @@ pub async fn delete_error_pods_handler() -> Response {
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
-#[derive(serde::Deserialize)]
+
+#[derive(serde::Deserialize, utoipa::ToSchema)]
 pub struct SyncAppRequest {
     pub app_name: String,
 }
 
 /// Trigger ArgoCD app sync
+#[utoipa::path(
+    post,
+    path = "/api/argocd/sync",
+    request_body = SyncAppRequest,
+    responses(
+        (status = 200, description = "ArgoCD sync triggered successfully"),
+        (status = 500, description = "Failed to trigger sync")
+    ),
+    tag = "kubernetes"
+)]
 pub async fn argocd_sync(
     State(_state): State<AppState>,
     axum::Json(payload): axum::Json<SyncAppRequest>,

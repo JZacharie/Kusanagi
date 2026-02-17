@@ -23,9 +23,18 @@ pub struct AlertsQuery {
 }
 
 /// Get active alerts
-///
-/// # Endpoint
-/// GET /api/alerts
+#[utoipa::path(
+    get,
+    path = "/api/alerts",
+    params(
+        ("refresh" = bool, Query, description = "Force refresh of alerts data")
+    ),
+    responses(
+        (status = 200, description = "Alerts retrieved successfully"),
+        (status = 500, description = "Failed to retrieve alerts")
+    ),
+    tag = "alerts"
+)]
 pub async fn get_alerts_handler(
     State(state): State<AppState>,
     Query(query): Query<AlertsQuery>,
