@@ -17,6 +17,26 @@
     </button>
 </div>
 
+<!-- Cilium Network Stats -->
+<div class="cilium-stats-grid" id="cilium-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="stat-box" style="border-color: var(--neon-purple, #a855f7);">
+        <div class="stat-value" id="cilium-total-ingress" style="color: var(--neon-purple, #a855f7);">-</div>
+        <div class="stat-label">Ingress/s</div>
+    </div>
+    <div class="stat-box" style="border-color: var(--neon-blue, #3b82f6);">
+        <div class="stat-value" id="cilium-total-egress" style="color: var(--neon-blue, #3b82f6);">-</div>
+        <div class="stat-label">Egress/s</div>
+    </div>
+    <div class="stat-box" style="border-color: var(--neon-teal, #14b8a6);">
+        <div class="stat-value" id="cilium-total-connections" style="color: var(--neon-teal, #14b8a6);">-</div>
+        <div class="stat-label">Connections</div>
+    </div>
+    <div class="stat-box" style="border-color: var(--neon-pink, #ec4899);">
+        <div class="stat-value" id="cilium-monitored-services" style="color: var(--neon-pink, #ec4899);">-</div>
+        <div class="stat-label">Services</div>
+    </div>
+</div>
+
 <!-- Stats Cards -->
 <div class="security-stats-grid" id="security-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
     <div class="stat-box unhealthy">
@@ -95,6 +115,21 @@
 <!-- Report Selector -->
 <div id="security-report-selector" style="margin-bottom: 1rem;"></div>
 
+<!-- Report Detail Modal -->
+<div id="report-detail-modal" class="cyber-modal" style="display: none;">
+    <div class="cyber-modal-content" style="max-width: 90%; width: 1200px; max-height: 85vh;">
+        <div class="cyber-modal-header" style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
+            <h3 style="color: var(--neon-magenta); margin: 0;">📊 Security Report Detail</h3>
+            <span class="cyber-modal-close" onclick="SecurityDashboard.closeReportModal()">&times;</span>
+        </div>
+        <div class="cyber-modal-body" style="overflow-y: auto; max-height: calc(85vh - 80px);">
+            <div id="report-detail-content">
+                <div class="loading">Loading report...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Vulnerabilities Table -->
 <div class="issues-table-container" style="border-color: var(--neon-magenta); margin-bottom: 1.5rem;">
     <div class="issues-table-header" style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
@@ -106,6 +141,17 @@
     </div>
     <div id="security-vulns-content">
         <div class="loading">Loading vulnerability reports...</div>
+    </div>
+</div>
+
+<!-- Cilium Network Metrics -->
+<div class="issues-table-container" style="border-color: var(--neon-purple, #a855f7); margin-bottom: 1.5rem;">
+    <div class="issues-table-header" style="background: rgba(168, 85, 247, 0.1); border-color: var(--neon-purple, #a855f7);">
+        <span class="issues-table-title" style="color: var(--neon-purple, #a855f7);">🌐 Cilium Network Metrics</span>
+        <span id="cilium-metrics-count" style="background: var(--neon-purple, #a855f7);" class="issues-count">0</span>
+    </div>
+    <div id="cilium-metrics-content">
+        <div class="loading">Loading network metrics...</div>
     </div>
 </div>
 

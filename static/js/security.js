@@ -86,6 +86,14 @@ const SecurityDashboard = {
             this.data = vulns;
             this.filteredData = { ...vulns };
 
+            // Fetch Cilium metrics in parallel
+            let ciliumMetrics = [];
+            try {
+                ciliumMetrics = await api.get('/api/cilium/metrics');
+            } catch (e) {
+                console.warn('Failed to fetch Cilium metrics:', e);
+            }
+
             // Fetch available reports
             try {
                 const reportsData = await api.get('/api/security/reports');
@@ -103,6 +111,7 @@ const SecurityDashboard = {
             this.renderVulnerabilities(vulns);
             this.renderByNamespace(vulns);
             this.renderTopRisk(vulns);
+            this.renderCiliumMetrics(ciliumMetrics);
             this.updateLastUpdated();
 
         } catch (error) {
@@ -119,7 +128,8 @@ const SecurityDashboard = {
         const containers = [
             'security-vulns-content',
             'security-by-namespace',
-            'security-top-risk'
+            'security-top-risk',
+            'cilium-metrics-content'
         ];
         containers.forEach(id => {
             const el = document.getElementById(id);
@@ -267,20 +277,233 @@ const SecurityDashboard = {
             return;
         }
 
+        // Si c'est juste un tableau de strings (noms de rapports)
+        const isStringArray = typeof reports[0] === 'string';
+        
         container.innerHTML = `
-            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 0.75rem; display: flex; align-items: center; gap: 1rem;">
-                <span style="color: var(--neon-cyan); font-size: 0.9rem;">📊 Report History:</span>
-                <select id="report-select" class="cyber-input small" onchange="SecurityDashboard.loadReport(this.value)"
-                    style="flex: 1; background: rgba(0,0,0,0.5); color: var(--neon-cyan); border: 1px solid var(--neon-cyan);">
-                    <option value="">Current Scan</option>
-                    ${reports.map(r => `
-                        <option value="${r.report_id || r.category + '/' + r.name}">
-                            ${r.report_id || r.name} (${new Date(r.timestamp || r.date).toLocaleString()})
-                        </option>
-                    `).join('')}
-                </select>
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                    <span style="color: var(--neon-cyan); font-size: 0.9rem; font-weight: bold;">📊 Available Reports (${reports.length})</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.5rem; max-height: 150px; overflow-y: auto;">
+                    ${reports.map((r, index) => {
+                        const reportId = isStringArray ? r : (r.report_id || r.name);
+                        const reportName = isStringArray ? r.split('/').pop() : (r.name || r.report_id);
+                        const category = isStringArray ? r.split('/')[0] : (r.category || 'general');
+                        const date = !isStringArray && r.timestamp ? new Date(r.timestamp).toLocaleString() : '';
+                        
+                        return `
+                            <div onclick="SecurityDashboard.viewReportDetail('${reportId}')" 
+                                 class="report-card" 
+                                 style="cursor: pointer; padding: 0.5rem; background: rgba(0,255,255,0.05); border: 1px solid rgba(0,255,255,0.2); border-radius: 4px; transition: all 0.2s;"
+                                 onmouseover="this.style.background='rgba(0,255,255,0.1)'; this.style.borderColor='var(--neon-cyan)'" 
+                                 onmouseout="this.style.background='rgba(0,255,255,0.05)'; this.style.borderColor='rgba(0,255,255,0.2)'">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span style="font-size: 1.2rem;">📄</span>
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-size: 0.85rem; color: var(--neon-cyan); font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${reportName}">${reportName}</div>
+                                        <div style="font-size: 0.7rem; color: #888;">${category}${date ? ' • ' + date : ''}</div>
+                                    </div>
+                                    <span style="color: var(--neon-magenta); font-size: 0.8rem;">→</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
             </div>
         `;
+    },
+
+    async viewReportDetail(reportId) {
+        const modal = document.getElementById('report-detail-modal');
+        const content = document.getElementById('report-detail-content');
+        
+        if (!modal || !content) return;
+        
+        modal.style.display = 'flex';
+        content.innerHTML = '<div class="loading">Loading report details...</div>';
+        
+        try {
+            // Parse category/name from reportId
+            const parts = reportId.split('/');
+            let url;
+            if (parts.length >= 2) {
+                const category = parts[0];
+                const name = parts.slice(1).join('/');
+                url = `/api/security/reports/${encodeURIComponent(category)}/${encodeURIComponent(name)}`;
+            } else {
+                // Si c'est juste un ID simple
+                url = `/api/security/reports/general/${encodeURIComponent(reportId)}`;
+            }
+            
+            const report = await api.get(url);
+            this.renderReportDetail(report, reportId);
+        } catch (error) {
+            console.error('Failed to load report:', error);
+            content.innerHTML = `
+                <div style="padding: 2rem; text-align: center;">
+                    <span style="font-size: 3rem;">❌</span>
+                    <h3 style="color: #ff4444; margin: 1rem 0;">Failed to load report</h3>
+                    <p style="color: #888;">${error.message || 'Unknown error'}</p>
+                    <button onclick="SecurityDashboard.viewReportDetail('${reportId}')" class="cyber-btn" style="margin-top: 1rem;">Retry</button>
+                </div>
+            `;
+        }
+    },
+
+    renderReportDetail(report, reportId) {
+        const content = document.getElementById('report-detail-content');
+        if (!content) return;
+
+        const enrichment = report.enrichment || {};
+        const originalData = report.original_data || {};
+        const vulnerabilities = originalData.vulnerabilities || [];
+        const metadata = originalData.metadata || {};
+        
+        // Compter les vulnérabilités par sévérité
+        const severityCount = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, UNKNOWN: 0 };
+        vulnerabilities.forEach(v => {
+            const sev = (v.severity || 'UNKNOWN').toUpperCase();
+            if (severityCount[sev] !== undefined) {
+                severityCount[sev]++;
+            } else {
+                severityCount.UNKNOWN++;
+            }
+        });
+
+        content.innerHTML = `
+            <div style="padding: 1rem;">
+                <!-- Header -->
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <div>
+                        <h2 style="margin: 0 0 0.5rem 0; color: var(--neon-cyan);">${report.name || reportId}</h2>
+                        <div style="color: #888; font-size: 0.9rem;">
+                            <span style="margin-right: 1rem;">📁 ${report.report_type || 'Security Report'}</span>
+                            <span>🕐 ${report.timestamp ? new Date(report.timestamp).toLocaleString() : 'N/A'}</span>
+                        </div>
+                    </div>
+                    ${report.enrichment ? `
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.8rem; color: #888;">AI Criticality Score</div>
+                            <div style="font-size: 2rem; font-weight: bold; color: ${this.getScoreColor(enrichment.criticality_score || 0)};">
+                                ${(enrichment.criticality_score || 0).toFixed(1)}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- AI Enrichment -->
+                ${report.enrichment ? `
+                    <div style="background: rgba(255,0,128,0.05); border: 1px solid rgba(255,0,128,0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0 0 1rem 0; color: var(--neon-magenta);">🤖 AI Analysis</h3>
+                        ${enrichment.summary ? `
+                            <div style="margin-bottom: 1rem;">
+                                <div style="font-size: 0.8rem; color: #888; margin-bottom: 0.25rem;">Summary</div>
+                                <div style="color: #fff; line-height: 1.5;">${enrichment.summary}</div>
+                            </div>
+                        ` : ''}
+                        ${enrichment.remediation_advice ? `
+                            <div>
+                                <div style="font-size: 0.8rem; color: #888; margin-bottom: 0.25rem;">Remediation Advice</div>
+                                <div style="color: #fff; line-height: 1.5; white-space: pre-wrap;">${enrichment.remediation_advice}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ''}
+
+                <!-- Severity Summary -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: rgba(255,68,68,0.1); border: 1px solid #ff4444; border-radius: 8px; padding: 1rem; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #ff4444;">${severityCount.CRITICAL}</div>
+                        <div style="font-size: 0.8rem; color: #888;">Critical</div>
+                    </div>
+                    <div style="background: rgba(255,136,0,0.1); border: 1px solid #ff8800; border-radius: 8px; padding: 1rem; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #ff8800;">${severityCount.HIGH}</div>
+                        <div style="font-size: 0.8rem; color: #888;">High</div>
+                    </div>
+                    <div style="background: rgba(255,221,0,0.1); border: 1px solid #ffdd00; border-radius: 8px; padding: 1rem; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #ffdd00;">${severityCount.MEDIUM}</div>
+                        <div style="font-size: 0.8rem; color: #888;">Medium</div>
+                    </div>
+                    <div style="background: rgba(68,255,68,0.1); border: 1px solid #44ff44; border-radius: 8px; padding: 1rem; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #44ff44;">${severityCount.LOW}</div>
+                        <div style="font-size: 0.8rem; color: #888;">Low</div>
+                    </div>
+                </div>
+
+                <!-- Vulnerabilities List -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--neon-cyan);">🔍 Vulnerabilities (${vulnerabilities.length})</h3>
+                    ${vulnerabilities.length === 0 ? 
+                        '<div style="color: #888; text-align: center; padding: 2rem;">No vulnerabilities found in this report</div>' :
+                        `<div style="max-height: 400px; overflow-y: auto;">
+                            ${vulnerabilities.map((v, i) => this.renderVulnerabilityItem(v, i)).join('')}
+                        </div>`
+                    }
+                </div>
+
+                <!-- Metadata -->
+                ${Object.keys(metadata).length > 0 ? `
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1rem;">
+                        <h3 style="margin: 0 0 0.5rem 0; color: #888; font-size: 0.9rem;">📋 Metadata</h3>
+                        <pre style="margin: 0; color: #aaa; font-size: 0.8rem; overflow-x: auto;">${JSON.stringify(metadata, null, 2)}</pre>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    renderVulnerabilityItem(vuln, index) {
+        const severity = (vuln.severity || 'UNKNOWN').toUpperCase();
+        const colors = {
+            CRITICAL: '#ff4444',
+            HIGH: '#ff8800',
+            MEDIUM: '#ffdd00',
+            LOW: '#44ff44',
+            UNKNOWN: '#888'
+        };
+        const color = colors[severity] || colors.UNKNOWN;
+        
+        const vulnId = vuln.vulnerability_id || vuln.id || `vuln-${index}`;
+        const pkgName = vuln.pkg_name || vuln.package_name || 'Unknown Package';
+        const installedVer = vuln.installed_version || vuln.version || 'N/A';
+        const fixedVer = vuln.fixed_version || vuln.fixed_in || null;
+        const title = vuln.title || vuln.name || 'No title';
+        const description = vuln.description || vuln.summary || '';
+        
+        return `
+            <div style="background: rgba(0,0,0,0.3); border-left: 3px solid ${color}; margin-bottom: 0.5rem; border-radius: 0 4px 4px 0; overflow: hidden;">
+                <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'" 
+                     style="cursor: pointer; padding: 0.75rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="background: ${color}; color: #000; padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.7rem; font-weight: bold;">${severity}</span>
+                    <span style="font-family: monospace; font-size: 0.8rem; color: var(--neon-cyan);">${vulnId}</span>
+                    <span style="flex: 1; color: #fff; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</span>
+                    <span style="color: #888; font-size: 0.8rem;">▼</span>
+                </div>
+                <div style="display: none; padding: 0 0.75rem 0.75rem 0.75rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div style="margin-top: 0.5rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.75rem; font-size: 0.85rem;">
+                            <div><span style="color: #888;">Package:</span> <code>${pkgName}</code></div>
+                            <div><span style="color: #888;">Installed:</span> <code>${installedVer}</code></div>
+                        </div>
+                        ${fixedVer ? `<div style="margin-bottom: 0.75rem; font-size: 0.85rem;"><span style="color: #888;">Fixed in:</span> <code style="color: #44ff44;">${fixedVer}</code></div>` : ''}
+                        ${description ? `<div style="color: #ccc; font-size: 0.85rem; line-height: 1.5;">${description}</div>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    getScoreColor(score) {
+        if (score >= 8) return '#ff4444';
+        if (score >= 6) return '#ff8800';
+        if (score >= 4) return '#ffdd00';
+        return '#44ff44';
+    },
+
+    closeReportModal() {
+        const modal = document.getElementById('report-detail-modal');
+        if (modal) modal.style.display = 'none';
     },
 
     async loadReport(reportId) {
@@ -555,6 +778,119 @@ const SecurityDashboard = {
         } catch (e) {
             return timestamp;
         }
+    },
+
+    // ========== Cilium Network Metrics ==========
+
+    renderCiliumMetrics(metrics) {
+        const container = document.getElementById('cilium-metrics-content');
+        const countEl = document.getElementById('cilium-metrics-count');
+        
+        if (!container) return;
+
+        // Handle empty or error case
+        if (!metrics || !Array.isArray(metrics) || metrics.length === 0) {
+            container.innerHTML = `
+                <div class="no-issues" style="padding: 2rem; text-align: center;">
+                    <span style="font-size: 2rem;">🌐</span>
+                    <p>No Cilium network metrics available</p>
+                    <p style="color: #888; font-size: 0.85rem; margin-top: 0.5rem;">
+                        Metrics require Cilium CNI with Hubble enabled
+                    </p>
+                </div>
+            `;
+            if (countEl) countEl.textContent = '0';
+            this.updateCiliumStats([]);
+            return;
+        }
+
+        if (countEl) countEl.textContent = metrics.length;
+
+        // Calculate totals for stats
+        this.updateCiliumStats(metrics);
+
+        // Sort by total bandwidth (ingress + egress)
+        const sorted = [...metrics].sort((a, b) => {
+            const totalA = (a.ingress_bytes_per_sec || 0) + (a.egress_bytes_per_sec || 0);
+            const totalB = (b.ingress_bytes_per_sec || 0) + (b.egress_bytes_per_sec || 0);
+            return totalB - totalA;
+        });
+
+        const table = `
+            <table class="issues-table" style="font-size: 0.9rem;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Namespace</th>
+                        <th style="text-align: left;">Service</th>
+                        <th style="text-align: right;">Ingress/s</th>
+                        <th style="text-align: right;">Egress/s</th>
+                        <th style="text-align: right;">Total/s</th>
+                        <th style="text-align: center;">Connections</th>
+                        <th>Utilization</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${sorted.map(m => {
+                        const ingress = m.ingress_bytes_per_sec || 0;
+                        const egress = m.egress_bytes_per_sec || 0;
+                        const total = ingress + egress;
+                        const connections = m.connection_count || 0;
+                        
+                        // Calculate utilization bar (max 10MB/s for 100%)
+                        const maxBandwidth = 10 * 1024 * 1024; // 10 MB/s
+                        const utilization = Math.min((total / maxBandwidth) * 100, 100);
+                        let barColor = '#44ff44';
+                        if (utilization > 75) barColor = '#ff4444';
+                        else if (utilization > 50) barColor = '#ff8800';
+                        else if (utilization > 25) barColor = '#ffdd00';
+
+                        return `
+                            <tr>
+                                <td><span class="status-badge info">${m.namespace}</span></td>
+                                <td><code style="font-size: 0.8rem;">${m.service}</code></td>
+                                <td style="text-align: right; font-family: monospace;">${this.formatBytes(ingress)}/s</td>
+                                <td style="text-align: right; font-family: monospace;">${this.formatBytes(egress)}/s</td>
+                                <td style="text-align: right; font-family: monospace; font-weight: bold; color: var(--neon-cyan);">${this.formatBytes(total)}/s</td>
+                                <td style="text-align: center;">
+                                    <span class="status-badge ${connections > 100 ? 'warning' : 'healthy'}">${connections}</span>
+                                </td>
+                                <td style="width: 100px;">
+                                    <div style="background: rgba(255,255,255,0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div style="background: ${barColor}; height: 100%; width: ${utilization}%; transition: width 0.3s;"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+
+        container.innerHTML = table;
+    },
+
+    updateCiliumStats(metrics) {
+        const totalIngress = metrics.reduce((sum, m) => sum + (m.ingress_bytes_per_sec || 0), 0);
+        const totalEgress = metrics.reduce((sum, m) => sum + (m.egress_bytes_per_sec || 0), 0);
+        const totalConnections = metrics.reduce((sum, m) => sum + (m.connection_count || 0), 0);
+
+        const ingressEl = document.getElementById('cilium-total-ingress');
+        const egressEl = document.getElementById('cilium-total-egress');
+        const connEl = document.getElementById('cilium-total-connections');
+        const svcEl = document.getElementById('cilium-monitored-services');
+
+        if (ingressEl) ingressEl.textContent = this.formatBytes(totalIngress);
+        if (egressEl) egressEl.textContent = this.formatBytes(totalEgress);
+        if (connEl) connEl.textContent = totalConnections.toLocaleString();
+        if (svcEl) svcEl.textContent = metrics.length.toString();
+    },
+
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 };
 
