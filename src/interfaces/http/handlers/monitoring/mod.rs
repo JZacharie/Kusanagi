@@ -681,12 +681,14 @@ async fn fetch_enphase_from_ha(client: &reqwest::Client) -> (f64, f64) {
                 }
             }
 
-            if entity_id.contains("consumption") || entity_id.contains("power_consumption") {
-                if !found_consumption && value > 0.0 && value < 1_000_000.0 {
-                    house_cons = value;
-                    found_consumption = true;
-                    tracing::info!("House consumption: {}W from {}", value, entity_id);
-                }
+            if (entity_id.contains("consumption") || entity_id.contains("power_consumption"))
+                && !found_consumption
+                && value > 0.0
+                && value < 1_000_000.0
+            {
+                house_cons = value;
+                found_consumption = true;
+                tracing::info!("House consumption: {}W from {}", value, entity_id);
             }
         }
     }
@@ -743,17 +745,18 @@ async fn fetch_gpu_from_hot_service(client: &reqwest::Client) -> GpuMetrics {
     tracing::debug!("GPU data extracted: {:?}", gpu_data);
 
     // Extract all metrics from the GPU data
-    let mut metrics = GpuMetrics::default();
-
-    metrics.utilization = gpu_data["utilization"].as_f64().unwrap_or(0.0);
-    metrics.temperature = gpu_data["temperature"].as_f64().unwrap_or(0.0);
-    metrics.power_draw = gpu_data["power_draw"].as_f64().unwrap_or(0.0);
-    metrics.memory_used = gpu_data["memory_used"].as_f64().unwrap_or(0.0);
-    metrics.memory_total = gpu_data["memory_total"].as_f64().unwrap_or(0.0);
-    metrics.memory_utilization = gpu_data["memory_utilization"].as_f64().unwrap_or(0.0);
-    metrics.fan_speed = gpu_data["fan_speed"].as_f64().unwrap_or(0.0);
-    metrics.clock_graphics = gpu_data["clock_graphics"].as_f64().unwrap_or(0.0);
-    metrics.clock_memory = gpu_data["clock_memory"].as_f64().unwrap_or(0.0);
+    let metrics = GpuMetrics {
+        utilization: gpu_data["utilization"].as_f64().unwrap_or(0.0),
+        temperature: gpu_data["temperature"].as_f64().unwrap_or(0.0),
+        power_draw: gpu_data["power_draw"].as_f64().unwrap_or(0.0),
+        memory_used: gpu_data["memory_used"].as_f64().unwrap_or(0.0),
+        memory_total: gpu_data["memory_total"].as_f64().unwrap_or(0.0),
+        memory_utilization: gpu_data["memory_utilization"].as_f64().unwrap_or(0.0),
+        fan_speed: gpu_data["fan_speed"].as_f64().unwrap_or(0.0),
+        clock_graphics: gpu_data["clock_graphics"].as_f64().unwrap_or(0.0),
+        clock_memory: gpu_data["clock_memory"].as_f64().unwrap_or(0.0),
+        ..Default::default()
+    };
 
     if metrics.utilization > 0.0 || metrics.temperature > 0.0 || metrics.power_draw > 0.0 {
         tracing::info!(
