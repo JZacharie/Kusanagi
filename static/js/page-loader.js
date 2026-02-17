@@ -130,7 +130,10 @@ const PageLoader = {
                 if (window.WeatherDashboard) WeatherDashboard.init();
                 break;
             case 'security':
-                if (window.SecurityDashboard) SecurityDashboard.init();
+                if (window.SecurityDashboard) {
+                    SecurityDashboard.init();
+                    SecurityDashboard.loadSecurityData();
+                }
                 break;
             case 'alerts':
                 if (window.AlertsManager) AlertsManager.init();
