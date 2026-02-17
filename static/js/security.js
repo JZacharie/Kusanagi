@@ -11,6 +11,27 @@ const SecurityDashboard = {
     init() {
         console.log('✅ Security Dashboard initialized');
         this.initChart();
+        this.setDefaultValues();
+    },
+
+    setDefaultValues() {
+        // Set default values for all stat elements
+        const defaultStats = {
+            'security-critical-vulns': '0',
+            'security-high-vulns': '0',
+            'security-medium-vulns': '0',
+            'security-low-vulns': '0',
+            'security-total-vulns': '0',
+            'cilium-total-ingress': '0 B',
+            'cilium-total-egress': '0 B',
+            'cilium-total-connections': '0',
+            'cilium-monitored-services': '0'
+        };
+
+        Object.entries(defaultStats).forEach(([id, value]) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        });
     },
 
     initChart() {
@@ -211,13 +232,17 @@ const SecurityDashboard = {
     },
 
     renderStats(vulns) {
+        // Ensure vulns is an object with default values
+        const data = vulns || {};
         const stats = {
-            critical: vulns.critical || 0,
-            high: vulns.high || 0,
-            medium: vulns.medium || 0,
-            low: vulns.low || 0,
-            total: vulns.total || 0
+            critical: data.critical ?? 0,
+            high: data.high ?? 0,
+            medium: data.medium ?? 0,
+            low: data.low ?? 0,
+            total: data.total ?? 0
         };
+
+        console.log('Rendering stats:', stats);
 
         Object.entries(stats).forEach(([key, value]) => {
             const el = document.getElementById(`security-${key}-vulns`);
@@ -226,6 +251,8 @@ const SecurityDashboard = {
                 // Add animation for changes
                 el.style.transform = 'scale(1.2)';
                 setTimeout(() => el.style.transform = 'scale(1)', 200);
+            } else {
+                console.warn(`Element security-${key}-vulns not found`);
             }
         });
 
@@ -870,19 +897,22 @@ const SecurityDashboard = {
     },
 
     updateCiliumStats(metrics) {
-        const totalIngress = metrics.reduce((sum, m) => sum + (m.ingress_bytes_per_sec || 0), 0);
-        const totalEgress = metrics.reduce((sum, m) => sum + (m.egress_bytes_per_sec || 0), 0);
-        const totalConnections = metrics.reduce((sum, m) => sum + (m.connection_count || 0), 0);
+        const data = metrics || [];
+        const totalIngress = data.reduce((sum, m) => sum + (m.ingress_bytes_per_sec || 0), 0);
+        const totalEgress = data.reduce((sum, m) => sum + (m.egress_bytes_per_sec || 0), 0);
+        const totalConnections = data.reduce((sum, m) => sum + (m.connection_count || 0), 0);
 
         const ingressEl = document.getElementById('cilium-total-ingress');
         const egressEl = document.getElementById('cilium-total-egress');
         const connEl = document.getElementById('cilium-total-connections');
         const svcEl = document.getElementById('cilium-monitored-services');
 
+        console.log('Updating Cilium stats:', { totalIngress, totalEgress, totalConnections, count: data.length });
+
         if (ingressEl) ingressEl.textContent = this.formatBytes(totalIngress);
         if (egressEl) egressEl.textContent = this.formatBytes(totalEgress);
         if (connEl) connEl.textContent = totalConnections.toLocaleString();
-        if (svcEl) svcEl.textContent = metrics.length.toString();
+        if (svcEl) svcEl.textContent = data.length.toString();
     },
 
     formatBytes(bytes) {
