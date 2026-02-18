@@ -190,7 +190,10 @@ const PageLoader = {
                 console.log('📰 News section loaded');
                 break;
             case 'mqtt':
-                if (window.MqttManager) MqttManager.init();
+                if (window.MqttManager) {
+                    MqttManager.init();
+                    MqttManager.loadData();
+                }
                 break;
         }
     },

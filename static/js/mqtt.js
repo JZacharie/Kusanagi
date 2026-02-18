@@ -5,14 +5,27 @@
 const MqttManager = {
     devices: [],
     messages: [],
+    topics: {},
     filter: '',
     isInitialized: false,
     messageBuffer: [],
+    lastUpdate: null,
 
     init: function () {
         if (this.isInitialized) return;
         console.log('✅ MqttManager initialized (no internal polling)');
+        this.setDefaultValues();
         this.isInitialized = true;
+    },
+
+    setDefaultValues: function() {
+        document.getElementById('mqtt-device-count').textContent = '0';
+        document.getElementById('mqtt-device-table-count').textContent = '0';
+        document.getElementById('mqtt-topic-count').textContent = '0';
+        document.getElementById('mqtt-topic-table-count').textContent = '0';
+        document.getElementById('mqtt-total-msg').textContent = '0';
+        document.getElementById('mqtt-msg-rate').textContent = '0';
+        document.getElementById('mqtt-last-update').textContent = '-';
     },
 
     // Alias pour TabManager
@@ -27,12 +40,17 @@ const MqttManager = {
                 api.get('/api/mqtt/messages')
             ]);
 
-            this.devices = devices;
-            this.messageBuffer = messages;
+            this.devices = Array.isArray(devices) ? devices : [];
+            this.messageBuffer = Array.isArray(messages) ? messages : [];
+            this.lastUpdate = new Date();
+
+            // Extract topic statistics
+            this.analyzeTopics();
 
             this.render();
         } catch (error) {
             console.error('Failed to fetch MQTT data:', error);
+            this.renderError('Failed to fetch MQTT data. Is the MQTT broker configured?');
         }
     },
 
@@ -40,8 +58,25 @@ const MqttManager = {
     // Polling via TabManager (every 30s) is sufficient
     
     refresh: async function() {
-        // Called by TabManager - fetch latest data
         return this.fetchInitialData();
+    },
+
+    analyzeTopics: function() {
+        this.topics = {};
+        this.messageBuffer.forEach(msg => {
+            const topic = msg.topic || 'unknown';
+            if (!this.topics[topic]) {
+                this.topics[topic] = {
+                    name: topic,
+                    count: 0,
+                    lastPayload: '',
+                    lastSeen: null
+                };
+            }
+            this.topics[topic].count++;
+            this.topics[topic].lastPayload = msg.payload;
+            this.topics[topic].lastSeen = msg.timestamp;
+        });
     },
 
     applyFilter: function () {
@@ -51,6 +86,7 @@ const MqttManager = {
 
     clearFlux: function () {
         this.messageBuffer = [];
+        this.analyzeTopics();
         this.render();
     },
 
@@ -58,18 +94,33 @@ const MqttManager = {
         this.renderStats();
         this.renderDevices();
         this.renderFlux();
+        this.renderTopics();
     },
 
     renderStats: function () {
         document.getElementById('mqtt-device-count').textContent = this.devices.length;
         document.getElementById('mqtt-device-table-count').textContent = this.devices.length;
+        
+        const topicCount = Object.keys(this.topics).length;
+        document.getElementById('mqtt-topic-count').textContent = topicCount;
+        document.getElementById('mqtt-topic-table-count').textContent = topicCount;
+        
         document.getElementById('mqtt-total-msg').textContent = this.messageBuffer.length;
 
-        // Simple rate calculation
+        // Simple rate calculation (messages in last minute)
         const now = new Date();
         const minAgo = new Date(now - 60000);
-        const rate = this.messageBuffer.filter(m => new Date(m.timestamp) > minAgo).length;
+        const rate = this.messageBuffer.filter(m => {
+            const msgTime = new Date(m.timestamp);
+            return msgTime > minAgo;
+        }).length;
         document.getElementById('mqtt-msg-rate').textContent = rate;
+
+        // Last update time
+        if (this.lastUpdate) {
+            const timeStr = this.lastUpdate.toLocaleTimeString();
+            document.getElementById('mqtt-last-update').textContent = timeStr;
+        }
     },
 
     renderDevices: function () {
@@ -77,23 +128,29 @@ const MqttManager = {
         if (!container) return;
 
         if (this.devices.length === 0) {
-            container.innerHTML = '<div class="no-issues">No devices detected yet.</div>';
+            container.innerHTML = `
+                <div class="no-issues" style="padding: 2rem; text-align: center;">
+                    <span style="font-size: 2rem;">📱</span>
+                    <p style="margin-top: 1rem;">No devices connected yet.</p>
+                    <p style="color: #888; font-size: 0.8rem;">Devices will appear when they publish messages.</p>
+                </div>
+            `;
             return;
         }
 
-        // Sort by last seen
-        const sorted = [...this.devices].sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen));
+        // Sort by last seen (most recent first)
+        const sorted = [...this.devices].sort((a, b) => b.last_seen - a.last_seen);
 
         container.innerHTML = sorted.map(dev => `
-            <div class="device-card" style="padding: 0.8rem; border-bottom: 1px solid rgba(0, 255, 249, 0.1); margin-bottom: 0.5rem; background: rgba(0,0,0,0.2);">
+            <div class="device-card" style="padding: 0.8rem; border-bottom: 1px solid rgba(0, 255, 249, 0.1); margin-bottom: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px;">
                 <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <strong style="color: var(--neon-cyan);">${dev.name}</strong>
-                    <span style="font-size: 0.7rem; opacity: 0.6;">${dev.message_count} msgs</span>
+                    <strong style="color: var(--neon-cyan);">${this.escapeHtml(dev.name)}</strong>
+                    <span style="font-size: 0.7rem; background: rgba(0,255,255,0.2); padding: 0.1rem 0.4rem; border-radius: 3px;">${dev.message_count} msgs</span>
                 </div>
-                <div style="font-size: 0.75rem; margin-top: 0.3rem; word-break: break-all;">
-                    <span style="opacity: 0.5;">Last:</span> ${dev.last_topic}
+                <div style="font-size: 0.75rem; margin-top: 0.3rem; word-break: break-all; color: #aaa;">
+                    <span style="opacity: 0.5;">Last topic:</span> ${this.escapeHtml(dev.last_topic)}
                 </div>
-                <div style="font-size: 0.7rem; margin-top: 0.2rem; text-align: right; opacity: 0.5;">
+                <div style="font-size: 0.7rem; margin-top: 0.2rem; text-align: right; opacity: 0.5; color: #666;">
                     ${this.formatTime(dev.last_seen)}
                 </div>
             </div>
@@ -107,37 +164,125 @@ const MqttManager = {
         let filtered = this.messageBuffer;
         if (this.filter) {
             filtered = this.messageBuffer.filter(m =>
-                m.topic.toLowerCase().includes(this.filter) ||
-                m.payload.toLowerCase().includes(this.filter)
+                (m.topic || '').toLowerCase().includes(this.filter) ||
+                (m.payload || '').toLowerCase().includes(this.filter)
             );
         }
 
         if (filtered.length === 0) {
-            container.innerHTML = '<div class="no-issues">No messages matching filter.</div>';
+            container.innerHTML = `
+                <div class="no-issues" style="padding: 2rem; text-align: center;">
+                    <span style="font-size: 2rem;">📡</span>
+                    <p style="margin-top: 1rem;">No messages to display.</p>
+                    ${this.filter ? '<p style="color: #888; font-size: 0.8rem;">Try clearing the filter.</p>' : '<p style="color: #888; font-size: 0.8rem;">Messages will appear here when received.</p>'}
+                </div>
+            `;
             return;
         }
 
-        container.innerHTML = filtered.map(msg => `
-            <div class="flux-line" style="margin-bottom: 0.2rem; border-left: 2px solid var(--neon-magenta); padding-left: 0.5rem;">
-                <span style="color: #888; font-size: 0.75rem;">[${this.formatTimeOnly(msg.timestamp)}]</span>
-                <span style="color: var(--neon-magenta); font-weight: bold;">${msg.topic}</span>
-                <span style="color: var(--neon-cyan); margin-left: 0.5rem;">${this.escapeHtml(msg.payload)}</span>
+        // Show last 100 messages only for performance
+        const recent = filtered.slice(0, 100);
+
+        container.innerHTML = recent.map(msg => {
+            const topic = msg.topic || 'unknown';
+            const payload = msg.payload || '';
+            const timestamp = msg.timestamp || 0;
+            
+            // Truncate long payloads
+            const displayPayload = payload.length > 200 ? payload.substring(0, 200) + '...' : payload;
+            
+            return `
+            <div class="flux-line" style="margin-bottom: 0.3rem; border-left: 2px solid var(--neon-magenta); padding-left: 0.5rem; font-size: 0.8rem;">
+                <span style="color: #888; font-size: 0.7rem;">[${this.formatTimeOnly(timestamp)}]</span>
+                <span style="color: var(--neon-magenta); font-weight: bold; cursor: pointer;" onclick="MqttManager.filterByTopic('${this.escapeHtml(topic)}')">${this.escapeHtml(topic)}</span>
+                <span style="color: var(--neon-cyan); margin-left: 0.5rem; word-break: break-all;">${this.escapeHtml(displayPayload)}</span>
+            </div>
+        `}).join('');
+    },
+
+    renderTopics: function() {
+        const container = document.getElementById('mqtt-topics-content');
+        if (!container) return;
+
+        const topicList = Object.values(this.topics);
+
+        if (topicList.length === 0) {
+            container.innerHTML = `
+                <div class="no-issues" style="padding: 2rem; text-align: center;">
+                    <span style="font-size: 2rem;">🏷️</span>
+                    <p style="margin-top: 1rem;">No topics yet.</p>
+                    <p style="color: #888; font-size: 0.8rem;">Topics will appear as messages are received.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Sort by message count (descending)
+        const sorted = topicList.sort((a, b) => b.count - a.count);
+
+        container.innerHTML = sorted.map(topic => `
+            <div class="topic-card" style="padding: 0.6rem; border-bottom: 1px solid rgba(168, 85, 247, 0.1); margin-bottom: 0.3rem; background: rgba(0,0,0,0.2); border-radius: 4px; cursor: pointer;"
+                 onclick="MqttManager.filterByTopic('${this.escapeHtml(topic.name)}')"
+                 onmouseover="this.style.background='rgba(168,85,247,0.1)'" 
+                 onmouseout="this.style.background='rgba(0,0,0,0.2)'">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.75rem; color: var(--neon-purple); font-weight: bold; word-break: break-all; flex: 1;">${this.escapeHtml(topic.name)}</span>
+                    <span style="font-size: 0.7rem; background: rgba(168,85,247,0.3); padding: 0.1rem 0.4rem; border-radius: 3px; margin-left: 0.5rem;">${topic.count}</span>
+                </div>
+                <div style="font-size: 0.65rem; color: #666; margin-top: 0.2rem;">
+                    Last: ${this.formatTime(topic.lastSeen)}
+                </div>
             </div>
         `).join('');
     },
 
+    filterByTopic: function(topic) {
+        document.getElementById('mqtt-filter-input').value = topic;
+        this.filter = topic.toLowerCase();
+        this.render();
+    },
+
+    renderError: function(message) {
+        const containers = ['mqtt-devices-content', 'mqtt-flux-content', 'mqtt-topics-content'];
+        containers.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.innerHTML = `
+                    <div style="padding: 2rem; text-align: center;">
+                        <span style="font-size: 2rem;">❌</span>
+                        <p style="color: #ff4444; margin-top: 1rem;">${message}</p>
+                        <button onclick="MqttManager.refresh()" class="cyber-btn" style="margin-top: 1rem;">🔄 Retry</button>
+                    </div>
+                `;
+            }
+        });
+    },
+
     formatTime: function (ts) {
         if (!ts) return 'never';
-        const date = new Date(ts);
-        return date.toLocaleString();
+        try {
+            // Handle both milliseconds and seconds timestamps
+            const timestamp = ts > 1000000000000 ? ts : ts * 1000;
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        } catch (e) {
+            return 'invalid';
+        }
     },
 
     formatTimeOnly: function (ts) {
-        const date = new Date(ts);
-        return date.toLocaleTimeString();
+        if (!ts) return '--:--:--';
+        try {
+            const timestamp = ts > 1000000000000 ? ts : ts * 1000;
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString();
+        } catch (e) {
+            return '--:--:--';
+        }
     },
 
     escapeHtml: function (unsafe) {
+        if (!unsafe) return '';
         return unsafe
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -159,7 +304,6 @@ const MqttManager = {
         const container = document.getElementById('mqtt-modal-log-content');
         if (!container) return;
 
-        // Show only the last 30 messages
         const last30 = this.messageBuffer.slice(0, 30);
 
         if (last30.length === 0) {
@@ -170,8 +314,8 @@ const MqttManager = {
         container.innerHTML = last30.map(msg => `
             <div style="border-bottom: 1px solid rgba(255, 0, 128, 0.1); padding: 0.5rem 0;">
                 <span style="color: #888; font-size: 0.8rem;">[${this.formatTimeOnly(msg.timestamp)}]</span>
-                <span style="color: var(--neon-magenta); font-weight: bold;">${msg.topic}</span>
-                <div style="color: var(--neon-cyan); margin-left: 1rem; word-break: break-all;">${this.escapeHtml(msg.payload)}</div>
+                <span style="color: var(--neon-magenta); font-weight: bold;">${this.escapeHtml(msg.topic || 'unknown')}</span>
+                <div style="color: var(--neon-cyan); margin-left: 1rem; word-break: break-all; font-size: 0.85rem;">${this.escapeHtml(msg.payload || '')}</div>
             </div>
         `).join('');
     }
