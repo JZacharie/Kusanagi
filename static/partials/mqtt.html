@@ -1,22 +1,31 @@
 <!-- mqtt section -->
 <h2 class="section-title">📡 MQTT Monitoring</h2>
 
-<div class="argocd-stats" id="mqtt-stats-grid" style="margin-bottom: 1.5rem;">
+<!-- Stats Grid -->
+<div class="argocd-stats" id="mqtt-stats-grid" style="margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
     <div class="stat-box info">
-        <div class="stat-value" id="mqtt-device-count">-</div>
+        <div class="stat-value" id="mqtt-device-count">0</div>
         <div class="stat-label">Devices</div>
     </div>
+    <div class="stat-box" style="border-color: var(--neon-purple, #a855f7);">
+        <div class="stat-value" id="mqtt-topic-count" style="color: var(--neon-purple, #a855f7);">0</div>
+        <div class="stat-label">Topics</div>
+    </div>
     <div class="stat-box healthy">
-        <div class="stat-value" id="mqtt-total-msg">-</div>
+        <div class="stat-value" id="mqtt-total-msg">0</div>
         <div class="stat-label">Total Messages</div>
     </div>
     <div class="stat-box warning">
-        <div class="stat-value" id="mqtt-msg-rate">-</div>
+        <div class="stat-value" id="mqtt-msg-rate">0</div>
         <div class="stat-label">Msg/Min</div>
+    </div>
+    <div class="stat-box" style="border-color: var(--neon-green, #22c55e);">
+        <div class="stat-value" id="mqtt-last-update" style="color: var(--neon-green, #22c55e); font-size: 0.9rem;">-</div>
+        <div class="stat-label">Last Update</div>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem; height: calc(100vh - 280px);">
+<div style="display: grid; grid-template-columns: 350px 1fr 300px; gap: 1.5rem; height: calc(100vh - 300px);">
     <!-- Left: Devices List -->
     <div class="issues-table-container" style="border-color: var(--neon-cyan); display: flex; flex-direction: column;">
         <div class="issues-table-header" style="background: rgba(0, 255, 249, 0.1); border-color: var(--neon-cyan);">
@@ -28,42 +37,47 @@
         </div>
     </div>
 
-    <!-- Right: Message Flux -->
-    <div class="issues-table-container"
-        style="border-color: var(--neon-magenta); display: flex; flex-direction: column;">
-        <div class="issues-table-header"
-            style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta); justify-content: space-between;">
+    <!-- Middle: Message Flux -->
+    <div class="issues-table-container" style="border-color: var(--neon-magenta); display: flex; flex-direction: column;">
+        <div class="issues-table-header" style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta); justify-content: space-between;">
             <div>
                 <span class="issues-table-title" style="color: var(--neon-magenta);">📡 Message Flux</span>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <input type="text" id="mqtt-filter-input" placeholder="Filter..." class="cyber-input small"
-                    onkeyup="MqttManager.applyFilter()">
+                <input type="text" id="mqtt-filter-input" placeholder="Filter topics..." class="cyber-input small" onkeyup="MqttManager.applyFilter()">
                 <button class="cyber-btn small" onclick="MqttManager.clearFlux()">🗑️ Clear</button>
                 <button class="cyber-btn small" onclick="MqttManager.openLogsModal()">📜 Logs</button>
             </div>
         </div>
-        <div id="mqtt-flux-content"
-            style="flex: 1; overflow-y: auto; padding: 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: rgba(0,0,0,0.3);">
+        <div id="mqtt-flux-content" style="flex: 1; overflow-y: auto; padding: 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: rgba(0,0,0,0.3);">
             <div class="loading">Waiting for messages...</div>
+        </div>
+    </div>
+
+    <!-- Right: Topics Summary -->
+    <div class="issues-table-container" style="border-color: var(--neon-purple, #a855f7); display: flex; flex-direction: column;">
+        <div class="issues-table-header" style="background: rgba(168, 85, 247, 0.1); border-color: var(--neon-purple, #a855f7);">
+            <span class="issues-table-title" style="color: var(--neon-purple, #a855f7);">🏷️ Topics</span>
+            <span class="issues-count" id="mqtt-topic-table-count" style="background: var(--neon-purple, #a855f7);">0</span>
+        </div>
+        <div id="mqtt-topics-content" style="flex: 1; overflow-y: auto; padding: 0.5rem;">
+            <div class="loading">Loading topics...</div>
         </div>
     </div>
 </div>
 
+<!-- Logs Modal -->
 <div id="mqtt-logs-modal" class="cyber-modal" style="display: none;">
     <div class="cyber-modal-content" style="max-width: 90%; width: 1000px; max-height: 80vh;">
         <div class="cyber-modal-header">
             <h3>📡 MQTT Real-time Logs (Last 30)</h3>
             <span class="cyber-modal-close" onclick="MqttManager.closeLogsModal()">&times;</span>
         </div>
-        <div class="cyber-modal-body"
-            style="background: rgba(0, 0, 0, 0.8); padding: 1rem; border: 1px solid var(--neon-magenta);">
+        <div class="cyber-modal-body" style="background: rgba(0, 0, 0, 0.8); padding: 1rem; border: 1px solid var(--neon-magenta);">
             <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                <button class="cyber-btn" style="padding: 5px 15px;" onclick="MqttManager.renderLogsModalContent()">🔄
-                    Refresh</button>
+                <button class="cyber-btn" style="padding: 5px 15px;" onclick="MqttManager.renderLogsModalContent()">🔄 Refresh</button>
             </div>
-            <div id="mqtt-modal-log-content"
-                style="height: 50vh; overflow-y: auto; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; margin: 0;">
+            <div id="mqtt-modal-log-content" style="height: 50vh; overflow-y: auto; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; margin: 0;">
                 <!-- MQTT log lines go here -->
             </div>
         </div>
