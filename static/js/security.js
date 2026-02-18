@@ -102,42 +102,58 @@ const SecurityDashboard = {
             // Show loading
             this.renderLoading();
 
-            // Fetch vulnerabilities
-            const vulns = await api.get('/api/security/vulnerabilities');
-            this.data = vulns;
-            this.filteredData = { ...vulns };
+            const promises = [
+                api.get('/api/security/vulnerabilities').catch(e => ({ error: e, type: 'vulns' })),
+                api.get('/api/cilium/metrics').catch(e => ({ error: e, type: 'cilium' })),
+                api.get('/api/security/reports').catch(e => ({ error: e, type: 'reports' }))
+            ];
 
-            // Fetch Cilium metrics in parallel
-            let ciliumMetrics = [];
-            try {
-                ciliumMetrics = await api.get('/api/cilium/metrics');
-            } catch (e) {
-                console.warn('Failed to fetch Cilium metrics:', e);
+            const results = await Promise.allSettled(promises);
+
+            // Process Vulnerabilities
+            const vulnsResult = results[0];
+            if (vulnsResult.status === 'fulfilled' && !vulnsResult.value.error) {
+                const vulns = vulnsResult.value;
+                this.data = vulns;
+                this.filteredData = { ...vulns };
+
+                // Extract namespaces for filter
+                this.extractNamespaces(vulns.images || []);
+
+                // Update UI
+                this.renderStats(vulns);
+                this.renderChart(vulns);
+                this.renderVulnerabilities(vulns);
+                this.renderByNamespace(vulns);
+                this.renderTopRisk(vulns);
+            } else {
+                console.error('Failed to fetch vulnerabilities:', vulnsResult.value?.error || vulnsResult.reason);
+                this.renderSecurityError('Security service unavailable. Please check configuration.');
             }
 
-            // Fetch available reports
-            try {
-                const reportsData = await api.get('/api/security/reports');
-                this.renderReportSelector(reportsData || []);
-            } catch (e) {
-                console.warn('Failed to fetch reports list:', e);
+            // Process Cilium Metrics
+            const ciliumResult = results[1];
+            if (ciliumResult.status === 'fulfilled' && !ciliumResult.value.error) {
+                this.renderCiliumMetrics(ciliumResult.value);
+            } else {
+                console.warn('Failed to fetch Cilium metrics:', ciliumResult.value?.error || ciliumResult.reason);
+                const container = document.getElementById('cilium-metrics-content');
+                if (container) container.innerHTML = '<div class="no-issues" style="color: #666;">Metrics unavailable</div>';
             }
 
-            // Extract namespaces for filter
-            this.extractNamespaces(vulns.images || []);
+            // Process Reports
+            const reportsResult = results[2];
+            if (reportsResult.status === 'fulfilled' && !reportsResult.value.error) {
+                this.renderReportSelector(reportsResult.value || []);
+            } else {
+                console.warn('Failed to fetch reports list:', reportsResult.value?.error || reportsResult.reason);
+            }
 
-            // Update UI
-            this.renderStats(vulns);
-            this.renderChart(vulns);
-            this.renderVulnerabilities(vulns);
-            this.renderByNamespace(vulns);
-            this.renderTopRisk(vulns);
-            this.renderCiliumMetrics(ciliumMetrics);
             this.updateLastUpdated();
 
         } catch (error) {
-            console.error('Failed to fetch security data:', error);
-            this.renderSecurityError('Security service unavailable. Please check configuration.');
+            console.error('Critical failure in security dashboard:', error);
+            this.renderSecurityError('Dashboard initialization failed.');
         }
     },
 
