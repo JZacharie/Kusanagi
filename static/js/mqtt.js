@@ -18,14 +18,19 @@ const MqttManager = {
         this.isInitialized = true;
     },
 
-    setDefaultValues: function() {
-        document.getElementById('mqtt-device-count').textContent = '0';
-        document.getElementById('mqtt-device-table-count').textContent = '0';
-        document.getElementById('mqtt-topic-count').textContent = '0';
-        document.getElementById('mqtt-topic-table-count').textContent = '0';
-        document.getElementById('mqtt-total-msg').textContent = '0';
-        document.getElementById('mqtt-msg-rate').textContent = '0';
-        document.getElementById('mqtt-last-update').textContent = '-';
+    _setText: function (id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    },
+
+    setDefaultValues: function () {
+        this._setText('mqtt-device-count', '0');
+        this._setText('mqtt-device-table-count', '0');
+        this._setText('mqtt-topic-count', '0');
+        this._setText('mqtt-topic-table-count', '0');
+        this._setText('mqtt-total-msg', '0');
+        this._setText('mqtt-msg-rate', '0');
+        this._setText('mqtt-last-update', '-');
     },
 
     // Alias pour TabManager
@@ -56,12 +61,12 @@ const MqttManager = {
 
     // Note: Real-time WebSocket updates not implemented in backend
     // Polling via TabManager (every 30s) is sufficient
-    
-    refresh: async function() {
+
+    refresh: async function () {
         return this.fetchInitialData();
     },
 
-    analyzeTopics: function() {
+    analyzeTopics: function () {
         this.topics = {};
         this.messageBuffer.forEach(msg => {
             const topic = msg.topic || 'unknown';
@@ -80,8 +85,11 @@ const MqttManager = {
     },
 
     applyFilter: function () {
-        this.filter = document.getElementById('mqtt-filter-input').value.toLowerCase();
-        this.render();
+        const input = document.getElementById('mqtt-filter-input');
+        if (input) {
+            this.filter = input.value.toLowerCase();
+            this.render();
+        }
     },
 
     clearFlux: function () {
@@ -98,14 +106,14 @@ const MqttManager = {
     },
 
     renderStats: function () {
-        document.getElementById('mqtt-device-count').textContent = this.devices.length;
-        document.getElementById('mqtt-device-table-count').textContent = this.devices.length;
-        
+        this._setText('mqtt-device-count', this.devices.length);
+        this._setText('mqtt-device-table-count', this.devices.length);
+
         const topicCount = Object.keys(this.topics).length;
-        document.getElementById('mqtt-topic-count').textContent = topicCount;
-        document.getElementById('mqtt-topic-table-count').textContent = topicCount;
-        
-        document.getElementById('mqtt-total-msg').textContent = this.messageBuffer.length;
+        this._setText('mqtt-topic-count', topicCount);
+        this._setText('mqtt-topic-table-count', topicCount);
+
+        this._setText('mqtt-total-msg', this.messageBuffer.length);
 
         // Simple rate calculation (messages in last minute)
         const now = new Date();
@@ -114,12 +122,12 @@ const MqttManager = {
             const msgTime = new Date(m.timestamp);
             return msgTime > minAgo;
         }).length;
-        document.getElementById('mqtt-msg-rate').textContent = rate;
+        this._setText('mqtt-msg-rate', rate);
 
         // Last update time
         if (this.lastUpdate) {
             const timeStr = this.lastUpdate.toLocaleTimeString();
-            document.getElementById('mqtt-last-update').textContent = timeStr;
+            this._setText('mqtt-last-update', timeStr);
         }
     },
 
@@ -187,10 +195,10 @@ const MqttManager = {
             const topic = msg.topic || 'unknown';
             const payload = msg.payload || '';
             const timestamp = msg.timestamp || 0;
-            
+
             // Truncate long payloads
             const displayPayload = payload.length > 200 ? payload.substring(0, 200) + '...' : payload;
-            
+
             return `
             <div class="flux-line" style="margin-bottom: 0.3rem; border-left: 2px solid var(--neon-magenta); padding-left: 0.5rem; font-size: 0.8rem;">
                 <span style="color: #888; font-size: 0.7rem;">[${this.formatTimeOnly(timestamp)}]</span>
@@ -200,7 +208,7 @@ const MqttManager = {
         `}).join('');
     },
 
-    renderTopics: function() {
+    renderTopics: function () {
         const container = document.getElementById('mqtt-topics-content');
         if (!container) return;
 
@@ -236,13 +244,14 @@ const MqttManager = {
         `).join('');
     },
 
-    filterByTopic: function(topic) {
-        document.getElementById('mqtt-filter-input').value = topic;
+    filterByTopic: function (topic) {
+        const input = document.getElementById('mqtt-filter-input');
+        if (input) input.value = topic;
         this.filter = topic.toLowerCase();
         this.render();
     },
 
-    renderError: function(message) {
+    renderError: function (message) {
         const containers = ['mqtt-devices-content', 'mqtt-flux-content', 'mqtt-topics-content'];
         containers.forEach(id => {
             const el = document.getElementById(id);
@@ -292,12 +301,14 @@ const MqttManager = {
     },
 
     openLogsModal: function () {
-        document.getElementById('mqtt-logs-modal').style.display = 'flex';
+        const modal = document.getElementById('mqtt-logs-modal');
+        if (modal) modal.style.display = 'flex';
         this.renderLogsModalContent();
     },
 
     closeLogsModal: function () {
-        document.getElementById('mqtt-logs-modal').style.display = 'none';
+        const modal = document.getElementById('mqtt-logs-modal');
+        if (modal) modal.style.display = 'none';
     },
 
     renderLogsModalContent: function () {
