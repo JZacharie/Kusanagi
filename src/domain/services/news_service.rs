@@ -4,6 +4,12 @@ use chrono::{DateTime, Duration, Utc};
 use reqwest::Client;
 use serde_json::{json, Value};
 
+use crate::domain::entities::llm::{LlmConfig, LlmProvider};
+use crate::domain::services::llm_service::LlmService;
+use futures::stream::{FuturesUnordered, StreamExt};
+use std::sync::Arc;
+use tokio::sync::Semaphore;
+
 const CACHE_KEY: &str = "news/cache.json";
 const CACHE_DAYS: i64 = 7;
 
@@ -111,6 +117,9 @@ async fn fetch_fresh_news() -> Result<Value, String> {
         let date_b = b["published_at"].as_str().unwrap_or("");
         date_b.cmp(date_a)
     });
+
+    // Translate news items to French
+    all_news = translate_news_items(all_news).await;
 
     let response = if all_news.is_empty() {
         tracing::warn!("⚠️  No news fetched - using fallback mock data");
@@ -642,6 +651,67 @@ fn strip_tags(text: &str) -> String {
         }
     }
     result
+}
+
+async fn translate_news_items(items: Vec<Value>) -> Vec<Value> {
+    tracing::info!("🌐 Translating {} news items to French via LiteLLM...", items.len());
+
+    let mut config = LlmConfig::default();
+    config.provider = LlmProvider::Litellm;
+    config.base_url = std::env::var("NEWS_LLM_URL").unwrap_or_else(|_| "http://ip.zacharie.org:4000".to_string());
+    config.api_key = Some(std::env::var("NEWS_LLM_API_KEY").unwrap_or_else(|_| "sk-_RvgpIOa1V3lXLs3Ok3Rxw".to_string()));
+    config.model = std::env::var("NEWS_LLM_MODEL").unwrap_or_else(|_| "gpt-oss-120b".to_string());
+    config.temperature = 0.3;
+    config.max_tokens = 2000;
+
+    let llm_service = Arc::new(LlmService::with_config(config));
+    let semaphore = Arc::new(Semaphore::new(10)); // Max 10 concurrent requests
+
+    let mut tasks = FuturesUnordered::new();
+
+    for mut item in items.into_iter() {
+        let llm_service = Arc::clone(&llm_service);
+        let semaphore = Arc::clone(&semaphore);
+
+        tasks.push(tokio::spawn(async move {
+            let _permit = semaphore.acquire().await.unwrap();
+
+            let title = item["title"].as_str().unwrap_or("").to_string();
+            let description = item["description"].as_str().unwrap_or("").to_string();
+
+            if !title.is_empty() {
+                let prompt = format!("Translate the following news title to French. Return ONLY the translated text, no comments, no quotes:\n\n{}", title);
+                if let Ok(translated_title) = llm_service.complete(&prompt).await {
+                    item["title"] = json!(translated_title);
+                }
+            }
+
+            if !description.is_empty() {
+                let prompt = format!("Translate the following news description to French. Return ONLY the translated text, no comments, no quotes:\n\n{}", description);
+                if let Ok(translated_desc) = llm_service.complete(&prompt).await {
+                    item["description"] = json!(translated_desc);
+                }
+            }
+
+            item
+        }));
+    }
+
+    let mut translated_items = Vec::new();
+    while let Some(result) = tasks.next().await {
+        if let Ok(item) = result {
+            translated_items.push(item);
+        }
+    }
+
+    // Re-sort since FuturesUnordered can change order
+    translated_items.sort_by(|a, b| {
+        let date_a = a["published_at"].as_str().unwrap_or("");
+        let date_b = b["published_at"].as_str().unwrap_or("");
+        date_b.cmp(date_a)
+    });
+
+    translated_items
 }
 
 fn get_fallback_news() -> Vec<Value> {
