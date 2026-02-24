@@ -121,6 +121,7 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/argocd/status", get(argocd_status))
         .route("/api/argocd/sync", post(argocd_sync))
         .route("/api/news", get(news))
+        .route("/api/news/refresh", post(news_refresh))
         // Kubernetes routes - canonical paths only
         // Use /api/k8s/* paths (not legacy /api/cluster/overview, /api/nodes/status, /api/pods/status)
         // Monitoring routes
