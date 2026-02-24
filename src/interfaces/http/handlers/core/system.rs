@@ -45,3 +45,28 @@ pub async fn news() -> impl IntoResponse {
         .into_response(),
     }
 }
+
+/// Force refresh news cache
+#[utoipa::path(
+    post,
+    path = "/api/news/refresh",
+    responses(
+        (status = 200, description = "News refreshed successfully", body = serde_json::Value),
+        (status = 500, description = "Failed to refresh news")
+    )
+)]
+pub async fn news_refresh() -> impl IntoResponse {
+    match crate::domain::services::news_service::force_refresh().await {
+        Ok(news) => Json(json!({
+            "status": "success",
+            "message": "News refresh and translation started in background or completed",
+            "items": news["items"],
+            "cached_at": news["cached_at"],
+            "sources": news["sources"]
+        })).into_response(),
+        Err(e) => Json(json!({
+            "status": "error",
+            "message": e
+        })).into_response(),
+    }
+}
