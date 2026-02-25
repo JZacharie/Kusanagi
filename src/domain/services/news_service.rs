@@ -10,25 +10,22 @@ use futures::stream::{FuturesUnordered, StreamExt};
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 
-const CACHE_KEY: &str = "news/cache.json";
+const CACHE_PREFIX: &str = "news/";
 const CACHE_DAYS: i64 = 7;
 
 pub async fn get_news() -> Result<Value, String> {
-    tracing::debug!("📰 News service: Attempting to get news");
+    tracing::debug!("📰 News service: Attempting to get news from daily caches");
 
-    // Try to get from S3 cache first
-    match get_cached_news().await {
-        Ok(cached) => {
-            tracing::info!("✅ News cache HIT - returning cached data");
-            return Ok(cached);
+    match get_aggregated_news().await {
+        Ok(news) if !news["items"].as_array().map(|a| a.is_empty()).unwrap_or(true) => {
+            tracing::info!("✅ News cache aggregate HIT - returning consolidated data");
+            Ok(news)
         }
-        Err(e) => {
-            tracing::warn!("⚠️  News cache MISS: {} - fetching fresh news", e);
+        _ => {
+            tracing::warn!("⚠️  News cache aggregate MISS/Empty - fetching fresh news");
+            fetch_fresh_news().await
         }
     }
-
-    // Cache miss or expired, fetch fresh news
-    fetch_fresh_news().await
 }
 
 pub async fn force_refresh() -> Result<Value, String> {
@@ -121,6 +118,7 @@ async fn fetch_fresh_news() -> Result<Value, String> {
     // Translate news items to French
     all_news = translate_news_items(all_news).await;
 
+    // Aggregated news is ready, but we need to COMMIT per day
     let response = if all_news.is_empty() {
         tracing::warn!("⚠️  No news fetched - using fallback mock data");
         json!({
@@ -129,7 +127,7 @@ async fn fetch_fresh_news() -> Result<Value, String> {
             "source": "fallback"
         })
     } else {
-        // Collect unique sources from items for dynamic frontend
+        // Collect unique sources
         let mut sources: Vec<String> = all_news
             .iter()
             .filter_map(|item| item["source"].as_str().map(|s| s.to_string()))
@@ -150,92 +148,154 @@ async fn fetch_fresh_news() -> Result<Value, String> {
         })
     };
 
-    // Store in S3 cache (fire and forget)
-    let response_clone = response.clone();
-    tokio::spawn(async move {
-        tracing::debug!("💾 Storing news cache to S3");
-        match store_cached_news(response_clone).await {
-            Ok(_) => tracing::info!("✅ News cache stored successfully in S3"),
-            Err(e) if e.contains("XMinioStorageFull") => {
-                tracing::warn!("⚠️  S3 Storage full: could not cache news items (non-critical)");
-            }
-            Err(e) => {
-                tracing::error!("❌ Failed to update news cache in S3: {}", e);
-            }
-        }
-    });
+    // Commit to daily files
+    commit_news_to_daily_files(all_news).await;
 
     Ok(response)
 }
 
-async fn get_cached_news() -> Result<Value, String> {
-    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
-    tracing::debug!("🔍 Checking S3 cache: bucket={}, key={}", bucket, CACHE_KEY);
+async fn commit_news_to_daily_files(items: Vec<Value>) {
+    let mut by_day: std::collections::HashMap<String, Vec<Value>> = std::collections::HashMap::new();
 
-    let s3_client = create_s3_client().await?;
-    let endpoint_bkp = std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170:9010".to_string());
-
-    let result = s3_client
-        .get_object()
-        .bucket(&bucket)
-        .key(CACHE_KEY)
-        .send()
-        .await
-        .map_err(|e| {
-            tracing::error!("❌ S3 get_object failed: {} (Endpoint: {})", e, endpoint_bkp);
-            format!("S3 get error: {}", e)
-        })?;
-
-    let body = result.body.collect().await.map_err(|e| {
-        tracing::debug!("S3 get_object failed: {:?}", e);
-        format!("S3 get error: {:?}", e)
-    })?;
-
-    let cached: Value = serde_json::from_slice(&body.into_bytes())
-        .map_err(|e| format!("JSON parse error: {}", e))?;
-
-    // Check if cache is still valid (1 hour)
-    if let Some(cached_at_str) = cached["cached_at"].as_str() {
-        if let Ok(cached_at) = DateTime::parse_from_rfc3339(cached_at_str) {
-            let age = Utc::now().signed_duration_since(cached_at.with_timezone(&Utc));
-            if age < Duration::hours(1) {
-                tracing::info!("✅ Cache valid (age: {} minutes)", age.num_minutes());
-                return Ok(cached);
-            } else {
-                tracing::warn!("⏰ Cache expired (age: {} minutes > 60)", age.num_minutes());
-                return Err("Cache expired".to_string());
+    for item in items {
+        if let Some(published_at) = item["published_at"].as_str() {
+            if let Ok(dt) = DateTime::parse_from_rfc3339(published_at) {
+                let day = dt.format("%Y-%m-%d").to_string();
+                by_day.entry(day).or_default().push(item);
             }
         }
     }
 
-    tracing::warn!("⚠️  Cache has no valid timestamp");
-    Err("Cache expired".to_string())
+    for (day, day_items) in by_day {
+        let key = format!("{}{}.json", CACHE_PREFIX, day);
+        let day_items_clone = day_items.clone();
+        let key_clone = key.clone();
+
+        tokio::spawn(async move {
+            if let Err(e) = merge_and_store_daily_cache(&key_clone, day_items_clone).await {
+                tracing::error!("❌ Failed to commit daily cache for {}: {}", key_clone, e);
+            } else {
+                tracing::info!("✅ Daily cache committed successfully: {}", key_clone);
+            }
+        });
+    }
 }
 
-async fn store_cached_news(data: Value) -> Result<(), String> {
-    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
-    tracing::debug!("💾 Storing to S3: bucket={}, key={}", bucket, CACHE_KEY);
-
+async fn merge_and_store_daily_cache(key: &str, new_items: Vec<Value>) -> Result<(), String> {
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
     let s3_client = create_s3_client().await?;
 
-    let json_bytes =
-        serde_json::to_vec(&data).map_err(|e| format!("JSON serialize error: {}", e))?;
+    // 1. Try to load existing
+    let existing_items = match get_cached_file(&s3_client, &bucket, key).await {
+        Ok(val) => val["items"].as_array().cloned().unwrap_or_default(),
+        Err(_) => Vec::new(),
+    };
+
+    // 2. Merge and deduplicate by URL
+    let mut merged = existing_items;
+    for item in new_items {
+        let url = item["url"].as_str().unwrap_or("");
+        if !merged.iter().any(|existing| existing["url"].as_str().unwrap_or("") == url) {
+            merged.push(item);
+        }
+    }
+
+    // 3. Keep it sorted
+    merged.sort_by(|a, b| {
+        let date_a = a["published_at"].as_str().unwrap_or("");
+        let date_b = b["published_at"].as_str().unwrap_or("");
+        date_b.cmp(date_a)
+    });
+
+    // 4. Store
+    let data = json!({
+        "items": merged,
+        "cached_at": Utc::now().to_rfc3339()
+    });
+
+    store_cached_file(&s3_client, &bucket, key, data).await
+}
+
+async fn get_aggregated_news() -> Result<Value, String> {
+    let now = Utc::now();
+    let mut all_items = Vec::new();
+
+    let s3_client = create_s3_client().await?;
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+
+    for i in 0..CACHE_DAYS {
+        let day = (now - Duration::days(i)).format("%Y-%m-%d").to_string();
+        let key = format!("{}{}.json", CACHE_PREFIX, day);
+
+        if let Ok(file_val) = get_cached_file(&s3_client, &bucket, &key).await {
+            if let Some(items) = file_val["items"].as_array() {
+                all_items.extend(items.iter().cloned());
+            }
+        }
+    }
+
+    // Sort by date descending
+    all_items.sort_by(|a, b| {
+        let date_a = a["published_at"].as_str().unwrap_or("");
+        let date_b = b["published_at"].as_str().unwrap_or("");
+        date_b.cmp(date_a)
+    });
+
+    let mut sources: Vec<String> = all_items
+        .iter()
+        .filter_map(|item| item["source"].as_str().map(|s| s.to_string()))
+        .collect();
+    sources.sort();
+    sources.dedup();
+
+    Ok(json!({
+        "items": all_items,
+        "cached_at": Utc::now().to_rfc3339(),
+        "sources": sources
+    }))
+}
+
+async fn get_cached_file(s3_client: &S3Client, bucket: &str, key: &str) -> Result<Value, String> {
+    let result = s3_client
+        .get_object()
+        .bucket(bucket)
+        .key(key)
+        .send()
+        .await
+        .map_err(|e| {
+            let endpoint = std::env::var("S3_ENDPOINT").unwrap_or_default();
+            let err_msg = format!("S3 get error for {} at {}: {}", key, endpoint, e);
+            tracing::error!("❌ {}", err_msg);
+            err_msg
+        })?;
+
+    let body = result.body.collect().await.map_err(|e| format!("S3 body error: {}", e))?;
+    let val: Value = serde_json::from_slice(&body.into_bytes()).map_err(|e| format!("JSON parse error: {}", e))?;
+    Ok(val)
+}
+
+async fn store_cached_file(s3_client: &S3Client, bucket: &str, key: &str, data: Value) -> Result<(), String> {
+    let json_bytes = serde_json::to_vec(&data).map_err(|e| format!("JSON serialize error: {}", e))?;
 
     s3_client
         .put_object()
-        .bucket(&bucket)
-        .key(CACHE_KEY)
+        .bucket(bucket)
+        .key(key)
         .body(json_bytes.into())
         .content_type("application/json")
         .send()
         .await
         .map_err(|e| {
-            tracing::error!("S3 put_object failed: {:?}", e);
-            format!("S3 put error: {:?}", e)
+            let endpoint = std::env::var("S3_ENDPOINT").unwrap_or_default();
+            let err_msg = format!("S3 put error for {} at {}: {}", key, endpoint, e);
+            tracing::error!("❌ {}", err_msg);
+            err_msg
         })?;
 
     Ok(())
 }
+
+// get_cached_news and store_cached_news removed in favor of daily file helpers
 
 async fn create_s3_client() -> Result<S3Client, String> {
     let endpoint =
@@ -254,9 +314,11 @@ async fn create_s3_client() -> Result<S3Client, String> {
 
     let config = aws_config::defaults(BehaviorVersion::latest())
         .region(aws_sdk_s3::config::Region::new(region))
-        .endpoint_url(endpoint)
+        .endpoint_url(&endpoint)
         .load()
         .await;
+
+    tracing::debug!("🛠️  Creating S3 client for endpoint: {}", endpoint);
 
     Ok(S3Client::from_conf(
         aws_sdk_s3::config::Builder::from(&config)
