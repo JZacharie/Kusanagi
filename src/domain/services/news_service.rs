@@ -659,14 +659,29 @@ async fn translate_news_items(items: Vec<Value>) -> Vec<Value> {
 
     let mut config = LlmConfig::default();
     config.provider = LlmProvider::Litellm;
-    config.base_url = std::env::var("NEWS_LLM_URL").unwrap_or_else(|_| "http://ip.zacharie.org:4000".to_string());
-    config.api_key = Some(std::env::var("NEWS_LLM_API_KEY").unwrap_or_else(|_| "sk-_RvgpIOa1V3lXLs3Ok3Rxw".to_string()));
-    config.model = std::env::var("NEWS_LLM_MODEL").unwrap_or_else(|_| "gpt-oss-120b".to_string());
+    config.base_url = std::env::var("NEWS_LLM_URL")
+        .or_else(|_| std::env::var("LLM_BASE_URL"))
+        .unwrap_or_else(|_| "http://ip.zacharie.org:4000".to_string());
+    config.api_key = std::env::var("NEWS_LLM_API_KEY")
+        .ok()
+        .or_else(|| std::env::var("LLM_API_KEY").ok())
+        .or_else(|| Some("sk-_RvgpIOa1V3lXLs3Ok3Rxw".to_string()));
+    config.model = std::env::var("NEWS_LLM_MODEL")
+        .or_else(|_| std::env::var("LLM_MODEL"))
+        .unwrap_or_else(|_| "gpt-oss-120b".to_string());
     config.temperature = 0.3;
     config.max_tokens = 2000;
 
+    let debug_mode = std::env::var("NEWS_LLM_DEBUG").unwrap_or_default() == "true";
+    let concurrency = std::env::var("NEWS_LLM_CONCURRENCY")
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap_or(3);
+
+    tracing::info!("🚀 Translation config: model={}, concurrency={}, debug={}", config.model, concurrency, debug_mode);
+
     let llm_service = Arc::new(LlmService::with_config(config));
-    let semaphore = Arc::new(Semaphore::new(10)); // Max 10 concurrent requests
+    let semaphore = Arc::new(Semaphore::new(concurrency)); // Max concurrent requests
 
     let mut tasks = FuturesUnordered::new();
 
@@ -682,15 +697,37 @@ async fn translate_news_items(items: Vec<Value>) -> Vec<Value> {
 
             if !title.is_empty() {
                 let prompt = format!("Translate the following news title to French. Return ONLY the translated text, no comments, no quotes:\n\n{}", title);
-                if let Ok(translated_title) = llm_service.complete(&prompt).await {
-                    item["title"] = json!(translated_title);
+                if debug_mode {
+                    tracing::info!("📝 [LLM DEBUG] Prompt Title: {}", prompt);
+                }
+                match llm_service.complete(&prompt).await {
+                    Ok(translated_title) => {
+                        if debug_mode {
+                            tracing::info!("✨ [LLM DEBUG] Translated Title: {}", translated_title);
+                        }
+                        item["title"] = json!(translated_title);
+                    }
+                    Err(e) => {
+                        tracing::error!("❌ [LLM ERROR] Title translation failed: {}", e);
+                    }
                 }
             }
 
             if !description.is_empty() {
                 let prompt = format!("Translate the following news description to French. Return ONLY the translated text, no comments, no quotes:\n\n{}", description);
-                if let Ok(translated_desc) = llm_service.complete(&prompt).await {
-                    item["description"] = json!(translated_desc);
+                if debug_mode {
+                    tracing::info!("📝 [LLM DEBUG] Prompt Desc: {}", prompt);
+                }
+                match llm_service.complete(&prompt).await {
+                    Ok(translated_desc) => {
+                        if debug_mode {
+                            tracing::info!("✨ [LLM DEBUG] Translated Desc: {}", translated_desc);
+                        }
+                        item["description"] = json!(translated_desc);
+                    }
+                    Err(e) => {
+                        tracing::error!("❌ [LLM ERROR] Description translation failed: {}", e);
+                    }
                 }
             }
 
