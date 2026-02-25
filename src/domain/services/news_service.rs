@@ -657,20 +657,22 @@ fn strip_tags(text: &str) -> String {
 async fn translate_news_items(items: Vec<Value>) -> Vec<Value> {
     tracing::info!("🌐 Translating {} news items to French via LiteLLM...", items.len());
 
-    let mut config = LlmConfig::default();
-    config.provider = LlmProvider::Litellm;
-    config.base_url = std::env::var("NEWS_LLM_URL")
-        .or_else(|_| std::env::var("LLM_BASE_URL"))
-        .unwrap_or_else(|_| "http://ip.zacharie.org:4000".to_string());
-    config.api_key = std::env::var("NEWS_LLM_API_KEY")
-        .ok()
-        .or_else(|| std::env::var("LLM_API_KEY").ok())
-        .or_else(|| Some("sk-_RvgpIOa1V3lXLs3Ok3Rxw".to_string()));
-    config.model = std::env::var("NEWS_LLM_MODEL")
-        .or_else(|_| std::env::var("LLM_MODEL"))
-        .unwrap_or_else(|_| "gpt-oss-120b".to_string());
-    config.temperature = 0.3;
-    config.max_tokens = 2000;
+    let config = LlmConfig {
+        provider: LlmProvider::Litellm,
+        base_url: std::env::var("NEWS_LLM_URL")
+            .or_else(|_| std::env::var("LLM_BASE_URL"))
+            .unwrap_or_else(|_| "http://ip.zacharie.org:4000".to_string()),
+        api_key: std::env::var("NEWS_LLM_API_KEY")
+            .ok()
+            .or_else(|| std::env::var("LLM_API_KEY").ok())
+            .or_else(|| Some("sk-_RvgpIOa1V3lXLs3Ok3Rxw".to_string())),
+        model: std::env::var("NEWS_LLM_MODEL")
+            .or_else(|_| std::env::var("LLM_MODEL"))
+            .unwrap_or_else(|_| "gpt-oss-120b".to_string()),
+        temperature: 0.3,
+        max_tokens: 2000,
+        ..Default::default()
+    };
 
     let debug_mode = std::env::var("NEWS_LLM_DEBUG").unwrap_or_default() == "true";
     let concurrency = std::env::var("NEWS_LLM_CONCURRENCY")
