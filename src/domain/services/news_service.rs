@@ -39,7 +39,7 @@ async fn fetch_fresh_news() -> Result<Value, String> {
     tracing::info!("🔄 Fetching fresh news from all sources...");
 
     let client = Client::builder()
-        .timeout(std::time::Duration::from_secs(5))
+        .timeout(std::time::Duration::from_secs(30))
         .user_agent("Kusanagi/0.3.0 (https://github.com/JZacharie/Kusanagi)")
         .build()
         .map_err(|e| e.to_string())?;
@@ -173,6 +173,7 @@ async fn get_cached_news() -> Result<Value, String> {
     tracing::debug!("🔍 Checking S3 cache: bucket={}, key={}", bucket, CACHE_KEY);
 
     let s3_client = create_s3_client().await?;
+    let endpoint_bkp = std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170:9010".to_string());
 
     let result = s3_client
         .get_object()
@@ -181,7 +182,7 @@ async fn get_cached_news() -> Result<Value, String> {
         .send()
         .await
         .map_err(|e| {
-            tracing::warn!("❌ S3 get_object failed: {}", e);
+            tracing::error!("❌ S3 get_object failed: {} (Endpoint: {})", e, endpoint_bkp);
             format!("S3 get error: {}", e)
         })?;
 
