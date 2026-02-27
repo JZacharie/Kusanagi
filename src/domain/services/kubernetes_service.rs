@@ -889,8 +889,16 @@ pub async fn get_events() -> Result<Value, String> {
     Ok(json!(events))
 }
 
-pub async fn force_delete_pod(namespace: &str, name: &str) -> Result<Value, String> {
-    let client = Client::try_default().await.map_err(|e| e.to_string())?;
+pub async fn force_delete_pod(
+    client: &Option<std::sync::Arc<kube::Client>>,
+    namespace: &str,
+    name: &str,
+) -> Result<Value, String> {
+    let client = if let Some(kc) = client {
+        kc.as_ref().clone()
+    } else {
+        Client::try_default().await.map_err(|e| e.to_string())?
+    };
     let pods: Api<Pod> = Api::namespaced(client, namespace);
 
     // Force delete = grace period 0
@@ -994,8 +1002,16 @@ mod tests {
 
 // End of file
 
-pub async fn delete_pod(namespace: &str, name: &str) -> Result<Value, String> {
-    let client = Client::try_default().await.map_err(|e| e.to_string())?;
+pub async fn delete_pod(
+    client: &Option<std::sync::Arc<kube::Client>>,
+    namespace: &str,
+    name: &str,
+) -> Result<Value, String> {
+    let client = if let Some(kc) = client {
+        kc.as_ref().clone()
+    } else {
+        Client::try_default().await.map_err(|e| e.to_string())?
+    };
     let pods: Api<Pod> = Api::namespaced(client, namespace);
     let dp = kube::api::DeleteParams::default();
 
@@ -1007,8 +1023,14 @@ pub async fn delete_pod(namespace: &str, name: &str) -> Result<Value, String> {
     }))
 }
 
-pub async fn delete_error_pods() -> Result<Value, String> {
-    let client = Client::try_default().await.map_err(|e| e.to_string())?;
+pub async fn delete_error_pods(
+    client: &Option<std::sync::Arc<kube::Client>>,
+) -> Result<Value, String> {
+    let client = if let Some(kc) = client {
+        kc.as_ref().clone()
+    } else {
+        Client::try_default().await.map_err(|e| e.to_string())?
+    };
     let pods: Api<Pod> = Api::all(client.clone());
     let list = pods
         .list(&ListParams::default())
