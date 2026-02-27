@@ -220,7 +220,7 @@ const K8sPods = {
         modal.style.display = 'flex';
 
         try {
-            const response = await fetch(`/api/pods/${namespace}/${podName}/logs?tail=500`);
+            const response = await fetch(`/api/k8s/pods/${namespace}/${podName}/logs?tail=500`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const logs = await response.text();
 

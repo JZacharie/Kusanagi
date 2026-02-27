@@ -256,10 +256,10 @@ pub async fn pod_logs(Path((namespace, name)): Path<(String, String)>) -> impl I
     ),
     tag = "kubernetes"
 )]
-pub async fn delete_error_pods_handler() -> Response {
+pub async fn delete_error_pods_handler(State(state): State<AppState>) -> Response {
     use crate::domain::services::kubernetes_service::delete_error_pods;
 
-    match delete_error_pods().await {
+    match delete_error_pods(&state.kube_client).await {
         Ok(result) => api_success(json!(result)),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
@@ -311,12 +311,12 @@ pub struct DeletePodRequest {
     tag = "kubernetes"
 )]
 pub async fn force_delete_pod_handler(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     axum::Json(payload): axum::Json<DeletePodRequest>,
 ) -> Response {
     use crate::domain::services::kubernetes_service::force_delete_pod;
 
-    match force_delete_pod(&payload.namespace, &payload.pod_name).await {
+    match force_delete_pod(&state.kube_client, &payload.namespace, &payload.pod_name).await {
         Ok(result) => api_success(result),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
