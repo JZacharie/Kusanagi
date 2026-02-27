@@ -704,7 +704,6 @@ pub async fn get_storage_analysis(client: &reqwest::Client) -> Result<Value, Str
         for vol in volumes {
             if let Some(volid) = vol["volid"].as_str() {
                 // E.g. "wpool:vm-9999-pvc-a76a..."
-                let parts: Vec<&str> = volid.split('-').collect();
                 let mut found_k8s_match = false;
                 
                 // Usually the 'pvc-xxxxx' part is the PV name in K8s
