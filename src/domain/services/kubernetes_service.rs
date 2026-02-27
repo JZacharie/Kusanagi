@@ -1,4 +1,5 @@
 use k8s_openapi::api::core::v1::{Event, Node, PersistentVolumeClaim, Pod, Service};
+use k8s_openapi::api::storage::v1::VolumeAttachment;
 use k8s_openapi::api::networking::v1::Ingress;
 use kube::{api::ListParams, Api, Client};
 use serde_json::{json, Value};
@@ -649,6 +650,82 @@ pub async fn get_storage(client: &reqwest::Client) -> Result<Value, String> {
         "pvc_count": pvcs_json.len(),
         "pvc_total_capacity": total_formatted,
         "pvcs": pvcs_json
+    }))
+}
+
+pub async fn get_storage_analysis(client: &reqwest::Client) -> Result<Value, String> {
+    let kube_client = Client::try_default().await.map_err(|e| e.to_string())?;
+
+    // 1. Fetch PVCs
+    let pvcs_api: Api<PersistentVolumeClaim> = Api::all(kube_client.clone());
+    let pvc_list = pvcs_api.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
+
+    // 2. Fetch VolumeAttachments
+    let va_api: Api<VolumeAttachment> = Api::all(kube_client);
+    let va_list = va_api.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
+
+    // 3. Fetch Proxmox volumes
+    let proxmox_volumes = crate::domain::services::proxmox_service::get_all_proxmox_volumes(client).await.unwrap_or(json!([]));
+
+    let mut attached_pvcs = std::collections::HashSet::new();
+
+    for va in &va_list.items {
+        let spec = &va.spec;
+        let source = &spec.source;
+        if let Some(pvc_name) = &source.persistent_volume_name {
+            attached_pvcs.insert(pvc_name.clone());
+        }
+    }
+
+    let mut unattached_pvcs = Vec::new();
+    let mut all_k8s_pv_names = std::collections::HashSet::new();
+
+    for pvc in &pvc_list.items {
+        let name = pvc.metadata.name.clone().unwrap_or_default();
+        let namespace = pvc.metadata.namespace.clone().unwrap_or_default();
+        let status = pvc.status.as_ref().and_then(|s| s.phase.clone()).unwrap_or("Unknown".to_string());
+        
+        let volume_name = pvc.spec.as_ref().and_then(|s| s.volume_name.clone()).unwrap_or(name.clone());
+        all_k8s_pv_names.insert(volume_name.clone());
+
+        if !attached_pvcs.contains(&volume_name) && status == "Bound" {
+            unattached_pvcs.push(json!({
+                "name": name,
+                "volume_name": volume_name,
+                "namespace": namespace,
+                "status": status,
+                "reason": "No VolumeAttachment found"
+            }));
+        }
+    }
+
+    let mut orphaned_proxmox_volumes = Vec::new();
+    if let Some(volumes) = proxmox_volumes.as_array() {
+        for vol in volumes {
+            if let Some(volid) = vol["volid"].as_str() {
+                // E.g. "wpool:vm-9999-pvc-a76a..."
+                let parts: Vec<&str> = volid.split('-').collect();
+                let mut found_k8s_match = false;
+                
+                // Usually the 'pvc-xxxxx' part is the PV name in K8s
+                if let Some(pos) = volid.find("pvc-") {
+                    let pvc_id = format!("pvc-{}", &volid[pos+4..].trim_end_matches(".raw").trim_matches('\''));
+                    if all_k8s_pv_names.contains(&pvc_id) {
+                        found_k8s_match = true;
+                    }
+                }
+
+                if volid.contains("pvc-") && !found_k8s_match {
+                    orphaned_proxmox_volumes.push(vol.clone());
+                }
+            }
+        }
+    }
+
+    Ok(json!({
+        "unattached_pvcs": unattached_pvcs,
+        "orphaned_proxmox_volumes": orphaned_proxmox_volumes,
+        "proxmox_volumes": proxmox_volumes
     }))
 }
 

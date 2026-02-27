@@ -142,6 +142,23 @@ pub async fn storage(State(state): State<AppState>) -> Response {
     }
 }
 
+/// Storage analysis endpoint
+#[utoipa::path(
+    get,
+    path = "/api/storage/analysis",
+    responses(
+        (status = 200, description = "Storage analysis info retrieved successfully"),
+        (status = 500, description = "Failed to retrieve storage analysis info")
+    ),
+    tag = "kubernetes"
+)]
+pub async fn storage_analysis(State(state): State<AppState>) -> Response {
+    match kubernetes_service::get_storage_analysis(&state.http_client).await {
+        Ok(data) => api_success(json!(data)),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+    }
+}
+
 /// Ingress endpoint
 #[utoipa::path(
     get,

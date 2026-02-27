@@ -113,3 +113,29 @@ pub async fn control_ct_handler(
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
+
+/// Delete Proxmox volume
+#[utoipa::path(
+    delete,
+    path = "/api/proxmox/volume/{server}/{node}/{storage}/{volume}",
+    params(
+        ("server" = String, Path, description = "Proxmox server URL (or name)"),
+        ("node" = String, Path, description = "Proxmox node name"),
+        ("storage" = String, Path, description = "Storage name"),
+        ("volume" = String, Path, description = "Volume ID/Name")
+    ),
+    responses(
+        (status = 200, description = "Volume deleted successfully"),
+        (status = 500, description = "Failed to delete volume")
+    ),
+    tag = "proxmox"
+)]
+pub async fn delete_volume_handler(
+    State(state): State<AppState>,
+    Path((server, node, storage, volume)): Path<(String, String, String, String)>,
+) -> impl IntoResponse {
+    match proxmox_service::delete_proxmox_volume(&state.http_client, &server, &node, &storage, &volume).await {
+        Ok(result) => api_success(json!({"message": result})),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+    }
+}

@@ -11,16 +11,20 @@ const K8sStorage = {
     async fetchStorageStatus() {
         try {
             console.log('🔍 Fetching storage status...');
-            const data = await api.get('/api/storage');
-            console.log('📡 Storage data received:', data);
+            const data = await api.get('/api/storage/analysis');
+            console.log('📡 Storage analysis data received:', data);
 
-            K8sState.storageData = data.pvcs || [];
+            K8sState.storageData = data.pvcs || (data.proxmox_volumes && data.proxmox_volumes.length > 0 ? data.pvcs : []); // API backwards compat
+
+            const storageData = await api.get('/api/storage');
+            K8sState.storageData = storageData.pvcs || [];
 
             const stats = {
-                'pvc-total-count': data.pvc_count ?? K8sState.storageData.length,
+                'pvc-total-count': storageData.pvc_count ?? K8sState.storageData.length,
                 'pvc-bound-count': K8sState.storageData.filter(p => p.status === 'Bound').length,
-                'pvc-pending-count': K8sState.storageData.filter(p => p.status !== 'Bound').length,
-                'pvc-total-storage': data.pvc_total_capacity || '-'
+                'pvc-total-storage': storageData.pvc_total_capacity || '-',
+                'pvc-unattached-count': data.unattached_pvcs ? data.unattached_pvcs.length : 0,
+                'proxmox-orphaned-count': data.orphaned_proxmox_volumes ? data.orphaned_proxmox_volumes.length : 0
             };
 
             for (const [id, value] of Object.entries(stats)) {
@@ -31,10 +35,119 @@ const K8sStorage = {
             const countEl = document.getElementById('pvc-table-count');
             if (countEl) countEl.textContent = K8sState.storageData.length;
 
-            this.renderStorageTable(data);
+            this.renderStorageTable(storageData);
+            this.renderUnattachedPvcs(data.unattached_pvcs || []);
+            this.renderOrphanedProxmox(data.orphaned_proxmox_volumes || []);
+
         } catch (error) {
             console.error('Failed to fetch storage status:', error);
             this.renderStorageError('Failed to fetch storage data from server');
+        }
+    },
+
+    renderUnattachedPvcs(unattached) {
+        const container = document.getElementById('unattached-pvc-container');
+        const content = document.getElementById('unattached-pvc-content');
+        const countSpan = document.getElementById('unattached-pvc-table-count');
+
+        if (!container || !content) return;
+
+        if (unattached.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'block';
+        if (countSpan) countSpan.textContent = unattached.length;
+
+        content.innerHTML = `
+            <table class="issues-table">
+                <thead><tr>
+                    <th>PVC Name</th>
+                    <th>Namespace</th>
+                    <th>PV Volume Name</th>
+                    <th>Reason</th>
+                    <th>Actions</th>
+                </tr></thead>
+                <tbody>${unattached.map(pvc => `
+                    <tr>
+                        <td class="app-name">${pvc.name}</td>
+                        <td>${pvc.namespace}</td>
+                        <td>${pvc.volume_name}</td>
+                        <td><span style="color: var(--neon-red);">${pvc.reason}</span></td>
+                        <td>
+                            <button class="cyber-btn small danger" onclick="K8sStorage.deletePvc('${pvc.namespace}', '${pvc.name}')">Delete PVC</button>
+                        </td>
+                    </tr>
+                `).join('')}</tbody>
+            </table>
+        `;
+    },
+
+    async deletePvc(namespace, name) {
+        if (!confirm(`Are you sure you want to delete PVC ${name} in ${namespace}?\nThis action cannot be undone.`)) return;
+        // Requires delete API implementation on backend. I'll mock it or use kubectl for now.
+        alert('Please run: ./scripts/force-detach-k8s-volume.sh or kubectl delete pvc');
+    },
+
+    renderOrphanedProxmox(orphans) {
+        const container = document.getElementById('orphaned-proxmox-container');
+        const content = document.getElementById('orphaned-proxmox-content');
+        const countSpan = document.getElementById('orphaned-proxmox-table-count');
+
+        if (!container || !content) return;
+
+        if (orphans.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'block';
+        if (countSpan) countSpan.textContent = orphans.length;
+
+        content.innerHTML = `
+            <table class="issues-table">
+                <thead><tr>
+                    <th>Volume ID / Disk</th>
+                    <th>Proxmox Node</th>
+                    <th>Storage Pool</th>
+                    <th>Size</th>
+                    <th>Format</th>
+                    <th>Actions</th>
+                </tr></thead>
+                <tbody>${orphans.map(vol => {
+            const sizeBytes = vol.size || 0;
+            const sizeFormatted = sizeBytes > 0 ? (sizeBytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB' : '-';
+            return `
+                    <tr>
+                        <td class="app-name">${vol.volid}</td>
+                        <td>${vol.proxmox_node}</td>
+                        <td>${vol.proxmox_storage}</td>
+                        <td>${sizeFormatted}</td>
+                        <td>${vol.format || '-'}</td>
+                        <td>
+                            <button class="cyber-btn small danger" onclick="K8sStorage.deleteProxmoxVolume('${vol.proxmox_url}', '${vol.proxmox_node}', '${vol.proxmox_storage}', '${vol.volid}')">Delete Volume</button>
+                        </td>
+                    </tr>
+                `}).join('')}</tbody>
+            </table>
+        `;
+    },
+
+    async deleteProxmoxVolume(serverUrl, node, storage, volume) {
+        if (!confirm(`DANGER: Are you absolutely sure you want to delete ${volume} from Proxmox (${node}/${storage})?\nTHIS WILL PERMANENTLY DESTROY DATA!`)) return;
+
+        try {
+            // Strip the http/https for the server parameter if needed, or pass it url encoded
+            const encodedServer = encodeURIComponent(serverUrl);
+            const encodedVolume = encodeURIComponent(volume);
+
+            const result = await api.delete(`/api/proxmox/volume/${encodedServer}/${node}/${storage}/${encodedVolume}`);
+            if (window.showNotification) window.showNotification(result.message || 'Volume deleted', 'success');
+            setTimeout(() => this.fetchStorageStatus(), 1500);
+        } catch (error) {
+            console.error('Delete error:', error);
+            if (window.showNotification) window.showNotification(`Error: ${error.message}`, 'error');
         }
     },
 
@@ -155,14 +268,14 @@ const K8sStorage = {
             const container = document.getElementById('backups-content');
             if (container) {
                 // Check for 429 rate limit error
-                const isRateLimit = error.message?.includes('429') || 
-                                   error.message?.includes('Too many requests');
+                const isRateLimit = error.message?.includes('429') ||
+                    error.message?.includes('Too many requests');
                 const errorTitle = isRateLimit ? '⏳ Rate Limited' : '⚠️ API Error';
                 const errorColor = isRateLimit ? 'var(--neon-yellow)' : 'var(--neon-orange)';
-                const errorMsg = isRateLimit 
+                const errorMsg = isRateLimit
                     ? 'Kubernetes API rate limit reached. Please wait a moment...'
                     : error.message;
-                
+
                 container.innerHTML = `
                     <div class="error-state" style="padding: 2rem; text-align: center;">
                         <span style="font-size: 2rem;">${isRateLimit ? '⏳' : '⚠️'}</span>
