@@ -10,13 +10,13 @@
         <div class="stat-value" id="pvc-bound-count">-</div>
         <div class="stat-label">Bound</div>
     </div>
-    <div class="stat-box warning">
-        <div class="stat-value" id="pvc-pending-count">-</div>
-        <div class="stat-label">Pending</div>
+    <div class="stat-box error">
+        <div class="stat-value" id="pvc-unattached-count">-</div>
+        <div class="stat-label">Unattached (K8s)</div>
     </div>
-    <div class="stat-box info">
-        <div class="stat-value" id="pvc-total-storage">-</div>
-        <div class="stat-label">Total Capacity</div>
+    <div class="stat-box warning">
+        <div class="stat-value" id="proxmox-orphaned-count">-</div>
+        <div class="stat-label">Orphaned Proxmox</div>
     </div>
 </div>
 
@@ -27,5 +27,23 @@
     </div>
     <div id="pvc-content">
         <div class="loading">Loading PVC data...</div>
+    </div>
+</div>
+
+<div class="issues-table-container" id="unattached-pvc-container" style="border-color: var(--neon-red); display: none; margin-top: 1.5rem;">
+    <div class="issues-table-header" style="background: rgba(255, 51, 102, 0.1); border-color: var(--neon-red);">
+        <span class="issues-table-title" style="color: var(--neon-red);">⚠️ Unattached Kubernetes PVCs</span>
+        <span class="issues-count" id="unattached-pvc-table-count" style="background: var(--neon-red);">0</span>
+    </div>
+    <div id="unattached-pvc-content">
+    </div>
+</div>
+
+<div class="issues-table-container" id="orphaned-proxmox-container" style="border-color: var(--neon-orange); display: none; margin-top: 1.5rem;">
+    <div class="issues-table-header" style="background: rgba(255, 153, 51, 0.1); border-color: var(--neon-orange);">
+        <span class="issues-table-title" style="color: var(--neon-orange);">👻 Orphaned Proxmox Volumes</span>
+        <span class="issues-count" id="orphaned-proxmox-table-count" style="background: var(--neon-orange);">0</span>
+    </div>
+    <div id="orphaned-proxmox-content">
     </div>
 </div>

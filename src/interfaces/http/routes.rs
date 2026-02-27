@@ -3,7 +3,7 @@
 
 use axum::{
     middleware,
-    routing::{get, post},
+    routing::{get, post, delete},
     Router,
 };
 use tower_http::{
@@ -14,6 +14,7 @@ use crate::state::AppState;
 
 // Import handlers from the new structure
 use crate::interfaces::http::handlers::{business::*, core::*, k8s::*, monitoring::*};
+use crate::interfaces::http::handlers::business::proxmox_handlers::delete_volume_handler;
 
 // Import helpers
 use super::helpers::{api_info, index_handler, log_request};
@@ -142,6 +143,7 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/proxmox/vms", get(get_vms_handler))
         .route("/api/proxmox/containers", get(get_containers_handler))
         .route("/api/proxmox/nodes", get(get_nodes_handler))
+        .route("/api/proxmox/volume/:server/:node/:storage/*volume", delete(delete_volume_handler))
         // MQTT routes
         .route("/api/mqtt/devices", get(get_mqtt_devices_handler))
         .route("/api/mqtt/messages", get(get_mqtt_messages_handler))
