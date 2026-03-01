@@ -198,6 +198,9 @@ jobs:
       name: production
       url: https://kusanagi.p.zacharie.org
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
 
