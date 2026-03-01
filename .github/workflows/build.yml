@@ -212,6 +212,16 @@ jobs:
           kubectl rollout restart deployment kusanagi -n kusanagi
           kubectl rollout status deployment kusanagi -n kusanagi
 
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
       - name: Notify Slack
         if: success()
         env:
