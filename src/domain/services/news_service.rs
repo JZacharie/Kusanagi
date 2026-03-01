@@ -1,4 +1,3 @@
-use aws_config::BehaviorVersion;
 use aws_sdk_s3::Client as S3Client;
 use chrono::{DateTime, Duration, Utc};
 use reqwest::Client;
@@ -120,7 +119,9 @@ async fn fetch_fresh_news() -> Result<Value, String> {
 
     // Translate news items to French and store them incrementally in S3
     let s3_client = create_s3_client().await.ok();
-    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
+    
+    tracing::info!("📦 Using S3 bucket for news: '{}' (endpoint: {})", bucket, std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "default".to_string()));
     
     let s3_info = s3_client.map(|c| (c, bucket));
     all_news = translate_news_items(all_news, s3_info).await;
@@ -302,6 +303,9 @@ async fn create_s3_client() -> Result<S3Client, String> {
     let endpoint =
         std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170:9010".to_string());
     let region = std::env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".to_string());
+    
+    tracing::debug!("🛠️  Creating S3 client: endpoint={}, region={}", endpoint, region);
+
     let access_key = std::env::var("S3_ACCESS_KEY")
         .map_err(|_| "S3_ACCESS_KEY environment variable not set".to_string())?;
     let secret_key = std::env::var("S3_SECRET_KEY")
@@ -313,20 +317,14 @@ async fn create_s3_client() -> Result<S3Client, String> {
         "custom",
     );
 
-    let config = aws_config::defaults(BehaviorVersion::latest())
+    let s3_config = aws_sdk_s3::config::Builder::new()
         .region(aws_sdk_s3::config::Region::new(region))
-        .endpoint_url(&endpoint)
-        .load()
-        .await;
+        .endpoint_url(endpoint)
+        .credentials_provider(credentials)
+        .force_path_style(true)
+        .build();
 
-    tracing::debug!("🛠️  Creating S3 client for endpoint: {}", endpoint);
-
-    Ok(S3Client::from_conf(
-        aws_sdk_s3::config::Builder::from(&config)
-            .credentials_provider(credentials)
-            .force_path_style(true)
-            .build(),
-    ))
+    Ok(S3Client::from_conf(s3_config))
 }
 
 async fn fetch_hackernews(client: &Client) -> Result<Vec<Value>, String> {
