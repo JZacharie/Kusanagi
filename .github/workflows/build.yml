@@ -199,7 +199,7 @@ jobs:
       url: https://kusanagi.p.zacharie.org
     steps:
       - name: Install kubectl
-        uses: azure/setup-kubectl@v3
+        uses: azure/setup-kubectl@v4
 
       - name: Configure kubectl
         run: |
