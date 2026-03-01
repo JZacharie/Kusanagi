@@ -117,6 +117,18 @@ body.theme-modern .chat-container {
     margin-bottom: 1.5rem;
     margin-top: 1.5rem;
     transition: transform 0.2s ease, border-color 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+body.theme-modern .chat-container {
+    height: calc(100vh - 280px);
+    min-height: 500px;
+}
+
+body.theme-modern .chat-messages {
+    flex: 1;
+    overflow-y: auto;
 }
 
 body.theme-modern .argocd-section:first-of-type {
