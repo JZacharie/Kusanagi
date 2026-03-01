@@ -212,14 +212,23 @@ jobs:
           kubectl rollout restart deployment kusanagi -n kusanagi
           kubectl rollout status deployment kusanagi -n kusanagi
 
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.29.0
+        env:
+          TRIVY_TEMP_DIR: ${{ github.workspace }}/.trivy-tmp
         with:
           image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
           format: 'table'
           exit-code: '0'
           ignore-unfixed: true
-          vuln-type: 'os,library'
+          scanners: 'vuln'
           severity: 'CRITICAL,HIGH'
 
       - name: Notify Slack
