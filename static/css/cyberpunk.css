@@ -1308,12 +1308,17 @@ body {
   border: 1px solid var(--neon-green);
   border-radius: 8px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 300px);
+  min-height: 500px;
 }
 
 .chat-messages {
-  height: 400px;
+  flex: 1;
   overflow-y: auto;
   padding: 1rem;
+  min-height: 200px;
 }
 
 .chat-message {
@@ -2339,13 +2344,14 @@ body {
   .chat-container {
     display: flex;
     flex-direction: column;
-    height: 80vh;
-    /* Better usage of screen height */
+    height: 70vh;
+    /* Adjustment for mobile to account for address bar/keyboard */
+    max-height: 600px;
   }
 
   .chat-messages {
-    height: auto;
     flex: 1;
+    height: auto;
   }
 
   .chat-input-container {
@@ -2630,75 +2636,76 @@ body {
   margin-left: 5px;
   opacity: 0.7;
 }
+
 /* ============================================
    INGRESS LINKS STYLES
    ============================================ */
 
 /* Ingress Table Styles */
 .data-table.ingress-table td.ingress-rules {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 /* Clickable Ingress Links */
 a.ingress-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.3rem 0.6rem;
-    background: rgba(0, 255, 255, 0.1);
-    border: 1px solid var(--neon-cyan);
-    border-radius: 4px;
-    color: var(--neon-cyan);
-    text-decoration: none;
-    font-size: 0.85rem;
-    font-family: 'Courier New', 'Fira Code', monospace;
-    transition: all 0.2s ease;
-    position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 4px;
+  color: var(--neon-cyan);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-family: 'Courier New', 'Fira Code', monospace;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
 a.ingress-link::before {
-    content: "🔒";
-    font-size: 0.75rem;
+  content: "🔒";
+  font-size: 0.75rem;
 }
 
 a.ingress-link:hover {
-    background: rgba(0, 255, 255, 0.2);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
-    text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
-    transform: translateY(-1px);
+  background: rgba(0, 255, 255, 0.2);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+  transform: translateY(-1px);
 }
 
 a.ingress-link:active {
-    transform: translateY(0);
+  transform: translateY(0);
 }
 
 /* Namespace Badge */
 .namespace-badge {
-    display: inline-block;
-    padding: 0.2rem 0.5rem;
-    background: rgba(255, 0, 255, 0.1);
-    border: 1px solid var(--neon-magenta);
-    border-radius: 4px;
-    color: var(--neon-magenta);
-    font-size: 0.8rem;
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: rgba(255, 0, 255, 0.1);
+  border: 1px solid var(--neon-magenta);
+  border-radius: 4px;
+  color: var(--neon-magenta);
+  font-size: 0.8rem;
 }
 
 /* Light theme adjustments */
 :root[data-theme="light"] a.ingress-link {
-    background: rgba(0, 136, 170, 0.1);
-    border-color: #0088aa;
-    color: #0088aa;
+  background: rgba(0, 136, 170, 0.1);
+  border-color: #0088aa;
+  color: #0088aa;
 }
 
 :root[data-theme="light"] a.ingress-link:hover {
-    background: rgba(0, 136, 170, 0.2);
-    box-shadow: 0 0 8px rgba(0, 136, 170, 0.3);
+  background: rgba(0, 136, 170, 0.2);
+  box-shadow: 0 0 8px rgba(0, 136, 170, 0.3);
 }
 
 :root[data-theme="light"] .namespace-badge {
-    background: rgba(170, 0, 170, 0.1);
-    border-color: #aa00aa;
-    color: #aa00aa;
+  background: rgba(170, 0, 170, 0.1);
+  border-color: #aa00aa;
+  color: #aa00aa;
 }
