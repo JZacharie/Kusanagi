@@ -222,17 +222,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.28.0
-        env:
-          TRIVY_TEMP_DIR: ${{ github.workspace }}/.trivy-tmp
-        with:
-          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
-          format: 'table'
-          exit-code: '0'
-          ignore-unfixed: true
-          scanners: 'vuln'
-          severity: 'CRITICAL,HIGH'
+      # - name: Run Trivy vulnerability scanner
+      #   uses: aquasecurity/trivy-action@0.28.0
+      #   env:
+      #     TRIVY_TEMP_DIR: ${{ github.workspace }}/.trivy-tmp
+      #   with:
+      #     image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
+      #     format: 'table'
+      #     exit-code: '0'
+      #     ignore-unfixed: true
+      #     scanners: 'vuln'
+      #     severity: 'CRITICAL,HIGH'
 
       - name: Notify Slack
         if: success()

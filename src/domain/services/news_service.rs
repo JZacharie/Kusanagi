@@ -121,7 +121,7 @@ async fn fetch_fresh_news() -> Result<Value, String> {
     let s3_client = create_s3_client().await.ok();
     let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
     
-    if let Some(endpoint) = std::env::var("S3_ENDPOINT").ok() {
+    if let Ok(endpoint) = std::env::var("S3_ENDPOINT") {
         tracing::info!("📦 Using S3 bucket for news: '{}' (endpoint: {})", bucket, endpoint);
     } else {
         tracing::info!("📦 Using S3 bucket for news: '{}' (default endpoint)", bucket);
