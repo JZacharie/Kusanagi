@@ -328,6 +328,7 @@ async fn create_s3_client() -> Result<S3Client, String> {
     );
 
     let s3_config = aws_sdk_s3::config::Builder::new()
+        .behavior_version(aws_sdk_s3::config::BehaviorVersion::latest())
         .region(aws_sdk_s3::config::Region::new(region.clone()))
         .endpoint_url(&endpoint)
         .credentials_provider(credentials)
