@@ -220,7 +220,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.29.0
+        uses: aquasecurity/trivy-action@v0.34.1
         env:
           TRIVY_TEMP_DIR: ${{ github.workspace }}/.trivy-tmp
         with:
@@ -241,3 +241,4 @@ jobs:
             --arg msg "$COMMIT_MSG" \
             '{text: ("✅ *Kusanagi Deployed*\n\n🚀 Version: `${{ github.sha }}`\n📝 " + $msg)}' \
             | curl -X POST -H 'Content-type: application/json' -d @- $SLACK_WEBHOOK          
+
