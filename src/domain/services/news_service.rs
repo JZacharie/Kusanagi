@@ -200,7 +200,8 @@ async fn store_individual_news_item(
         .await
         .map_err(|e| {
             let endpoint = std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "unknown".to_string());
-            format!("S3 put error for {} at {}: {}", key, endpoint, e)
+            let err_details = format!("{:?}", e);
+            format!("S3 put error for bucket '{}' key '{}' at {}: {}", bucket, key, endpoint, err_details)
         })?;
 
     Ok(())
