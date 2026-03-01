@@ -193,7 +193,7 @@ async fn store_individual_news_item(
     s3_client
         .put_object()
         .bucket(bucket)
-        .key(key)
+        .key(&key)
         .body(json_bytes.into())
         .content_type("application/json")
         .send()
@@ -294,26 +294,6 @@ async fn get_cached_file(s3_client: &S3Client, bucket: &str, key: &str) -> Resul
     Ok(val)
 }
 
-async fn store_cached_file(s3_client: &S3Client, bucket: &str, key: &str, data: Value) -> Result<(), String> {
-    let json_bytes = serde_json::to_vec(&data).map_err(|e| format!("JSON serialize error: {}", e))?;
-
-    s3_client
-        .put_object()
-        .bucket(bucket)
-        .key(key)
-        .body(json_bytes.into())
-        .content_type("application/json")
-        .send()
-        .await
-        .map_err(|e| {
-            let endpoint = std::env::var("S3_ENDPOINT").unwrap_or_default();
-            let err_msg = format!("S3 put error for {} at {}: {}", key, endpoint, e);
-            tracing::error!("❌ {}", err_msg);
-            err_msg
-        })?;
-
-    Ok(())
-}
 
 // get_cached_news and store_cached_news removed in favor of daily file helpers
 
