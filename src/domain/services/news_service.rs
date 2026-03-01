@@ -13,6 +13,9 @@ use tokio::sync::Semaphore;
 const CACHE_PREFIX: &str = "news/";
 const CACHE_DAYS: i64 = 7;
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
 pub async fn get_news() -> Result<Value, String> {
     tracing::debug!("📰 News service: Attempting to get news from daily caches");
 
@@ -115,8 +118,12 @@ async fn fetch_fresh_news() -> Result<Value, String> {
         date_b.cmp(date_a)
     });
 
-    // Translate news items to French
-    all_news = translate_news_items(all_news).await;
+    // Translate news items to French and store them incrementally in S3
+    let s3_client = create_s3_client().await.ok();
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+    
+    let s3_info = s3_client.map(|c| (c, bucket));
+    all_news = translate_news_items(all_news, s3_info).await;
 
     // Aggregated news is ready, but we need to COMMIT per day
     let response = if all_news.is_empty() {
@@ -148,73 +155,57 @@ async fn fetch_fresh_news() -> Result<Value, String> {
         })
     };
 
-    // Commit to daily files
-    commit_news_to_daily_files(all_news).await;
+    // Commit to daily files (deprecated, but keeping briefly to avoid breaking before everything is swapped)
+    // commit_news_to_daily_files(all_news).await;
 
     Ok(response)
 }
 
-async fn commit_news_to_daily_files(items: Vec<Value>) {
-    let mut by_day: std::collections::HashMap<String, Vec<Value>> = std::collections::HashMap::new();
+async fn store_individual_news_item(
+    s3_client: &S3Client,
+    bucket: &str,
+    item: Value,
+) -> Result<(), String> {
+    let published_at = item["published_at"].as_str().unwrap_or("");
+    let url = item["url"].as_str().unwrap_or("");
 
-    for item in items {
-        if let Some(published_at) = item["published_at"].as_str() {
-            if let Ok(dt) = DateTime::parse_from_rfc3339(published_at) {
-                let day = dt.format("%Y-%m-%d").to_string();
-                by_day.entry(day).or_default().push(item);
-            }
-        }
+    if published_at.is_empty() || url.is_empty() {
+        return Err("Missing published_at or url for news item".to_string());
     }
 
-    for (day, day_items) in by_day {
-        let key = format!("{}{}.json", CACHE_PREFIX, day);
-        let day_items_clone = day_items.clone();
-        let key_clone = key.clone();
+    let dt = DateTime::parse_from_rfc3339(published_at)
+        .map_err(|e| format!("Invalid date format: {}", e))?;
+    let day = dt.format("%Y-%m-%d").to_string();
 
-        tokio::spawn(async move {
-            if let Err(e) = merge_and_store_daily_cache(&key_clone, day_items_clone).await {
-                tracing::error!("❌ Failed to commit daily cache for {}: {}", key_clone, e);
-            } else {
-                tracing::info!("✅ Daily cache committed successfully: {}", key_clone);
-            }
-        });
-    }
-}
+    let mut hasher = DefaultHasher::new();
+    url.hash(&mut hasher);
+    let url_hash = hasher.finish();
 
-async fn merge_and_store_daily_cache(key: &str, new_items: Vec<Value>) -> Result<(), String> {
-    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
-    let s3_client = create_s3_client().await?;
+    let key = format!("{}{}/{:x}.json", CACHE_PREFIX, day, url_hash);
 
-    // 1. Try to load existing
-    let existing_items = match get_cached_file(&s3_client, &bucket, key).await {
-        Ok(val) => val["items"].as_array().cloned().unwrap_or_default(),
-        Err(_) => Vec::new(),
-    };
-
-    // 2. Merge and deduplicate by URL
-    let mut merged = existing_items;
-    for item in new_items {
-        let url = item["url"].as_str().unwrap_or("");
-        if !merged.iter().any(|existing| existing["url"].as_str().unwrap_or("") == url) {
-            merged.push(item);
-        }
-    }
-
-    // 3. Keep it sorted
-    merged.sort_by(|a, b| {
-        let date_a = a["published_at"].as_str().unwrap_or("");
-        let date_b = b["published_at"].as_str().unwrap_or("");
-        date_b.cmp(date_a)
-    });
-
-    // 4. Store
     let data = json!({
-        "items": merged,
-        "cached_at": Utc::now().to_rfc3339()
+        "item": item,
+        "stored_at": Utc::now().to_rfc3339()
     });
 
-    store_cached_file(&s3_client, &bucket, key, data).await
+    let json_bytes = serde_json::to_vec(&data).map_err(|e| format!("JSON serialize error: {}", e))?;
+
+    s3_client
+        .put_object()
+        .bucket(bucket)
+        .key(key)
+        .body(json_bytes.into())
+        .content_type("application/json")
+        .send()
+        .await
+        .map_err(|e| {
+            let endpoint = std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "unknown".to_string());
+            format!("S3 put error for {} at {}: {}", key, endpoint, e)
+        })?;
+
+    Ok(())
 }
+
 
 async fn get_aggregated_news() -> Result<Value, String> {
     let now = Utc::now();
@@ -225,11 +216,40 @@ async fn get_aggregated_news() -> Result<Value, String> {
 
     for i in 0..CACHE_DAYS {
         let day = (now - Duration::days(i)).format("%Y-%m-%d").to_string();
-        let key = format!("{}{}.json", CACHE_PREFIX, day);
+        let prefix = format!("{}{}/", CACHE_PREFIX, day);
 
-        if let Ok(file_val) = get_cached_file(&s3_client, &bucket, &key).await {
-            if let Some(items) = file_val["items"].as_array() {
-                all_items.extend(items.iter().cloned());
+        match s3_client
+            .list_objects_v2()
+            .bucket(&bucket)
+            .prefix(&prefix)
+            .send()
+            .await
+        {
+            Ok(output) => {
+                let mut tasks = FuturesUnordered::new();
+                for object in output.contents.unwrap_or_default() {
+                    if let Some(key) = object.key {
+                        let client = s3_client.clone();
+                        let b = bucket.clone();
+                        tasks.push(tokio::spawn(async move {
+                            get_cached_file(&client, &b, &key).await
+                        }));
+                    }
+                }
+
+                while let Some(result) = tasks.next().await {
+                    if let Ok(Ok(file_val)) = result {
+                        if let Some(item) = file_val["item"].as_object() {
+                            all_items.push(json!(item));
+                        } else if let Some(items) = file_val["items"].as_array() {
+                            // Support legacy daily aggregated files if they still exist
+                            all_items.extend(items.iter().cloned());
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::warn!("⚠️  Failed to list objects for prefix {}: {}", prefix, e);
             }
         }
     }
@@ -716,7 +736,7 @@ fn strip_tags(text: &str) -> String {
     result
 }
 
-async fn translate_news_items(items: Vec<Value>) -> Vec<Value> {
+async fn translate_news_items(items: Vec<Value>, s3_info: Option<(S3Client, String)>) -> Vec<Value> {
     tracing::info!("🌐 Translating {} news items to French via LiteLLM...", items.len());
 
     let config = LlmConfig {
@@ -746,12 +766,14 @@ async fn translate_news_items(items: Vec<Value>) -> Vec<Value> {
 
     let llm_service = Arc::new(LlmService::with_config(config));
     let semaphore = Arc::new(Semaphore::new(concurrency)); // Max concurrent requests
+    let s3_info = s3_info.map(|(c, b)| (Arc::new(c), Arc::new(b)));
 
     let mut tasks = FuturesUnordered::new();
 
     for mut item in items.into_iter() {
         let llm_service = Arc::clone(&llm_service);
         let semaphore = Arc::clone(&semaphore);
+        let s3_info = s3_info.clone();
 
         tasks.push(tokio::spawn(async move {
             let _permit = semaphore.acquire().await.unwrap();
@@ -792,6 +814,15 @@ async fn translate_news_items(items: Vec<Value>) -> Vec<Value> {
                     Err(e) => {
                         tracing::error!("❌ [LLM ERROR] Description translation failed: {}", e);
                     }
+                }
+            }
+
+            // Store incrementally in S3 if client provided
+            if let Some((s3_client, bucket)) = s3_info {
+                if let Err(e) = store_individual_news_item(&s3_client, &bucket, item.clone()).await {
+                    tracing::error!("❌ Failed to store individual news item: {}", e);
+                } else {
+                    tracing::debug!("✅ News item stored in S3: {}", item["url"].as_str().unwrap_or(""));
                 }
             }
 
