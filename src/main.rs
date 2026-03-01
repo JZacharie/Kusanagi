@@ -13,7 +13,10 @@ const BUILD_TIMESTAMP: &str = env!("BUILD_TIMESTAMP");
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Load environment variables from .env if present
-    dotenvy::dotenv().ok();
+    match dotenvy::dotenv() {
+        Ok(path) => info!("✅ Loaded environment from: {:?}", path),
+        Err(_) => info!("ℹ️ No .env file found, using system environment variables"),
+    }
 
     // Install rustls crypto provider (required for rustls 0.23+)
     rustls::crypto::aws_lc_rs::default_provider()

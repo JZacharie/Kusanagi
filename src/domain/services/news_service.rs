@@ -121,7 +121,11 @@ async fn fetch_fresh_news() -> Result<Value, String> {
     let s3_client = create_s3_client().await.ok();
     let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
     
-    tracing::info!("📦 Using S3 bucket for news: '{}' (endpoint: {})", bucket, std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "default".to_string()));
+    if let Some(endpoint) = std::env::var("S3_ENDPOINT").ok() {
+        tracing::info!("📦 Using S3 bucket for news: '{}' (endpoint: {})", bucket, endpoint);
+    } else {
+        tracing::info!("📦 Using S3 bucket for news: '{}' (default endpoint)", bucket);
+    }
     
     let s3_info = s3_client.map(|c| (c, bucket));
     all_news = translate_news_items(all_news, s3_info).await;
@@ -220,21 +224,24 @@ async fn get_aggregated_news() -> Result<Value, String> {
         let day = (now - Duration::days(i)).format("%Y-%m-%d").to_string();
         let prefix = format!("{}{}/", CACHE_PREFIX, day);
 
-        match s3_client
+        let list_future = s3_client
             .list_objects_v2()
             .bucket(&bucket)
             .prefix(&prefix)
-            .send()
-            .await
-        {
-            Ok(output) => {
+            .send();
+
+        match tokio::time::timeout(std::time::Duration::from_secs(5), list_future).await {
+            Ok(Ok(output)) => {
                 let mut tasks = FuturesUnordered::new();
                 for object in output.contents.unwrap_or_default() {
                     if let Some(key) = object.key {
                         let client = s3_client.clone();
                         let b = bucket.clone();
                         tasks.push(tokio::spawn(async move {
-                            get_cached_file(&client, &b, &key).await
+                            match tokio::time::timeout(std::time::Duration::from_secs(3), get_cached_file(&client, &b, &key)).await {
+                                Ok(res) => res,
+                                Err(_) => Err("S3 fetch timeout".to_string()),
+                            }
                         }));
                     }
                 }
@@ -250,8 +257,11 @@ async fn get_aggregated_news() -> Result<Value, String> {
                     }
                 }
             }
-            Err(e) => {
-                tracing::warn!("⚠️  Failed to list objects for prefix {}: {}", prefix, e);
+            Ok(Err(e)) => {
+                tracing::warn!("⚠️  S3 list error: {}", e);
+            }
+            Err(_) => {
+                tracing::warn!("⚠️  S3 list timeout for prefix {}", prefix);
             }
         }
     }
@@ -318,11 +328,13 @@ async fn create_s3_client() -> Result<S3Client, String> {
     );
 
     let s3_config = aws_sdk_s3::config::Builder::new()
-        .region(aws_sdk_s3::config::Region::new(region))
-        .endpoint_url(endpoint)
+        .region(aws_sdk_s3::config::Region::new(region.clone()))
+        .endpoint_url(&endpoint)
         .credentials_provider(credentials)
         .force_path_style(true)
         .build();
+
+    tracing::info!("✅ S3 Client initialized: endpoint={}, region={}, bucket={}", endpoint, region, std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string()));
 
     Ok(S3Client::from_conf(s3_config))
 }
@@ -796,13 +808,21 @@ async fn translate_news_items(items: Vec<Value>, s3_info: Option<(S3Client, Stri
                 }
             }
 
-            // Store incrementally in S3 if client provided
-            if let Some((s3_client, bucket)) = s3_info {
-                if let Err(e) = store_individual_news_item(&s3_client, &bucket, item.clone()).await {
-                    tracing::error!("❌ Failed to store individual news item: {}", e);
-                } else {
-                    tracing::debug!("✅ News item stored in S3: {}", item["url"].as_str().unwrap_or(""));
-                }
+            // Store the individual item in S3 (non-blocking)
+            if let Some((s3_client, bucket)) = s3_info.clone() {
+                let s3_client_inner = s3_client.clone();
+                let bucket_inner = bucket.clone();
+                let item_inner = item.clone(); // Use `item` after potential modifications
+                
+                let url_for_log = item_inner["url"].as_str().unwrap_or("unknown").to_string();
+                
+                tokio::spawn(async move {
+                    if let Err(e) = store_individual_news_item(&s3_client_inner, &bucket_inner, item_inner).await {
+                        tracing::error!("❌ Background S3 store failed: {}", e);
+                    } else {
+                        tracing::debug!("✅ News item stored in S3: {}", url_for_log);
+                    }
+                });
             }
 
             item
