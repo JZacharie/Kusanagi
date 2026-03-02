@@ -5,7 +5,7 @@
 
 /**
  * Kusanagi Localization Manager
- * Handles multi-language support (EN/FR)
+ * Handles multi-language support (EN/FR/HI)
  */
 const LocaleManager = {
     currentLocale: 'fr',
