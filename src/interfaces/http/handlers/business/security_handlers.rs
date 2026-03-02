@@ -100,13 +100,28 @@ pub async fn get_vulnerabilities_handler(State(state): State<AppState>) -> impl 
                 "Security vulnerabilities retrieved: {} total",
                 summary.total_vulnerabilities
             );
+            let images: Vec<serde_json::Value> = summary.reports.iter().map(|r| {
+                let parts: Vec<&str> = r.split('/').collect();
+                let name = parts.last().unwrap_or(&"unknown").replace(".json", "");
+                let cat = parts.first().unwrap_or(&"default");
+                json!({
+                    "image": name,
+                    "namespace": cat,
+                    "critical_count": 0,
+                    "high_count": 0,
+                    "medium_count": 0,
+                    "low_count": 0,
+                    "last_scan": summary.last_updated
+                })
+            }).collect();
+
             api_success(json!({
                 "critical": summary.critical_count,
                 "high": summary.high_count,
                 "medium": summary.medium_count,
                 "low": summary.low_count,
                 "total": summary.total_vulnerabilities,
-                "images": []
+                "images": images
             }))
         }
         Err(e) => {

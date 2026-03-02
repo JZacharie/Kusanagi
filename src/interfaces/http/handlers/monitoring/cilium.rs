@@ -2,14 +2,15 @@
 //! Axum handlers for Cilium network visualization
 
 use crate::domain::services::cilium_service::CiliumService;
+use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 use serde::Deserialize;
+use serde_json::json;
 use tracing::error;
 
 #[derive(Deserialize)]
@@ -40,9 +41,9 @@ pub async fn get_flows_handler(
     let client = match &state.kube_client {
         Some(c) => c.as_ref().clone(),
         None => {
-            return (
+            return api_error(
                 StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({ "error": "Kubernetes client not available" })),
+                "Kubernetes client not available",
             );
         }
     };
@@ -54,16 +55,10 @@ pub async fn get_flows_handler(
         .get_hubble_flows(params.namespace.as_deref(), limit)
         .await
     {
-        Ok(response) => (
-            StatusCode::OK,
-            Json(serde_json::to_value(response).unwrap_or_default()),
-        ),
+        Ok(response) => api_success(serde_json::to_value(response).unwrap_or_default()),
         Err(e) => {
             error!("Failed to get flows: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": e })),
-            )
+            api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
         }
     }
 }
@@ -89,9 +84,9 @@ pub async fn get_matrix_handler(
     let client = match &state.kube_client {
         Some(c) => c.as_ref().clone(),
         None => {
-            return (
+            return api_error(
                 StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({ "error": "Kubernetes client not available" })),
+                "Kubernetes client not available",
             );
         }
     };
@@ -99,16 +94,10 @@ pub async fn get_matrix_handler(
     let service = CiliumService::new(client, state.cilium_cache.clone());
 
     match service.get_flow_matrix(params.namespace.as_deref()).await {
-        Ok(matrix) => (
-            StatusCode::OK,
-            Json(serde_json::to_value(matrix).unwrap_or_default()),
-        ),
+        Ok(matrix) => api_success(serde_json::to_value(matrix).unwrap_or_default()),
         Err(e) => {
             error!("Failed to get flow matrix: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": e })),
-            )
+            api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
         }
     }
 }
@@ -134,9 +123,9 @@ pub async fn get_metrics_handler(
     let client = match &state.kube_client {
         Some(c) => c.as_ref().clone(),
         None => {
-            return (
+            return api_error(
                 StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({ "error": "Kubernetes client not available" })),
+                "Kubernetes client not available",
             );
         }
     };
@@ -147,16 +136,10 @@ pub async fn get_metrics_handler(
         .get_bandwidth_metrics(params.namespace.as_deref())
         .await
     {
-        Ok(metrics) => (
-            StatusCode::OK,
-            Json(serde_json::to_value(metrics).unwrap_or_default()),
-        ),
+        Ok(metrics) => api_success(serde_json::to_value(metrics).unwrap_or_default()),
         Err(e) => {
             error!("Failed to get bandwidth metrics: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": e })),
-            )
+            api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
         }
     }
 }
@@ -182,9 +165,9 @@ pub async fn get_anomalies_handler(
     let client = match &state.kube_client {
         Some(c) => c.as_ref().clone(),
         None => {
-            return (
+            return api_error(
                 StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({ "error": "Kubernetes client not available" })),
+                "Kubernetes client not available",
             );
         }
     };
@@ -192,16 +175,10 @@ pub async fn get_anomalies_handler(
     let service = CiliumService::new(client, state.cilium_cache.clone());
 
     match service.detect_anomalies(params.namespace.as_deref()).await {
-        Ok(anomalies) => (
-            StatusCode::OK,
-            Json(serde_json::to_value(anomalies).unwrap_or_default()),
-        ),
+        Ok(anomalies) => api_success(serde_json::to_value(anomalies).unwrap_or_default()),
         Err(e) => {
             error!("Failed to detect anomalies: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": e })),
-            )
+            api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
         }
     }
 }
@@ -221,9 +198,9 @@ pub async fn get_namespaces_handler(State(state): State<AppState>) -> impl IntoR
     let client = match &state.kube_client {
         Some(c) => c.as_ref().clone(),
         None => {
-            return (
+            return api_error(
                 StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({ "error": "Kubernetes client not available" })),
+                "Kubernetes client not available",
             );
         }
     };
@@ -231,16 +208,10 @@ pub async fn get_namespaces_handler(State(state): State<AppState>) -> impl IntoR
     let service = CiliumService::new(client, state.cilium_cache.clone());
 
     match service.get_namespaces().await {
-        Ok(namespaces) => (
-            StatusCode::OK,
-            Json(serde_json::to_value(namespaces).unwrap_or_default()),
-        ),
+        Ok(namespaces) => api_success(serde_json::to_value(namespaces).unwrap_or_default()),
         Err(e) => {
             error!("Failed to get namespaces: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": e })),
-            )
+            api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
         }
     }
 }
@@ -251,12 +222,9 @@ pub async fn get_cilium_status_handler(State(state): State<AppState>) -> impl In
     let client = match &state.kube_client {
         Some(c) => c.as_ref().clone(),
         None => {
-            return (
+            return api_error(
                 StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({
-                    "error": "Kubernetes client not available",
-                    "status": "unavailable"
-                })),
+                "Kubernetes client not available",
             );
         }
     };
@@ -264,16 +232,10 @@ pub async fn get_cilium_status_handler(State(state): State<AppState>) -> impl In
     let service = CiliumService::new(client, state.cilium_cache.clone());
 
     match service.get_cilium_status().await {
-        Ok(status) => (StatusCode::OK, Json(status)),
+        Ok(status) => api_success(json!(status)),
         Err(e) => {
             error!("Failed to get Cilium status: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": e,
-                    "status": "error"
-                })),
-            )
+            api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
         }
     }
 }

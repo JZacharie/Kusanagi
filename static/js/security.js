@@ -133,7 +133,7 @@ const SecurityDashboard = {
 
             // Process Cilium Metrics
             const ciliumResult = results[1];
-            if (ciliumResult.status === 'fulfilled' && !ciliumResult.value.error) {
+            if (ciliumResult.status === 'fulfilled' && ciliumResult.value && !ciliumResult.value.error) {
                 this.renderCiliumMetrics(ciliumResult.value);
             } else {
                 console.warn('Failed to fetch Cilium metrics:', ciliumResult.value?.error || ciliumResult.reason);
@@ -143,7 +143,7 @@ const SecurityDashboard = {
 
             // Process Reports
             const reportsResult = results[2];
-            if (reportsResult.status === 'fulfilled' && !reportsResult.value.error) {
+            if (reportsResult.status === 'fulfilled' && reportsResult.value && !reportsResult.value.error) {
                 this.renderReportSelector(reportsResult.value || []);
             } else {
                 console.warn('Failed to fetch reports list:', reportsResult.value?.error || reportsResult.reason);
