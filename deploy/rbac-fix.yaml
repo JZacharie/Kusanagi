@@ -83,7 +83,7 @@ rules:
   
   # Storage
   - apiGroups: ["storage.k8s.io"]
-    resources: ["storageclasses"]
+    resources: ["storageclasses", "volumeattachments"]
     verbs: ["get", "list", "watch"]
   
   # Metrics (pour kubectl top)
