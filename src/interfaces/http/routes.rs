@@ -70,7 +70,7 @@ pub fn configure_routes(state: AppState) -> Router {
         // MCP routes
         .route(
             "/api/security/vulnerabilities",
-            get(mcp_vulnerabilities_handler),
+            get(get_vulnerabilities_handler),
         )
         .route("/api/security/policies", get(mcp_policies_handler))
         .route(
