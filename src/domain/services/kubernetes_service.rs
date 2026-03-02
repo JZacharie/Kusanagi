@@ -3,6 +3,7 @@ use k8s_openapi::api::storage::v1::VolumeAttachment;
 use k8s_openapi::api::networking::v1::Ingress;
 use kube::{api::ListParams, Api, Client};
 use serde_json::{json, Value};
+use tracing::error;
 
 #[tracing::instrument(name = "k8s_get_pods", skip(cache))]
 pub async fn get_pods_status(cache: &crate::AdvancedCache<String>) -> Result<Value, String> {
@@ -658,11 +659,17 @@ pub async fn get_storage_analysis(client: &reqwest::Client) -> Result<Value, Str
 
     // 1. Fetch PVCs
     let pvcs_api: Api<PersistentVolumeClaim> = Api::all(kube_client.clone());
-    let pvc_list = pvcs_api.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
+    let pvc_list = pvcs_api.list(&ListParams::default()).await.map_err(|e| {
+        error!("❌ Storage Analysis: Failed to list PVCs: {}", e);
+        e.to_string()
+    })?;
 
     // 2. Fetch VolumeAttachments
     let va_api: Api<VolumeAttachment> = Api::all(kube_client);
-    let va_list = va_api.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
+    let va_list = va_api.list(&ListParams::default()).await.map_err(|e| {
+        error!("❌ Storage Analysis: Failed to list VolumeAttachments: {}", e);
+        e.to_string()
+    })?;
 
     // 3. Fetch Proxmox volumes
     let proxmox_volumes = crate::domain::services::proxmox_service::get_all_proxmox_volumes(client).await.unwrap_or(json!([]));
