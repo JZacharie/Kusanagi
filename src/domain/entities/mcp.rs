@@ -133,18 +133,61 @@ pub struct McpConfig {
 impl Default for McpConfig {
     fn default() -> Self {
         Self {
-            kubernetes_url: std::env::var("MCP_KUBERNETES_URL")
+            kubernetes_url: std::env::var("KUSANAGI_INTEGRATIONS_MCP_KUBERNETES_URL")
+                .or_else(|_| std::env::var("MCP_KUBERNETES_URL"))
                 .unwrap_or_else(|_| "http://localhost:3000/mcp/kubernetes".to_string()),
-            cilium_url: std::env::var("MCP_CILIUM_URL")
+            cilium_url: std::env::var("KUSANAGI_INTEGRATIONS_MCP_CILIUM_URL")
+                .or_else(|_| std::env::var("MCP_CILIUM_URL"))
                 .unwrap_or_else(|_| "http://localhost:3000/mcp/cilium".to_string()),
-            steampipe_url: std::env::var("MCP_STEAMPIPE_URL")
+            steampipe_url: std::env::var("KUSANAGI_INTEGRATIONS_MCP_STEAMPIPE_URL")
+                .or_else(|_| std::env::var("MCP_STEAMPIPE_URL"))
                 .unwrap_or_else(|_| "http://localhost:3000/mcp/steampipe".to_string()),
-            trivy_url: std::env::var("MCP_TRIVY_URL")
+            trivy_url: std::env::var("KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL")
+                .or_else(|_| std::env::var("MCP_TRIVY_URL"))
                 .unwrap_or_else(|_| "http://localhost:3000/mcp/trivy".to_string()),
-            timeout_secs: std::env::var("MCP_TIMEOUT_SECS")
+            timeout_secs: std::env::var("KUSANAGI_INTEGRATIONS_MCP_TIMEOUT_SECS")
+                .or_else(|_| std::env::var("MCP_TIMEOUT_SECS"))
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(5),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_mcp_config_defaults() {
+        // Clear env vars to test defaults
+        std::env::remove_var("KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL");
+        std::env::remove_var("MCP_TRIVY_URL");
+
+        let config = McpConfig::default();
+        assert_eq!(config.trivy_url, "http://localhost:3000/mcp/trivy");
+    }
+
+    #[test]
+    fn test_mcp_config_prefixed_priority() {
+        std::env::set_var("KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL", "http://prefixed:3000");
+        std::env::set_var("MCP_TRIVY_URL", "http://legacy:3000");
+
+        let config = McpConfig::default();
+        assert_eq!(config.trivy_url, "http://prefixed:3000");
+
+        std::env::remove_var("KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL");
+        std::env::remove_var("MCP_TRIVY_URL");
+    }
+
+    #[test]
+    fn test_mcp_config_legacy_fallback() {
+        std::env::remove_var("KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL");
+        std::env::set_var("MCP_TRIVY_URL", "http://legacy:3000");
+
+        let config = McpConfig::default();
+        assert_eq!(config.trivy_url, "http://legacy:3000");
+
+        std::env::remove_var("MCP_TRIVY_URL");
     }
 }

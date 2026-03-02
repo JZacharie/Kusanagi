@@ -139,6 +139,18 @@
      */
     window.KusanagiRUM = {
         /**
+         * Generic track method for custom actions
+         */
+        track(name, attributes = {}) {
+            if (typeof OO_RUM !== 'undefined') {
+                OO_RUM.addAction(name, {
+                    ...attributes,
+                    timestamp: new Date().toISOString(),
+                });
+            }
+        },
+
+        /**
          * Track tab navigation
          */
         trackTabSwitch(tabName) {

@@ -112,7 +112,7 @@ const SecurityDashboard = {
 
             // Process Vulnerabilities
             const vulnsResult = results[0];
-            if (vulnsResult.status === 'fulfilled' && !vulnsResult.value.error) {
+            if (vulnsResult.status === 'fulfilled' && vulnsResult.value && !vulnsResult.value.error) {
                 const vulns = vulnsResult.value;
                 this.data = vulns;
                 this.filteredData = { ...vulns };
