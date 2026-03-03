@@ -110,7 +110,7 @@ const KusanagiNetwork = {
                 : this.config.flowsEndpoint;
 
             console.log(`🌐 Fetching flows from: ${url}`);
-            
+
             // Fetch phase
             const fetchStart = performance.now();
             const response = await fetch(url);
@@ -218,6 +218,11 @@ const KusanagiNetwork = {
      */
     async fetchAndRender() {
         const totalStart = performance.now();
+
+        // Auto-initialize if init() was never called (e.g. direct URL hash navigation)
+        if (!this.container || !this.svg) {
+            await this.init();
+        }
 
         try {
             const namespace = this.state.selectedNamespace;
@@ -342,7 +347,7 @@ const KusanagiNetwork = {
         if (window.KusanagiDebug) {
             console.log('🌐 Rendering network graph, flows:', this.state.flows);
         }
-        
+
         if (!this.state.flows || !this.state.flows.flows) {
             console.warn('No flows data available to render');
             this.renderError('No network flow data available');
@@ -350,7 +355,7 @@ const KusanagiNetwork = {
         }
 
         const flows = this.state.flows.flows;
-        
+
         if (!Array.isArray(flows) || flows.length === 0) {
             console.warn('Flows array is empty');
             this.renderError('No network flows to display');
@@ -507,14 +512,14 @@ const KusanagiNetwork = {
             console.warn('Network matrix container not found');
             return;
         }
-        
+
         if (!this.state.matrix || !Array.isArray(this.state.matrix)) {
             matrixContainer.innerHTML = '<div class="loading">No matrix data available</div>';
             return;
         }
 
         const matrix = this.state.matrix;
-        
+
         if (matrix.length === 0) {
             matrixContainer.innerHTML = '<div class="no-data">No flow matrix entries to display</div>';
             return;
@@ -567,7 +572,7 @@ const KusanagiNetwork = {
 
         const flows = this.state.flows;
         const flowsArray = Array.isArray(flows.flows) ? flows.flows : [];
-        
+
         const totalBytes = flowsArray.reduce((sum, f) => sum + (f.bytes_sent || 0) + (f.bytes_received || 0), 0);
         const forwarded = flowsArray.filter(f => f.verdict === 'FORWARDED').length;
         const dropped = flowsArray.filter(f => f.verdict === 'DROPPED').length;
