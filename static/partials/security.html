@@ -3,7 +3,8 @@
 
 <!-- Quick Links -->
 <div class="security-quick-links" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-    <a href="https://powerpipe.p.zacharie.org/kubernetes_compliance.benchmark.cis_v170" target="_blank" class="cyber-btn"
+    <a href="https://powerpipe.p.zacharie.org/kubernetes_compliance.benchmark.cis_v170" target="_blank"
+        class="cyber-btn"
         style="border-color: var(--neon-cyan); color: var(--neon-cyan); text-decoration: none; display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
         <span>📜</span> CIS Compliance
     </a>
@@ -17,28 +18,11 @@
     </button>
 </div>
 
-<!-- Cilium Network Stats -->
-<div class="cilium-stats-grid" id="cilium-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-    <div class="stat-box" style="border-color: var(--neon-purple, #a855f7);">
-        <div class="stat-value" id="cilium-total-ingress" style="color: var(--neon-purple, #a855f7);">0 B</div>
-        <div class="stat-label">Ingress/s</div>
-    </div>
-    <div class="stat-box" style="border-color: var(--neon-blue, #3b82f6);">
-        <div class="stat-value" id="cilium-total-egress" style="color: var(--neon-blue, #3b82f6);">0 B</div>
-        <div class="stat-label">Egress/s</div>
-    </div>
-    <div class="stat-box" style="border-color: var(--neon-teal, #14b8a6);">
-        <div class="stat-value" id="cilium-total-connections" style="color: var(--neon-teal, #14b8a6);">0</div>
-        <div class="stat-label">Connections</div>
-    </div>
-    <div class="stat-box" style="border-color: var(--neon-pink, #ec4899);">
-        <div class="stat-value" id="cilium-monitored-services" style="color: var(--neon-pink, #ec4899);">0</div>
-        <div class="stat-label">Services</div>
-    </div>
-</div>
+
 
 <!-- Stats Cards -->
-<div class="security-stats-grid" id="security-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+<div class="security-stats-grid" id="security-stats-grid"
+    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
     <div class="stat-box unhealthy">
         <div class="stat-value" id="security-critical-vulns">0</div>
         <div class="stat-label">Critical</div>
@@ -68,14 +52,16 @@
         <div class="issues-table-header" style="background: rgba(255, 165, 0, 0.1); border-color: var(--neon-orange);">
             <span class="issues-table-title" style="color: var(--neon-orange);">📊 Distribution</span>
         </div>
-        <div id="security-chart-container" style="padding: 1rem; height: 200px; display: flex; align-items: center; justify-content: center;">
+        <div id="security-chart-container"
+            style="padding: 1rem; height: 200px; display: flex; align-items: center; justify-content: center;">
             <canvas id="vuln-chart"></canvas>
         </div>
     </div>
 
     <!-- Filters -->
     <div class="issues-table-container" style="border-color: var(--neon-blue, #4169e1);">
-        <div class="issues-table-header" style="background: rgba(65, 105, 225, 0.1); border-color: var(--neon-blue, #4169e1);">
+        <div class="issues-table-header"
+            style="background: rgba(65, 105, 225, 0.1); border-color: var(--neon-blue, #4169e1);">
             <span class="issues-table-title" style="color: var(--neon-blue, #4169e1);">🔧 Filters</span>
             <span id="last-updated" style="font-size: 0.75rem; color: #888;">Last updated: Never</span>
         </div>
@@ -91,7 +77,8 @@
                 </select>
             </div>
             <div>
-                <label style="display: block; font-size: 0.75rem; color: #888; margin-bottom: 0.25rem;">Namespace</label>
+                <label
+                    style="display: block; font-size: 0.75rem; color: #888; margin-bottom: 0.25rem;">Namespace</label>
                 <select id="filter-namespace" class="cyber-input small" onchange="SecurityDashboard.applyFilters()"
                     style="background: rgba(0,0,0,0.5); color: var(--neon-cyan); border: 1px solid var(--neon-cyan);">
                     <option value="all">All Namespaces</option>
@@ -144,16 +131,7 @@
     </div>
 </div>
 
-<!-- Cilium Network Metrics -->
-<div class="issues-table-container" style="border-color: var(--neon-purple, #a855f7); margin-bottom: 1.5rem;">
-    <div class="issues-table-header" style="background: rgba(168, 85, 247, 0.1); border-color: var(--neon-purple, #a855f7);">
-        <span class="issues-table-title" style="color: var(--neon-purple, #a855f7);">🌐 Cilium Network Metrics</span>
-        <span id="cilium-metrics-count" style="background: var(--neon-purple, #a855f7);" class="issues-count">0</span>
-    </div>
-    <div id="cilium-metrics-content">
-        <div class="loading">Loading network metrics...</div>
-    </div>
-</div>
+
 
 <!-- Summary by Namespace -->
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
@@ -167,7 +145,8 @@
     </div>
 
     <div class="issues-table-container" style="border-color: var(--neon-yellow, #ffff00);">
-        <div class="issues-table-header" style="background: rgba(255, 255, 0, 0.1); border-color: var(--neon-yellow, #ffff00);">
+        <div class="issues-table-header"
+            style="background: rgba(255, 255, 0, 0.1); border-color: var(--neon-yellow, #ffff00);">
             <span class="issues-table-title" style="color: var(--neon-yellow, #ffff00);">⚠️ Top Risk Images</span>
         </div>
         <div id="security-top-risk">

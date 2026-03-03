@@ -16,19 +16,13 @@ const SecurityDashboard = {
 
     setDefaultValues() {
         // Set default values for all stat elements
-        const defaultStats = {
+        Object.entries({
             'security-critical-vulns': '0',
             'security-high-vulns': '0',
             'security-medium-vulns': '0',
             'security-low-vulns': '0',
-            'security-total-vulns': '0',
-            'cilium-total-ingress': '0 B',
-            'cilium-total-egress': '0 B',
-            'cilium-total-connections': '0',
-            'cilium-monitored-services': '0'
-        };
-
-        Object.entries(defaultStats).forEach(([id, value]) => {
+            'security-total-vulns': '0'
+        }).forEach(([id, value]) => {
             const el = document.getElementById(id);
             if (el) el.textContent = value;
         });
@@ -104,7 +98,6 @@ const SecurityDashboard = {
 
             const promises = [
                 api.get('/api/security/vulnerabilities').catch(e => ({ error: e, type: 'vulns' })),
-                api.get('/api/cilium/metrics').catch(e => ({ error: e, type: 'cilium' })),
                 api.get('/api/security/reports').catch(e => ({ error: e, type: 'reports' }))
             ];
 
@@ -131,18 +124,8 @@ const SecurityDashboard = {
                 this.renderSecurityError('Security service unavailable. Please check configuration.');
             }
 
-            // Process Cilium Metrics
-            const ciliumResult = results[1];
-            if (ciliumResult.status === 'fulfilled' && ciliumResult.value && !ciliumResult.value.error) {
-                this.renderCiliumMetrics(ciliumResult.value);
-            } else {
-                console.warn('Failed to fetch Cilium metrics:', ciliumResult.value?.error || ciliumResult.reason);
-                const container = document.getElementById('cilium-metrics-content');
-                if (container) container.innerHTML = '<div class="no-issues" style="color: #666;">Metrics unavailable</div>';
-            }
-
             // Process Reports
-            const reportsResult = results[2];
+            const reportsResult = results[1];
             if (reportsResult.status === 'fulfilled' && reportsResult.value && !reportsResult.value.error) {
                 this.renderReportSelector(reportsResult.value || []);
             } else {
@@ -464,19 +447,31 @@ const SecurityDashboard = {
 
         const enrichment = report.enrichment || {};
         const originalData = report.original_data || {};
-        const vulnerabilities = originalData.vulnerabilities || [];
+        // Real Trivy JSON: original_data.report.vulnerabilities
+        // Legacy format:   original_data.vulnerabilities
+        const vulnerabilities = (originalData.report?.vulnerabilities)
+            || (originalData.Report?.Vulnerabilities)
+            || originalData.vulnerabilities
+            || [];
         const metadata = originalData.metadata || {};
+        // Use Trivy summary block if available
+        const trivySummary = originalData.report?.summary || null;
 
-        // Compter les vulnérabilités par sévérité
+        // Count severities
         const severityCount = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, UNKNOWN: 0 };
-        vulnerabilities.forEach(v => {
-            const sev = (v.severity || 'UNKNOWN').toUpperCase();
-            if (severityCount[sev] !== undefined) {
-                severityCount[sev]++;
-            } else {
-                severityCount.UNKNOWN++;
-            }
-        });
+        if (trivySummary) {
+            // Fast path: use Trivy's pre-computed summary
+            severityCount.CRITICAL = trivySummary.criticalCount || 0;
+            severityCount.HIGH = trivySummary.highCount || 0;
+            severityCount.MEDIUM = trivySummary.mediumCount || 0;
+            severityCount.LOW = trivySummary.lowCount || 0;
+        } else {
+            vulnerabilities.forEach(v => {
+                const sev = (v.severity || 'UNKNOWN').toUpperCase();
+                if (severityCount[sev] !== undefined) severityCount[sev]++;
+                else severityCount.UNKNOWN++;
+            });
+        }
 
         content.innerHTML = `
             <div style="padding: 1rem;">
@@ -571,19 +566,21 @@ const SecurityDashboard = {
         };
         const color = colors[severity] || colors.UNKNOWN;
 
-        const vulnId = vuln.vulnerability_id || vuln.id || `vuln-${index}`;
-        const pkgName = vuln.pkg_name || vuln.package_name || 'Unknown Package';
-        const installedVer = vuln.installed_version || vuln.version || 'N/A';
-        const fixedVer = vuln.fixed_version || vuln.fixed_in || null;
+        // Support both Trivy JSON field names (camelCase) and legacy snake_case
+        const vulnId = vuln.vulnerabilityID || vuln.vulnerability_id || vuln.id || `vuln-${index}`;
+        const pkgName = vuln.resource || vuln.pkg_name || vuln.package_name || 'Unknown Package';
+        const installedVer = vuln.installedVersion || vuln.installed_version || vuln.version || 'N/A';
+        const fixedVer = vuln.fixedVersion || vuln.fixed_version || vuln.fixed_in || null;
         const title = vuln.title || vuln.name || 'No title';
         const description = vuln.description || vuln.summary || '';
+        const link = vuln.primaryLink || vuln.primary_link || null;
 
         return `
             <div style="background: rgba(0,0,0,0.3); border-left: 3px solid ${color}; margin-bottom: 0.5rem; border-radius: 0 4px 4px 0; overflow: hidden;">
                 <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'" 
                      style="cursor: pointer; padding: 0.75rem; display: flex; align-items: center; gap: 0.75rem;">
                     <span style="background: ${color}; color: #000; padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.7rem; font-weight: bold;">${severity}</span>
-                    <span style="font-family: monospace; font-size: 0.8rem; color: var(--neon-cyan);">${vulnId}</span>
+                    <span style="font-family: monospace; font-size: 0.8rem; color: var(--neon-cyan);">${link ? `<a href="${link}" target="_blank" style="color: var(--neon-cyan); text-decoration: none;">${vulnId} ↗</a>` : vulnId}</span>
                     <span style="flex: 1; color: #fff; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</span>
                     <span style="color: #888; font-size: 0.8rem;">▼</span>
                 </div>
@@ -593,7 +590,7 @@ const SecurityDashboard = {
                             <div><span style="color: #888;">Package:</span> <code>${pkgName}</code></div>
                             <div><span style="color: #888;">Installed:</span> <code>${installedVer}</code></div>
                         </div>
-                        ${fixedVer ? `<div style="margin-bottom: 0.75rem; font-size: 0.85rem;"><span style="color: #888;">Fixed in:</span> <code style="color: #44ff44;">${fixedVer}</code></div>` : ''}
+                        ${fixedVer ? `<div style="margin-bottom: 0.75rem; font-size: 0.85rem;"><span style="color: #888;">Fixed in:</span> <code style="color: #44ff44;">${fixedVer}</code></div>` : '<div style="margin-bottom: 0.5rem; font-size: 0.8rem; color: #888;">No fix available</div>'}
                         ${description ? `<div style="color: #ccc; font-size: 0.85rem; line-height: 1.5;">${description}</div>` : ''}
                     </div>
                 </div>
