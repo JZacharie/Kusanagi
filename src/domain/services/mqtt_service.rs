@@ -1,4 +1,4 @@
-use tracing::{debug, error, info};
+use tracing::{error, info, warn};
 
 use rumqttc::{AsyncClient, Event, MqttOptions, Packet, QoS};
 use serde::{Deserialize, Serialize};
@@ -138,9 +138,12 @@ pub fn start_mqtt_client(
         let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
 
         // Subscribe to everything
-        if let Err(e) = client.subscribe("#", QoS::AtMostOnce).await {
-            error!("❌ MQTT: Error subscribing: {:?}", e);
-            return;
+        match client.subscribe("#", QoS::AtMostOnce).await {
+            Ok(_) => info!("📡 MQTT: Subscribed to '#' on {}", host),
+            Err(e) => {
+                error!("❌ MQTT: Error subscribing to '#': {:?}", e);
+                return;
+            }
         }
 
         info!("📡 MQTT: Connected to {}", host);
@@ -150,12 +153,11 @@ pub fn start_mqtt_client(
                 Ok(notification) => {
                     if let Event::Incoming(Packet::Publish(publish)) = notification {
                         let payload = String::from_utf8_lossy(&publish.payload).to_string();
-                        // println!("Received: {} = {}", publish.topic, payload);
                         state.handle_message(publish.topic, payload);
                     }
                 }
                 Err(e) => {
-                    debug!("MQTT connection error: {:?}", e);
+                    warn!("⚠️ MQTT connection error: {:?} — retrying in 5s", e);
                     tokio::time::sleep(Duration::from_secs(5)).await;
                 }
             }
