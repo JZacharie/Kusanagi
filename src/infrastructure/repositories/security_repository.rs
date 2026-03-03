@@ -320,34 +320,38 @@ impl SecurityRepository for SecurityRepositoryImpl {
                         .filter_map(|o| o.key)
                         .collect();
 
-                    let fetch_futures = keys.iter().map(|key| self.fetch_from_s3(key));
-                    let reports = futures::future::join_all(fetch_futures).await;
+                    // Only use S3 if it actually has cached reports
+                    if !keys.is_empty() {
+                        let fetch_futures = keys.iter().map(|key| self.fetch_from_s3(key));
+                        let reports = futures::future::join_all(fetch_futures).await;
 
-                    let mut total_vulns = 0;
-                    let mut critical = 0;
-                    let mut high = 0;
-                    let mut medium = 0;
-                    let mut low = 0;
+                        let mut total_vulns = 0;
+                        let mut critical = 0;
+                        let mut high = 0;
+                        let mut medium = 0;
+                        let mut low = 0;
 
-                    for report in reports.into_iter().flatten() {
-                        let (t, c, h, m, l) = self.count_vulnerabilities(&report.original_data);
-                        total_vulns += t;
-                        critical += c;
-                        high += h;
-                        medium += m;
-                        low += l;
+                        for report in reports.into_iter().flatten() {
+                            let (t, c, h, m, l) = self.count_vulnerabilities(&report.original_data);
+                            total_vulns += t;
+                            critical += c;
+                            high += h;
+                            medium += m;
+                            low += l;
+                        }
+
+                        return Ok(SecuritySummary {
+                            total_reports: keys.len(),
+                            total_vulnerabilities: total_vulns,
+                            critical_count: critical,
+                            high_count: high,
+                            medium_count: medium,
+                            low_count: low,
+                            reports: keys,
+                            last_updated: chrono::Utc::now().to_rfc3339(),
+                        });
                     }
-
-                    return Ok(SecuritySummary {
-                        total_reports: keys.len(),
-                        total_vulnerabilities: total_vulns,
-                        critical_count: critical,
-                        high_count: high,
-                        medium_count: medium,
-                        low_count: low,
-                        reports: keys,
-                        last_updated: chrono::Utc::now().to_rfc3339(),
-                    });
+                    // else: S3 empty, fall through to Trivy
                 }
                 Err(e) => {
                     warn!(
@@ -358,23 +362,30 @@ impl SecurityRepository for SecurityRepositoryImpl {
             }
         }
 
-        // Fallback: fetch from Trivy server and count vulns per report
+        // Fallback: fetch from Trivy server — only process vulnerability_reports
         let report_list = self.fetch_report_list().await?;
-        let total_reports: usize = report_list.iter().map(|(_, files)| files.len()).sum();
-        let report_keys: Vec<String> = report_list
+
+        // Only vulnerability_reports have CVE data; other types (sbom, config_audit, rbac…) are skipped
+        let vuln_reports: Vec<(String, Vec<String>)> = report_list
+            .into_iter()
+            .filter(|(cat, _)| cat == "vulnerability_reports")
+            .collect();
+
+        let total_reports: usize = vuln_reports.iter().map(|(_, files)| files.len()).sum();
+        let report_keys: Vec<String> = vuln_reports
             .iter()
             .flat_map(|(cat, files)| files.iter().map(move |f| format!("{}/{}", cat, f)))
             .collect();
 
-        // Fetch each report and count vulns (limit to first 50 to avoid timeout)
+        // Fetch each vulnerability report and count
         let mut total_vulns = 0usize;
         let mut critical = 0usize;
         let mut high = 0usize;
         let mut medium = 0usize;
         let mut low = 0usize;
 
-        for (cat, files) in &report_list {
-            for file in files.iter().take(50) {
+        for (cat, files) in &vuln_reports {
+            for file in files.iter().take(100) {
                 match self.fetch_raw_report(cat, file).await {
                     Ok(raw) => {
                         let (t, c, h, m, l) = self.count_vulnerabilities(&raw);
@@ -436,11 +447,12 @@ impl SecurityRepository for SecurityRepositoryImpl {
             }
         }
 
-        // Fallback to Trivy server
+        // Fallback to Trivy server — only vulnerability_reports have CVE data
         let report_list = self.fetch_report_list().await?;
         let keys: Vec<String> = report_list
-            .iter()
-            .flat_map(|(cat, files)| files.iter().map(move |f| format!("{}/{}", cat, f)))
+            .into_iter()
+            .filter(|(cat, _)| cat == "vulnerability_reports")
+            .flat_map(|(cat, files)| files.into_iter().map(move |f| format!("{}/{}", cat, f)))
             .collect();
 
         Ok(keys)
