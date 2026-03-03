@@ -60,7 +60,12 @@ async fn main() -> anyhow::Result<()> {
             .and_then(|p| p.parse().ok())
             .unwrap_or(1883);
         let mqtt_user = std::env::var("MQTT_USER").ok();
-        let mqtt_pass = std::env::var("MQTT_PASS").ok();
+        let mqtt_pass = std::env::var("MQTT_PASSWORD").ok(); // was MQTT_PASS — mismatch with .env
+
+        info!(
+            "📡 Starting MQTT client: {}:{} (user: {:?})",
+            mqtt_host, mqtt_port, mqtt_user
+        );
 
         kusanagi::domain::services::mqtt_service::start_mqtt_client(
             state.mqtt_state.clone(),
@@ -69,6 +74,8 @@ async fn main() -> anyhow::Result<()> {
             mqtt_user,
             mqtt_pass,
         );
+    } else {
+        info!("ℹ️ MQTT_HOST not set — MQTT client disabled");
     }
 
     // Build router using the routes module
