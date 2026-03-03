@@ -97,23 +97,92 @@ pub async fn get_vulnerabilities_handler(State(state): State<AppState>) -> impl 
     match state.security_use_case.get_summary().await {
         Ok(summary) => {
             debug!(
-                "Security vulnerabilities retrieved: {} total",
-                summary.total_vulnerabilities
+                "Security vulnerabilities retrieved: {} total across {} reports",
+                summary.total_vulnerabilities, summary.total_reports
             );
-            let images: Vec<serde_json::Value> = summary.reports.iter().map(|r| {
-                let parts: Vec<&str> = r.split('/').collect();
-                let name = parts.last().unwrap_or(&"unknown").replace(".json", "");
-                let cat = parts.first().unwrap_or(&"default");
-                json!({
-                    "image": name,
-                    "namespace": cat,
-                    "critical_count": 0,
-                    "high_count": 0,
-                    "medium_count": 0,
-                    "low_count": 0,
-                    "last_scan": summary.last_updated
-                })
-            }).collect();
+
+            // Build per-image entries by fetching each individual report
+            let mut images: Vec<serde_json::Value> = Vec::new();
+
+            for report_key in summary.reports.iter().take(200) {
+                let parts: Vec<&str> = report_key.splitn(2, '/').collect();
+                if parts.len() < 2 {
+                    continue;
+                }
+                let category = parts[0];
+                let name = parts[1];
+
+                match state.security_use_case.get_report(category, name).await {
+                    Ok(report) => {
+                        let raw = &report.original_data;
+
+                        // Extract counts from summary block (fast path)
+                        let summary_block = &raw["report"]["summary"];
+                        let (critical, high, medium, low) = if !summary_block.is_null() {
+                            (
+                                summary_block["criticalCount"].as_u64().unwrap_or(0),
+                                summary_block["highCount"].as_u64().unwrap_or(0),
+                                summary_block["mediumCount"].as_u64().unwrap_or(0),
+                                summary_block["lowCount"].as_u64().unwrap_or(0),
+                            )
+                        } else {
+                            // Count manually from vulnerabilities list
+                            let vulns = raw["report"]["vulnerabilities"]
+                                .as_array()
+                                .or_else(|| raw["Report"]["Vulnerabilities"].as_array());
+                            let mut c = 0u64; let mut h = 0u64; let mut m = 0u64; let mut l = 0u64;
+                            if let Some(list) = vulns {
+                                for v in list {
+                                    match v["severity"].as_str().unwrap_or("").to_lowercase().as_str() {
+                                        "critical" => c += 1,
+                                        "high" => h += 1,
+                                        "medium" => m += 1,
+                                        "low" => l += 1,
+                                        _ => {}
+                                    }
+                                }
+                            }
+                            (c, h, m, l)
+                        };
+
+                        // Extract image metadata
+                        let artifact = &raw["report"]["artifact"];
+                        let image_name = if !artifact.is_null() {
+                            format!(
+                                "{}:{}",
+                                artifact["repository"].as_str().unwrap_or(name),
+                                artifact["tag"].as_str().unwrap_or("latest")
+                            )
+                        } else {
+                            name.replace(".json", "")
+                        };
+
+                        let namespace = raw["metadata"]["namespace"]
+                            .as_str()
+                            .unwrap_or(category)
+                            .to_string();
+
+                        let last_scan = raw["report"]["updateTimestamp"]
+                            .as_str()
+                            .unwrap_or(&summary.last_updated)
+                            .to_string();
+
+                        images.push(json!({
+                            "image": image_name,
+                            "namespace": namespace,
+                            "critical_count": critical,
+                            "high_count": high,
+                            "medium_count": medium,
+                            "low_count": low,
+                            "last_scan": last_scan,
+                            "report_id": report_key
+                        }));
+                    }
+                    Err(e) => {
+                        debug!("Skipping report {}: {}", report_key, e);
+                    }
+                }
+            }
 
             api_success(json!({
                 "critical": summary.critical_count,

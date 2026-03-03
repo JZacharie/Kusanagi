@@ -39,7 +39,9 @@ impl SecurityRepositoryImpl {
     /// Create a new repository instance
     pub async fn new() -> Self {
         let trivy_server_url =
-            env::var("TRIVY_JSON_SERVER").unwrap_or_else(|_| DEFAULT_TRIVY_JSON_SERVER.to_string());
+            env::var("TRIVY_SERVER_URL") // matches .env key
+                .or_else(|_| env::var("TRIVY_JSON_SERVER")) // legacy fallback
+                .unwrap_or_else(|_| DEFAULT_TRIVY_JSON_SERVER.to_string());
 
         let bucket_name =
             env::var("SECURITY_S3_BUCKET").unwrap_or_else(|_| DEFAULT_BUCKET_NAME.to_string());
@@ -165,12 +167,17 @@ impl SecurityRepositoryImpl {
         Ok(report)
     }
 
-    /// Count vulnerabilities in a report
+    /// Count vulnerabilities in a report — handles both real Trivy JSON (lowercase)
+    /// and the legacy PascalCase format.
     fn count_vulnerabilities(
         &self,
         report: &serde_json::Value,
     ) -> (usize, usize, usize, usize, usize) {
-        let vulns = report["Report"]["Vulnerabilities"].as_array();
+        // Real Trivy JSON: { "report": { "vulnerabilities": [...] } }
+        // Legacy format:   { "Report": { "Vulnerabilities": [...] } }
+        let vulns = report["report"]["vulnerabilities"]
+            .as_array()
+            .or_else(|| report["Report"]["Vulnerabilities"].as_array());
 
         let mut total = 0;
         let mut critical = 0;
@@ -181,9 +188,10 @@ impl SecurityRepositoryImpl {
         if let Some(vuln_list) = vulns {
             total = vuln_list.len();
             for vuln in vuln_list {
-                let severity = vuln["Severity"]
+                // Trivy uses "severity", legacy uses "Severity"
+                let severity = vuln["severity"]
                     .as_str()
-                    .or_else(|| vuln["severity"].as_str())
+                    .or_else(|| vuln["Severity"].as_str())
                     .unwrap_or("UNKNOWN")
                     .to_lowercase();
 
@@ -194,6 +202,16 @@ impl SecurityRepositoryImpl {
                     "low" => low += 1,
                     _ => {}
                 }
+            }
+        } else {
+            // Try summary block: { "report": { "summary": { "criticalCount": N, ... } } }
+            let summary = &report["report"]["summary"];
+            if !summary.is_null() {
+                critical = summary["criticalCount"].as_u64().unwrap_or(0) as usize;
+                high = summary["highCount"].as_u64().unwrap_or(0) as usize;
+                medium = summary["mediumCount"].as_u64().unwrap_or(0) as usize;
+                low = summary["lowCount"].as_u64().unwrap_or(0) as usize;
+                total = critical + high + medium + low;
             }
         }
 
@@ -340,7 +358,7 @@ impl SecurityRepository for SecurityRepositoryImpl {
             }
         }
 
-        // Fallback: fetch from Trivy server
+        // Fallback: fetch from Trivy server and count vulns per report
         let report_list = self.fetch_report_list().await?;
         let total_reports: usize = report_list.iter().map(|(_, files)| files.len()).sum();
         let report_keys: Vec<String> = report_list
@@ -348,13 +366,36 @@ impl SecurityRepository for SecurityRepositoryImpl {
             .flat_map(|(cat, files)| files.iter().map(move |f| format!("{}/{}", cat, f)))
             .collect();
 
+        // Fetch each report and count vulns (limit to first 50 to avoid timeout)
+        let mut total_vulns = 0usize;
+        let mut critical = 0usize;
+        let mut high = 0usize;
+        let mut medium = 0usize;
+        let mut low = 0usize;
+
+        for (cat, files) in &report_list {
+            for file in files.iter().take(50) {
+                match self.fetch_raw_report(cat, file).await {
+                    Ok(raw) => {
+                        let (t, c, h, m, l) = self.count_vulnerabilities(&raw);
+                        total_vulns += t;
+                        critical += c;
+                        high += h;
+                        medium += m;
+                        low += l;
+                    }
+                    Err(e) => warn!("Skipping report {}/{}: {}", cat, file, e),
+                }
+            }
+        }
+
         Ok(SecuritySummary {
             total_reports,
-            total_vulnerabilities: 0,
-            critical_count: 0,
-            high_count: 0,
-            medium_count: 0,
-            low_count: 0,
+            total_vulnerabilities: total_vulns,
+            critical_count: critical,
+            high_count: high,
+            medium_count: medium,
+            low_count: low,
             reports: report_keys,
             last_updated: chrono::Utc::now().to_rfc3339(),
         })
