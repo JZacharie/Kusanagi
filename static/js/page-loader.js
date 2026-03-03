@@ -39,7 +39,7 @@ const PageLoader = {
      */
     async loadPartial(tabName) {
         console.log(`📄 PageLoader: Loading partial for '${tabName}'`);
-        
+
         const section = document.querySelector(`section[data-tab="${tabName}"]`);
         if (!section) {
             console.warn(`📄 PageLoader: No section found for '${tabName}'`);
@@ -73,7 +73,7 @@ const PageLoader = {
             // Fetch partial
             const partialUrl = `${this.partialsBase}${partialFile}`;
             console.log(`📄 PageLoader: Fetching ${partialUrl}`);
-            
+
             const response = await fetch(partialUrl);
             if (!response.ok) {
                 console.error(`📄 PageLoader: Failed to load partial for ${tabName}: ${response.status} ${response.statusText}`);
@@ -188,6 +188,11 @@ const PageLoader = {
                 break;
             case 'news':
                 console.log('📰 News section loaded');
+                break;
+            case 'network':
+                if (window.KusanagiNetwork) {
+                    KusanagiNetwork.init().then(() => KusanagiNetwork.fetchAndRender());
+                }
                 break;
             case 'mqtt':
                 if (window.MqttManager) {
