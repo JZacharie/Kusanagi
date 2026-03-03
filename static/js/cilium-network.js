@@ -81,10 +81,7 @@ const KusanagiNetwork = {
      */
     async fetchNamespaces() {
         try {
-            const response = await fetch(this.config.namespacesEndpoint);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-            const namespaces = await response.json();
+            const namespaces = await api.get(this.config.namespacesEndpoint);
             this.state.namespaces = namespaces;
             console.log(`Loaded ${namespaces.length} namespaces from K8s`);
             return namespaces;
@@ -113,18 +110,12 @@ const KusanagiNetwork = {
 
             // Fetch phase
             const fetchStart = performance.now();
-            const response = await fetch(url);
+            const data = await api.get(url);
             const fetchDuration = performance.now() - fetchStart;
             performance.mark(`${markName}_fetch_end`);
 
-            if (!response.ok) {
-                console.error(`Flows API error: HTTP ${response.status}`);
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            // Parse phase
+            // Parse phase (data already unwrapped by api.get)
             const parseStart = performance.now();
-            const data = await response.json();
             const parseDuration = performance.now() - parseStart;
             performance.mark(`${markName}_parse_end`);
 
@@ -170,7 +161,7 @@ const KusanagiNetwork = {
                 });
 
                 // Also track as standard API call
-                window.KusanagiRUM.trackApiCall(this.config.flowsEndpoint, totalDuration, true, response.status);
+                window.KusanagiRUM.trackApiCall(this.config.flowsEndpoint, totalDuration, true, 200);
             }
 
             console.log(`⏱️ Network flows: fetch=${fetchDuration.toFixed(0)}ms, parse=${parseDuration.toFixed(0)}ms, total=${totalDuration.toFixed(0)}ms, flows=${data.flows?.length || 0}`);
@@ -201,10 +192,7 @@ const KusanagiNetwork = {
                 ? `${this.config.matrixEndpoint}?namespace=${encodeURIComponent(namespace)}`
                 : this.config.matrixEndpoint;
 
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-            const data = await response.json();
+            const data = await api.get(url);
             this.state.matrix = data;
             return data;
         } catch (error) {
