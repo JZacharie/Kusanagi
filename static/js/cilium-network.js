@@ -14,7 +14,7 @@ const KusanagiNetwork = {
         refreshInterval: 30000,
         width: 800,
         height: 600,
-        defaultNamespace: 'default'
+        defaultNamespace: null
     },
 
     state: {
@@ -53,7 +53,7 @@ const KusanagiNetwork = {
         await this.fetchNamespaces();
         this.populateNamespaceFilter();
 
-        // Start with default namespace selected
+        // Start with all namespaces selected
         this.state.selectedNamespace = this.config.defaultNamespace;
 
         console.log('✅ Network visualization initialized (no internal polling)');
