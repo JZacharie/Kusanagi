@@ -413,16 +413,23 @@ const KusanagiNetwork = {
             const target = nodesMap.get(link.target);
             if (!source || !target) return;
 
+            const isDropped = link.verdict === 'DROPPED';
+            const strokeColor = isDropped ? '#ff0080' : '#00fff9'; // neon-magenta vs neon-cyan
+
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
             line.setAttribute('x1', source.x);
             line.setAttribute('y1', source.y);
             line.setAttribute('x2', target.x);
             line.setAttribute('y2', target.y);
-            line.setAttribute('class', `flow-link verdict-${link.verdict.toLowerCase()}`);
-            line.setAttribute('stroke-width', Math.max(1, Math.log(link.bytes / 100) || 1));
+            line.setAttribute('stroke', strokeColor);
+            line.setAttribute('stroke-opacity', '0.7');
+            line.setAttribute('stroke-width', Math.max(1.5, Math.log(link.bytes / 100) || 1.5));
+            line.setAttribute('stroke-dasharray', isDropped ? '6,3' : 'none');
 
-            // Add tooltip data
-            line.dataset.tooltip = `${link.source} → ${link.target}\n${link.protocol}:${link.port} (${this.formatBytes(link.bytes)})`;
+            // Animated glow arrow
+            const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+            title.textContent = `${link.source} → ${link.target} | ${link.protocol}:${link.port} (${this.formatBytes(link.bytes)})`;
+            line.appendChild(title);
 
             linksGroup.appendChild(line);
         });
@@ -437,19 +444,46 @@ const KusanagiNetwork = {
             group.setAttribute('class', 'node');
             group.setAttribute('transform', `translate(${node.x}, ${node.y})`);
 
+            const nsColor = this.getNamespaceColor(node.namespace);
+
+            // Outer glow ring
+            const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            glow.setAttribute('r', 24);
+            glow.setAttribute('fill', 'none');
+            glow.setAttribute('stroke', nsColor);
+            glow.setAttribute('stroke-width', '1');
+            glow.setAttribute('stroke-opacity', '0.4');
+            group.appendChild(glow);
+
             // Node circle
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('r', 20);
-            circle.setAttribute('class', `node-circle ns-${node.namespace}`);
-            circle.setAttribute('fill', this.getNamespaceColor(node.namespace));
+            circle.setAttribute('fill', nsColor);
+            circle.setAttribute('fill-opacity', '0.85');
+            circle.setAttribute('stroke', nsColor);
+            circle.setAttribute('stroke-width', '2');
             group.appendChild(circle);
 
-            // Node label
+            // Namespace label (above circle)
+            const nsLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            nsLabel.setAttribute('dy', -26);
+            nsLabel.setAttribute('text-anchor', 'middle');
+            nsLabel.setAttribute('fill', nsColor);
+            nsLabel.setAttribute('font-size', '9');
+            nsLabel.setAttribute('font-family', 'monospace');
+            nsLabel.setAttribute('opacity', '0.8');
+            nsLabel.textContent = node.namespace;
+            group.appendChild(nsLabel);
+
+            // Pod name label (below circle)
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('dy', 35);
+            text.setAttribute('dy', 36);
             text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('class', 'node-label');
-            text.textContent = node.pod.length > 15 ? node.pod.substring(0, 12) + '...' : node.pod;
+            text.setAttribute('fill', '#e0e0e0');
+            text.setAttribute('font-size', '11');
+            text.setAttribute('font-family', 'monospace');
+            text.setAttribute('font-weight', 'bold');
+            text.textContent = node.pod.length > 15 ? node.pod.substring(0, 12) + '…' : node.pod;
             group.appendChild(text);
 
             nodesGroup.appendChild(group);
@@ -466,22 +500,35 @@ const KusanagiNetwork = {
     renderLegend(namespaces) {
         const legendGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         legendGroup.setAttribute('class', 'legend');
-        legendGroup.setAttribute('transform', 'translate(10, 10)');
+        legendGroup.setAttribute('transform', 'translate(12, 16)');
+
+        // Legend background
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        bg.setAttribute('x', -6);
+        bg.setAttribute('y', -4);
+        bg.setAttribute('width', 130);
+        bg.setAttribute('height', namespaces.length * 20 + 8);
+        bg.setAttribute('fill', 'rgba(0,0,0,0.55)');
+        bg.setAttribute('rx', 4);
+        legendGroup.appendChild(bg);
 
         namespaces.forEach((ns, i) => {
             const item = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             item.setAttribute('transform', `translate(0, ${i * 20})`);
 
             const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            rect.setAttribute('width', 12);
-            rect.setAttribute('height', 12);
+            rect.setAttribute('width', 10);
+            rect.setAttribute('height', 10);
+            rect.setAttribute('rx', 2);
             rect.setAttribute('fill', this.getNamespaceColor(ns));
             item.appendChild(rect);
 
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', 18);
-            text.setAttribute('y', 10);
-            text.setAttribute('class', 'legend-text');
+            text.setAttribute('x', 16);
+            text.setAttribute('y', 9);
+            text.setAttribute('fill', '#c0c0c0');
+            text.setAttribute('font-size', '10');
+            text.setAttribute('font-family', 'monospace');
             text.textContent = ns;
             item.appendChild(text);
 
