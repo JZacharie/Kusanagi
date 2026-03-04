@@ -6,6 +6,9 @@ use serde_json::{json, Value};
 const CACHE_PREFIX: &str = "streaming/";
 const BASE_URL: &str = "https://cinestream.info";
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
 pub async fn get_streaming_data() -> Result<Value, String> {
     tracing::debug!("🎬 Streaming service: Attempting to get data from cache");
 
@@ -57,11 +60,31 @@ async fn fetch_fresh_streaming() -> Result<Value, String> {
         }
     };
 
+    let s3_client = create_s3_client().await.ok();
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+
     // Merge new items (avoid duplicates by URL)
     let initial_count = all_items.len();
-    for item in new_items {
+    for mut item in new_items {
         if let Some(url) = item["url"].as_str() {
             if !all_items.iter().any(|existing| existing["url"].as_str() == Some(url)) {
+                // Cache poster if available
+                if let (Some(s3), Some(poster_url)) = (s3_client.as_ref(), item["poster_url"].as_str()) {
+                    let mut hasher = DefaultHasher::new();
+                    url.hash(&mut hasher);
+                    let url_hash = format!("{:x}", hasher.finish());
+                    
+                    match cache_poster(s3, &bucket, &url_hash, poster_url, &client).await {
+                        Ok(proxy_path) => {
+                            item["poster_url"] = json!(proxy_path);
+                        }
+                        Err(e) => tracing::warn!("⚠️ Failed to cache poster for {}: {}", url, e),
+                    }
+                    
+                    // Store individual JSON metadata
+                    let _ = store_individual_movie(s3, &bucket, &url_hash, &item).await;
+                }
+                
                 all_items.insert(0, item);
             }
         }
@@ -80,15 +103,12 @@ async fn fetch_fresh_streaming() -> Result<Value, String> {
         "cached_at": Utc::now().to_rfc3339()
     });
 
-    // Cache the result in S3
-    if let Ok(s3_client) = create_s3_client().await {
-        let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+    // Cache the result in S3 (latest aggregation)
+    if let Some(s3) = s3_client {
         let key = format!("{}latest.json", CACHE_PREFIX);
-        
         let json_bytes = serde_json::to_vec(&response_data).unwrap_or_default();
         
-        match s3_client
-            .put_object()
+        match s3.put_object()
             .bucket(bucket)
             .key(key)
             .body(json_bytes.into())
@@ -102,6 +122,76 @@ async fn fetch_fresh_streaming() -> Result<Value, String> {
     }
 
     Ok(response_data)
+}
+
+async fn cache_poster(
+    s3: &S3Client,
+    bucket: &str,
+    hash: &str,
+    poster_url: &str,
+    http_client: &Client,
+) -> Result<String, String> {
+    let key = format!("{}posters/{}.jpg", CACHE_PREFIX, hash);
+    
+    // Check if poster already exists
+    if s3.head_object().bucket(bucket).key(&key).send().await.is_ok() {
+        return Ok(format!("/api/streaming/poster/{}", hash));
+    }
+
+    // Download poster
+    let response = http_client.get(poster_url).send().await.map_err(|e| e.to_string())?;
+    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+
+    // Store in S3
+    s3.put_object()
+        .bucket(bucket)
+        .key(&key)
+        .body(bytes.into())
+        .content_type("image/jpeg")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(format!("/api/streaming/poster/{}", hash))
+}
+
+async fn store_individual_movie(
+    s3: &S3Client,
+    bucket: &str,
+    hash: &str,
+    item: &Value,
+) -> Result<(), String> {
+    let day = Utc::now().format("%Y-%m-%d").to_string();
+    let key = format!("{}{}/{}.json", CACHE_PREFIX, day, hash);
+    
+    let json_bytes = serde_json::to_vec(item).map_err(|e| e.to_string())?;
+    
+    s3.put_object()
+        .bucket(bucket)
+        .key(key)
+        .body(json_bytes.into())
+        .content_type("application/json")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+        
+    Ok(())
+}
+
+pub async fn get_poster_data(hash: &str) -> Result<(Vec<u8>, String), String> {
+    let s3 = create_s3_client().await?;
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+    let key = format!("{}posters/{}.jpg", CACHE_PREFIX, hash);
+    
+    let result = s3.get_object()
+        .bucket(bucket)
+        .key(key)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+        
+    let body = result.body.collect().await.map_err(|e| e.to_string())?;
+    Ok((body.into_bytes().to_vec(), "image/jpeg".to_string()))
 }
 
 fn parse_cinestream_html(html: &str) -> Vec<Value> {
