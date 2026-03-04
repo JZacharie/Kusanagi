@@ -89,6 +89,7 @@ pub struct Alert {
     pub pod: Option<String>,
     pub started_at: DateTime<Utc>,
     pub fingerprint: String,
+    pub generator_url: Option<String>,
 }
 
 /// Grouped alerts response

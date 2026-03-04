@@ -13,6 +13,7 @@ pub struct UnifiedEvent {
     pub message: String,   // summary or message
     pub timestamp: String, // ISO8601
     pub details: Value,    // Original payload
+    pub external_url: Option<String>,
 }
 
 pub async fn get_fusion_events() -> Result<Vec<UnifiedEvent>, String> {
@@ -41,6 +42,22 @@ pub async fn get_fusion_events() -> Result<Vec<UnifiedEvent>, String> {
                         .unwrap_or("")
                         .to_string();
 
+                    let mut external_url = alert
+                        .get("generator_url")
+                        .and_then(|s| s.as_str())
+                        .map(|s| s.to_string());
+
+                    // Rewrite internal Prometheus URLs to public ones
+                    if let Some(ref url) = external_url {
+                        if url.contains("kube-prometheus-stack-prometheus") || url.contains(".svc") {
+                            // Option 1: Deep link (keep query params)
+                            // external_url = Some(url.replace("http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090", "https://prometheus.p.zacharie.org"));
+                            
+                            // Option 2: Use the specific URL requested by the user
+                            external_url = Some("https://prometheus.p.zacharie.org/alerts?page=1&state=firing&state=pending".to_string());
+                        }
+                    }
+
                     let timestamp = chrono::Utc::now().to_rfc3339(); // Alerts don't always have timestamp in the simplified view, use now or try to extract
 
                     unified_events.push(UnifiedEvent {
@@ -52,6 +69,7 @@ pub async fn get_fusion_events() -> Result<Vec<UnifiedEvent>, String> {
                         message: summary,
                         timestamp,
                         details: alert.clone(),
+                        external_url,
                     });
                 }
             }
@@ -115,6 +133,7 @@ pub async fn get_fusion_events() -> Result<Vec<UnifiedEvent>, String> {
                         message,
                         timestamp: timestamp_str,
                         details: event.clone(),
+                        external_url: None, // K8s events don't have external URLs for now
                     });
                 }
             }
