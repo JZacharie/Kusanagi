@@ -23,26 +23,29 @@ pub fn setup_caches() -> (
     Arc<crate::AdvancedCache<String>>,
     Arc<crate::AdvancedCache<String>>,
 ) {
-    let k8s_cache = Arc::new(crate::AdvancedCache::new(Duration::from_secs(60)));
-    let argocd_cache = Arc::new(crate::AdvancedCache::new(Duration::from_secs(600)));
-    let general_cache = Arc::new(crate::AdvancedCache::new(Duration::from_secs(120)));
+    // Increased TTL to reduce API pressure on Kubernetes
+    let k8s_cache = Arc::new(crate::AdvancedCache::new(Duration::from_secs(300))); // 5 minutes
+    let argocd_cache = Arc::new(crate::AdvancedCache::new(Duration::from_secs(600))); // 10 minutes
+    let general_cache = Arc::new(crate::AdvancedCache::new(Duration::from_secs(300))); // 5 minutes
 
     (k8s_cache, argocd_cache, general_cache)
 }
 
-pub fn setup_http_client() -> reqwest::Client {
-    reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .timeout(Duration::from_secs(5))
-        .build()
-        .unwrap_or_default()
+pub fn setup_http_client_arc() -> Arc<reqwest::Client> {
+    Arc::new(
+        reqwest::Client::builder()
+            .danger_accept_invalid_certs(true)
+            .timeout(Duration::from_secs(5))
+            .build()
+            .unwrap_or_default(),
+    )
 }
 
-pub async fn setup_kube_client() -> Option<kube::Client> {
+pub async fn setup_kube_client_arc() -> Option<Arc<kube::Client>> {
     match kube::Client::try_default().await {
         Ok(client) => {
             tracing::info!("✅ Kubernetes client initialized");
-            Some(client)
+            Some(Arc::new(client))
         }
         Err(e) => {
             tracing::warn!("⚠️  Kubernetes not available: {}", e);
