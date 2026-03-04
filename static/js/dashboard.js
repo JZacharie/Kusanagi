@@ -930,11 +930,14 @@ const NewsManager = {
             counts[item.source] = (counts[item.source] || 0) + 1;
         });
 
-        // Get all configured sources
-        const allConfigs = this.getAllSourceConfigs();
+        // Use only sources present in the data, plus any sources that might be the current filter
+        const sourcesInItems = Object.keys(counts);
+        if (this.currentFilter !== 'all' && !sourcesInItems.includes(this.currentFilter)) {
+            sourcesInItems.push(this.currentFilter);
+        }
 
         // Sort sources: high count first, then alphabetical
-        const sortedSources = Object.keys(allConfigs).sort((a, b) => {
+        const sortedSources = sourcesInItems.sort((a, b) => {
             const countA = counts[a] || 0;
             const countB = counts[b] || 0;
             if (countB !== countA) return countB - countA;
@@ -943,10 +946,10 @@ const NewsManager = {
 
         sortedSources.forEach(source => {
             const count = counts[source] || 0;
-            // Skip sources with 0 articles
-            if (count === 0) return;
+            // Skip sources with 0 articles unless they are the active filter
+            if (count === 0 && source !== this.currentFilter) return;
 
-            const config = allConfigs[source];
+            const config = this.getSourceConfig(source);
             const isActive = this.currentFilter === source;
 
             html += `
@@ -971,6 +974,7 @@ const NewsManager = {
             korben: { color: '#4a9eff', icon: '🔵', label: 'Korben' },
             github: { color: '#a371f7', icon: '🟣', label: 'GitHub' },
             cncf: { color: '#0086FF', icon: '📰', label: 'CNCF' },
+            stepsecurity: { color: '#00c8ff', icon: '🛡️', label: 'StepSecurity' },
             aws: { color: '#FF9900', icon: '☁️', label: 'AWS' },
             'aws-new': { color: '#FF9900', icon: '🆕', label: 'AWS New' },
             gcp: { color: '#4285F4', icon: '☁️', label: 'GCP' },
@@ -979,7 +983,24 @@ const NewsManager = {
             fluxcd: { color: '#2d343a', icon: '🔄', label: 'FluxCD' },
             rust: { color: '#DEA584', icon: '🦀', label: 'Rust' },
             'inside-rust': { color: '#DEA584', icon: '🔧', label: 'Inside Rust' },
-            twir: { color: '#DEA584', icon: '📰', label: 'This Week in Rust' }
+            twir: { color: '#DEA584', icon: '📰', label: 'This Week in Rust' },
+            lemonde: { color: '#000000', icon: '🗞️', label: 'Le Monde' },
+            franceinfo: { color: '#ffcc00', icon: '📻', label: 'France Info' },
+            lefigaro: { color: '#0055a4', icon: '🗞️', label: 'Le Figaro' },
+            liberation: { color: '#e2001a', icon: '🗳️', label: 'Libération' },
+            onu: { color: '#009edb', icon: '🇺🇳', label: 'ONU' },
+            lemagit: { color: '#ed1010', icon: '💻', label: 'LeMagIT' },
+            'usine-digitale': { color: '#000000', icon: '🤖', label: 'L\'Usine Digitale' },
+            frandroid: { color: '#4cd964', icon: '📱', label: 'Frandroid' },
+            journaldugeek: { color: '#ff0000', icon: '🎮', label: 'Journal du Geek' },
+            silicon: { color: '#005581', icon: '💾', label: 'Silicon' },
+            'next-ink': { color: '#000000', icon: '🖋️', label: 'Next INK' },
+            zdnet: { color: '#cc0000', icon: '📡', label: 'ZDNet' },
+            leprogres: { color: '#004a99', icon: '🦁', label: 'Le Progrès' },
+            rue89lyon: { color: '#e60000', icon: '🛣️', label: 'Rue89 Lyon' },
+            linflux: { color: '#7b002c', icon: '📚', label: 'L\'Influx' },
+            lyoncapitale: { color: '#e30613', icon: '🏙️', label: 'Lyon Capitale' },
+            grandlyon: { color: '#9d2235', icon: '🏢', label: 'Grand Lyon' }
         };
     },
 
@@ -998,26 +1019,19 @@ const NewsManager = {
      * Get source configuration (color, icon, label)
      */
     getSourceConfig(source) {
-        const configs = {
-            hackernews: { color: '#ff6600', icon: '🟠', label: 'Hacker News' },
-            korben: { color: '#4a9eff', icon: '🔵', label: 'Korben' },
-            github: { color: '#a371f7', icon: '🟣', label: 'GitHub' },
-            cncf: { color: '#0086FF', icon: '📰', label: 'CNCF' },
-            aws: { color: '#FF9900', icon: '☁️', label: 'AWS' },
-            'aws-new': { color: '#FF9900', icon: '🆕', label: 'AWS New' },
-            gcp: { color: '#4285F4', icon: '☁️', label: 'GCP' },
-            azure: { color: '#0078D4', icon: '☁️', label: 'Azure' },
-            kubernetes: { color: '#326CE5', icon: '☸️', label: 'K8s' },
-            fluxcd: { color: '#2d343a', icon: '🔄', label: 'FluxCD' },
-            rust: { color: '#DEA584', icon: '🦀', label: 'Rust' },
-            'inside-rust': { color: '#DEA584', icon: '🔧', label: 'Inside Rust' },
-            twir: { color: '#DEA584', icon: '📰', label: 'This Week in Rust' }
-        };
+        const configs = this.getAllSourceConfigs();
 
-        return configs[source] || {
+        if (configs[source]) return configs[source];
+
+        // Try to generate a label if not found
+        const label = source.split('-').map(word =>
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+
+        return {
             color: '#00ff88',
             icon: '📰',
-            label: source.charAt(0).toUpperCase() + source.slice(1)
+            label: label
         };
     },
 
