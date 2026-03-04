@@ -31,6 +31,7 @@ mod tests {
             pod: Some("test-pod".to_string()),
             started_at: Utc::now(),
             fingerprint: "abc123".to_string(),
+            generator_url: None,
         };
 
         assert_eq!(alert.name, "TestAlert");
@@ -50,6 +51,7 @@ mod tests {
             pod: None,
             started_at: Utc::now(),
             fingerprint: "crit123".to_string(),
+            generator_url: None,
         };
 
         let warning_alert = Alert {
@@ -62,6 +64,7 @@ mod tests {
             pod: None,
             started_at: Utc::now(),
             fingerprint: "warn123".to_string(),
+            generator_url: None,
         };
 
         let response = AlertsResponse {
