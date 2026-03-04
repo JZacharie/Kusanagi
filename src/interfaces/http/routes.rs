@@ -127,6 +127,7 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/news/refresh", post(news_refresh))
         .route("/api/streaming", get(streaming))
         .route("/api/streaming/refresh", post(streaming_refresh))
+        .route("/api/streaming/poster/{hash}", get(get_poster))
         // Kubernetes routes - canonical paths only
         // Use /api/k8s/* paths (not legacy /api/cluster/overview, /api/nodes/status, /api/pods/status)
         // Monitoring routes
