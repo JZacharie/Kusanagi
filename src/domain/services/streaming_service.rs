@@ -42,14 +42,41 @@ async fn fetch_fresh_streaming() -> Result<Value, String> {
     }
 
     let html = response.text().await.map_err(|e| e.to_string())?;
-    let items = parse_cinestream_html(&html);
+    let new_items = parse_cinestream_html(&html);
 
-    if items.is_empty() {
+    if new_items.is_empty() {
         return Err("No movies parsed from cinestream".to_string());
     }
 
+    // Attempt to load existing data to merge
+    let mut all_items = match get_aggregated_streaming().await {
+        Ok(data) => data["items"].as_array().cloned().unwrap_or_default(),
+        Err(e) => {
+            tracing::warn!("⚠️ Could not load existing streaming data for merging: {}. Starting fresh collection.", e);
+            Vec::new()
+        }
+    };
+
+    // Merge new items (avoid duplicates by URL)
+    let initial_count = all_items.len();
+    for item in new_items {
+        if let Some(url) = item["url"].as_str() {
+            if !all_items.iter().any(|existing| existing["url"].as_str() == Some(url)) {
+                all_items.insert(0, item);
+            }
+        }
+    }
+    
+    let added_count = all_items.len() - initial_count;
+    tracing::info!("✅ Added {} new movies to the collection (Total: {})", added_count, all_items.len());
+
+    // Limit collection size to 500 items
+    if all_items.len() > 500 {
+        all_items.truncate(500);
+    }
+
     let response_data = json!({
-        "items": items,
+        "items": all_items,
         "cached_at": Utc::now().to_rfc3339()
     });
 
@@ -60,20 +87,21 @@ async fn fetch_fresh_streaming() -> Result<Value, String> {
         
         let json_bytes = serde_json::to_vec(&response_data).unwrap_or_default();
         
-        let _ = s3_client
+        match s3_client
             .put_object()
             .bucket(bucket)
             .key(key)
             .body(json_bytes.into())
             .content_type("application/json")
             .send()
-            .await;
+            .await 
+        {
+            Ok(_) => tracing::info!("💾 Streaming collection updated in S3"),
+            Err(e) => tracing::error!("❌ Failed to save streaming collection to S3: {}", e),
+        }
     }
 
-    Ok(json!({
-        "items": items,
-        "cached_at": Utc::now().to_rfc3339()
-    }))
+    Ok(response_data)
 }
 
 fn parse_cinestream_html(html: &str) -> Vec<Value> {
