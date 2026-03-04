@@ -1,6 +1,6 @@
 //! Kubernetes Repository Implementation
 use async_trait::async_trait;
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::sync::Arc;
 use crate::domain::ports::KubernetesRepository;
 use crate::domain::services::kubernetes_service;
@@ -32,13 +32,13 @@ impl KubernetesRepository for KubernetesRepositoryImpl {
     async fn get_pods_status(&self) -> Result<Value> {
         kubernetes_service::get_pods_status(&self.cache)
             .await
-            .map_err(|e| crate::error::KusanagiError::ExternalService(e))
+            .map_err(crate::error::KusanagiError::ExternalService)
     }
 
     async fn get_nodes_status(&self) -> Result<Value> {
         kubernetes_service::get_nodes_status(&self.http_client, &self.cache)
             .await
-            .map_err(|e| crate::error::KusanagiError::ExternalService(e))
+            .map_err(crate::error::KusanagiError::ExternalService)
     }
 
     async fn get_cluster_overview(&self) -> Result<Value> {
@@ -48,6 +48,6 @@ impl KubernetesRepository for KubernetesRepositoryImpl {
             &self.cache,
         )
         .await
-        .map_err(|e| crate::error::KusanagiError::ExternalService(e))
+        .map_err(crate::error::KusanagiError::ExternalService)
     }
 }
