@@ -31,6 +31,7 @@ const PageLoader = {
         'homeassistant': 'homeassistant.html',
         'weather': 'weather.html',
         'monitors': 'monitors.html',
+        'streaming': 'streaming.html',
         'docs': 'docs.html'
     },
 
@@ -188,6 +189,9 @@ const PageLoader = {
                 break;
             case 'news':
                 console.log('📰 News section loaded');
+                break;
+            case 'streaming':
+                if (window.StreamingManager) StreamingManager.fetchMovies();
                 break;
             case 'network':
                 if (window.KusanagiNetwork) {
