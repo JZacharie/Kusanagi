@@ -1,31 +1,25 @@
-use axum::{response::IntoResponse, Json};
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use serde_json::json;
+
+use crate::interfaces::http::response::{api_error, api_success};
 
 /// Streaming data endpoint
 pub async fn streaming() -> impl IntoResponse {
     match crate::domain::services::streaming_service::get_streaming_data().await {
-        Ok(data) => Json(data).into_response(),
-        Err(e) => Json(json!({
-            "status": "error",
-            "message": e,
-            "items": []
-        }))
-        .into_response(),
+        Ok(data) => api_success(data),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
 
 /// Force refresh streaming data
 pub async fn streaming_refresh() -> impl IntoResponse {
     match crate::domain::services::streaming_service::force_refresh().await {
-        Ok(data) => Json(json!({
-            "status": "success",
+        Ok(data) => api_success(json!({
             "message": "Streaming data refreshed",
             "items": data["items"],
             "cached_at": data["cached_at"]
-        })).into_response(),
-        Err(e) => Json(json!({
-            "status": "error",
-            "message": e
-        })).into_response(),
+        })),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
