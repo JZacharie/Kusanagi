@@ -19,31 +19,8 @@ pub use weather_repository::{create_weather_repository, WeatherRepositoryImpl};
 pub mod cluster_repository;
 pub use cluster_repository::KubernetesClusterRepository;
 
-pub struct MockClusterRepository;
+pub mod kubernetes;
+pub use kubernetes::KubernetesRepositoryImpl;
 
-#[async_trait]
-impl ClusterRepository for MockClusterRepository {
-    async fn get_cluster_info(&self) -> Result<ClusterInfo> {
-        Ok(ClusterInfo {
-            name: "kusanagi-cluster".to_string(),
-            version: "v1.28.0".to_string(),
-            status: "healthy".to_string(),
-            nodes: 3,
-        })
-    }
-
-    async fn get_nodes(&self) -> Result<Vec<NodeInfo>> {
-        Ok(vec![
-            NodeInfo {
-                name: "master-01".to_string(),
-                status: "Ready".to_string(),
-                role: "control-plane".to_string(),
-            },
-            NodeInfo {
-                name: "worker-01".to_string(),
-                status: "Ready".to_string(),
-                role: "worker".to_string(),
-            },
-        ])
-    }
-}
+pub mod mock;
+pub use mock::{MockClusterRepository, NoOpBackupRepository};

@@ -83,3 +83,6 @@ pub trait SecurityRepository: Send + Sync {
     /// Check if running in local mode (mock data)
     fn is_local_mode(&self) -> bool;
 }
+
+pub mod kubernetes;
+pub use kubernetes::KubernetesRepository;
