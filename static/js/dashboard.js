@@ -904,6 +904,16 @@ const NewsManager = {
         const items = data.items || [];
         const totalCount = items.length || data.total || 0;
 
+        // Hide entire stats grid if no news at all
+        if (totalCount === 0) {
+            statsGrid.style.display = 'none';
+            return;
+        }
+        statsGrid.style.display = '';
+
+        // Add compact class for smaller tiles
+        statsGrid.classList.add('news-stats-compact');
+
         // "All" filter box
         let html = `
             <div class="stat-box info ${this.currentFilter === 'all' ? 'active-filter' : ''}" 
@@ -920,7 +930,7 @@ const NewsManager = {
             counts[item.source] = (counts[item.source] || 0) + 1;
         });
 
-        // Get all configured sources to ensure we show 0 counts for important sources
+        // Get all configured sources
         const allConfigs = this.getAllSourceConfigs();
 
         // Sort sources: high count first, then alphabetical
@@ -933,12 +943,11 @@ const NewsManager = {
 
         sortedSources.forEach(source => {
             const count = counts[source] || 0;
+            // Skip sources with 0 articles
+            if (count === 0) return;
+
             const config = allConfigs[source];
             const isActive = this.currentFilter === source;
-
-            // Only show sources with count > 0 or if important (e.g. Korben)
-            // Or just show all? The previous logic showed 0 counts.
-            // Let's keep showing 0 counts so user knows it's checked but empty.
 
             html += `
                 <div class="stat-box ${isActive ? 'active-filter' : ''}" 
@@ -1076,13 +1085,15 @@ const NewsManager = {
         document.getElementById('btn-view-card')?.classList.toggle('active', mode === 'grid');
         document.getElementById('btn-view-list')?.classList.toggle('active', mode === 'list');
         document.getElementById('btn-view-inline')?.classList.toggle('active', mode === 'inline');
+        document.getElementById('btn-view-introviews')?.classList.toggle('active', mode === 'introviews');
 
         // Update container class
         const container = document.getElementById('news-container');
         if (container) {
-            container.classList.remove('list-mode', 'inline-mode');
+            container.classList.remove('list-mode', 'inline-mode', 'introviews-mode');
             if (mode === 'list') container.classList.add('list-mode');
             if (mode === 'inline') container.classList.add('inline-mode');
+            if (mode === 'introviews') container.classList.add('introviews-mode');
         }
 
         this.renderNews();
@@ -1108,9 +1119,10 @@ const NewsManager = {
         const html = this.filteredNews.map(item => this.renderNewsCard(item)).join('');
         container.innerHTML = html;
 
-        container.classList.remove('list-mode', 'inline-mode');
+        container.classList.remove('list-mode', 'inline-mode', 'introviews-mode');
         if (this.viewMode === 'list') container.classList.add('list-mode');
         if (this.viewMode === 'inline') container.classList.add('inline-mode');
+        if (this.viewMode === 'introviews') container.classList.add('introviews-mode');
     },
 
     /**
@@ -1133,8 +1145,11 @@ const NewsManager = {
         const title = translation ? translation.title : item.title;
         const description = (translation && translation.description) ? translation.description : item.description;
 
+        const modeClass = this.viewMode === 'list' ? 'list-mode' : (this.viewMode === 'inline' ? 'inline-mode' : (this.viewMode === 'introviews' ? 'introviews-mode' : ''));
+        const descText = description ? (this.viewMode === 'introviews' ? description : this.truncate(description, 150)) : '';
+
         return `
-            <div class="news-card ${this.viewMode === 'list' ? 'list-mode' : (this.viewMode === 'inline' ? 'inline-mode' : '')}" style="border-color: ${color};">
+            <div class="news-card ${modeClass}" style="border-color: ${color};">
                 <div class="news-header">
                     <span class="news-source-badge" style="background: ${color};">
                         ${icon} ${label}
@@ -1146,7 +1161,7 @@ const NewsManager = {
                         ${title}
                     </a>
                 </h3>
-                ${description ? `<p class="news-description">${this.truncate(description, 150)}</p>` : ''}
+                ${descText ? `<p class="news-description">${descText}</p>` : ''}
                 <div class="news-footer">
                     ${item.score ? `<span class="news-score">⭐ ${item.score}</span>` : ''}
                     ${item.tags && item.tags.length > 0 ? `

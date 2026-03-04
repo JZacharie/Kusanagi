@@ -5,8 +5,6 @@ use std::sync::Arc;
 use crate::application::use_cases::{
     BackupUseCase, GetAlertsUseCase, GetHomeAssistantUseCase, GetSecurityUseCase, GetWeatherUseCase,
 };
-use crate::domain::entities::BackupsResponse;
-use crate::domain::ports::BackupRepository;
 
 /// Application state shared across all handlers
 #[derive(Clone)]
