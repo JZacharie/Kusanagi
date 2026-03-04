@@ -143,14 +143,14 @@ fn parse_movie_article(content: &str) -> Option<Value> {
     };
 
     // Extract Poster
-    let poster_url = if let Some(img_pos) = content.find("<img") {
-        if let Some(src_pos) = content[img_pos..].find("src=\"") {
+    let poster_url = content.find("<img").and_then(|img_pos| {
+        content[img_pos..].find("src=\"").and_then(|src_pos| {
             let src_start = img_pos + src_pos + 5;
-            if let Some(src_end) = content[src_start..].find("\"") {
-                Some(content[src_start..src_start + src_end].replace("&amp;", "&"))
-            } else { None }
-        } else { None }
-    } else { None };
+            content[src_start..].find("\"").map(|src_end| {
+                content[src_start..src_start + src_end].replace("&amp;", "&")
+            })
+        })
+    });
 
     // Extract Year
     let year = extract_simple_content(content, "text-muted-foreground\">", "</span>")
@@ -158,7 +158,7 @@ fn parse_movie_article(content: &str) -> Option<Value> {
 
     // Extract Genres
     let genres = extract_simple_content(content, "truncate-multiline\">", "</span>")
-        .unwrap_or_else(|| "".to_string());
+        .unwrap_or_default();
 
     // Extract Language and Quality (Top badges)
     // <div class="absolute top-1 left-1 ..."><span>TrueFrench</span></div>
