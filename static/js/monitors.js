@@ -157,13 +157,25 @@ const MonitorsManager = {
                     </div>
                 </div>
                 
-                <div style="margin-bottom: 8px; color: var(--text-color);">
+                <div style="margin-bottom: 12px; color: var(--text-color); line-height: 1.5;">
                     ${item.message}
                 </div>
                 
-                <div style="display: flex; gap: 15px; font-size: 0.8rem; opacity: 0.7; font-family: 'JetBrains Mono', monospace;">
-                    <span>📁 ${item.namespace}</span>
-                    <span>🏷️ ${item.event_type}</span>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div style="display: flex; gap: 15px; font-size: 0.8rem; opacity: 0.7; font-family: 'JetBrains Mono', monospace;">
+                        <span>📁 ${item.namespace}</span>
+                        <span>🏷️ ${item.event_type}</span>
+                    </div>
+                    ${item.external_url ? `
+                        <a href="${item.external_url}" target="_blank" class="cyber-btn" style="
+                            padding: 2px 8px; 
+                            font-size: 0.7rem; 
+                            text-decoration: none; 
+                            border-color: ${borderColor};
+                            color: ${borderColor};
+                            background: rgba(0,0,0,0.3);
+                        ">🔍 VIEW IN PROMETHEUS</a>
+                    ` : ''}
                 </div>
             </div>
         `;

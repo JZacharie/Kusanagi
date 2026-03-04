@@ -58,6 +58,7 @@ impl AlertDomainService {
         pod: Option<String>,
         started_at: DateTime<Utc>,
         fingerprint: String,
+        generator_url: Option<String>,
     ) -> Alert {
         Alert {
             name,
@@ -69,6 +70,7 @@ impl AlertDomainService {
             pod,
             started_at,
             fingerprint,
+            generator_url,
         }
     }
 

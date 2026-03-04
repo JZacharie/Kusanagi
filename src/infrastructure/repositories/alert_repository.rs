@@ -29,6 +29,8 @@ struct AmAlert {
     starts_at: String,
     #[serde(rename = "endsAt")]
     _ends_at: String,
+    #[serde(rename = "generatorURL")]
+    generator_url: String,
     fingerprint: String,
     status: AmAlertStatus,
 }
@@ -176,6 +178,7 @@ impl AlertRepositoryImpl {
                     pod,
                     started_at,
                     am_alert.fingerprint,
+                    Some(am_alert.generator_url),
                 )
             })
             .collect();

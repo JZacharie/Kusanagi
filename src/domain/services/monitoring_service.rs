@@ -22,7 +22,8 @@ pub async fn get_alerts() -> Result<Value, String> {
                     "severity": "critical",
                     "instance": alert.pod.as_ref().or(alert.namespace.as_ref()).unwrap_or(&"unknown".to_string()),
                     "summary": alert.summary,
-                    "status": alert.state
+                    "status": alert.state,
+                    "generator_url": alert.generator_url
                 }));
             }
 
@@ -32,7 +33,8 @@ pub async fn get_alerts() -> Result<Value, String> {
                     "severity": "warning",
                     "instance": alert.pod.as_ref().or(alert.namespace.as_ref()).unwrap_or(&"unknown".to_string()),
                     "summary": alert.summary,
-                    "status": alert.state
+                    "status": alert.state,
+                    "generator_url": alert.generator_url
                 }));
             }
 
@@ -42,7 +44,8 @@ pub async fn get_alerts() -> Result<Value, String> {
                     "severity": "info",
                     "instance": alert.pod.as_ref().or(alert.namespace.as_ref()).unwrap_or(&"unknown".to_string()),
                     "summary": alert.summary,
-                    "status": alert.state
+                    "status": alert.state,
+                    "generator_url": alert.generator_url
                 }));
             }
 
