@@ -207,31 +207,12 @@ const K8sPods = {
         }
     },
 
-    async viewPodLogs(namespace, podName) {
-        console.log(`📄 Fetching logs for ${namespace}/${podName}`);
-        const modal = document.getElementById('logs-modal');
-        const title = document.getElementById('logs-modal-title');
-        const content = document.getElementById('logs-modal-content');
-
-        if (!modal || !title || !content) return;
-
-        title.textContent = `📄 Pod Logs: ${namespace}/${podName}`;
-        content.innerHTML = '<div class="loading">Loading logs...</div>';
-        modal.style.display = 'flex';
-
-        try {
-            const response = await fetch(`/api/k8s/pods/${namespace}/${podName}/logs?tail=500`);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const logs = await response.text();
-
-            if (window.AnsiParser) {
-                content.innerHTML = `<div class="ansi-log" style="max-height: 70vh; overflow-y: auto;">${AnsiParser.parse(logs)}</div>`;
-            } else {
-                content.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; max-height: 70vh; overflow-y: auto; font-family: monospace;">${K8sState.escapeHtml(logs)}</pre>`;
-            }
-        } catch (error) {
-            content.innerHTML = `<div style="color: #ff4444;">Error loading logs: ${error.message}</div>`;
-        }
+    viewPodLogs(namespace, podName) {
+        console.log(`📄 Opening OpenObserve logs for ${namespace}/${podName}`);
+        const sqlQuery = `SELECT * FROM "default" WHERE k8s_pod_name = '${podName}'`;
+        const encodedQuery = btoa(sqlQuery);
+        const openObserveUrl = `https://o2-openobserve.p.zacharie.org/web/logs?stream_type=logs&stream=default&period=1d&refresh=0&sql_mode=true&query=${encodedQuery}&fn_editor=false&defined_schemas=user_defined_schema&org_identifier=default&quick_mode=false&show_histogram=true&logs_visualize_toggle=logs`;
+        window.open(openObserveUrl, '_blank');
     },
 
     closeLogsModal() {
