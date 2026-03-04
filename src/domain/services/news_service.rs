@@ -45,30 +45,53 @@ async fn fetch_fresh_news() -> Result<Value, String> {
 
     let mut all_news = Vec::new();
 
-    // Fetch from all sources concurrently (3 batches to avoid overwhelming)
-    // Batch 1: Original sources
-    let (hn_news, korben_news, github_news, cncf_news) = tokio::join!(
+    // Fetch from all sources concurrently (Organized in batches to avoid overwhelming)
+    
+    // Batch 1: Tech & Security (Original + New Tech)
+    let (hn_news, korben_news, github_news, cncf_news, stepsecurity_news, lemagit_news, usine_digitale_news, frandroid_news) = tokio::join!(
         fetch_hackernews(&client),
         fetch_korben(&client),
         fetch_github_trending(&client),
-        fetch_cncf(&client)
+        fetch_cncf(&client),
+        fetch_stepsecurity(&client),
+        fetch_lemagit(&client),
+        fetch_usine_digitale(&client),
+        fetch_frandroid(&client)
     );
 
-    // Batch 2: Cloud providers
-    let (aws_news, aws_new_news, gcp_news, azure_news) = tokio::join!(
+    // Batch 2: Tech (More) & General News
+    let (journal_du_geek_news, silicon_news, next_ink_news, zdnet_news, lemonde_news, franceinfo_news, figaro_news, liberation_news) = tokio::join!(
+        fetch_journal_du_geek(&client),
+        fetch_silicon(&client),
+        fetch_next_ink(&client),
+        fetch_zdnet(&client),
+        fetch_lemonde(&client),
+        fetch_franceinfo(&client),
+        fetch_lefigaro(&client),
+        fetch_liberation(&client)
+    );
+
+    // Batch 3: Cloud providers & ONU
+    let (aws_news, aws_new_news, gcp_news, azure_news, onu_news) = tokio::join!(
         fetch_aws_blog(&client),
         fetch_aws_new(&client),
         fetch_gcp(&client),
-        fetch_azure(&client)
+        fetch_azure(&client),
+        fetch_onu(&client)
     );
 
-    // Batch 3: Kubernetes & Rust
-    let (k8s_news, fluxcd_news, rust_news, inside_rust_news, twir_news) = tokio::join!(
+    // Batch 4: Kubernetes, Rust & Lyon Local
+    let (k8s_news, fluxcd_news, rust_news, inside_rust_news, twir_news, progres_news, rue89lyon_news, influx_news, lyoncapitale_news, grandlyon_news) = tokio::join!(
         fetch_kubernetes(&client),
         fetch_fluxcd(&client),
         fetch_rust_blog(&client),
         fetch_inside_rust(&client),
-        fetch_this_week_in_rust(&client)
+        fetch_this_week_in_rust(&client),
+        fetch_leprogres(&client),
+        fetch_rue89lyon(&client),
+        fetch_linflux(&client),
+        fetch_lyoncapitale(&client),
+        fetch_grandlyon(&client)
     );
 
     // Aggregate all results
@@ -77,15 +100,33 @@ async fn fetch_fresh_news() -> Result<Value, String> {
         korben_news,
         github_news,
         cncf_news,
+        stepsecurity_news,
+        lemagit_news,
+        usine_digitale_news,
+        frandroid_news,
+        journal_du_geek_news,
+        silicon_news,
+        next_ink_news,
+        zdnet_news,
+        lemonde_news,
+        franceinfo_news,
+        figaro_news,
+        liberation_news,
         aws_news,
         aws_new_news,
         gcp_news,
         azure_news,
+        onu_news,
         k8s_news,
         fluxcd_news,
         rust_news,
         inside_rust_news,
         twir_news,
+        progres_news,
+        rue89lyon_news,
+        influx_news,
+        lyoncapitale_news,
+        grandlyon_news,
     ]
     .into_iter()
     .flatten()
@@ -405,6 +446,90 @@ async fn fetch_github_trending(client: &Client) -> Result<Vec<Value>, String> {
 
 async fn fetch_cncf(client: &Client) -> Result<Vec<Value>, String> {
     fetch_rss_feed(client, "https://www.cncf.io/feed/", "cncf", "📰").await
+}
+
+async fn fetch_stepsecurity(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(
+        client,
+        "https://www.stepsecurity.io/blog/rss.xml",
+        "stepsecurity",
+        "🛡️",
+    )
+    .await
+}
+
+// --- General News ---
+
+async fn fetch_lemonde(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.lemonde.fr/rss/une.xml", "lemonde", "🗞️").await
+}
+
+async fn fetch_franceinfo(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.francetvinfo.fr/titres.rss", "franceinfo", "📻").await
+}
+
+async fn fetch_lefigaro(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.lefigaro.fr/rss/figaro_actualites.xml", "lefigaro", "🗞️").await
+}
+
+async fn fetch_liberation(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.liberation.fr/arc/outboundfeeds/rss-all/category/politique/?outputType=xml", "liberation", "🗳️").await
+}
+
+async fn fetch_onu(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://news.un.org/fr/rss-feeds", "onu", "🇺🇳").await
+}
+
+// --- IT & Technology ---
+
+async fn fetch_lemagit(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.lemagit.fr/rss", "lemagit", "💻").await
+}
+
+async fn fetch_usine_digitale(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.usine-digitale.fr/rss", "usine-digitale", "🤖").await
+}
+
+async fn fetch_frandroid(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.frandroid.com/feed", "frandroid", "📱").await
+}
+
+async fn fetch_journal_du_geek(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.journaldugeek.com/feed", "journaldugeek", "🎮").await
+}
+
+async fn fetch_silicon(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.silicon.fr/feed", "silicon", "💾").await
+}
+
+async fn fetch_next_ink(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://next.ink/feed/", "next-ink", "🖋️").await
+}
+
+async fn fetch_zdnet(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.zdnet.com/rssfeeds/", "zdnet", "📡").await
+}
+
+// --- Lyon Local News ---
+
+async fn fetch_leprogres(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.leprogres.fr/rss", "leprogres", "🦁").await
+}
+
+async fn fetch_rue89lyon(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.rue89lyon.fr/feed/", "rue89lyon", "🛣️").await
+}
+
+async fn fetch_linflux(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "http://www.linflux.com/category/lyon-et-region/feed/", "linflux", "📚").await
+}
+
+async fn fetch_lyoncapitale(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.lyoncapitale.fr/rss", "lyoncapitale", "🏙️").await
+}
+
+async fn fetch_grandlyon(client: &Client) -> Result<Vec<Value>, String> {
+    fetch_rss_feed(client, "https://www.grandlyon.com/flux-rss", "grandlyon", "🏢").await
 }
 
 // Cloud Providers
