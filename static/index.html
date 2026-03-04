@@ -96,7 +96,8 @@
     <script src="/static/js/security.js?v={{VERSION}}"></script>
     <script src="/static/js/cilium-network.js?v={{VERSION}}"></script>
     <script src="/static/js/mqtt.js?v={{VERSION}}"></script>
-    <script src="/static/js/system.js?v={{VERSION}}"></script>
+    <script system src="/static/js/system.js?v={{VERSION}}"></script>
+    <script streaming src="/static/js/streaming.js?v={{VERSION}}"></script>
 
     <!-- Main Orchestrator -->
     <script src="/static/js/dashboard.js?v={{VERSION}}"></script>
@@ -275,6 +276,12 @@
                         <a class="nav-link" data-page="news" href="#news">
                             <i class="mdi mdi-newspaper"></i>
                             <span class="nav-link-text">News</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="streaming" href="#streaming">
+                            <i class="mdi mdi-play-circle"></i>
+                            <span class="nav-link-text">Streaming</span>
                         </a>
                     </li>
                     <!-- Quotas moved to Metrics section -->
@@ -497,6 +504,11 @@
 
             <!-- News Feed Section -->
             <section class="argocd-section tab-content" data-tab="news" style="display: none;">
+                <div class="loading">Loading...</div>
+            </section>
+
+            <!-- Streaming Section -->
+            <section class="argocd-section tab-content" data-tab="streaming" style="display: none;">
                 <div class="loading">Loading...</div>
             </section>
 

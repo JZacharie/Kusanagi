@@ -15,7 +15,7 @@ const TabManager = {
         ingress: { interval: 300000, module: 'K8sServices', fetch: 'fetchIngress' },
         storage: { interval: 60000, module: 'K8sStorage', fetch: 'fetchStorageStatus' },
         backups: { interval: 60000, module: 'K8sStorage', fetch: 'fetchBackupsStatus' },
-        
+
         // Other tabs
         proxmox: { interval: 30000, module: 'ProxmoxDashboard', fetch: 'loadData' },
         homeassistant: { interval: 60000, module: 'HomeAssistantDashboard', fetch: 'loadData' },
@@ -25,10 +25,11 @@ const TabManager = {
         mqtt: { interval: 30000, module: 'MqttManager', fetch: 'refresh' },
         metrics: { interval: 30000, module: 'MetricsManager', fetch: 'loadMetrics' },
         network: { interval: 30000, module: 'KusanagiNetwork', fetch: 'fetchNetworkData' },
-        
+
         // No auto-refresh
         chat: { interval: null },
         news: { interval: 60000, module: 'NewsManager', fetch: 'fetchNews' },
+        streaming: { interval: 300000, module: 'StreamingManager', fetch: 'fetchMovies' },
         docs: { interval: null },
         logs: { interval: null },
         calendar: { interval: null },
@@ -38,13 +39,13 @@ const TabManager = {
 
     // Timers actifs
     _timers: {},
-    
+
     // Onglet actuel
     _currentTab: null,
 
     init() {
         console.log('🗂️ TabManager initialized (Tab-Aware)');
-        
+
         // Écouter les changements d'onglet
         document.addEventListener('tabChanged', (e) => {
             this.switchToTab(e.detail.tab);
@@ -71,19 +72,19 @@ const TabManager = {
      */
     switchToTab(tabName) {
         if (this._currentTab === tabName) return;
-        
+
         console.log(`🔄 TabManager: switching from ${this._currentTab} to ${tabName}`);
-        
+
         // Arrêter le polling de l'ancien onglet
         if (this._currentTab) {
             this._stopPolling(this._currentTab);
         }
 
         this._currentTab = tabName;
-        
+
         // Démarrer le polling du nouvel onglet
         this._startPolling(tabName);
-        
+
         // Fetch avec léger délai pour éviter les pics de requêtes
         setTimeout(() => this._fetchForTab(tabName), 100);
     },
@@ -155,7 +156,7 @@ const TabManager = {
         }
 
         console.log(`📡 Fetching ${tabName} via ${config.module}.${config.fetch}()`);
-        
+
         try {
             const result = fetchFn.call(module);
             if (result && typeof result.then === 'function') {

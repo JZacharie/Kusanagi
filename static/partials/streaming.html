@@ -1,0 +1,126 @@
+<!-- streaming section -->
+<h2 class="section-title">🎬 New Streaming Movies</h2>
+
+<!-- Streaming Stats -->
+<div class="argocd-stats" id="streaming-stats-grid" style="margin-bottom: 1.5rem;">
+    <div class="stat-box info">
+        <div class="stat-value" id="streaming-total">-</div>
+        <div class="stat-label">Total Movies</div>
+    </div>
+    <div class="stat-box warning">
+        <div class="stat-value" id="streaming-source">Cinestream</div>
+        <div class="stat-label">Primary Source</div>
+    </div>
+</div>
+
+<!-- Filter Controls -->
+<div class="filter-controls"
+    style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+    <div id="streaming-filter-buttons" style="display: contents;">
+        <button class="cyber-btn active" id="btn-streaming-all" onclick="StreamingManager.filter('all')">All</button>
+        <button class="cyber-btn" id="btn-streaming-french" onclick="StreamingManager.filter('French')">French</button>
+        <button class="cyber-btn" id="btn-streaming-multi" onclick="StreamingManager.filter('Multi')">Multi</button>
+    </div>
+
+    <button class="cyber-btn" id="btn-streaming-refresh" onclick="StreamingManager.manualRefresh()"
+        style="margin-left: auto;">
+        🔄 REFRESH
+    </button>
+</div>
+
+<!-- Search Bar -->
+<div style="margin-bottom: 1.5rem;">
+    <input type="text" id="streaming-search" class="chat-input" placeholder="Search movies, year, genres..."
+        oninput="StreamingManager.search(this.value)" style="width: 100%;">
+</div>
+
+<!-- Streaming Grid Container -->
+<div class="news-grid" id="streaming-container">
+    <div class="loading">Loading streaming feed...</div>
+</div>
+
+<!-- Last Updated -->
+<div style="text-align: center; margin-top: 1.5rem; opacity: 0.6; font-size: 0.9rem;">
+    Last updated: <span id="streaming-updated-at">-</span>
+</div>
+
+<style>
+    .movie-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .movie-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        border-color: var(--accent-color, #00d2ff);
+    }
+
+    .movie-poster {
+        width: 100%;
+        aspect-ratio: 2/3;
+        object-fit: cover;
+        background: #1a1a1a;
+    }
+
+    .movie-info {
+        padding: 1rem;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .movie-title {
+        font-weight: bold;
+        font-size: 1.1rem;
+        line-height: 1.2;
+        color: #fff;
+    }
+
+    .movie-meta {
+        font-size: 0.85rem;
+        opacity: 0.8;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .movie-genres {
+        font-size: 0.8rem;
+        opacity: 0.6;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .badge {
+        position: absolute;
+        top: 0.5rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    .badge-lang {
+        left: 0.5rem;
+        background: rgba(0, 210, 255, 0.9);
+        color: #000;
+    }
+
+    .badge-quality {
+        right: 0.5rem;
+        background: rgba(255, 170, 0, 0.9);
+        color: #000;
+    }
+</style>
