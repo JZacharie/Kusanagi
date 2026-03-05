@@ -65,27 +65,35 @@ async fn fetch_fresh_streaming() -> Result<Value, String> {
 
     // Merge new items (avoid duplicates by URL)
     let initial_count = all_items.len();
-    for mut item in new_items {
+    for item in new_items {
         if let Some(url) = item["url"].as_str() {
             if !all_items.iter().any(|existing| existing["url"].as_str() == Some(url)) {
-                // Cache poster if available
-                if let (Some(s3), Some(poster_url)) = (s3_client.as_ref(), item["poster_url"].as_str()) {
-                    let mut hasher = DefaultHasher::new();
-                    url.hash(&mut hasher);
-                    let url_hash = format!("{:x}", hasher.finish());
-                    
-                    match cache_poster(s3, &bucket, &url_hash, poster_url, &client).await {
-                        Ok(proxy_path) => {
-                            item["poster_url"] = json!(proxy_path);
-                        }
-                        Err(e) => tracing::warn!("⚠️ Failed to cache poster for {}: {}", url, e),
-                    }
-                    
-                    // Store individual JSON metadata
-                    let _ = store_individual_movie(s3, &bucket, &url_hash, &item).await;
-                }
-                
                 all_items.insert(0, item);
+            }
+        }
+    }
+
+    // Process all items to ensure posters are cached and proxied
+    if let Some(s3) = s3_client.as_ref() {
+        for item in all_items.iter_mut() {
+            if let Some(poster_url) = item["poster_url"].as_str() {
+                // If not already proxied, try to cache it
+                if !poster_url.starts_with("/api/streaming/poster/") {
+                    if let Some(url) = item["url"].as_str() {
+                        let mut hasher = DefaultHasher::new();
+                        url.hash(&mut hasher);
+                        let url_hash = format!("{:x}", hasher.finish());
+                        
+                        match cache_poster(s3, &bucket, &url_hash, poster_url, &client).await {
+                            Ok(proxy_path) => {
+                                item["poster_url"] = json!(proxy_path);
+                                // Also store/update individual JSON metadata with proxied URL
+                                let _ = store_individual_movie(s3, &bucket, &url_hash, item).await;
+                            }
+                            Err(e) => tracing::warn!("⚠️ Failed to cache poster for {}: {}", url, e),
+                        }
+                    }
+                }
             }
         }
     }
@@ -138,8 +146,17 @@ async fn cache_poster(
         return Ok(format!("/api/streaming/poster/{}", hash));
     }
 
+    // Ensure absolute URL
+    let absolute_url = if poster_url.starts_with("/") && !poster_url.starts_with("//") {
+        format!("{}{}", BASE_URL, poster_url)
+    } else if poster_url.starts_with("//") {
+        format!("https:{}", poster_url)
+    } else {
+        poster_url.to_string()
+    };
+
     // Download poster
-    let response = http_client.get(poster_url).send().await.map_err(|e| e.to_string())?;
+    let response = http_client.get(absolute_url).send().await.map_err(|e| e.to_string())?;
     let bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
     // Store in S3
@@ -237,7 +254,14 @@ fn parse_movie_article(content: &str) -> Option<Value> {
         content[img_pos..].find("src=\"").and_then(|src_pos| {
             let src_start = img_pos + src_pos + 5;
             content[src_start..].find("\"").map(|src_end| {
-                content[src_start..src_start + src_end].replace("&amp;", "&")
+                let path = content[src_start..src_start + src_end].replace("&amp;", "&");
+                if path.starts_with("/") && !path.starts_with("//") {
+                    format!("{}{}", BASE_URL, path)
+                } else if path.starts_with("//") {
+                    format!("https:{}", path)
+                } else {
+                    path
+                }
             })
         })
     });
