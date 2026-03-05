@@ -313,16 +313,15 @@ fn parse_movie_article(content: &str) -> Option<Value> {
 
 fn extract_simple_content(html: &str, class_marker: &str, end_tag: &str) -> Option<String> {
     if let Some(marker_pos) = html.find(class_marker) {
-        let content_start = marker_pos + class_marker.len();
-        // Skip > if we just searched for a class
-        let start = if html[content_start..].starts_with(">") {
-            content_start + 1
-        } else {
-            content_start
-        };
+        let after_marker = marker_pos + class_marker.len();
         
-        if let Some(end_pos) = html[start..].find(end_tag) {
-            return Some(html[start..start + end_pos].trim().to_string());
+        // Find the closing '>' of the current tag
+        if let Some(tag_end) = html[after_marker..].find('>') {
+            let start = after_marker + tag_end + 1;
+            
+            if let Some(end_pos) = html[start..].find(end_tag) {
+                return Some(html[start..start + end_pos].trim().to_string());
+            }
         }
     }
     None
