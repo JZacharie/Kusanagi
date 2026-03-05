@@ -80,6 +80,7 @@ const StreamingManager = {
 
         container.innerHTML = this.filteredMovies.map(movie => {
             const searchUrl = `https://thpibay.site/search/${encodeURIComponent(movie.title)}/1/99/0`;
+            const escapedTitle = movie.title.replace(/"/g, '&quot;');
 
             return `
                 <div class="movie-card">
@@ -87,7 +88,7 @@ const StreamingManager = {
                     <span class="badge badge-quality">${movie.quality}</span>
                     <img src="${movie.poster_url || '/static/images/no-poster.png'}" 
                          class="movie-poster" 
-                         alt="${movie.title}" 
+                         alt="${escapedTitle}" 
                          onerror="this.src='/static/images/no-poster.png'"
                          onclick="window.open('${movie.url}', '_blank')">
                     <div class="movie-info">
