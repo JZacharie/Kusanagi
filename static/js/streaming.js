@@ -78,21 +78,37 @@ const StreamingManager = {
             return;
         }
 
-        container.innerHTML = this.filteredMovies.map(movie => `
-            <div class="movie-card" onclick="window.open('${movie.url}', '_blank')">
-                <span class="badge badge-lang">${movie.language}</span>
-                <span class="badge badge-quality">${movie.quality}</span>
-                <img src="${movie.poster_url || '/static/images/no-poster.png'}" class="movie-poster" alt="${movie.title}" onerror="this.src='/static/images/no-poster.png'">
-                <div class="movie-info">
-                    <div class="movie-title">${movie.title}</div>
-                    <div class="movie-meta">
-                        <span>${movie.year}</span>
-                        <span style="opacity: 0.6; font-size: 0.75rem;">${movie.source}</span>
+        container.innerHTML = this.filteredMovies.map(movie => {
+            const searchUrl = `https://thpibay.site/search/${encodeURIComponent(movie.title)}/1/99/0`;
+
+            return `
+                <div class="movie-card">
+                    <span class="badge badge-lang">${movie.language}</span>
+                    <span class="badge badge-quality">${movie.quality}</span>
+                    <img src="${movie.poster_url || '/static/images/no-poster.png'}" 
+                         class="movie-poster" 
+                         alt="${movie.title}" 
+                         onerror="this.src='/static/images/no-poster.png'"
+                         onclick="window.open('${movie.url}', '_blank')">
+                    <div class="movie-info">
+                        <div class="movie-title">${movie.title}</div>
+                        <div class="movie-meta">
+                            <span>${movie.year}</span>
+                            <span style="opacity: 0.6; font-size: 0.75rem;">${movie.source}</span>
+                        </div>
+                        <div class="movie-genres" title="${movie.genres}">${movie.genres}</div>
+                        <div class="movie-actions" style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+                            <a href="${movie.url}" target="_blank" class="cyber-btn btn-small" style="flex: 1; text-align: center; font-size: 0.7rem; padding: 0.3rem;">
+                                🎬 VIEW
+                            </a>
+                            <a href="${searchUrl}" target="_blank" class="cyber-btn btn-small" style="flex: 1; text-align: center; font-size: 0.7rem; padding: 0.3rem;">
+                                🔍 SEARCH
+                            </a>
+                        </div>
                     </div>
-                    <div class="movie-genres" title="${movie.genres}">${movie.genres}</div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     },
 
     search: function (query) {
