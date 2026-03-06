@@ -6,7 +6,7 @@
 const KusanagiConfig = {
     // Version
     version: '0.3.0',
-    
+
     // API Configuration
     api: {
         baseUrl: '',  // Relative - same origin
@@ -21,19 +21,19 @@ const KusanagiConfig = {
             backups: '/api/backups',
             argocd: '/api/argocd/status',
             cluster: '/api/k8s/cluster',
-            
+
             // Infrastructure
             proxmoxVms: '/api/proxmox/vms',
             proxmoxContainers: '/api/proxmox/containers',
             proxmoxNodes: '/api/proxmox/nodes',
-            
+
             // Integrations
             weather: '/api/weather/current',
             haSensors: '/api/ha/sensors',
             haDevices: '/api/ha/devices',
             haAutomations: '/api/ha/automations',
             security: '/api/security/vulnerabilities',
-            
+
             // System
             systemStatus: '/api/system/status',
             systemLogs: '/api/system/logs',
@@ -41,7 +41,7 @@ const KusanagiConfig = {
             metrics: '/api/metrics'
         }
     },
-    
+
     // Refresh Intervals (ms)
     intervals: {
         fast: 10000,      // 10s - System status
@@ -49,7 +49,7 @@ const KusanagiConfig = {
         slow: 300000,     // 5min - Weather
         cache: 180000     // 3min - Cache TTL
     },
-    
+
     // Cache Configuration
     cache: {
         ttl: 180000,  // 3 minutes
@@ -61,10 +61,10 @@ const KusanagiConfig = {
             news: 'news_cache'
         }
     },
-    
+
     // UI Configuration
     ui: {
-        themes: ['cyberpunk', 'modern', 'loot-drop'],
+        themes: ['cyberpunk', 'modern', 'loot-drop', 'fundy'],
         defaultTheme: 'cyberpunk',
         defaultLocale: 'fr',
         supportedLocales: ['en', 'fr'],
@@ -73,7 +73,7 @@ const KusanagiConfig = {
             events: 20
         }
     },
-    
+
     // Feature Flags
     features: {
         websocket: true,

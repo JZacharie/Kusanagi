@@ -19,6 +19,11 @@ const ThemeManager = {
             name: 'Loot-Drop',
             class: 'theme-loot-drop',
             icon: '💎'
+        },
+        fundy: {
+            name: 'Fundy Swiss',
+            class: 'theme-fundy',
+            icon: '🇨🇭'
         }
     },
 
