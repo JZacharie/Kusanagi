@@ -153,18 +153,18 @@ const OverviewDashboard = {
 
     renderCostData() {
         // --- Mock Data ---
-        document.getElementById('overview-current-cost').textContent = '$3,450.20';
-        document.getElementById('overview-forecast-cost').textContent = '$4,200.00';
+        document.getElementById('overview-current-cost').textContent = '$2,370.00';
+        document.getElementById('overview-forecast-cost').textContent = '$3,150.00';
 
         this.renderPieChart('overview-cost-pie-chart', {
-            labels: ['Compute: $2,100 (61%)', 'Storage: $950 (28%)', 'Network: $400 (11%)'],
-            data: [2100, 950, 400],
+            labels: ['Compute: $1,450 (61%)', 'Storage: $620 (26%)', 'Network: $300 (13%)'],
+            data: [1450, 620, 300],
             backgroundColor: ['#4299e1', '#ed8936', '#f56565']
         });
 
         this.renderBarChart('overview-namespace-bar-chart', {
-            labels: ['frontend', 'backend', 'database', 'monitoring', 'default'],
-            data: [1250, 980, 650, 320, 250],
+            labels: ['awx-task', 'awx-web', 'postgres-15', 'awx-ee', 'redis'],
+            data: [850, 450, 320, 600, 150],
             backgroundColor: ['#63b3ed', '#f6ad55', '#b794f4', '#f56565', '#68d391']
         });
     },
@@ -262,12 +262,12 @@ const OverviewDashboard = {
 
         // Mock Applications corresponding to the design
         const apps = [
-            { name: 'frontend-app', status: 'green', type: 'sunny' },
-            { name: 'backend-svc', status: 'yellow', type: 'cloudy' },
-            { name: 'redis-db', status: 'red', type: 'rainy', note: 'Redis\n24 mins ago' },
-            { name: 'replara-app', status: 'green', type: 'none', note: 'CPU\n24 mins ago' },
-            { name: 'network-dv', status: 'red', type: 'none', note: 'Memory\n24 mins ago' },
-            { name: 'local-ro', status: 'green', type: 'none', note: 'Redis\n24 mins ago' }
+            { name: 'awx-web', status: 'green', type: 'sunny' },
+            { name: 'awx-task', status: 'green', type: 'sunny' },
+            { name: 'awx-postgres-15', status: 'yellow', type: 'cloudy', note: 'Disk I/O\n12 mins ago' },
+            { name: 'awx-redis', status: 'red', type: 'rainy', note: 'OOM\n24 mins ago' },
+            { name: 'awx-operator', status: 'green', type: 'none' },
+            { name: 'awx-ee-pool', status: 'green', type: 'none', note: 'Scaled\n5 mins ago' }
         ];
 
         let html = '';
