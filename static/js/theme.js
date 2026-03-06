@@ -24,21 +24,59 @@ const ThemeManager = {
             name: 'Fundy Swiss',
             class: 'theme-fundy',
             icon: '🇨🇭'
+        },
+        white: {
+            name: 'Pristine White',
+            class: 'theme-white',
+            icon: '⚪'
         }
     },
 
     storageKey: 'kusanagi_active_theme',
+    prevThemeKey: 'kusanagi_prev_dark_theme',
 
     init() {
         const savedTheme = localStorage.getItem(this.storageKey) || 'cyberpunk';
         this.applyTheme(savedTheme);
         this.renderSwitcher();
+        this.renderModeSwitch();
+    },
+
+    toggleMode() {
+        const currentTheme = localStorage.getItem(this.storageKey) || 'cyberpunk';
+        if (currentTheme === 'white') {
+            // Switch back to previous dark theme
+            const prevDark = localStorage.getItem(this.prevThemeKey) || 'cyberpunk';
+            this.setTheme(prevDark);
+        } else {
+            // Save current dark theme and switch to white
+            localStorage.setItem(this.prevThemeKey, currentTheme);
+            this.setTheme('white');
+        }
+    },
+
+    renderModeSwitch() {
+        const container = document.getElementById('theme-mode-switch-container');
+        if (!container) return;
+
+        const currentTheme = localStorage.getItem(this.storageKey) || 'cyberpunk';
+        const isWhite = currentTheme === 'white';
+
+        container.innerHTML = `
+            <button class="cyber-btn mode-toggle-btn" onclick="ThemeManager.toggleMode()" 
+                    title="${isWhite ? 'Switch to Dark Mode' : 'Switch to Light Mode'}"
+                    style="width: 40px; height: 40px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center;">
+                ${isWhite ? '🌙' : '☀️'}
+            </button>
+        `;
     },
 
     setTheme(themeName) {
         if (!this.themes[themeName]) return;
         localStorage.setItem(this.storageKey, themeName);
         this.applyTheme(themeName);
+        this.renderSwitcher();
+        this.renderModeSwitch();
     },
 
     applyTheme(themeName) {
