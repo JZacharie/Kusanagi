@@ -1,0 +1,148 @@
+/* ============================================
+   KUSANAGI - Fundy Swiss-Fintech Inspired Theme
+   ============================================ */
+
+body.theme-fundy {
+    /* Core Colors */
+    --fundy-bg: #05070a;
+    --fundy-surface: #0c0f14;
+    --fundy-accent: #c6ff00;
+    /* Signature Swiss Lime */
+    --fundy-accent-secondary: #00f5ff;
+    /* Fintech Cyan */
+    --fundy-text-primary: #ffffff;
+    --fundy-text-secondary: #94a3b8;
+    --fundy-border: rgba(255, 255, 255, 0.1);
+    --fundy-glow: rgba(198, 255, 0, 0.3);
+
+    /* Overrides for Kusanagi Variables */
+    --dark-bg: var(--fundy-bg);
+    --darker-bg: #030406;
+    --text-primary: var(--fundy-text-primary);
+    --text-secondary: var(--fundy-text-secondary);
+    --neon-cyan: var(--fundy-accent-secondary);
+    --neon-green: var(--fundy-accent);
+    --sidebar-bg: var(--fundy-surface);
+    --sidebar-border: var(--fundy-border);
+
+    background-color: var(--fundy-bg);
+    color: var(--fundy-text-primary);
+    font-family: 'Inter', sans-serif;
+}
+
+/* Specific UI Overrides */
+body.theme-fundy .grid-bg {
+    display: none;
+    /* Fundy is cleaner, no grid */
+}
+
+body.theme-fundy .scanlines {
+    display: none;
+    /* No scanlines for premium feel */
+}
+
+body.theme-fundy .sidebar {
+    background: var(--fundy-surface);
+    border-right: 1px solid var(--fundy-border);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+}
+
+body.theme-fundy .nav-link {
+    color: var(--fundy-text-secondary);
+    border-radius: 8px;
+    margin: 2px 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.theme-fundy .nav-link:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--fundy-text-primary);
+}
+
+body.theme-fundy .nav-link.active {
+    background: linear-gradient(90deg, rgba(198, 255, 0, 0.1) 0%, transparent 100%);
+    color: var(--fundy-accent);
+    border-left: 3px solid var(--fundy-accent);
+}
+
+body.theme-fundy .cyber-btn {
+    background: var(--fundy-accent);
+    color: var(--fundy-bg);
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: none;
+    border-radius: 6px;
+    padding: 0.6rem 1.2rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 20px rgba(198, 255, 0, 0.2);
+}
+
+body.theme-fundy .cyber-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(198, 255, 0, 0.4);
+    background: #d4ff33;
+}
+
+body.theme-fundy .stat-box {
+    background: var(--fundy-surface);
+    border: 1px solid var(--fundy-border);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+body.theme-fundy .section-title {
+    font-family: 'Rajdhani', sans-serif;
+    letter-spacing: 0.1em;
+    color: #fff;
+    border-bottom: 2px solid var(--fundy-accent);
+    display: inline-block;
+    padding-bottom: 4px;
+    margin-bottom: 1.5rem;
+}
+
+body.theme-fundy .section-title::before {
+    display: none;
+}
+
+/* Cards & Containers */
+body.theme-fundy .issues-table-container {
+    background: var(--fundy-surface);
+    border: 1px solid var(--fundy-border);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+}
+
+body.theme-fundy .issues-table-header {
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--fundy-border);
+}
+
+body.theme-fundy .header-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    background: linear-gradient(to right, #fff, var(--fundy-text-secondary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Scrollbar */
+body.theme-fundy ::-webkit-scrollbar {
+    width: 6px;
+}
+
+body.theme-fundy ::-webkit-scrollbar-track {
+    background: var(--fundy-bg);
+}
+
+body.theme-fundy ::-webkit-scrollbar-thumb {
+    background: var(--fundy-border);
+    border-radius: 10px;
+}
+
+body.theme-fundy ::-webkit-scrollbar-thumb:hover {
+    background: var(--fundy-text-secondary);
+}
