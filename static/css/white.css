@@ -42,16 +42,18 @@ body.theme-white .sidebar {
 }
 
 /* Status Bar & Links Fixes */
-body.theme-white .status-bar {
+body.theme-white .status-bar,
+body.theme-white .system-status-bar {
     background: #f1f3f5 !important;
     color: #1a1a1a !important;
     /* Stronger contrast */
     font-weight: 700 !important;
 }
 
-body.theme-white .links-bar {
+body.theme-white .links-bar,
+body.theme-white .quick-links-bar {
     background: #e9ecef !important;
-    border-bottom: 1px solid var(--white-border);
+    border-bottom: 1px solid var(--white-border) !important;
 }
 
 body.theme-white .service-link {
@@ -63,9 +65,11 @@ body.theme-white .service-link {
 }
 
 /* Metric Cards & Numbers Fixes */
-body.theme-white .metric-box {
+body.theme-white .metric-box,
+body.theme-white .metric-card {
     background: #ffffff !important;
     border: 1px solid var(--white-border) !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
 }
 
 body.theme-white .metric-value {
@@ -78,6 +82,20 @@ body.theme-white .metric-value {
 body.theme-white .metric-label {
     color: #495057 !important;
     font-weight: 600 !important;
+}
+
+body.theme-white .metric-bar {
+    background: #e9ecef !important;
+    border-radius: 4px !important;
+}
+
+body.theme-white .metric-bar-fill {
+    background: #0066ff !important;
+}
+
+body.theme-white #solar-24h-graph {
+    background: #f8f9fa !important;
+    border: 1px solid var(--white-border) !important;
 }
 
 /* Live Feed / Tables - One Line Adaptive Fix */

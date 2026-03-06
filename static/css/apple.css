@@ -89,19 +89,21 @@ body.theme-apple .node-card:hover {
 }
 
 /* Status Bar & Links */
-body.theme-apple .status-bar {
-    background: var(--apple-secondary-bg);
-    color: var(--apple-text-primary);
-    border-bottom: 1px solid var(--apple-border);
+body.theme-apple .status-bar,
+body.theme-apple .system-status-bar {
+    background: var(--apple-secondary-bg) !important;
+    color: var(--apple-text-primary) !important;
+    border-bottom: 1px solid var(--apple-border) !important;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-size: 0.75rem;
 }
 
-body.theme-apple .links-bar {
-    background: #fbfbfd;
-    border-bottom: 1px solid var(--apple-border);
+body.theme-apple .links-bar,
+body.theme-apple .quick-links-bar {
+    background: #fbfbfd !important;
+    border-bottom: 1px solid var(--apple-border) !important;
     padding: 12px 20px;
 }
 
@@ -115,15 +117,36 @@ body.theme-apple .service-link {
 }
 
 /* Metric Boxes (Fixing the gray background issue) */
-body.theme-apple .metric-box {
-    background: #fff !important;
+body.theme-apple .metric-box,
+body.theme-apple .metric-card {
+    background: #ffffff !important;
     border: 1px solid var(--apple-border) !important;
     border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
 }
 
 body.theme-apple .metric-value {
     color: var(--apple-accent) !important;
     font-weight: 700 !important;
+    text-shadow: none !important;
+}
+
+body.theme-apple .metric-label {
+    color: var(--apple-text-secondary) !important;
+}
+
+body.theme-apple .metric-bar {
+    background: #f0f0f2 !important;
+    border-radius: 4px !important;
+}
+
+body.theme-apple .metric-bar-fill {
+    background: var(--apple-accent) !important;
+}
+
+body.theme-apple #solar-24h-graph {
+    background: #fbfbfd !important;
+    border: 1px solid var(--apple-border) !important;
 }
 
 /* Live Feed / Tables */
