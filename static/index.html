@@ -51,6 +51,7 @@
     <link rel="stylesheet" href="/static/css/modern-2026.css">
     <link rel="stylesheet" href="/static/css/loot-drop.css">
     <link rel="stylesheet" href="/static/css/weather.css">
+    <link rel="stylesheet" href="/static/css/overview.css">
     <link rel="stylesheet" href="/static/css/homeassistant.css">
     <link rel="stylesheet" href="/static/css/sidebar-responsive.css">
     <link rel="stylesheet" href="/static/css/fundy.css">
@@ -97,6 +98,8 @@
     <script src="/static/js/tab-manager.js?v={{VERSION}}"></script>
 
     <!-- Dashboard Modules -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+    <script src="/static/js/overview.js?v={{VERSION}}"></script>
     <script src="/static/js/proxmox.js?v={{VERSION}}"></script>
     <script src="/static/js/homeassistant.js?v={{VERSION}}"></script>
     <script src="/static/js/weather.js?v={{VERSION}}"></script>
@@ -143,7 +146,13 @@
                 <div class="nav-section-title">Platform</div>
                 <ul class="nav-menu">
                     <li class="nav-item">
-                        <a class="nav-link active" data-page="argocd" href="#argocd">
+                        <a class="nav-link active" data-page="overview" href="#overview">
+                            <i class="mdi mdi-weather-partly-cloudy"></i>
+                            <span class="nav-link-text">Overview</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="argocd" href="#argocd">
                             <i class="mdi mdi-rocket-launch"></i>
                             <span class="nav-link-text">ArgoCD</span>
                         </a>
@@ -419,8 +428,13 @@
             </div>
             <!-- Les sections commencent ici -->
 
+            <!-- Overview Section -->
+            <section class="argocd-section tab-content active" data-tab="overview">
+                <div class="loading">Loading overview...</div>
+            </section>
+
             <!-- ArgoCD Status Section -->
-            <section class="argocd-section tab-content active" data-tab="argocd">
+            <section class="argocd-section tab-content" data-tab="argocd" style="display: none;">
                 <h2 class="section-title">ArgoCD Applications Status</h2>
 
                 <div class="argocd-stats" id="argocd-stats">

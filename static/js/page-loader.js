@@ -12,6 +12,7 @@ const PageLoader = {
 
     // Mapping of tab names to partial files
     partials: {
+        'overview': 'overview.html',
         'nodes': 'nodes.html',
         'storage': 'storage.html',
         'services': 'services.html',
@@ -121,6 +122,9 @@ const PageLoader = {
     initScripts(tabName) {
         // Trigger initialization based on tab
         switch (tabName) {
+            case 'overview':
+                if (window.OverviewDashboard) OverviewDashboard.init();
+                break;
             case 'proxmox':
                 if (window.ProxmoxDashboard) ProxmoxDashboard.init();
                 break;
