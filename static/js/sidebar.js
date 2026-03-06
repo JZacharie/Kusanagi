@@ -241,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Apply feature flags
   if (window.KUSANAGI_FULL_FEATURES === false) {
-    const restrictedPages = ['news', 'streaming', 'network'];
+    const restrictedPages = ['news', 'streaming', 'network', 'homeassistant', 'mqtt', 'weather'];
     restrictedPages.forEach(page => {
       const navItem = document.querySelector(`.nav-link[data-page="${page}"]`);
       if (navItem && navItem.closest('.nav-item')) {
