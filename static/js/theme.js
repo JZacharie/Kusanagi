@@ -29,6 +29,11 @@ const ThemeManager = {
             name: 'Pristine White',
             class: 'theme-white',
             icon: '⚪'
+        },
+        apple: {
+            name: 'Apple Style',
+            class: 'theme-apple',
+            icon: '🍎'
         }
     },
 
