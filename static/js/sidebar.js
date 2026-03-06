@@ -239,6 +239,21 @@ class Sidebar {
 document.addEventListener('DOMContentLoaded', () => {
   window.sidebar = new Sidebar();
 
+  // Apply feature flags
+  if (window.KUSANAGI_FULL_FEATURES === false) {
+    const restrictedPages = ['news', 'streaming', 'network'];
+    restrictedPages.forEach(page => {
+      const navItem = document.querySelector(`.nav-link[data-page="${page}"]`);
+      if (navItem && navItem.closest('.nav-item')) {
+        navItem.closest('.nav-item').style.display = 'none';
+      }
+      const section = document.querySelector(`section.tab-content[data-tab="${page}"]`);
+      if (section) {
+        section.remove();
+      }
+    });
+  }
+
   // Initialize dashboard header elements visibility
   const dashboardHeader = document.getElementById("dashboard-header-elements");
   const hash = window.location.hash.slice(1);
