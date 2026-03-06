@@ -501,14 +501,17 @@ async fn fetch_gpu_and_energy_metrics(client: &reqwest::Client) -> GpuMetrics {
 pub async fn litellm_metrics_handler(
     axum::extract::State(state): axum::extract::State<crate::state::AppState>,
 ) -> impl IntoResponse {
-    let litellm_url = std::env::var("LITELLM_URL")
+    let litellm_url = std::env::var("LLM_BASE_URL")
+        .or_else(|_| std::env::var("LITELLM_URL"))
         .unwrap_or_else(|_| "http://litellm.litellm.svc.cluster.local:4000".to_string());
-    let litellm_key = std::env::var("LITELLM_API_KEY").unwrap_or_default();
+    let litellm_key = std::env::var("LLM_API_KEY")
+        .or_else(|_| std::env::var("LITELLM_API_KEY"))
+        .unwrap_or_default();
 
     if litellm_key.is_empty() {
         return api_error(
             axum::http::StatusCode::SERVICE_UNAVAILABLE,
-            "LITELLM_API_KEY not configured",
+            "LLM_API_KEY or LITELLM_API_KEY not configured",
         );
     }
 
