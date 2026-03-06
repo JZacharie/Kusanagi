@@ -1,0 +1,124 @@
+/* ============================================
+   KUSANAGI - White Premium Theme
+   ============================================ */
+
+body.theme-white {
+    /* Core Colors - Light Palette */
+    --white-bg: #ffffff;
+    --white-surface: #f8f9fa;
+    --white-accent: #0066ff;
+    --white-text-primary: #1a1a1a;
+    --white-text-secondary: #666666;
+    --white-border: #e0e0e0;
+    --white-shadow: rgba(0, 0, 0, 0.05);
+
+    /* Overrides for Kusanagi Variables */
+    --dark-bg: var(--white-bg);
+    --darker-bg: #f1f3f5;
+    --text-primary: var(--white-text-primary);
+    --text-secondary: var(--white-text-secondary);
+    --neon-cyan: #0055cc;
+    --neon-green: #00aa28;
+    --neon-pink: #cc1155;
+    --sidebar-bg: var(--white-surface);
+    --sidebar-border: var(--white-border);
+    --sidebar-text: #333333;
+
+    background-color: var(--white-bg);
+    color: var(--white-text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Specific UI Overrides */
+body.theme-white .grid-bg {
+    display: none;
+}
+
+body.theme-white .scanlines {
+    display: none;
+}
+
+body.theme-white .sidebar {
+    background: var(--white-surface);
+    border-right: 1px solid var(--white-border);
+    box-shadow: 2px 0 10px var(--white-shadow);
+}
+
+body.theme-white .sidebar-logo-text {
+    color: var(--white-text-primary);
+}
+
+body.theme-white .nav-link {
+    color: var(--white-text-secondary);
+    border-radius: 6px;
+}
+
+body.theme-white .nav-link:hover {
+    background: rgba(0, 0, 0, 0.03);
+    color: var(--white-text-primary);
+}
+
+body.theme-white .nav-link.active {
+    background: rgba(0, 102, 255, 0.08);
+    color: var(--white-accent);
+    border-left: 4px solid var(--white-accent);
+}
+
+body.theme-white .stat-box {
+    background: #fff;
+    border: 1px solid var(--white-border);
+    box-shadow: 0 2px 4px var(--white-shadow);
+}
+
+body.theme-white .issues-table-container {
+    background: #fff;
+    border: 1px solid var(--white-border);
+    box-shadow: 0 4px 6px var(--white-shadow);
+}
+
+body.theme-white .issues-table-header {
+    background: #fdfdfd;
+    border-bottom: 1px solid var(--white-border);
+}
+
+body.theme-white .content-header {
+    background: rgba(255, 255, 255, 0.9);
+    border-bottom: 1px solid var(--white-border);
+    backdrop-filter: blur(10px);
+}
+
+body.theme-white .header-title {
+    color: #111;
+    text-shadow: none;
+}
+
+body.theme-white .cyber-btn {
+    background: #fff;
+    border: 1px solid var(--white-border);
+    color: #333;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+body.theme-white .cyber-btn:hover {
+    background: #f8f9fa;
+    border-color: #ced4da;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Tables */
+body.theme-white .issues-table th {
+    background: #f8f9fa;
+    color: #555;
+    border-bottom: 1px solid var(--white-border);
+}
+
+body.theme-white .issues-table td {
+    border-bottom: 1px solid #f1f1f1;
+}
+
+/* Cards */
+body.theme-white .node-card,
+body.theme-white .pod-card {
+    background: #fff;
+    border: 1px solid var(--white-border);
+}
