@@ -241,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Apply feature flags
   if (window.KUSANAGI_FULL_FEATURES === false) {
-    const restrictedPages = ['news', 'streaming', 'network', 'homeassistant', 'mqtt', 'weather'];
+    const restrictedPages = ['news', 'streaming', 'network', 'homeassistant', 'mqtt', 'weather', 'proxmox', 'system', 'docs'];
     restrictedPages.forEach(page => {
       const navItem = document.querySelector(`.nav-link[data-page="${page}"]`);
       if (navItem && navItem.closest('.nav-item')) {
@@ -250,6 +250,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const section = document.querySelector(`section.tab-content[data-tab="${page}"]`);
       if (section) {
         section.remove();
+      }
+    });
+    // Hide "Refresh Site" button
+    const refreshLink = document.querySelector('a[onclick*="clearKusanagiCache"]');
+    if (refreshLink && refreshLink.closest('.nav-item')) {
+      refreshLink.closest('.nav-item').style.display = 'none';
+    }
+    // Hide empty nav-sections (e.g. Integrations when all items are hidden)
+    document.querySelectorAll('.nav-section').forEach(section => {
+      const visibleItems = section.querySelectorAll('.nav-item:not([style*="display: none"])');
+      if (visibleItems.length === 0) {
+        section.style.display = 'none';
       }
     });
   }
