@@ -64,7 +64,7 @@ const KusanagiConfig = {
 
     // UI Configuration
     ui: {
-        themes: ['cyberpunk', 'modern', 'loot-drop', 'fundy', 'white'],
+        themes: ['cyberpunk', 'modern', 'loot-drop', 'fundy', 'white', 'apple'],
         defaultTheme: 'cyberpunk',
         defaultLocale: 'fr',
         supportedLocales: ['en', 'fr'],
