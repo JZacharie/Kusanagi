@@ -5,17 +5,38 @@
 <div class="argocd-stats" id="streaming-stats-grid" style="margin-bottom: 1.5rem;">
     <div class="stat-box info">
         <div class="stat-value" id="streaming-total">-</div>
-        <div class="stat-label">Total Movies</div>
+        <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-box success">
+        <div class="stat-value" id="streaming-films-count">-</div>
+        <div class="stat-label">Films</div>
     </div>
     <div class="stat-box warning">
-        <div class="stat-value" id="streaming-source">Cinestream</div>
-        <div class="stat-label">Primary Source</div>
+        <div class="stat-value" id="streaming-series-count">-</div>
+        <div class="stat-label">Séries</div>
+    </div>
+    <div class="stat-box info">
+        <div class="stat-value" id="streaming-source" style="font-size: 0.85rem;">Cinestream + JustWatch</div>
+        <div class="stat-label">Sources</div>
     </div>
 </div>
 
 <!-- Filter Controls -->
 <div class="filter-controls"
     style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+    <!-- Type filters -->
+    <div id="streaming-type-buttons" style="display: contents;">
+        <button class="cyber-btn active" id="btn-streaming-type-all" onclick="StreamingManager.filterType('all')">📺
+            All</button>
+        <button class="cyber-btn" id="btn-streaming-type-film" onclick="StreamingManager.filterType('film')">🎬
+            Films</button>
+        <button class="cyber-btn" id="btn-streaming-type-serie" onclick="StreamingManager.filterType('serie')">📺
+            Séries</button>
+    </div>
+
+    <span style="opacity: 0.3;">|</span>
+
+    <!-- Language filters -->
     <div id="streaming-filter-buttons" style="display: contents;">
         <button class="cyber-btn active" id="btn-streaming-all" onclick="StreamingManager.filter('all')">All</button>
         <button class="cyber-btn" id="btn-streaming-french" onclick="StreamingManager.filter('French')">French</button>
@@ -132,6 +153,22 @@
     .badge-quality {
         right: 0.4rem;
         background: rgba(255, 170, 0, 0.9);
+        color: #000;
+    }
+
+    .badge-source {
+        left: 0.4rem;
+        bottom: 0.4rem;
+        top: auto;
+        background: rgba(138, 43, 226, 0.9);
+        color: #fff;
+    }
+
+    .badge-type {
+        right: 0.4rem;
+        bottom: 0.4rem;
+        top: auto;
+        background: rgba(46, 204, 113, 0.9);
         color: #000;
     }
 </style>

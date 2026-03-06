@@ -5,6 +5,7 @@ use serde_json::{json, Value};
 
 const CACHE_PREFIX: &str = "streaming/";
 const BASE_URL: &str = "https://cinestream.info";
+const JUSTWATCH_BASE: &str = "https://www.justwatch.com";
 
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -29,26 +30,60 @@ pub async fn force_refresh() -> Result<Value, String> {
 }
 
 async fn fetch_fresh_streaming() -> Result<Value, String> {
-    tracing::info!("🔄 Fetching fresh streaming movies from Cinestream...");
+    tracing::info!("🔄 Fetching fresh streaming data from all sources...");
 
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(30))
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         .build()
         .map_err(|e| e.to_string())?;
 
-    let url = format!("{}/films-populaires/1", BASE_URL);
-    let response = client.get(url).send().await.map_err(|e| e.to_string())?;
-    
-    if !response.status().is_success() {
-        return Err(format!("Failed to fetch cinestream: HTTP {}", response.status()));
+    let mut new_items: Vec<Value> = Vec::new();
+
+    // --- Source 1: Cinestream ---
+    let cinestream_url = format!("{}/films-populaires/1", BASE_URL);
+    match client.get(&cinestream_url).send().await {
+        Ok(response) if response.status().is_success() => {
+            if let Ok(html) = response.text().await {
+                let items = parse_cinestream_html(&html);
+                tracing::info!("🎬 Cinestream: parsed {} movies", items.len());
+                new_items.extend(items);
+            }
+        }
+        Ok(response) => tracing::warn!("⚠️ Cinestream returned HTTP {}", response.status()),
+        Err(e) => tracing::warn!("⚠️ Failed to fetch Cinestream: {}", e),
     }
 
-    let html = response.text().await.map_err(|e| e.to_string())?;
-    let new_items = parse_cinestream_html(&html);
+    // --- Source 2: JustWatch Films ---
+    let jw_films_url = format!("{}/fr/films", JUSTWATCH_BASE);
+    match client.get(&jw_films_url).send().await {
+        Ok(response) if response.status().is_success() => {
+            if let Ok(html) = response.text().await {
+                let items = parse_justwatch_html(&html, "film");
+                tracing::info!("🎬 JustWatch Films: parsed {} movies", items.len());
+                new_items.extend(items);
+            }
+        }
+        Ok(response) => tracing::warn!("⚠️ JustWatch Films returned HTTP {}", response.status()),
+        Err(e) => tracing::warn!("⚠️ Failed to fetch JustWatch Films: {}", e),
+    }
+
+    // --- Source 3: JustWatch Series ---
+    let jw_series_url = format!("{}/fr/series", JUSTWATCH_BASE);
+    match client.get(&jw_series_url).send().await {
+        Ok(response) if response.status().is_success() => {
+            if let Ok(html) = response.text().await {
+                let items = parse_justwatch_html(&html, "serie");
+                tracing::info!("📺 JustWatch Series: parsed {} series", items.len());
+                new_items.extend(items);
+            }
+        }
+        Ok(response) => tracing::warn!("⚠️ JustWatch Series returned HTTP {}", response.status()),
+        Err(e) => tracing::warn!("⚠️ Failed to fetch JustWatch Series: {}", e),
+    }
 
     if new_items.is_empty() {
-        return Err("No movies parsed from cinestream".to_string());
+        return Err("No items parsed from any source".to_string());
     }
 
     // Attempt to load existing data to merge
@@ -63,13 +98,24 @@ async fn fetch_fresh_streaming() -> Result<Value, String> {
     let s3_client = create_s3_client().await.ok();
     let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
 
-    // Merge new items (avoid duplicates by URL)
+    // Merge new items (avoid duplicates by URL and by normalized title)
     let initial_count = all_items.len();
     for item in new_items {
-        if let Some(url) = item["url"].as_str() {
-            if !all_items.iter().any(|existing| existing["url"].as_str() == Some(url)) {
-                all_items.insert(0, item);
+        let item_url = item["url"].as_str().unwrap_or_default();
+        let item_title_norm = normalize_title(item["title"].as_str().unwrap_or_default());
+
+        let is_duplicate = all_items.iter().any(|existing| {
+            // Duplicate by URL
+            if existing["url"].as_str() == Some(item_url) {
+                return true;
             }
+            // Duplicate by normalized title (cross-source dedup)
+            let existing_title_norm = normalize_title(existing["title"].as_str().unwrap_or_default());
+            !item_title_norm.is_empty() && item_title_norm == existing_title_norm
+        });
+
+        if !is_duplicate {
+            all_items.insert(0, item);
         }
     }
 
@@ -99,7 +145,7 @@ async fn fetch_fresh_streaming() -> Result<Value, String> {
     }
     
     let added_count = all_items.len() - initial_count;
-    tracing::info!("✅ Added {} new movies to the collection (Total: {})", added_count, all_items.len());
+    tracing::info!("✅ Added {} new items to the collection (Total: {})", added_count, all_items.len());
 
     // Limit collection size to 500 items
     if all_items.len() > 500 {
@@ -307,7 +353,8 @@ fn parse_movie_article(content: &str) -> Option<Value> {
         "genres": genres,
         "language": language,
         "quality": quality,
-        "source": "Cinestream"
+        "source": "Cinestream",
+        "content_type": "film"
     }))
 }
 
@@ -320,11 +367,128 @@ fn extract_simple_content(html: &str, class_marker: &str, end_tag: &str) -> Opti
             let start = after_marker + tag_end + 1;
             
             if let Some(end_pos) = html[start..].find(end_tag) {
-                return Some(html[start..start + end_pos].trim().to_string());
+                let content = html[start..start + end_pos].trim();
+                // Sanitize: remove any leading '>' artifacts
+                let cleaned = content.trim_start_matches('>').trim();
+                if !cleaned.is_empty() {
+                    return Some(cleaned.to_string());
+                }
             }
         }
     }
     None
+}
+
+/// Parse JustWatch listing HTML (films or series)
+fn parse_justwatch_html(html: &str, content_type: &str) -> Vec<Value> {
+    let mut items = Vec::new();
+    let link_prefix = if content_type == "serie" { "/fr/serie/" } else { "/fr/film/" };
+
+    // Find all title-list-grid__item--link anchors
+    let mut current_pos = 0;
+    while let Some(link_pos) = html[current_pos..].find("title-list-grid__item--link") {
+        let abs_link_pos = current_pos + link_pos;
+        
+        // Find the <a href="..." before this class
+        // Search backwards for href="
+        let search_start = if abs_link_pos > 200 { abs_link_pos - 200 } else { 0 };
+        let before = &html[search_start..abs_link_pos];
+        
+        if let Some(href_pos) = before.rfind("href=\"") {
+            let href_start = search_start + href_pos + 6;
+            if let Some(href_end) = html[href_start..].find('"') {
+                let path = &html[href_start..href_start + href_end];
+                
+                if path.starts_with(link_prefix) {
+                    // Find the next <img alt="..." for the title
+                    let search_end = std::cmp::min(abs_link_pos + 3000, html.len());
+                    let block = &html[abs_link_pos..search_end];
+                    
+                    if let Some(img_alt) = extract_img_alt(block) {
+                        let title = img_alt.trim().to_string();
+                        if title.is_empty() {
+                            current_pos = abs_link_pos + 30;
+                            continue;
+                        }
+                        
+                        // Extract poster URL from <img ... src="...">
+                        let poster_url = extract_img_src(block);
+
+                        let url = format!("{}{}", JUSTWATCH_BASE, path);
+                        
+                        items.push(json!({
+                            "title": title,
+                            "url": url,
+                            "poster_url": poster_url,
+                            "year": "N/A",
+                            "genres": "",
+                            "language": "N/A",
+                            "quality": "N/A",
+                            "source": "JustWatch",
+                            "content_type": content_type
+                        }));
+                    }
+                }
+            }
+        }
+        
+        current_pos = abs_link_pos + 30;
+    }
+    
+    items
+}
+
+/// Extract the alt attribute from the first <img> tag in the block
+fn extract_img_alt(block: &str) -> Option<String> {
+    let img_pos = block.find("<img")?;
+    let after_img = &block[img_pos..];
+    let alt_pos = after_img.find("alt=\"")?;
+    let alt_start = alt_pos + 5;
+    let alt_end = after_img[alt_start..].find('"')?;
+    let alt = &after_img[alt_start..alt_start + alt_end];
+    // Decode HTML entities
+    let decoded = alt.replace("&amp;", "&")
+        .replace("&#x27;", "'")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">");
+    Some(decoded)
+}
+
+/// Extract the src attribute from the first <img> tag in the block
+fn extract_img_src(block: &str) -> Option<String> {
+    let img_pos = block.find("<img")?;
+    let after_img = &block[img_pos..];
+    let src_pos = after_img.find("src=\"")?;
+    let src_start = src_pos + 5;
+    let src_end = after_img[src_start..].find('"')?;
+    let src = &after_img[src_start..src_start + src_end];
+    Some(src.replace("&amp;", "&"))
+}
+
+/// Normalize a title for deduplication (lowercase, strip accents, remove special chars)
+fn normalize_title(title: &str) -> String {
+    title
+        .to_lowercase()
+        .chars()
+        .map(|c| match c {
+            'à' | 'á' | 'â' | 'ä' | 'ã' => 'a',
+            'è' | 'é' | 'ê' | 'ë' => 'e',
+            'ì' | 'í' | 'î' | 'ï' => 'i',
+            'ò' | 'ó' | 'ô' | 'ö' | 'õ' => 'o',
+            'ù' | 'ú' | 'û' | 'ü' => 'u',
+            'ç' => 'c',
+            'ñ' => 'n',
+            'æ' => 'a',
+            'œ' => 'o',
+            _ => c,
+        })
+        .filter(|c| c.is_alphanumeric() || *c == ' ')
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<&str>>()
+        .join(" ")
 }
 
 async fn get_aggregated_streaming() -> Result<Value, String> {
