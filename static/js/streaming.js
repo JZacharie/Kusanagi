@@ -5,6 +5,7 @@ const StreamingManager = {
     allMovies: [],
     filteredMovies: [],
     currentFilter: 'all', // 'all', 'French', 'Multi'
+    currentTypeFilter: 'all', // 'all', 'film', 'serie'
     searchQuery: '',
 
     init: function () {
@@ -81,26 +82,46 @@ const StreamingManager = {
         container.innerHTML = this.filteredMovies.map(movie => {
             const searchUrl = `https://thpibay.site/search/${encodeURIComponent(movie.title)}/1/99/0`;
             const escapedTitle = movie.title.replace(/"/g, '&quot;');
+            const isJustWatch = movie.source === 'JustWatch';
+            const isSerie = movie.content_type === 'serie';
+            const typeIcon = isSerie ? '📺' : '🎬';
+
+            // Language badge: only show for Cinestream items
+            const langBadge = !isJustWatch && movie.language && movie.language !== 'N/A'
+                ? `<span class="badge badge-lang">${movie.language}</span>` : '';
+            // Quality badge: only show for Cinestream items 
+            const qualityBadge = !isJustWatch && movie.quality && movie.quality !== 'N/A'
+                ? `<span class="badge badge-quality">${movie.quality}</span>` : '';
+            // Source badge
+            const sourceBadge = isJustWatch
+                ? `<span class="badge badge-source">JW</span>`
+                : '';
+            // Type badge for series
+            const typeBadge = isSerie
+                ? `<span class="badge badge-type">📺 Série</span>`
+                : '';
 
             return `
                 <div class="movie-card">
-                    <span class="badge badge-lang">${movie.language}</span>
-                    <span class="badge badge-quality">${movie.quality}</span>
+                    ${langBadge}
+                    ${qualityBadge}
+                    ${sourceBadge}
+                    ${typeBadge}
                     <img src="${movie.poster_url || '/static/images/no-poster.png'}" 
                          class="movie-poster" 
                          alt="${escapedTitle}" 
                          onerror="this.src='/static/images/no-poster.png'"
                          onclick="window.open('${movie.url}', '_blank')">
                     <div class="movie-info">
-                        <div class="movie-title">${movie.title}</div>
+                        <div class="movie-title">${typeIcon} ${movie.title}</div>
                         <div class="movie-meta">
-                            <span>${movie.year}</span>
+                            <span>${movie.year || 'N/A'}</span>
                             <span style="opacity: 0.6; font-size: 0.75rem;">${movie.source}</span>
                         </div>
-                        <div class="movie-genres" title="${movie.genres}">${movie.genres}</div>
+                        <div class="movie-genres" title="${movie.genres || ''}">${movie.genres || ''}</div>
                         <div class="movie-actions" style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
                             <a href="${movie.url}" target="_blank" class="cyber-btn btn-small" style="flex: 1; text-align: center; font-size: 0.7rem; padding: 0.3rem;">
-                                🎬 VIEW
+                                ${typeIcon} VIEW
                             </a>
                             <a href="${searchUrl}" target="_blank" class="cyber-btn btn-small" style="flex: 1; text-align: center; font-size: 0.7rem; padding: 0.3rem;">
                                 🔍 SEARCH
@@ -133,29 +154,63 @@ const StreamingManager = {
         this.render();
     },
 
+    filterType: function (typeFilter) {
+        this.currentTypeFilter = typeFilter;
+
+        // Update type button active states
+        const btns = document.querySelectorAll('#streaming-type-buttons .cyber-btn');
+        btns.forEach(btn => {
+            if (btn.id === `btn-streaming-type-${typeFilter}`) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        this.render();
+    },
+
     _applyFilters: function () {
         this.filteredMovies = this.allMovies.filter(movie => {
             // Search match
             const matchesSearch = !this.searchQuery ||
                 movie.title.toLowerCase().includes(this.searchQuery) ||
-                movie.year.toString().includes(this.searchQuery) ||
-                movie.genres.toLowerCase().includes(this.searchQuery);
+                (movie.year || '').toString().includes(this.searchQuery) ||
+                (movie.genres || '').toLowerCase().includes(this.searchQuery);
 
-            // Category match
+            // Category match (language)
             let matchesCategory = true;
             if (this.currentFilter === 'French') {
-                matchesCategory = movie.language.toLowerCase().includes('french') && !movie.language.toLowerCase().includes('multi');
+                matchesCategory = movie.language && movie.language.toLowerCase().includes('french') && !movie.language.toLowerCase().includes('multi');
             } else if (this.currentFilter === 'Multi') {
-                matchesCategory = movie.language.toLowerCase().includes('multi');
+                matchesCategory = movie.language && movie.language.toLowerCase().includes('multi');
             }
 
-            return matchesSearch && matchesCategory;
+            // Type match (film/serie)
+            let matchesType = true;
+            if (this.currentTypeFilter === 'film') {
+                matchesType = (movie.content_type || 'film') === 'film';
+            } else if (this.currentTypeFilter === 'serie') {
+                matchesType = movie.content_type === 'serie';
+            }
+
+            return matchesSearch && matchesCategory && matchesType;
         });
     },
 
     _updateStats: function (data) {
         const totalEl = document.getElementById('streaming-total');
         if (totalEl) totalEl.textContent = this.allMovies.length;
+
+        const filmsEl = document.getElementById('streaming-films-count');
+        if (filmsEl) {
+            filmsEl.textContent = this.allMovies.filter(m => (m.content_type || 'film') === 'film').length;
+        }
+
+        const seriesEl = document.getElementById('streaming-series-count');
+        if (seriesEl) {
+            seriesEl.textContent = this.allMovies.filter(m => m.content_type === 'serie').length;
+        }
     }
 };
 
