@@ -150,8 +150,9 @@ const SystemStatusManager = {
 const DashboardManager = {
     // Available widgets configuration
     widgets: {
-        argocd: { name: 'ArgoCD', icon: '🚀', enabled: true, order: 0 },
-        nodes: { name: 'Nodes', icon: '🖥️', enabled: true, order: 1 },
+        overview: { name: 'Overview', icon: '🌦️', enabled: true, order: 0 },
+        argocd: { name: 'ArgoCD', icon: '🚀', enabled: true, order: 1 },
+        nodes: { name: 'Nodes', icon: '🖥️', enabled: true, order: 2 },
         storage: { name: 'Storage', icon: '💾', enabled: true, order: 2 },
         storage: { name: 'Storage', icon: '💾', enabled: true, order: 2 },
         monitors: { name: 'Monitors', icon: '🛡️', enabled: true, order: 3 },

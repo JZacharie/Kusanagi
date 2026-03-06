@@ -1,0 +1,276 @@
+/* Overview Dashboard Styles */
+.overview-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1rem;
+    color: #e0e6ed;
+    font-family: 'Inter', sans-serif;
+}
+
+.overview-dashboard .panel {
+    background: #1a2332;
+    border-radius: 8px;
+    padding: 1.2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    border: 1px solid #2a3548;
+}
+
+/* Header */
+.overview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #151b28;
+    padding: 0.8rem 1.2rem;
+    border-radius: 8px;
+    border: 1px solid #2a3548;
+}
+
+.overview-title {
+    margin: 0;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.overview-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    font-size: 0.9rem;
+    color: #a0aec0;
+}
+
+.overview-cluster-select {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #1a2332;
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    border: 1px solid #2a3548;
+}
+
+/* Main Status */
+.overview-main-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.status-sunny {
+    color: #f6ad55;
+    text-shadow: 0 0 10px rgba(246, 173, 85, 0.5);
+}
+
+.status-operational {
+    color: #48bb78;
+}
+
+.status-uptime {
+    color: #48bb78;
+}
+
+/* Grid */
+.overview-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1.2fr;
+    gap: 1.5rem;
+}
+
+.overview-card h3 {
+    margin: 0 0 1.2rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    border-bottom: 1px solid #2a3548;
+    padding-bottom: 0.5rem;
+}
+
+/* 1. Weather Card */
+.weather-content {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.weather-graphic {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+}
+
+.weather-graphic span.overview-weather-icon {
+    font-size: 5rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 15px rgba(246, 173, 85, 0.4));
+}
+
+.weather-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-top: 0.5rem;
+    text-transform: uppercase;
+}
+
+.weather-stats {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.weather-stat-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.health-good {
+    color: #48bb78;
+}
+
+.health-warning {
+    color: #ecc94b;
+}
+
+.health-critical {
+    color: #f56565;
+}
+
+.weather-stat-resources {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed #2a3548;
+}
+
+.weather-mini-charts {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    height: 50px;
+}
+
+.weather-mini-charts canvas {
+    flex: 1;
+}
+
+/* 2. Cost Card */
+.cost-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.cost-label {
+    font-size: 0.85rem;
+    color: #a0aec0;
+}
+
+.cost-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.cost-chart-container {
+    position: relative;
+    height: 180px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+/* 3. Namespace Cost */
+.namespace-chart-container {
+    position: relative;
+    height: 230px;
+    width: 100%;
+}
+
+/* Applications Health */
+.overview-apps-section h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.2rem;
+    color: #fff;
+}
+
+.apps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+.app-card {
+    background: #1a2332;
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #2a3548;
+}
+
+.app-card-left {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.app-status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.dot-green {
+    background: #48bb78;
+    box-shadow: 0 0 8px #48bb78;
+}
+
+.dot-yellow {
+    background: #ecc94b;
+    box-shadow: 0 0 8px #ecc94b;
+}
+
+.dot-red {
+    background: #f56565;
+    box-shadow: 0 0 8px #f56565;
+}
+
+.app-name {
+    font-weight: 500;
+    color: #e2e8f0;
+}
+
+.app-card-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 0.8rem;
+    color: #a0aec0;
+}
+
+.app-weather-icons {
+    display: flex;
+    gap: 0.3rem;
+    font-size: 1rem;
+    margin-bottom: 0.2rem;
+}
+
+@media (max-width: 1200px) {
+    .overview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .apps-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

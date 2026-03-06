@@ -1,0 +1,103 @@
+<div class="overview-dashboard">
+    <div class="overview-header">
+        <h2 class="overview-title">
+            <span class="overview-icon">🌦️</span> K8s Cluster Weather Dashboard
+        </h2>
+        <div class="overview-header-actions">
+            <div class="overview-cluster-select">
+                <span class="mdi mdi-kubernetes"></span> Cluster:
+                <select id="overview-cluster-dropdown" class="cyber-select">
+                    <option value="production-1">production-1</option>
+                    <option value="staging">staging</option>
+                </select>
+            </div>
+            <div class="overview-meta">
+                Refresh: 5m | Admin | <span id="overview-last-update">--</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="overview-main-status panel">
+        <div class="status-item">Overall Cluster Health: <span id="overview-health-icon">☀️</span> <span
+                id="overview-health-text" class="status-sunny">SUNNY</span></div>
+        <div class="status-item">Status: <span id="overview-status-text" class="status-operational">Operational</span>
+        </div>
+        <div class="status-item">Uptime: <span id="overview-uptime-text" class="status-uptime">99.98%</span></div>
+    </div>
+
+    <div class="overview-grid">
+        <!-- 1. Cluster Weather -->
+        <div class="overview-card weather-card panel">
+            <h3>1. Cluster Weather</h3>
+            <div class="weather-content">
+                <div class="weather-graphic">
+                    <img id="overview-weather-img" src="/static/images/weather/sunny.svg" alt="Sunny">
+                    <div id="overview-weather-title" class="weather-title status-sunny">SUNNY</div>
+                </div>
+                <div class="weather-stats">
+                    <div class="weather-stat-row">
+                        <span class="weather-stat-label">Nodes:</span>
+                        <span id="overview-nodes-stat" class="weather-stat-value health-good">--/-- Healthy</span>
+                    </div>
+                    <div class="weather-stat-row">
+                        <span class="weather-stat-label">Pods:</span>
+                        <span id="overview-pods-stat" class="weather-stat-value health-good">--/-- Running</span>
+                    </div>
+                    <div class="weather-stat-row">
+                        <span class="weather-stat-label">API Latency:</span>
+                        <span id="overview-latency-stat" class="weather-stat-value">--ms</span>
+                    </div>
+                    <div class="weather-stat-resources">
+                        <div class="weather-stat-label">Resources:</div>
+                        <div class="weather-stat-row">
+                            <span>CPU:</span>
+                            <span id="overview-cpu-stat">--%</span>
+                        </div>
+                        <div class="weather-stat-row">
+                            <span>Memory:</span>
+                            <span id="overview-mem-stat">--%</span>
+                        </div>
+                    </div>
+                    <div class="weather-mini-charts">
+                        <canvas id="overview-cpu-chart" height="40"></canvas>
+                        <canvas id="overview-mem-chart" height="40"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Cluster Cost -->
+        <div class="overview-card cost-card panel">
+            <h3>2. Cluster Cost (Month-to-Date)</h3>
+            <div class="cost-header">
+                <div>
+                    <div class="cost-label">Current Cost:</div>
+                    <div class="cost-value" id="overview-current-cost">$--.--</div>
+                </div>
+                <div>
+                    <div class="cost-label">Forecasted:</div>
+                    <div class="cost-value" id="overview-forecast-cost">$--.--</div>
+                </div>
+            </div>
+            <div class="cost-chart-container">
+                <canvas id="overview-cost-pie-chart" height="150"></canvas>
+            </div>
+        </div>
+
+        <!-- 3. Cost by Namespace -->
+        <div class="overview-card namespace-cost-card panel">
+            <h3>3. Cost by Namespace</h3>
+            <div class="namespace-chart-container">
+                <canvas id="overview-namespace-bar-chart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applications Health -->
+    <div class="overview-apps-section">
+        <h3>Applications Health</h3>
+        <div class="apps-grid" id="overview-apps-grid">
+            <!-- Rendered by JS -->
+        </div>
+    </div>
+</div>
