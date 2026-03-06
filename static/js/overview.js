@@ -153,18 +153,18 @@ const OverviewDashboard = {
 
     renderCostData() {
         // --- Mock Data ---
-        document.getElementById('overview-current-cost').textContent = '$2,370.00';
-        document.getElementById('overview-forecast-cost').textContent = '$3,150.00';
+        document.getElementById('overview-current-cost').textContent = '$5,420.00';
+        document.getElementById('overview-forecast-cost').textContent = '$6,800.00';
 
         this.renderPieChart('overview-cost-pie-chart', {
-            labels: ['Compute: $1,450 (61%)', 'Storage: $620 (26%)', 'Network: $300 (13%)'],
-            data: [1450, 620, 300],
+            labels: ['Compute: $3,200 (59%)', 'Storage: $1,420 (26%)', 'Network: $800 (15%)'],
+            data: [3200, 1420, 800],
             backgroundColor: ['#4299e1', '#ed8936', '#f56565']
         });
 
         this.renderBarChart('overview-namespace-bar-chart', {
-            labels: ['awx-task', 'awx-web', 'postgres-15', 'awx-ee', 'redis'],
-            data: [850, 450, 320, 600, 150],
+            labels: ['pg-prd', 'redis', 'openobserve', 'awx', 'other'],
+            data: [1850, 750, 1420, 1200, 200],
             backgroundColor: ['#63b3ed', '#f6ad55', '#b794f4', '#f56565', '#68d391']
         });
     },
@@ -260,14 +260,14 @@ const OverviewDashboard = {
         const grid = document.getElementById('overview-apps-grid');
         if (!grid) return;
 
-        // Mock Applications corresponding to the design
+        // Mock Applications corresponding to the namespaces
         const apps = [
+            { name: 'pg-prd-primary', status: 'green', type: 'sunny' },
+            { name: 'redis-cluster', status: 'green', type: 'sunny' },
+            { name: 'openobserve-ingester', status: 'yellow', type: 'cloudy', note: 'High Ref\n12 mins ago' },
             { name: 'awx-web', status: 'green', type: 'sunny' },
-            { name: 'awx-task', status: 'green', type: 'sunny' },
-            { name: 'awx-postgres-15', status: 'yellow', type: 'cloudy', note: 'Disk I/O\n12 mins ago' },
-            { name: 'awx-redis', status: 'red', type: 'rainy', note: 'OOM\n24 mins ago' },
-            { name: 'awx-operator', status: 'green', type: 'none' },
-            { name: 'awx-ee-pool', status: 'green', type: 'none', note: 'Scaled\n5 mins ago' }
+            { name: 'pg-prd-replica', status: 'green', type: 'none' },
+            { name: 'openobserve-querier', status: 'red', type: 'rainy', note: 'Latency\n5 mins ago' }
         ];
 
         let html = '';
