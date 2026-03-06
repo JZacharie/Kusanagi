@@ -643,10 +643,85 @@ const MetricsManager = {
                 </p>
             </div>
             ` : ''}
+            
+            <h3 style="${sectionHeaderStyle}">🤖 LiteLLM AI Gateway</h3>
+            <div id="litellm-metrics-container">
+                <div class="loading-mini" style="text-align: center; padding: 2rem; opacity: 0.5;">SCANNING_AI_NEURAL_NET...</div>
+            </div>
         `;
 
         // Load 24h graph data asynchronously
         this.loadSolarGraph();
+
+        // Load LiteLLM metrics asynchronously
+        this.loadLitellmMetrics();
+    },
+
+    /**
+     * Load LiteLLM metrics asynchronously
+     */
+    async loadLitellmMetrics() {
+        const container = document.getElementById('litellm-metrics-container');
+        if (!container) return;
+
+        try {
+            const data = await api.get('/api/monitoring/litellm/metrics');
+
+            if (!data) throw new Error('No data received');
+
+            let modelsHtml = '';
+            if (data.models && data.models.data) {
+                // Take top 5 models if many
+                const models = data.models.data.slice(0, 5);
+                modelsHtml = `
+                    <div style="margin-top: 1rem; font-size: 0.8rem; border-top: 1px solid rgba(0,255,249,0.1); padding-top: 0.5rem;">
+                        <div style="color: var(--neon-cyan); margin-bottom: 0.5rem; font-family: 'Orbitron'; font-size: 0.7rem;">ACTIVE_MODELS</div>
+                        ${models.map(m => `
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-family: 'JetBrains Mono';">
+                                <span style="opacity: 0.7;">${m.model_name || m.id}</span>
+                                <span style="color: var(--neon-green);">${m.litellm_params?.model || 'active'}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="metrics-grid">
+                    <div class="metric-card ${data.healthy ? '' : 'alert-critical'}">
+                        <div class="metric-icon">🛡️</div>
+                        <div class="metric-value">${data.healthy ? 'HEALTHY' : 'OFFLINE'}</div>
+                        <div class="metric-label">Gateway Status</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">🧠</div>
+                        <div class="metric-value">${data.model_count || 0}</div>
+                        <div class="metric-label">Active Models</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">💳</div>
+                        <div class="metric-value">$${data.total_spend?.toFixed(4) || '0.000'}</div>
+                        <div class="metric-label">Recent Spend</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">📈</div>
+                        <div class="metric-value">${data.request_count || 0}</div>
+                        <div class="metric-label">Recent Requests</div>
+                    </div>
+                </div>
+                ${modelsHtml}
+            `;
+        } catch (error) {
+            console.error('LiteLLM metrics error:', error);
+            container.innerHTML = `
+                <div style="padding: 1rem; background: rgba(255,0,0,0.05); border-radius: 4px; border-left: 3px solid var(--neon-magenta);">
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-secondary);">
+                        ⚠️ <strong>LiteLLM Metrics Offline</strong> - Unable to fetch gateway data.<br>
+                        <span style="font-size: 0.7rem; opacity: 0.7;">${error.message}</span>
+                    </p>
+                </div>
+            `;
+        }
     },
 
     /**
