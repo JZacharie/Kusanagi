@@ -139,6 +139,10 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/monitoring/enphase/debug", get(enphase_debug_handler))
         .route("/api/monitoring/gpu/debug", get(gpu_debug_handler))
         .route("/api/monitoring/trivy/debug", get(trivy_debug_handler))
+        .route(
+            "/api/monitoring/litellm/metrics",
+            get(litellm_metrics_handler),
+        )
         .route("/api/dashboard/metrics", get(metrics_handler)) // Dashboard metrics
         .route("/api/chat", post(post_chat_handler))
         .route("/api/prometheus/range", get(prometheus_range_handler))

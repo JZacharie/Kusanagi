@@ -497,6 +497,102 @@ async fn fetch_gpu_and_energy_metrics(client: &reqwest::Client) -> GpuMetrics {
     metrics
 }
 
+/// LiteLLM Metrics proxy handler
+pub async fn litellm_metrics_handler(
+    axum::extract::State(state): axum::extract::State<crate::state::AppState>,
+) -> impl IntoResponse {
+    let litellm_url = std::env::var("LITELLM_URL")
+        .unwrap_or_else(|_| "http://litellm.litellm.svc.cluster.local:4000".to_string());
+    let litellm_key = std::env::var("LITELLM_API_KEY").unwrap_or_default();
+
+    if litellm_key.is_empty() {
+        return api_error(
+            axum::http::StatusCode::SERVICE_UNAVAILABLE,
+            "LITELLM_API_KEY not configured",
+        );
+    }
+
+    // 1. Fetch Health
+    let health_url = format!("{}/health/readiness", litellm_url);
+    let health_req = state
+        .http_client
+        .get(&health_url)
+        .header("Authorization", format!("Bearer {}", litellm_key))
+        .timeout(std::time::Duration::from_secs(5))
+        .send();
+
+    // 2. Fetch Models Info
+    let models_url = format!("{}/model/info", litellm_url);
+    let models_req = state
+        .http_client
+        .get(&models_url)
+        .header("Authorization", format!("Bearer {}", litellm_key))
+        .timeout(std::time::Duration::from_secs(5))
+        .send();
+
+    // 3. Fetch Spend Logs
+    let spend_url = format!("{}/spend/logs", litellm_url);
+    let spend_req = state
+        .http_client
+        .get(&spend_url)
+        .header("Authorization", format!("Bearer {}", litellm_key))
+        .timeout(std::time::Duration::from_secs(5))
+        .send();
+
+    // Execute in parallel
+    let (health_res, models_res, spend_res) = tokio::join!(health_req, models_req, spend_req);
+
+    let mut response_data = serde_json::Map::new();
+    response_data.insert("litellm_url".to_string(), json!(litellm_url));
+
+    // Process Health
+    match health_res {
+        Ok(resp) if resp.status().is_success() => {
+            response_data.insert("healthy".to_string(), json!(true));
+        }
+        _ => {
+            response_data.insert("healthy".to_string(), json!(false));
+        }
+    }
+
+    // Process Models
+    if let Ok(resp) = models_res {
+        if resp.status().is_success() {
+            if let Ok(data) = resp.json::<serde_json::Value>().await {
+                response_data.insert("models".to_string(), data.clone());
+                if let Some(models_list) = data.as_array() {
+                    response_data.insert("model_count".to_string(), json!(models_list.len()));
+                } else if let Some(data_obj) = data.get("data") {
+                    if let Some(models_list) = data_obj.as_array() {
+                        response_data.insert("model_count".to_string(), json!(models_list.len()));
+                    }
+                }
+            }
+        }
+    }
+
+    // Process Spend
+    if let Ok(resp) = spend_res {
+        if resp.status().is_success() {
+            if let Ok(data) = resp.json::<serde_json::Value>().await {
+                response_data.insert("spend_data".to_string(), data.clone());
+
+                // Try to calculate totals if data is a list of logs
+                if let Some(logs) = data.as_array() {
+                    let total_spend: f64 = logs
+                        .iter()
+                        .filter_map(|log| log["spend"].as_f64())
+                        .sum();
+                    response_data.insert("total_spend".to_string(), json!(total_spend));
+                    response_data.insert("request_count".to_string(), json!(logs.len()));
+                }
+            }
+        }
+    }
+
+    api_success(json!(response_data))
+}
+
 /// Helper to query Prometheus and extract a scalar value
 async fn query_prometheus_scalar(client: &reqwest::Client, url: &str, query: &str) -> Option<f64> {
     let response = client
