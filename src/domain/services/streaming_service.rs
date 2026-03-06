@@ -391,7 +391,7 @@ fn parse_justwatch_html(html: &str, content_type: &str) -> Vec<Value> {
         
         // Find the <a href="..." before this class
         // Search backwards for href="
-        let search_start = if abs_link_pos > 200 { abs_link_pos - 200 } else { 0 };
+        let search_start = abs_link_pos.saturating_sub(200);
         let before = &html[search_start..abs_link_pos];
         
         if let Some(href_pos) = before.rfind("href=\"") {
