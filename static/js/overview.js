@@ -301,12 +301,12 @@ const OverviewDashboard = {
                 };
             }).sort((a, b) => b.weight - a.weight);
 
-            const top5 = processed.slice(0, 5);
-            const others = processed.slice(5);
+            const top20 = processed.slice(0, 20);
+            const others = processed.slice(20);
 
             const totalWeight = processed.reduce((sum, item) => sum + item.weight, 0) || 1;
 
-            top5.forEach(item => {
+            top20.forEach(item => {
                 labels.push(item.name);
                 data.push(Math.round((item.weight / totalWeight) * totalBudget * 100) / 100);
             });
