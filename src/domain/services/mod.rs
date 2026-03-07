@@ -4,6 +4,7 @@ pub mod chat_service;
 pub mod cilium_service;
 pub mod diagnostic_service;
 pub mod fusion_service;
+pub mod github_service;
 pub mod homeassistant_service;
 pub mod irc_service;
 pub mod kubernetes_service;
