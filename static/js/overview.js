@@ -58,10 +58,13 @@ const OverviewDashboard = {
             const cpuHistory = cpuHisResp.status === 'fulfilled' ? cpuHisResp.value : null;
             const memHistory = memHisResp.status === 'fulfilled' ? memHisResp.value : null;
 
+            const pipelineData = await fetch('/api/github/pipelines').then(r => r.json()).catch(() => []);
+
             this.renderWeather(clusterData, nodesData, metricsData, systemData, backupsData, cpuHistory, memHistory);
             this.renderCostData(nodesData, metricsData, nsMetricsData);
             this.renderAppHealth(podsData);
             this.renderSecurityScore(metricsData);
+            this.renderPipelines(pipelineData);
 
         } catch (error) {
             console.error('Error refreshing overview data:', error);
@@ -492,6 +495,42 @@ const OverviewDashboard = {
                 `;
             }
         }
+    },
+
+    renderPipelines(pipelines) {
+        const listEl = document.getElementById('overview-pipelines-list');
+        if (!pipelines || pipelines.length === 0) {
+            listEl.innerHTML = '<div class="no-data">No recent pipelines found.</div>';
+            return;
+        }
+
+        let html = '';
+        pipelines.forEach(run => {
+            const statusClass = run.status === 'completed'
+                ? (run.conclusion === 'success' ? 'health-good' : 'status-critical')
+                : 'status-warning';
+
+            const icon = run.status === 'completed'
+                ? (run.conclusion === 'success' ? '✅' : '❌')
+                : '⏳';
+
+            const date = new Date(run.created_at).toLocaleString();
+
+            html += `
+                <div class="pipeline-item">
+                    <div class="pipeline-status-icon ${statusClass}">${icon}</div>
+                    <div class="pipeline-info">
+                        <div class="pipeline-repo">${run.repo}</div>
+                        <div class="pipeline-name">${run.name || 'Workflow'}</div>
+                        <div class="pipeline-meta">${date}</div>
+                    </div>
+                    <div class="pipeline-actions">
+                        <a href="${run.url}" target="_blank" class="btn btn-xs">View</a>
+                    </div>
+                </div>
+            `;
+        });
+        listEl.innerHTML = html;
     }
 };
 
