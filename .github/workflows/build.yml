@@ -242,6 +242,6 @@ jobs:
         run: |
           jq -n \
             --arg msg "$COMMIT_MSG" \
-            '{text: ("✅ *Kusanagi Deployed*\n\n🚀 Version: `${{ github.sha }}`\n📝 " + $msg)}' \
+            '{text: ("✅ *Kusanagi Deployed*\n\n🔗 URL: https://kusanagi.p.zacharie.org\n🚀 Version: `${{ github.sha }}`\n📝 " + $msg)}' \
             | curl -X POST -H 'Content-type: application/json' -d @- $SLACK_WEBHOOK          
 
