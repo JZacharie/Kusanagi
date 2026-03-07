@@ -58,7 +58,8 @@ const OverviewDashboard = {
             const cpuHistory = cpuHisResp.status === 'fulfilled' ? cpuHisResp.value : null;
             const memHistory = memHisResp.status === 'fulfilled' ? memHisResp.value : null;
 
-            const pipelineData = await fetch('/api/github/pipelines').then(r => r.json()).catch(() => []);
+            const pipelineResp = await fetch('/api/github/pipelines').then(r => r.json()).catch(() => ({ success: false }));
+            const pipelineData = pipelineResp.success ? pipelineResp.data : [];
 
             this.renderWeather(clusterData, nodesData, metricsData, systemData, backupsData, cpuHistory, memHistory);
             this.renderCostData(nodesData, metricsData, nsMetricsData);
