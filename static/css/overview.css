@@ -319,6 +319,47 @@
         gap: 0.5rem;
     }
 }
+
+/* Timeframe Toggle */
+.card-header-with-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.card-header-with-actions h3 {
+    margin-bottom: 0;
+}
+
+.timeframe-toggle {
+    display: flex;
+    background: #1a202c;
+    border-radius: 6px;
+    padding: 2px;
+    border: 1px solid #2d3748;
+}
+
+.toggle-btn {
+    background: transparent;
+    border: none;
+    color: #a0aec0;
+    padding: 2px 10px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+    color: #edf2f7;
+}
+
+.toggle-btn.active {
+    background: #4A5568;
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
 /* 5. Pipelines Section */
 .pipelines-grid {
     display: flex;

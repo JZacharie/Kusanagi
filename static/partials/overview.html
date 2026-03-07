@@ -69,7 +69,7 @@
 
         <!-- 2. Cost Analysis -->
         <div class="overview-card cost-card panel">
-            <h3>2. Cost Analysis (pd-prd, redis, openobserve, awx)</h3>
+            <h3>2. Cost Analysis</h3>
             <div class="cost-estimate-basis" style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 0.5rem;">
                 Estimated from pod & node sizes
             </div>
@@ -90,7 +90,14 @@
 
         <!-- 3. Cost by Namespace -->
         <div class="overview-card namespace-cost-card panel">
-            <h3>3. Cost by Namespace</h3>
+            <div class="card-header-with-actions">
+                <h3>3. Cost by Namespace</h3>
+                <div class="timeframe-toggle" id="namespace-cost-timeframe">
+                    <button class="toggle-btn active" data-window="5m">Live</button>
+                    <button class="toggle-btn" data-window="1d">1J</button>
+                    <button class="toggle-btn" data-window="30d">30J</button>
+                </div>
+            </div>
             <div class="namespace-chart-container">
                 <canvas id="overview-namespace-bar-chart" height="200"></canvas>
             </div>
@@ -101,8 +108,8 @@
             <h3>4. Cluster Security Score</h3>
             <div class="security-content">
                 <div class="security-score-gauge">
-                    <div id="overview-security-score" class="security-score-value">--%</div>
                     <div class="security-score-label">Global Score</div>
+                    <div id="overview-security-score" class="security-score-value">--%</div>
                 </div>
                 <div class="security-details">
                     <div class="security-detail-row">
@@ -112,6 +119,10 @@
                     <div class="security-detail-row">
                         <span>Compliance:</span>
                         <span id="overview-compliance-score">--%</span>
+                    </div>
+                    <div class="security-detail-row">
+                        <span>Failed Jobs:</span>
+                        <span id="overview-failed-jobs-count">--</span>
                     </div>
                 </div>
                 <div class="security-summary" id="overview-security-summary">
@@ -131,7 +142,7 @@
 
     <!-- Applications Health -->
     <div class="overview-apps-section">
-        <h3>Applications Health</h3>
+        <h3>6. Applications Health</h3>
         <div class="apps-grid" id="overview-apps-grid">
             <!-- Rendered by JS -->
         </div>
