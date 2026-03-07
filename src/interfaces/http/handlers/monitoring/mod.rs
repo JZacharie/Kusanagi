@@ -890,3 +890,15 @@ async fn fetch_gpu_from_hot_service(client: &reqwest::Client) -> GpuMetrics {
 
     metrics
 }
+
+pub async fn github_pipelines_handler() -> impl IntoResponse {
+    use crate::domain::services::github_service;
+
+    match github_service::get_last_pipelines().await {
+        Ok(data) => api_success(data),
+        Err(e) => api_error(
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            format!("GitHub API error: {}", e),
+        ),
+    }
+}
