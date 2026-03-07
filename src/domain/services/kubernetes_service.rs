@@ -1005,6 +1005,26 @@ mod tests {
         assert_eq!(format_bytes(1048576), "1.00 MiB");
         assert_eq!(format_bytes(1073741824), "1.00 GiB");
     }
+
+    #[test]
+    fn test_find_node_metrics() {
+        let mut metrics_map = std::collections::HashMap::new();
+        metrics_map.insert("node1".to_string(), (1.0, 1024.0));
+        metrics_map.insert("192.168.1.10:9100".to_string(), (2.0, 2048.0));
+        metrics_map.insert("node3.cluster.local".to_string(), (3.0, 4096.0));
+
+        // Exact match
+        assert_eq!(find_node_metrics("node1", &metrics_map), (1.0, 1024.0));
+
+        // IP match (instance label typically contains port)
+        assert_eq!(find_node_metrics("node-192.168.1.10", &metrics_map), (2.0, 2048.0));
+
+        // Short name match
+        assert_eq!(find_node_metrics("node3", &metrics_map), (3.0, 4096.0));
+
+        // No match
+        assert_eq!(find_node_metrics("unknown", &metrics_map), (0.0, 0.0));
+    }
 }
 
 // End of file
@@ -1120,14 +1140,14 @@ pub async fn fetch_node_metrics(
 
     // Try multiple CPU queries in order of preference
     let cpu_queries = [
-        // node_exporter: CPU usage in cores (sum of all non-idle modes)
-        "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (node)",
+        // node_exporter: CPU usage in cores
+        "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) by (node, instance)",
         // Alternative: 100 - idle percentage
-        "100 - (avg by (node) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
-        // kubelet: container CPU usage
-        "sum(rate(container_cpu_usage_seconds_total{id=\"/\"}[5m])) by (node)",
+        "100 - (avg by (node, instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+        // kubelet: container CPU usage (removed id=\"/\" filter as it might be missing or vary)
+        "sum(rate(container_cpu_usage_seconds_total[5m])) by (node, instance)",
         // kubernetes metric: node CPU usage
-        "sum(rate(node_cpu_usage_seconds_total[5m])) by (node)",
+        "sum(rate(node_cpu_usage_seconds_total[5m])) by (node, instance)",
     ];
 
     for query in &cpu_queries {
@@ -1158,13 +1178,13 @@ pub async fn fetch_node_metrics(
     // Try multiple memory queries
     let mem_queries = [
         // node_exporter: memory used in bytes
-        "sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) by (node)",
+        "sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) by (node, instance)",
         // Alternative calculation
-        "sum(node_memory_MemTotal_bytes - node_memory_Buffers_bytes - node_memory_Cached_bytes - node_memory_MemFree_bytes) by (node)",
+        "sum(node_memory_MemTotal_bytes - node_memory_Buffers_bytes - node_memory_Cached_bytes - node_memory_MemFree_bytes) by (node, instance)",
         // kubelet: container memory usage
-        "sum(container_memory_working_set_bytes{id=\"/\"}) by (node)",
+        "sum(container_memory_working_set_bytes) by (node, instance)",
         // kubernetes metric
-        "sum(node_memory_usage_bytes) by (node)",
+        "sum(node_memory_usage_bytes) by (node, instance)",
     ];
 
     for query in &mem_queries {
