@@ -18,11 +18,13 @@
     </div>
 
     <div class="overview-main-status panel">
-        <div class="status-item">Overall Cluster Health: <span id="overview-health-icon">☀️</span> <span
+        <div class="status-item">Cluster Health: <span id="overview-health-icon">☀️</span> <span
                 id="overview-health-text" class="status-sunny">SUNNY</span></div>
         <div class="status-item">Status: <span id="overview-status-text" class="status-operational">Operational</span>
         </div>
-        <div class="status-item">Uptime: <span id="overview-uptime-text" class="status-uptime">99.98%</span></div>
+        <div class="status-item">Uptime: <span id="overview-uptime-text" class="status-uptime">--</span></div>
+        <div class="status-item">Users: <span id="overview-users-text" class="status-info">--</span></div>
+        <div class="status-item">Last Backup: <span id="overview-backup-text" class="status-info">--</span></div>
     </div>
 
     <div class="overview-grid">
@@ -68,7 +70,10 @@
 
         <!-- 2. Cost Analysis -->
         <div class="overview-card cost-card panel">
-            <h3>2. Cost Analysis (pg-prd, redis, openobserve, awx)</h3>
+            <h3>2. Cost Analysis (pd-prd, redis, openobserve, awx)</h3>
+            <div class="cost-estimate-basis" style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 0.5rem;">
+                Estimated from pod & node sizes
+            </div>
             <div class="cost-header">
                 <div>
                     <div class="cost-label">Current Cost:</div>

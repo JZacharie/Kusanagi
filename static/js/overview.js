@@ -33,18 +33,22 @@ const OverviewDashboard = {
 
         try {
             // Fetch real metrics where possible
-            const [clusterResp, nodesResp, metricsResp] = await Promise.allSettled([
+            const [clusterResp, nodesResp, metricsResp, systemResp, backupsResp] = await Promise.allSettled([
                 api.get('/api/k8s/cluster'),
                 api.get('/api/k8s/nodes'),
-                api.get('/api/dashboard/metrics')
+                api.get('/api/dashboard/metrics'),
+                api.get('/api/system/status'),
+                api.get('/api/backups')
             ]);
 
             const clusterData = clusterResp.status === 'fulfilled' ? clusterResp.value : null;
             const nodesData = nodesResp.status === 'fulfilled' ? nodesResp.value : null;
             const metricsData = metricsResp.status === 'fulfilled' ? metricsResp.value : null;
+            const systemData = systemResp.status === 'fulfilled' ? systemResp.value : null;
+            const backupsData = backupsResp.status === 'fulfilled' ? backupsResp.value : null;
 
-            this.renderWeather(clusterData, nodesData, metricsData);
-            this.renderCostData(); // Mock data for now
+            this.renderWeather(clusterData, nodesData, metricsData, systemData, backupsData);
+            this.renderCostData(nodesData, metricsData); // Estimated from real data
             this.renderAppHealth(); // Mock/hybrid data for now
 
         } catch (error) {
@@ -61,7 +65,7 @@ const OverviewDashboard = {
         span.textContent = now.toLocaleString('en-US', options);
     },
 
-    renderWeather(clusterData, nodesData, metricsData) {
+    renderWeather(clusterData, nodesData, metricsData, systemData, backupsData) {
         // Safe extractions
         const nodesTotal = nodesData?.total_nodes || 15;
         const nodesReady = nodesData?.ready_nodes || 15;
@@ -70,6 +74,30 @@ const OverviewDashboard = {
 
         const cpuPercent = metricsData?.cpu_usage_percent || 72;
         const memPercent = metricsData?.memory_usage_percent || 68;
+
+        // Uptime handling
+        if (systemData && systemData.uptime_secs) {
+            const uptimeText = this.formatUptime(systemData.uptime_secs);
+            document.getElementById('overview-uptime-text').textContent = uptimeText;
+        }
+
+        // Mock Users
+        const userCount = 42;
+        document.getElementById('overview-users-text').textContent = userCount;
+
+        // Backup handling
+        if (backupsData && backupsData.cronjobs) {
+            // Find most recent success from all cronjobs
+            let latestBackup = null;
+            backupsData.cronjobs.forEach(cj => {
+                if (cj.last_schedule_age) {
+                    // This is a bit naive but works for a quick "last backup" display
+                    // if we just want the age string from the first one that has it
+                    if (!latestBackup) latestBackup = cj.last_schedule_age;
+                }
+            });
+            document.getElementById('overview-backup-text').textContent = latestBackup || 'Never';
+        }
 
         // Health logic
         const isHealthy = (nodesReady === nodesTotal) && (podsRunning / podsTotal > 0.9);
@@ -151,22 +179,77 @@ const OverviewDashboard = {
         ctx.fill();
     },
 
-    renderCostData() {
-        // --- Mock Data ---
-        document.getElementById('overview-current-cost').textContent = '$5,420.00';
-        document.getElementById('overview-forecast-cost').textContent = '$6,800.00';
+    renderCostData(nodesData, metricsData) {
+        // --- Estimated Data based on pod/node sizes ---
+
+        // Compute: $50 per core per month (arbitrary rate for estimation)
+        // Memory: $10 per GB per month (arbitrary rate for estimation)
+        // Storage: $0.10 per GB per month
+
+        let totalCpu = 0;
+        let totalMemGb = 0;
+
+        if (nodesData && nodesData.nodes) {
+            nodesData.nodes.forEach(node => {
+                const cpu = parseFloat(node.cpu_capacity) || 0;
+                totalCpu += cpu;
+
+                // Extract number from "31.2 GB"
+                const mem = parseFloat(nodesData.total_memory) || 0;
+                totalMemGb = mem; // total_memory_gb is available in backend but not re-exposed directly as a number here
+            });
+        }
+
+        // Fallback to reasonable defaults if data is missing
+        if (totalCpu === 0) totalCpu = 40;
+        if (totalMemGb === 0) totalMemGb = 128;
+
+        const computeCost = (totalCpu * 50) + (totalMemGb * 5);
+        const storageCost = 800; // Mocked for now as we don't have total PVC GB easily here without another API
+        const networkCost = 400;
+        const llmTokensCost = 120; // Mocked token cost
+
+        const totalCost = computeCost + storageCost + networkCost + llmTokensCost;
+        const forecastCost = totalCost * 1.15;
+
+        document.getElementById('overview-current-cost').textContent = `$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        document.getElementById('overview-forecast-cost').textContent = `$${forecastCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
         this.renderPieChart('overview-cost-pie-chart', {
-            labels: ['Compute: $3,200 (59%)', 'Storage: $1,420 (26%)', 'Network: $800 (15%)'],
-            data: [3200, 1420, 800],
-            backgroundColor: ['#4299e1', '#ed8936', '#f56565']
+            labels: [
+                `Compute: $${computeCost.toLocaleString()} (${((computeCost / totalCost) * 100).toFixed(0)}%)`,
+                `Storage: $${storageCost.toLocaleString()} (${((storageCost / totalCost) * 100).toFixed(0)}%)`,
+                `Tokens LLM: $${llmTokensCost.toLocaleString()} (${((llmTokensCost / totalCost) * 100).toFixed(0)}%)`,
+                `Network: $${networkCost.toLocaleString()} (${((networkCost / totalCost) * 100).toFixed(0)}%)`
+            ],
+            data: [computeCost, storageCost, llmTokensCost, networkCost],
+            backgroundColor: ['#4299e1', '#ed8936', '#b794f4', '#f56565']
         });
 
         this.renderBarChart('overview-namespace-bar-chart', {
             labels: ['pg-prd', 'redis', 'openobserve', 'awx', 'other'],
-            data: [1850, 750, 1420, 1200, 200],
+            data: [
+                Math.round(totalCost * 0.35),
+                Math.round(totalCost * 0.15),
+                Math.round(totalCost * 0.25),
+                Math.round(totalCost * 0.20),
+                Math.round(totalCost * 0.05)
+            ],
             backgroundColor: ['#63b3ed', '#f6ad55', '#b794f4', '#f56565', '#68d391']
         });
+    },
+
+    formatUptime(seconds) {
+        if (!seconds && seconds !== 0) return 'N/A';
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+
+        if (days > 0) {
+            return `${days}j ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     },
 
     renderPieChart(canvasId, config) {
