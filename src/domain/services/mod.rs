@@ -16,5 +16,6 @@ pub mod proxmox_service;
 pub mod slack_service;
 pub mod streaming_service;
 pub mod system_service;
+pub mod steampipe_service;
 pub mod trivy_service;
 pub mod weather_service;

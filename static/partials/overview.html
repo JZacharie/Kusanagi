@@ -95,6 +95,30 @@
                 <canvas id="overview-namespace-bar-chart" height="200"></canvas>
             </div>
         </div>
+
+        <!-- 4. Security Score -->
+        <div class="overview-card security-card panel">
+            <h3>4. Cluster Security Score</h3>
+            <div class="security-content">
+                <div class="security-score-gauge">
+                    <div id="overview-security-score" class="security-score-value">--%</div>
+                    <div class="security-score-label">Global Score</div>
+                </div>
+                <div class="security-details">
+                    <div class="security-detail-row">
+                        <span>Trivy Vulns:</span>
+                        <span id="overview-trivy-score">--%</span>
+                    </div>
+                    <div class="security-detail-row">
+                        <span>Compliance:</span>
+                        <span id="overview-compliance-score">--%</span>
+                    </div>
+                </div>
+                <div class="security-summary" id="overview-security-summary">
+                    <!-- Dynamic summary -->
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Applications Health -->
