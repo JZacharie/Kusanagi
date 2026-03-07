@@ -47,7 +47,9 @@ tower_governor = "0.8"
 metrics = "0.21"
 metrics-exporter-prometheus = "0.12"
 dotenvy = "0.15.7"
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "json", "chrono"] }
+tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
+native-tls = "0.2"
+postgres-native-tls = "0.5"
 
 [build-dependencies]
 chrono = "0.4"

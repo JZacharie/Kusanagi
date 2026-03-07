@@ -1,6 +1,8 @@
-use sqlx::postgres::PgPoolOptions;
 use serde_json::{json, Value};
 use std::env;
+use tokio_postgres::Config;
+use native_tls::TlsConnector;
+use postgres_native_tls::MakeTlsConnector;
 
 pub struct SteampipeStats {
     pub passed: i64,
@@ -14,14 +16,25 @@ pub async fn get_compliance_stats() -> Result<SteampipeStats, String> {
     let database_url = env::var("STEAMPIPE_DATABASE_URL")
         .unwrap_or_else(|_| "postgres://steampipe:1pjVZE4bYBkIGWpNTOgl@steampipe.steampipe-powerpipe.svc:9193/steampipe".to_string());
 
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await
+    let config: Config = database_url.parse().map_err(|e| format!("Invalid DB URL: {}", e))?;
+    
+    // Setup TLS
+    let connector = TlsConnector::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .map_err(|e| format!("TLS build error: {}", e))?;
+    let connector = MakeTlsConnector::new(connector);
+
+    let (client, connection) = config.connect(connector).await
         .map_err(|e| format!("Failed to connect to Steampipe DB: {}", e))?;
 
-    // Query for kubernetes insights/compliance if possible
-    // This is a generic query that works with powerpipe/steampipe if the tables exist
+    // Spawn the connection worker
+    tokio::spawn(async move {
+        if let Err(e) = connection.await {
+            tracing::error!("Steampipe connection error: {}", e);
+        }
+    });
+
     let query = "
         select 
             status,
@@ -32,9 +45,7 @@ pub async fn get_compliance_stats() -> Result<SteampipeStats, String> {
             status;
     ";
 
-    let rows = sqlx::query(query)
-        .fetch_all(&pool)
-        .await
+    let rows = client.query(query, &[]).await
         .map_err(|e| format!("Query failed: {}", e))?;
 
     let mut stats = SteampipeStats {
@@ -46,7 +57,6 @@ pub async fn get_compliance_stats() -> Result<SteampipeStats, String> {
     };
 
     for row in rows {
-        use sqlx::Row;
         let status: String = row.get("status");
         let count: i64 = row.get("count");
 
