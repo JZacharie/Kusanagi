@@ -191,7 +191,7 @@
 /* 3. Namespace Cost */
 .namespace-chart-container {
     position: relative;
-    height: 230px;
+    height: 600px;
     width: 100%;
 }
 
@@ -358,8 +358,9 @@
 .toggle-btn.active {
     background: #4A5568;
     color: #fff;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
+
 /* 5. Pipelines Section */
 .pipelines-grid {
     display: flex;
