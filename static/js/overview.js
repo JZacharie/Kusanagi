@@ -534,14 +534,14 @@ const OverviewDashboard = {
         if (summaryEl) {
             if (failedJobs > 0) {
                 summaryEl.innerHTML = `
-                    <div style="color: #f56565; font-weight: bold; margin-bottom: 5px;">
-                        ⚠️ CRITICAL: ${failedJobs} failed jobs detected
+                    <div style="color: #f56565; font-weight: bold; margin-bottom: 5px; margin-top: 1rem; border-top: 1px dashed #2a3548; padding-top: 1rem;">
+                        ⚠️ ATTENTION: ${failedJobs} jobs en échec détectés (Pénalité appliquée)
                     </div>
                 `;
             } else {
                 summaryEl.innerHTML = `
-                    <div style="color: #48bb78; font-weight: bold; margin-bottom: 5px;">
-                        ✅ All health checks passed
+                    <div style="color: #48bb78; font-weight: bold; margin-bottom: 5px; margin-top: 1rem; border-top: 1px dashed #2a3548; padding-top: 1rem;">
+                        ✅ Tous les contrôles de santé sont au vert
                     </div>
                 `;
             }
@@ -550,8 +550,8 @@ const OverviewDashboard = {
                 const stats = details.steampipe_stats;
                 summaryEl.innerHTML += `
                     <div style="font-size: 0.75rem; color: #a0aec0;">
-                        ${stats.passed} Passed / ${stats.failed} Failed checks<br>
-                        ${metricsData.trivy_critical_count || 0} Critical vulnerabilities
+                        ${stats.passed} tests réussis / ${stats.failed} échecs conformité<br>
+                        ${metricsData.trivy_critical_count || 0} Vulnerabilités Critiques (Filtrées)
                     </div>
                 `;
             }

@@ -195,18 +195,82 @@
     width: 100%;
 }
 
-/* Applications Health */
-.overview-apps-section h3 {
-    margin: 0 0 1rem 0;
-    font-size: 1.2rem;
-    color: #fff;
+/* 4. Security Score */
+.security-score-gauge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.5rem;
 }
 
-.apps-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
+.security-score-gauge span:first-child {
+    font-size: 0.9rem;
+    color: #a0aec0;
+    margin-bottom: 0.2rem;
 }
+
+.security-score-value {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.security-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+}
+
+.security-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.8rem;
+    background: #151b28;
+    border-radius: 6px;
+    border: 1px solid #2a3548;
+}
+
+.security-detail-row span:first-child {
+    font-size: 0.85rem;
+    color: #a0aec0;
+}
+
+.security-detail-row span:last-child {
+    font-weight: 700;
+}
+
+.security-formula {
+    font-size: 0.75rem;
+    color: #718096;
+    background: rgba(45, 55, 72, 0.4);
+    padding: 0.8rem;
+    border-radius: 6px;
+    border: 1px solid rgba(74, 85, 104, 0.3);
+}
+
+.formula-title {
+    font-weight: 700;
+    color: #e2e8f0;
+    margin-bottom: 0.5rem;
+    display: block;
+    font-size: 0.8rem;
+}
+
+.formula-text {
+    line-height: 1.4;
+    display: block;
+}
+
+.formula-note {
+    margin-top: 0.5rem;
+    font-style: italic;
+    color: #a0aec0;
+    display: block;
+}
+
+/* Applications Health */
 
 .app-card {
     background: #1a2332;

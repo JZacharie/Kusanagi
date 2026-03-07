@@ -298,15 +298,41 @@ pub async fn metrics_handler(
         Err(_) => 0,
     };
 
-    // 4. Get Trivy vulnerabilities (don't block on error)
+    // 4. Get Trivy vulnerabilities (filtered to focus on apps and kusanagi)
     let (trivy_critical, trivy_high, trivy_medium, trivy_low) =
         match trivy_service::get_vulnerabilities(&state.k8s_cache).await {
-            Ok(data) => (
-                data["critical"].as_i64().unwrap_or(0) as i32,
-                data["high"].as_i64().unwrap_or(0) as i32,
-                data["medium"].as_i64().unwrap_or(0) as i32,
-                data["low"].as_i64().unwrap_or(0) as i32,
-            ),
+            Ok(data) => {
+                let mut c = 0;
+                let mut h = 0;
+                let mut m = 0;
+                let mut l = 0;
+
+                // Namespaces to ignore (observability/system tools)
+                let ignore_namespaces = [
+                    "kube-prometheus-stack",
+                    "monitoring",
+                    "grafana",
+                    "openobserve",
+                    "prometheus-blackbox-exporter",
+                    "cert-manager",
+                    "kube-system",
+                    "traefik",
+                    "linkerd"
+                ];
+
+                if let Some(images) = data["images"].as_array() {
+                    for img in images {
+                        let ns = img["namespace"].as_str().unwrap_or("default");
+                        if !ignore_namespaces.contains(&ns) {
+                            c += img["critical_count"].as_i64().unwrap_or(0);
+                            h += img["high_count"].as_i64().unwrap_or(0);
+                            m += img["medium_count"].as_i64().unwrap_or(0);
+                            l += img["low_count"].as_i64().unwrap_or(0);
+                        }
+                    }
+                }
+                (c as i32, h as i32, m as i32, l as i32)
+            }
             Err(_) => (0, 0, 0, 0),
         };
 

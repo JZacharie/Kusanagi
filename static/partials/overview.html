@@ -108,22 +108,30 @@
             <h3>4. Cluster Security Score</h3>
             <div class="security-content">
                 <div class="security-score-gauge">
-                    <span>Global Score:</span>
+                    <span>Global Security Score</span>
                     <span id="overview-security-score" class="security-score-value">--%</span>
                 </div>
                 <div class="security-details">
                     <div class="security-detail-row">
-                        <span>Trivy Vulns:</span>
+                        <span>Trivy (Vulnerabilities Apps)</span>
                         <span id="overview-trivy-score">--%</span>
                     </div>
                     <div class="security-detail-row">
-                        <span>Compliance:</span>
+                        <span>Compliance (Steampipe)</span>
                         <span id="overview-compliance-score">--%</span>
                     </div>
                     <div class="security-detail-row">
-                        <span>Failed Jobs:</span>
-                        <span id="overview-failed-jobs-count">--</span>
+                        <span>Jobs en échec (Pénalité)</span>
+                        <span id="overview-failed-jobs-count" class="status-good">0</span>
                     </div>
+                </div>
+                <div class="security-formula">
+                    <span class="formula-title">Calcul du Score</span>
+                    <span class="formula-text">
+                        <strong>Score = (Trivy × 0.4) + (Compliance × 0.6) - (Jobs échecs × 2)</strong>
+                    </span>
+                    <span class="formula-note">Note : Trivy se concentre uniquement sur vos applications et Kusanagi
+                        (hors outils d'observabilité).</span>
                 </div>
                 <div class="security-summary" id="overview-security-summary">
                     <!-- Dynamic summary -->
