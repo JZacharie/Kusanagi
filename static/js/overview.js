@@ -32,14 +32,20 @@ const OverviewDashboard = {
         this.updateTimestamp();
 
         try {
+            const now = Math.floor(Date.now() / 1000);
+            const start = now - 3600;
+
             // Fetch real metrics where possible
-            const [clusterResp, nodesResp, metricsResp, systemResp, backupsResp, nsMetricsResp] = await Promise.allSettled([
+            const [clusterResp, nodesResp, metricsResp, systemResp, backupsResp, nsMetricsResp, podsResp, cpuHisResp, memHisResp] = await Promise.allSettled([
                 api.get('/api/k8s/cluster'),
                 api.get('/api/k8s/nodes'),
                 api.get('/api/dashboard/metrics'),
                 api.get('/api/system/status'),
                 api.get('/api/backups'),
-                api.get('/api/k8s/namespaces/metrics')
+                api.get('/api/k8s/namespaces/metrics'),
+                api.get('/api/k8s/pods'),
+                api.get(`/api/prometheus/range?query=${encodeURIComponent('avg(1 - rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100')}&start=${start}&end=${now}&step=300`),
+                api.get(`/api/prometheus/range?query=${encodeURIComponent('avg(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100')}&start=${start}&end=${now}&step=300`)
             ]);
 
             const clusterData = clusterResp.status === 'fulfilled' ? clusterResp.value : null;
@@ -48,10 +54,14 @@ const OverviewDashboard = {
             const systemData = systemResp.status === 'fulfilled' ? systemResp.value : null;
             const backupsData = backupsResp.status === 'fulfilled' ? backupsResp.value : null;
             const nsMetricsData = nsMetricsResp.status === 'fulfilled' ? nsMetricsResp.value : null;
+            const podsData = podsResp.status === 'fulfilled' ? podsResp.value : null;
+            const cpuHistory = cpuHisResp.status === 'fulfilled' ? cpuHisResp.value : null;
+            const memHistory = memHisResp.status === 'fulfilled' ? memHisResp.value : null;
 
-            this.renderWeather(clusterData, nodesData, metricsData, systemData, backupsData);
-            this.renderCostData(nodesData, metricsData, nsMetricsData); // Estimated from real data
-            this.renderAppHealth(); // Mock/hybrid data for now
+            this.renderWeather(clusterData, nodesData, metricsData, systemData, backupsData, cpuHistory, memHistory);
+            this.renderCostData(nodesData, metricsData, nsMetricsData);
+            this.renderAppHealth(podsData);
+            this.renderSecurityScore(metricsData);
 
         } catch (error) {
             console.error('Error refreshing overview data:', error);
@@ -67,15 +77,15 @@ const OverviewDashboard = {
         span.textContent = now.toLocaleString('en-US', options);
     },
 
-    renderWeather(clusterData, nodesData, metricsData, systemData, backupsData) {
+    renderWeather(clusterData, nodesData, metricsData, systemData, backupsData, cpuHistory, memHistory) {
         // Safe extractions
-        const nodesTotal = nodesData?.total_nodes || 15;
-        const nodesReady = nodesData?.ready_nodes || 15;
-        const podsTotal = clusterData?.pods || 423;
-        const podsRunning = clusterData?.pods_running || 420;
+        const nodesTotal = nodesData?.total_nodes || 0;
+        const nodesReady = nodesData?.ready_nodes || 0;
+        const podsTotal = clusterData?.pods || 0;
+        const podsRunning = clusterData?.pods_running || 0;
 
-        const cpuPercent = metricsData?.cpu_usage_percent || 72;
-        const memPercent = metricsData?.memory_usage_percent || 68;
+        const cpuPercent = metricsData?.cpu_usage_percent || 0;
+        const memPercent = metricsData?.memory_usage_percent || 0;
 
         // Uptime handling
         if (systemData && systemData.uptime_secs) {
@@ -83,26 +93,20 @@ const OverviewDashboard = {
             document.getElementById('overview-uptime-text').textContent = uptimeText;
         }
 
-        // Mock Users
-        const userCount = 42;
-        document.getElementById('overview-users-text').textContent = userCount;
+        // Mock Users (Keep as 42 or random)
+        document.getElementById('overview-users-text').textContent = "42";
 
         // Backup handling
         if (backupsData && backupsData.cronjobs) {
-            // Find most recent success from all cronjobs
             let latestBackup = null;
             backupsData.cronjobs.forEach(cj => {
-                if (cj.last_schedule_age) {
-                    // This is a bit naive but works for a quick "last backup" display
-                    // if we just want the age string from the first one that has it
-                    if (!latestBackup) latestBackup = cj.last_schedule_age;
-                }
+                if (cj.last_schedule_age && !latestBackup) latestBackup = cj.last_schedule_age;
             });
             document.getElementById('overview-backup-text').textContent = latestBackup || 'Never';
         }
 
-        // Health logic
-        const isHealthy = (nodesReady === nodesTotal) && (podsRunning / podsTotal > 0.9);
+        // Health logic: Sunny only if all nodes ready AND >90% pods running
+        const isHealthy = (nodesTotal > 0 && nodesReady === nodesTotal) && (podsTotal > 0 && podsRunning / podsTotal > 0.9);
         const healthText = isHealthy ? 'SUNNY' : 'CLOUDY';
         const healthIcon = isHealthy ? '☀️' : '⛅';
         const weatherImg = isHealthy ? '/static/images/weather/sunny.svg' : '/static/images/weather/cloudy.svg';
@@ -115,7 +119,6 @@ const OverviewDashboard = {
 
         const weatherImgEl = document.getElementById('overview-weather-img');
         if (weatherImgEl) {
-            // fallback if SVG doesn't exist
             weatherImgEl.onerror = () => {
                 weatherImgEl.style.display = 'none';
                 const parent = weatherImgEl.parentElement;
@@ -138,17 +141,28 @@ const OverviewDashboard = {
         document.getElementById('overview-pods-stat').textContent = `${podsRunning}/${podsTotal} Running`;
 
         // Mock API latency
-        const latency = Math.floor(Math.random() * 20) + 35; // 35-55ms
+        const latency = Math.floor(Math.random() * 20) + 35;
         document.getElementById('overview-latency-stat').textContent = `${latency}ms`;
 
         document.getElementById('overview-cpu-stat').textContent = `${cpuPercent.toFixed(0)}%`;
         document.getElementById('overview-mem-stat').textContent = `${memPercent.toFixed(0)}%`;
 
-        this.drawMiniChart('overview-cpu-chart', cpuPercent, '#f6ad55');
-        this.drawMiniChart('overview-mem-chart', memPercent, '#f6ad55');
+        // Extract values from Prometheus history if available
+        const extractHistory = (history) => {
+            if (history?.data?.result?.[0]?.values) {
+                return history.data.result[0].values.map(v => parseFloat(v[1]));
+            }
+            return null;
+        };
+
+        const cpuValues = extractHistory(cpuHistory);
+        const memValues = extractHistory(memHistory);
+
+        this.drawMiniChart('overview-cpu-chart', cpuPercent, '#f6ad55', cpuValues);
+        this.drawMiniChart('overview-mem-chart', memPercent, '#f6ad55', memValues);
     },
 
-    drawMiniChart(canvasId, currentVal, color) {
+    drawMiniChart(canvasId, currentVal, color, historyValues) {
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -157,17 +171,31 @@ const OverviewDashboard = {
 
         ctx.clearRect(0, 0, width, height);
 
-        // Draw a simulated sparkline that ends at currentVal mapped to height
         ctx.beginPath();
-        ctx.moveTo(0, height - (Math.random() * height * 0.5));
-        const segments = 10;
-        for (let i = 1; i <= segments; i++) {
-            const x = (i / segments) * width;
-            let y = height - (Math.random() * height * 0.8);
-            if (i === segments) {
-                y = height - (currentVal / 100) * height; // end precisely
+
+        if (historyValues && Array.isArray(historyValues) && historyValues.length > 1) {
+            // Draw real historical sparkline
+            const maxVal = Math.max(...historyValues, currentVal, 100);
+            const segments = historyValues.length - 1;
+
+            historyValues.forEach((val, i) => {
+                const x = (i / segments) * width;
+                const y = height - (val / 100) * height; // Use 100 as base for percentage
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+        } else {
+            // Fallback to simulated sparkline if no history
+            ctx.moveTo(0, height - (Math.random() * height * 0.5));
+            const segments = 10;
+            for (let i = 1; i <= segments; i++) {
+                const x = (i / segments) * width;
+                let y = height - (Math.random() * height * 0.8);
+                if (i === segments) {
+                    y = height - (currentVal / 100) * height;
+                }
+                ctx.lineTo(x, y);
             }
-            ctx.lineTo(x, y);
         }
 
         ctx.strokeStyle = color || '#00fff9';
@@ -177,7 +205,7 @@ const OverviewDashboard = {
         // Fill under
         ctx.lineTo(width, height);
         ctx.lineTo(0, height);
-        ctx.fillStyle = (color || '#00fff9') + '33'; // 20% opacity
+        ctx.fillStyle = (color || '#00fff9') + '33';
         ctx.fill();
     },
 
@@ -367,37 +395,62 @@ const OverviewDashboard = {
         });
     },
 
-    renderAppHealth() {
+    renderAppHealth(podsData) {
         const grid = document.getElementById('overview-apps-grid');
         if (!grid) return;
 
-        // Mock Applications corresponding to the namespaces
-        const apps = [
-            { name: 'pg-prd-primary', status: 'green', type: 'sunny' },
-            { name: 'redis-cluster', status: 'green', type: 'sunny' },
-            { name: 'openobserve-ingester', status: 'yellow', type: 'cloudy', note: 'High Ref\n12 mins ago' },
-            { name: 'awx-web', status: 'green', type: 'sunny' },
-            { name: 'pg-prd-replica', status: 'green', type: 'none' },
-            { name: 'openobserve-querier', status: 'red', type: 'rainy', note: 'Latency\n5 mins ago' }
-        ];
+        let degradedApps = [];
+
+        if (podsData && Array.isArray(podsData)) {
+            // Filter for pods that are not in "Running" or "Succeeded"
+            // and group them roughly by name (simple deduplication for common prefixes)
+            const problematic = podsData.filter(pod => {
+                const status = pod.status;
+                return status !== 'Running' && status !== 'Succeeded';
+            });
+
+            const seen = new Set();
+            problematic.forEach(pod => {
+                // Try to find a meaningful name (e.g. part before the last dash if it looks like a hash)
+                let name = pod.name;
+                const parts = name.split('-');
+                if (parts.length > 2 && /^[a-z0-9]{8,10}$/.test(parts[parts.length - 1])) {
+                    name = parts.slice(0, -1).join('-');
+                } else if (parts.length > 1 && /^[a-z0-9]{5,}$/.test(parts[parts.length - 1])) {
+                    name = parts.slice(0, -1).join('-');
+                }
+
+                if (!seen.has(name)) {
+                    seen.add(name);
+                    degradedApps.push({
+                        name: name,
+                        namespace: pod.namespace,
+                        status: 'red',
+                        type: 'rainy',
+                        note: `${pod.status}\nin ${pod.namespace}`
+                    });
+                }
+            });
+        }
+
+        if (degradedApps.length === 0) {
+            grid.innerHTML = '<div style="color: #48bb78; grid-column: 1/-1; text-align: center; padding: 20px;">All systems operational. No degraded applications found.</div>';
+            return;
+        }
 
         let html = '';
-        apps.forEach(app => {
-            let icons = '';
-            if (app.type === 'sunny') icons = '☀️ ⛅ 🌧️';
-            if (app.type === 'cloudy') icons = '☀️ ☁️ 🌧️';
-            if (app.type === 'rainy') icons = '🥞 🌧️'; // Mocking random icons from the image
-
-            let noteHtml = app.note ? `<div style="text-align: right; white-space: pre-line;">${app.note}</div>` : '';
+        degradedApps.forEach(app => {
+            const icons = '⛅ 🌧️';
+            let noteHtml = app.note ? `<div style="text-align: right; white-space: pre-line; font-size: 10px; color: #a0aec0;">${app.note}</div>` : '';
 
             html += `
                 <div class="app-card">
                     <div class="app-card-left">
                         <div class="app-status-dot dot-${app.status}"></div>
-                        <div class="app-name">${app.name}</div>
+                        <div class="app-name" title="${app.namespace}">${app.name}</div>
                     </div>
                     <div class="app-card-right">
-                        ${icons ? `<div class="app-weather-icons">${icons}</div>` : ''}
+                        <div class="app-weather-icons">${icons}</div>
                         ${noteHtml}
                     </div>
                 </div>
@@ -405,6 +458,40 @@ const OverviewDashboard = {
         });
 
         grid.innerHTML = html;
+    },
+
+    renderSecurityScore(metricsData) {
+        if (!metricsData || !metricsData.security_score) {
+            document.getElementById('overview-security-score').textContent = '100%';
+            return;
+        }
+
+        const score = metricsData.security_score;
+        const details = metricsData.security_details;
+
+        const scoreEl = document.getElementById('overview-security-score');
+        scoreEl.textContent = `${score.toFixed(1)}%`;
+
+        // Color coding for score
+        if (score >= 90) scoreEl.className = 'security-score-value health-good';
+        else if (score >= 70) scoreEl.className = 'security-score-value status-warning';
+        else scoreEl.className = 'security-score-value status-critical';
+
+        if (details) {
+            document.getElementById('overview-trivy-score').textContent = `${details.trivy_score.toFixed(1)}%`;
+            document.getElementById('overview-compliance-score').textContent = `${details.steampipe_score.toFixed(1)}%`;
+
+            const summaryEl = document.getElementById('overview-security-summary');
+            const stats = details.steampipe_stats;
+            if (stats && stats.total_checks) {
+                summaryEl.innerHTML = `
+                    <div style="font-size: 0.75rem; color: #a0aec0; margin-top: 0.5rem;">
+                        ${stats.passed} Passed / ${stats.failed} Failed checks<br>
+                        ${metricsData.trivy_critical_count || 0} Critical vulnerabilities
+                    </div>
+                `;
+            }
+        }
     }
 };
 

@@ -316,13 +316,24 @@ pub async fn metrics_handler(
     // 6. Try to get GPU and Enphase data from Home Assistant or Prometheus
     let gpu_metrics = fetch_gpu_and_energy_metrics(&state.http_client).await;
 
+    // 7. Calculate Security Score (Trivy + Steampipe)
+    let steampipe_data = crate::domain::services::steampipe_service::get_security_score_metrics().await.unwrap_or_else(|_| json!({"score": 100.0}));
+    let steampipe_score = steampipe_data["score"].as_f64().unwrap_or(100.0);
+    
+    // Trivy Score Calculation: Start at 100, deduct points
+    let trivy_deduction = (trivy_critical as f64 * 10.0) + (trivy_high as f64 * 5.0) + (trivy_medium as f64 * 2.0);
+    let trivy_score = (100.0 - trivy_deduction).max(0.0);
+    
+    // Global Score: 40% Trivy, 60% Steampipe
+    let security_score = (trivy_score * 0.4) + (steampipe_score * 0.6);
+
     api_success(serde_json::json!({
         "cpu_usage_percent": cpu_percent,
         "memory_usage_percent": mem_percent,
         "pod_count": pod_count,
         "node_count": node_count,
         "alerts_firing": alerts_firing,
-        "container_count": pod_count, // Approximation
+        "container_count": pod_count,
         "gpu_utilization": gpu_metrics.utilization,
         "gpu_temperature": gpu_metrics.temperature,
         "gpu_power_usage": gpu_metrics.power_draw,
@@ -341,6 +352,12 @@ pub async fn metrics_handler(
         "trivy_high_count": trivy_high,
         "trivy_medium_count": trivy_medium,
         "trivy_low_count": trivy_low,
+        "security_score": security_score,
+        "security_details": {
+            "trivy_score": trivy_score,
+            "steampipe_score": steampipe_score,
+            "steampipe_stats": steampipe_data
+        }
     }))
 }
 
