@@ -180,60 +180,48 @@ const OverviewDashboard = {
     },
 
     renderCostData(nodesData, metricsData) {
-        // --- Estimated Data based on pod/node sizes ---
+        // --- On-Premise Cost Analysis Adjustment ---
+        // Total infrastructure budget for the month: 200€
+        const totalBudget = 200;
 
-        // Compute: $50 per core per month (arbitrary rate for estimation)
-        // Memory: $10 per GB per month (arbitrary rate for estimation)
-        // Storage: $0.10 per GB per month
+        // Ratios for distribution (can be adjusted based on actual usage)
+        const ratios = {
+            compute: 0.40,   // 80€
+            storage: 0.30,   // 60€
+            network: 0.20,   // 40€
+            llm: 0.10        // 20€
+        };
 
-        let totalCpu = 0;
-        let totalMemGb = 0;
-
-        if (nodesData && nodesData.nodes) {
-            nodesData.nodes.forEach(node => {
-                const cpu = parseFloat(node.cpu_capacity) || 0;
-                totalCpu += cpu;
-
-                // Extract number from "31.2 GB"
-                const mem = parseFloat(nodesData.total_memory) || 0;
-                totalMemGb = mem; // total_memory_gb is available in backend but not re-exposed directly as a number here
-            });
-        }
-
-        // Fallback to reasonable defaults if data is missing
-        if (totalCpu === 0) totalCpu = 40;
-        if (totalMemGb === 0) totalMemGb = 128;
-
-        const computeCost = (totalCpu * 50) + (totalMemGb * 5);
-        const storageCost = 800; // Mocked for now as we don't have total PVC GB easily here without another API
-        const networkCost = 400;
-        const llmTokensCost = 120; // Mocked token cost
+        const computeCost = totalBudget * ratios.compute;
+        const storageCost = totalBudget * ratios.storage;
+        const networkCost = totalBudget * ratios.network;
+        const llmTokensCost = totalBudget * ratios.llm;
 
         const totalCost = computeCost + storageCost + networkCost + llmTokensCost;
-        const forecastCost = totalCost * 1.15;
+        const forecastCost = totalBudget; // Fixed budget for on-premise
 
-        document.getElementById('overview-current-cost').textContent = `$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        document.getElementById('overview-forecast-cost').textContent = `$${forecastCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        document.getElementById('overview-current-cost').textContent = `${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`;
+        document.getElementById('overview-forecast-cost').textContent = `${forecastCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`;
 
         this.renderPieChart('overview-cost-pie-chart', {
             labels: [
-                `Compute: $${computeCost.toLocaleString()} (${((computeCost / totalCost) * 100).toFixed(0)}%)`,
-                `Storage: $${storageCost.toLocaleString()} (${((storageCost / totalCost) * 100).toFixed(0)}%)`,
-                `Tokens LLM: $${llmTokensCost.toLocaleString()} (${((llmTokensCost / totalCost) * 100).toFixed(0)}%)`,
-                `Network: $${networkCost.toLocaleString()} (${((networkCost / totalCost) * 100).toFixed(0)}%)`
+                `Compute: ${computeCost.toLocaleString()}€ (${(ratios.compute * 100).toFixed(0)}%)`,
+                `Storage: ${storageCost.toLocaleString()}€ (${(ratios.storage * 100).toFixed(0)}%)`,
+                `Tokens LLM: ${llmTokensCost.toLocaleString()}€ (${(ratios.llm * 100).toFixed(0)}%)`,
+                `Network: ${networkCost.toLocaleString()}€ (${(ratios.network * 100).toFixed(0)}%)`
             ],
             data: [computeCost, storageCost, llmTokensCost, networkCost],
             backgroundColor: ['#4299e1', '#ed8936', '#b794f4', '#f56565']
         });
 
         this.renderBarChart('overview-namespace-bar-chart', {
-            labels: ['pg-prd', 'redis', 'openobserve', 'awx', 'other'],
+            labels: ['pd-prd', 'redis', 'openobserve', 'awx', 'other'],
             data: [
-                Math.round(totalCost * 0.35),
-                Math.round(totalCost * 0.15),
-                Math.round(totalCost * 0.25),
-                Math.round(totalCost * 0.20),
-                Math.round(totalCost * 0.05)
+                Math.round(totalBudget * 0.35 * 100) / 100,
+                Math.round(totalBudget * 0.15 * 100) / 100,
+                Math.round(totalBudget * 0.25 * 100) / 100,
+                Math.round(totalBudget * 0.20 * 100) / 100,
+                Math.round(totalBudget * 0.05 * 100) / 100
             ],
             backgroundColor: ['#63b3ed', '#f6ad55', '#b794f4', '#f56565', '#68d391']
         });
@@ -320,7 +308,7 @@ const OverviewDashboard = {
                     tooltip: {
                         callbacks: {
                             label: function (context) {
-                                return ` $${context.raw}`;
+                                return ` ${context.raw}€`;
                             }
                         }
                     }
