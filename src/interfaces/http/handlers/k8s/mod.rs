@@ -322,6 +322,11 @@ pub async fn force_delete_pod_handler(
     }
 }
 
+#[derive(serde::Deserialize)]
+pub struct NamespaceMetricsQuery {
+    pub window: Option<String>,
+}
+
 /// Get resource usage metrics per namespace
 #[utoipa::path(
     get,
@@ -334,10 +339,11 @@ pub async fn force_delete_pod_handler(
 )]
 pub async fn get_namespace_metrics_handler(
     State(state): State<AppState>,
+    axum::extract::Query(query): axum::extract::Query<NamespaceMetricsQuery>,
 ) -> Response {
     use crate::domain::services::kubernetes_service::get_namespace_metrics;
 
-    match get_namespace_metrics(&state.http_client).await {
+    match get_namespace_metrics(&state.http_client, query.window).await {
         Ok(result) => api_success(result),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }

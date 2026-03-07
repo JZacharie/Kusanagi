@@ -7,6 +7,7 @@ const OverviewDashboard = {
     initialized: false,
     updateInterval: null,
     charts: {},
+    namespaceCostWindow: '5m',
 
     init() {
         if (this.initialized) return;
@@ -17,6 +18,23 @@ const OverviewDashboard = {
         const clusterDropdown = document.getElementById('overview-cluster-dropdown');
         if (clusterDropdown) {
             clusterDropdown.addEventListener('change', () => this.refreshData());
+        }
+
+        // Timeframe toggle for Namespace Cost
+        const timeframeContainer = document.getElementById('namespace-cost-timeframe');
+        if (timeframeContainer) {
+            timeframeContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('.toggle-btn');
+                if (!btn) return;
+
+                // Update active state
+                timeframeContainer.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Update timeframe and refresh only cost data if possible, or full refresh
+                this.namespaceCostWindow = btn.dataset.window;
+                this.refreshNamespaceCost();
+            });
         }
 
         this.initialized = true;
@@ -42,7 +60,7 @@ const OverviewDashboard = {
                 api.get('/api/dashboard/metrics'),
                 api.get('/api/system/status'),
                 api.get('/api/backups'),
-                api.get('/api/k8s/namespaces/metrics'),
+                api.get(`/api/k8s/namespaces/metrics?window=${this.namespaceCostWindow}`),
                 api.get('/api/k8s/pods'),
                 api.get(`/api/prometheus/range?query=${encodeURIComponent('avg(1 - rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100')}&start=${start}&end=${now}&step=300`),
                 api.get(`/api/prometheus/range?query=${encodeURIComponent('avg(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100')}&start=${start}&end=${now}&step=300`)
@@ -69,6 +87,19 @@ const OverviewDashboard = {
 
         } catch (error) {
             console.error('Error refreshing overview data:', error);
+        }
+    },
+
+    async refreshNamespaceCost() {
+        try {
+            const resp = await api.get(`/api/k8s/namespaces/metrics?window=${this.namespaceCostWindow}`);
+            // We need nodesData and metricsData for full context of cost distribution
+            // but for now we can just use cached version if we store it, 
+            // or just trigger re-render of cost data specifically if we have nodesData.
+            // For simplicity, let's just trigger full refresh or pass current cached data.
+            this.refreshData();
+        } catch (e) {
+            console.error('Failed to refresh namespace cost:', e);
         }
     },
 
@@ -109,11 +140,16 @@ const OverviewDashboard = {
             document.getElementById('overview-backup-text').textContent = latestBackup || 'Never';
         }
 
-        // Health logic: Sunny only if all nodes ready AND >90% pods running
-        const isHealthy = (nodesTotal > 0 && nodesReady === nodesTotal) && (podsTotal > 0 && podsRunning / podsTotal > 0.9);
-        const healthText = isHealthy ? 'SUNNY' : 'CLOUDY';
-        const healthIcon = isHealthy ? '☀️' : '⛅';
-        const weatherImg = isHealthy ? '/static/images/weather/sunny.svg' : '/static/images/weather/cloudy.svg';
+        // Health logic: Sunny only if all nodes ready AND >90% pods running AND no failed jobs
+        const failedJobsCount = metricsData?.failed_jobs_count || 0;
+        const isHealthy = (nodesTotal > 0 && nodesReady === nodesTotal) &&
+            (podsTotal > 0 && podsRunning / podsTotal > 0.9) &&
+            (failedJobsCount === 0);
+
+        const healthText = isHealthy ? 'SUNNY' : (failedJobsCount > 5 ? 'STORMY' : 'CLOUDY');
+        const healthIcon = isHealthy ? '☀️' : (failedJobsCount > 5 ? '⛈️' : '⛅');
+        const weatherImg = isHealthy ? '/static/images/weather/sunny.svg' :
+            (failedJobsCount > 5 ? '/static/images/weather/stormy.svg' : '/static/images/weather/cloudy.svg');
 
         // Update DOM
         document.getElementById('overview-health-icon').textContent = healthIcon;
@@ -465,31 +501,55 @@ const OverviewDashboard = {
     },
 
     renderSecurityScore(metricsData) {
-        if (!metricsData || !metricsData.security_score) {
-            document.getElementById('overview-security-score').textContent = '100%';
-            return;
+        if (!metricsData) return;
+
+        const score = metricsData.security_score || 0;
+        const scoreEl = document.getElementById('overview-security-score');
+        if (scoreEl) {
+            scoreEl.textContent = `${score.toFixed(0)}%`;
+
+            // Color coding
+            scoreEl.className = 'security-score-value';
+            if (score > 80) scoreEl.classList.add('status-good');
+            else if (score > 50) scoreEl.classList.add('status-warning');
+            else scoreEl.classList.add('status-critical');
         }
 
-        const score = metricsData.security_score;
         const details = metricsData.security_details;
-
-        const scoreEl = document.getElementById('overview-security-score');
-        scoreEl.textContent = `${score.toFixed(1)}%`;
-
-        // Color coding for score
-        if (score >= 90) scoreEl.className = 'security-score-value health-good';
-        else if (score >= 70) scoreEl.className = 'security-score-value status-warning';
-        else scoreEl.className = 'security-score-value status-critical';
+        const failedJobs = metricsData.failed_jobs_count || 0;
 
         if (details) {
-            document.getElementById('overview-trivy-score').textContent = `${details.trivy_score.toFixed(1)}%`;
-            document.getElementById('overview-compliance-score').textContent = `${details.steampipe_score.toFixed(1)}%`;
+            document.getElementById('overview-trivy-score').textContent = `${details.trivy_score.toFixed(0)}%`;
+            document.getElementById('overview-compliance-score').textContent = `${details.steampipe_score.toFixed(0)}%`;
+        }
 
-            const summaryEl = document.getElementById('overview-security-summary');
-            const stats = details.steampipe_stats;
-            if (stats && stats.total_checks) {
+        const failedJobsEl = document.getElementById('overview-failed-jobs-count');
+        if (failedJobsEl) {
+            failedJobsEl.textContent = failedJobs;
+            failedJobsEl.className = failedJobs > 0 ? 'status-critical' : 'status-good';
+        }
+
+        // Summary text
+        const summaryEl = document.getElementById('overview-security-summary');
+        if (summaryEl) {
+            if (failedJobs > 0) {
                 summaryEl.innerHTML = `
-                    <div style="font-size: 0.75rem; color: #a0aec0; margin-top: 0.5rem;">
+                    <div style="color: #f56565; font-weight: bold; margin-bottom: 5px;">
+                        ⚠️ CRITICAL: ${failedJobs} failed jobs detected
+                    </div>
+                `;
+            } else {
+                summaryEl.innerHTML = `
+                    <div style="color: #48bb78; font-weight: bold; margin-bottom: 5px;">
+                        ✅ All health checks passed
+                    </div>
+                `;
+            }
+
+            if (details && details.steampipe_stats) {
+                const stats = details.steampipe_stats;
+                summaryEl.innerHTML += `
+                    <div style="font-size: 0.75rem; color: #a0aec0;">
                         ${stats.passed} Passed / ${stats.failed} Failed checks<br>
                         ${metricsData.trivy_critical_count || 0} Critical vulnerabilities
                     </div>

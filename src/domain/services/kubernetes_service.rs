@@ -1306,6 +1306,7 @@ fn find_node_metrics(
 /// Fetch resource usage metrics per namespace from Prometheus
 pub async fn get_namespace_metrics(
     client: &reqwest::Client,
+    window: Option<String>,
 ) -> Result<Value, String> {
     let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
         "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
@@ -1313,22 +1314,33 @@ pub async fn get_namespace_metrics(
 
     let url = format!("{}/api/v1/query", prometheus_url);
     
-    // CPU Query: sum(rate(container_cpu_usage_seconds_total{container!=""}[5m])) by (namespace)
-    let cpu_query = "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) by (namespace)";
-    // Memory Query: sum(container_memory_working_set_bytes{container!=""}) by (namespace)
-    let mem_query = "sum(container_memory_working_set_bytes{container!=\"\"}) by (namespace)";
+    let window_val = window.unwrap_or_else(|| "5m".to_string());
+    
+    // CPU Query:
+    // For short windows like 5m, we use rate(...[5m])
+    // For longer windows like 1d or 30d, we use rate over that period to get average usage
+    let cpu_query = format!("sum(rate(container_cpu_usage_seconds_total{{container!=\"\"}}[{window_val}])) by (namespace)");
+    
+    // Memory Query:
+    // For short windows, current value
+    // For longer windows, average over time
+    let mem_query = if window_val == "5m" {
+        "sum(container_memory_working_set_bytes{container!=\"\"}) by (namespace)".to_string()
+    } else {
+        format!("sum(avg_over_time(container_memory_working_set_bytes{{container!=\"\"}}[{window_val}])) by (namespace)")
+    };
 
     let mut namespace_data: std::collections::HashMap<String, (f64, f64)> = std::collections::HashMap::new();
 
     // Fetch CPU
-    if let Ok(results) = query_prometheus_by_namespace(client, &url, cpu_query).await {
+    if let Ok(results) = query_prometheus_by_namespace(client, &url, &cpu_query).await {
         for (ns, val) in results {
             namespace_data.entry(ns).or_insert((0.0, 0.0)).0 = val;
         }
     }
 
     // Fetch Memory
-    if let Ok(results) = query_prometheus_by_namespace(client, &url, mem_query).await {
+    if let Ok(results) = query_prometheus_by_namespace(client, &url, &mem_query).await {
         for (ns, val) in results {
             namespace_data.entry(ns).or_insert((0.0, 0.0)).1 = val;
         }
@@ -1390,4 +1402,44 @@ async fn query_prometheus_by_namespace(
     }
 
     Ok(results_map)
+}
+/// Fetch failed jobs from Prometheus
+pub async fn get_failed_jobs(client: &reqwest::Client) -> Result<Value, String> {
+    let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
+        "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
+    });
+
+    let url = format!("{}/api/v1/query", prometheus_url);
+    let query = "kube_job_failed{condition=\"true\"} > 0";
+
+    let response = client
+        .get(&url)
+        .query(&[("query", query)])
+        .timeout(std::time::Duration::from_secs(5))
+        .send()
+        .await
+        .map_err(|e| format!("Prometheus request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Prometheus returned status: {}", response.status()));
+    }
+
+    let body: Value = response.json().await.map_err(|e| e.to_string())?;
+    let mut failed_jobs = Vec::new();
+
+    if let Some(results) = body.get("data").and_then(|d| d.get("result")).and_then(|r| r.as_array()) {
+        for result in results {
+            if let Some(metric) = result.get("metric") {
+                failed_jobs.push(json!({
+                    "job_name": metric.get("job_name").and_then(|v| v.as_str()).unwrap_or("unknown"),
+                    "namespace": metric.get("namespace").and_then(|v| v.as_str()).unwrap_or("unknown")
+                }));
+            }
+        }
+    }
+
+    Ok(json!({
+        "total": failed_jobs.len(),
+        "failed_jobs": failed_jobs
+    }))
 }
