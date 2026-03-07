@@ -145,6 +145,7 @@ pub fn configure_routes(state: AppState) -> Router {
             get(litellm_metrics_handler),
         )
         .route("/api/dashboard/metrics", get(metrics_handler)) // Dashboard metrics
+        .route("/api/github/pipelines", get(github_pipelines_handler))
         .route("/api/chat", post(post_chat_handler))
         .route("/api/prometheus/range", get(prometheus_range_handler))
         .route("/api/database/health", get(database_health_handler))
