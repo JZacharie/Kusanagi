@@ -110,6 +110,7 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/k8s/nodes", get(nodes_status))
         .route("/api/debug/nodes", get(nodes_debug))
         .route("/api/k8s/pods", get(pods_status))
+        .route("/api/k8s/namespaces/metrics", get(get_namespace_metrics_handler))
         .route("/api/k8s/pods/{namespace}/{name}/logs", get(pod_logs))
         .route(
             "/api/pods/delete-error-pods",

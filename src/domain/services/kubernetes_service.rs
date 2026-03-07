@@ -1302,3 +1302,92 @@ fn find_node_metrics(
     tracing::warn!("No metrics found for node {}", k8s_node_name);
     (0.0, 0.0)
 }
+
+/// Fetch resource usage metrics per namespace from Prometheus
+pub async fn get_namespace_metrics(
+    client: &reqwest::Client,
+) -> Result<Value, String> {
+    let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
+        "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
+    });
+
+    let url = format!("{}/api/v1/query", prometheus_url);
+    
+    // CPU Query: sum(rate(container_cpu_usage_seconds_total{container!=""}[5m])) by (namespace)
+    let cpu_query = "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) by (namespace)";
+    // Memory Query: sum(container_memory_working_set_bytes{container!=""}) by (namespace)
+    let mem_query = "sum(container_memory_working_set_bytes{container!=\"\"}) by (namespace)";
+
+    let mut namespace_data: std::collections::HashMap<String, (f64, f64)> = std::collections::HashMap::new();
+
+    // Fetch CPU
+    if let Ok(results) = query_prometheus_by_namespace(client, &url, cpu_query).await {
+        for (ns, val) in results {
+            namespace_data.entry(ns).or_insert((0.0, 0.0)).0 = val;
+        }
+    }
+
+    // Fetch Memory
+    if let Ok(results) = query_prometheus_by_namespace(client, &url, mem_query).await {
+        for (ns, val) in results {
+            namespace_data.entry(ns).or_insert((0.0, 0.0)).1 = val;
+        }
+    }
+
+    let mut response_list = Vec::new();
+    for (name, (cpu, mem)) in namespace_data {
+        response_list.push(json!({
+            "namespace": name,
+            "cpu_usage": cpu,
+            "memory_usage_bytes": mem
+        }));
+    }
+
+    Ok(json!(response_list))
+}
+
+/// Helper to query Prometheus and return a map of namespace -> value
+async fn query_prometheus_by_namespace(
+    client: &reqwest::Client,
+    url: &str,
+    query: &str,
+) -> Result<std::collections::HashMap<String, f64>, String> {
+    let response = client
+        .get(url)
+        .query(&[("query", query)])
+        .timeout(std::time::Duration::from_secs(5))
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("HTTP error: {}", response.status()));
+    }
+
+    let body: Value = response
+        .json()
+        .await
+        .map_err(|e| format!("JSON parse error: {}", e))?;
+
+    let mut results_map = std::collections::HashMap::new();
+
+    if let Some(results) = body
+        .get("data")
+        .and_then(|d| d.get("result"))
+        .and_then(|r| r.as_array())
+    {
+        for result in results {
+            if let (Some(metric), Some(value)) = (result.get("metric"), result.get("value")) {
+                if let Some(ns) = metric.get("namespace").and_then(|s| s.as_str()) {
+                    if let Some(val_str) = value.get(1).and_then(|v| v.as_str()) {
+                        if let Ok(val) = val_str.parse::<f64>() {
+                            results_map.insert(ns.to_string(), val);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(results_map)
+}

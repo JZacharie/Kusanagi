@@ -321,3 +321,24 @@ pub async fn force_delete_pod_handler(
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
+
+/// Get resource usage metrics per namespace
+#[utoipa::path(
+    get,
+    path = "/api/k8s/namespaces/metrics",
+    responses(
+        (status = 200, description = "Namespace metrics retrieved successfully"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "kubernetes"
+)]
+pub async fn get_namespace_metrics_handler(
+    State(state): State<AppState>,
+) -> Response {
+    use crate::domain::services::kubernetes_service::get_namespace_metrics;
+
+    match get_namespace_metrics(&state.http_client).await {
+        Ok(result) => api_success(result),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+    }
+}

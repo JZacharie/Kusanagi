@@ -33,12 +33,13 @@ const OverviewDashboard = {
 
         try {
             // Fetch real metrics where possible
-            const [clusterResp, nodesResp, metricsResp, systemResp, backupsResp] = await Promise.allSettled([
+            const [clusterResp, nodesResp, metricsResp, systemResp, backupsResp, nsMetricsResp] = await Promise.allSettled([
                 api.get('/api/k8s/cluster'),
                 api.get('/api/k8s/nodes'),
                 api.get('/api/dashboard/metrics'),
                 api.get('/api/system/status'),
-                api.get('/api/backups')
+                api.get('/api/backups'),
+                api.get('/api/k8s/namespaces/metrics')
             ]);
 
             const clusterData = clusterResp.status === 'fulfilled' ? clusterResp.value : null;
@@ -46,9 +47,10 @@ const OverviewDashboard = {
             const metricsData = metricsResp.status === 'fulfilled' ? metricsResp.value : null;
             const systemData = systemResp.status === 'fulfilled' ? systemResp.value : null;
             const backupsData = backupsResp.status === 'fulfilled' ? backupsResp.value : null;
+            const nsMetricsData = nsMetricsResp.status === 'fulfilled' ? nsMetricsResp.value : null;
 
             this.renderWeather(clusterData, nodesData, metricsData, systemData, backupsData);
-            this.renderCostData(nodesData, metricsData); // Estimated from real data
+            this.renderCostData(nodesData, metricsData, nsMetricsData); // Estimated from real data
             this.renderAppHealth(); // Mock/hybrid data for now
 
         } catch (error) {
@@ -179,7 +181,7 @@ const OverviewDashboard = {
         ctx.fill();
     },
 
-    renderCostData(nodesData, metricsData) {
+    renderCostData(nodesData, metricsData, nsMetricsData) {
         // --- On-Premise Cost Analysis Adjustment ---
         // Total infrastructure budget for the month: 200€
         const totalBudget = 200;
@@ -214,16 +216,54 @@ const OverviewDashboard = {
             backgroundColor: ['#4299e1', '#ed8936', '#b794f4', '#f56565']
         });
 
-        this.renderBarChart('overview-namespace-bar-chart', {
-            labels: ['pd-prd', 'redis', 'openobserve', 'awx', 'other'],
-            data: [
+        // --- Resource Usage by Namespace Calculation ---
+        let labels = [];
+        let data = [];
+
+        if (nsMetricsData && Array.isArray(nsMetricsData)) {
+            // Calculate a score per namespace (0.5 * normalized CPU + 0.5 * normalized Memory)
+            // For simplicity, we'll just sum them up or use a simplified weight
+            const processed = nsMetricsData.map(ns => {
+                // Normalize CPU (approx max 8 cores) and Mem (approx max 32Gb)
+                const cpuVal = (ns.cpu_usage || 0);
+                const memVal = (ns.memory_usage_bytes || 0) / (1024 * 1024 * 1024); // GB
+                return {
+                    name: ns.namespace,
+                    weight: cpuVal + (memVal / 4) // simple weight
+                };
+            }).sort((a, b) => b.weight - a.weight);
+
+            const top5 = processed.slice(0, 5);
+            const others = processed.slice(5);
+
+            const totalWeight = processed.reduce((sum, item) => sum + item.weight, 0) || 1;
+
+            top5.forEach(item => {
+                labels.push(item.name);
+                data.push(Math.round((item.weight / totalWeight) * totalBudget * 100) / 100);
+            });
+
+            if (others.length > 0) {
+                const otherWeight = others.reduce((sum, item) => sum + item.weight, 0);
+                labels.push('other');
+                data.push(Math.round((otherWeight / totalWeight) * totalBudget * 100) / 100);
+            }
+        } else {
+            // Fallback to placeholders if API fails
+            labels = ['pg-prd', 'redis', 'openobserve', 'awx', 'other'];
+            data = [
                 Math.round(totalBudget * 0.35 * 100) / 100,
                 Math.round(totalBudget * 0.15 * 100) / 100,
                 Math.round(totalBudget * 0.25 * 100) / 100,
                 Math.round(totalBudget * 0.20 * 100) / 100,
                 Math.round(totalBudget * 0.05 * 100) / 100
-            ],
-            backgroundColor: ['#63b3ed', '#f6ad55', '#b794f4', '#f56565', '#68d391']
+            ];
+        }
+
+        this.renderBarChart('overview-namespace-bar-chart', {
+            labels: labels,
+            data: data,
+            backgroundColor: ['#63b3ed', '#f6ad55', '#b794f4', '#f56565', '#48bb78', '#a0aec0']
         });
     },
 
