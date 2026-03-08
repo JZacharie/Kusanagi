@@ -582,22 +582,21 @@ const OverviewDashboard = {
     },
 
     renderAppHealth(podsData) {
-        const grid = document.getElementById('overview-apps-grid');
-        if (!grid) return;
+        const listContainer = document.getElementById('overview-degraded-apps-list');
+        if (!listContainer) return;
 
         let degradedApps = [];
 
         if (podsData && Array.isArray(podsData)) {
-            // Filter for pods that are not in "Running" or "Succeeded"
-            // and group them roughly by name (simple deduplication for common prefixes)
+            // Filter for pods that are not in "Running", "Succeeded", or "Completed"
+            // We group them roughly by name to find degraded apps
             const problematic = podsData.filter(pod => {
                 const status = pod.status;
-                return status !== 'Running' && status !== 'Succeeded';
+                return status !== 'Running' && status !== 'Succeeded' && status !== 'Completed';
             });
 
             const seen = new Set();
             problematic.forEach(pod => {
-                // Try to find a meaningful name (e.g. part before the last dash if it looks like a hash)
                 let name = pod.name;
                 const parts = name.split('-');
                 if (parts.length > 2 && /^[a-z0-9]{8,10}$/.test(parts[parts.length - 1])) {
@@ -611,39 +610,30 @@ const OverviewDashboard = {
                     degradedApps.push({
                         name: name,
                         namespace: pod.namespace,
-                        status: 'red',
-                        type: 'rainy',
-                        note: `${pod.status}\nin ${pod.namespace}`
+                        status: pod.status
                     });
                 }
             });
         }
 
         if (degradedApps.length === 0) {
-            grid.innerHTML = '<div style="color: #48bb78; grid-column: 1/-1; text-align: center; padding: 20px;">All systems operational. No degraded applications found.</div>';
+            listContainer.style.display = 'none'; // Hide the container if no apps are degraded
             return;
         }
 
+        listContainer.style.display = 'flex'; // Ensure it is visible
+
         let html = '';
         degradedApps.forEach(app => {
-            const icons = '⛅ 🌧️';
-            let noteHtml = app.note ? `<div style="text-align: right; white-space: pre-line; font-size: 10px; color: #a0aec0;">${app.note}</div>` : '';
-
             html += `
-                <div class="app-card">
-                    <div class="app-card-left">
-                        <div class="app-status-dot dot-${app.status}"></div>
-                        <div class="app-name" title="${app.namespace}">${app.name}</div>
-                    </div>
-                    <div class="app-card-right">
-                        <div class="app-weather-icons">${icons}</div>
-                        ${noteHtml}
-                    </div>
+                <div class="degraded-app-entry" title="${app.status}">
+                    <span class="degraded-app-name">${app.name}</span>
+                    <span class="degraded-app-ns">${app.namespace}</span>
                 </div>
             `;
         });
 
-        grid.innerHTML = html;
+        listContainer.innerHTML = html;
     },
 
     renderSecurityScore(metricsData) {
