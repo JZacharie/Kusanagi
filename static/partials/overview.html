@@ -35,10 +35,55 @@
         </div>
     </div>
 
+    <!-- Zone DevOps -->
+    <h2 class="zone-title"><span class="mdi mdi-rocket-launch"></span> Zone DevOps</h2>
     <div class="overview-grid">
+        <!-- 6. Applications Health -->
+        <div class="overview-card panel">
+            <h3>Applications Health</h3>
+            <div class="argocd-health-summary">
+                <div class="argocd-health-header">HEALTH STATUS</div>
+                <div class="argocd-health-grid">
+                    <a href="https://argocd.p.zacharie.org/applications?health=Progressing" target="_blank"
+                        class="argocd-health-item progressing">
+                        <span class="argocd-icon progressing">🔄</span> Progressing
+                        <span class="argocd-val">0</span>
+                    </a>
+                    <a href="https://argocd.p.zacharie.org/applications?health=Suspended" target="_blank"
+                        class="argocd-health-item suspended">
+                        <span class="argocd-icon suspended">⏸️</span> Suspended
+                        <span class="argocd-val">0</span>
+                    </a>
+                    <a href="https://argocd.p.zacharie.org/applications?health=Healthy" target="_blank"
+                        class="argocd-health-item healthy">
+                        <span class="argocd-icon healthy">💚</span> Healthy
+                        <span class="argocd-val">0</span>
+                    </a>
+                    <a href="https://argocd.p.zacharie.org/applications?health=Degraded" target="_blank"
+                        class="argocd-health-item degraded">
+                        <span class="argocd-icon degraded">💔</span> Degraded
+                        <span class="argocd-val">0</span>
+                    </a>
+                    <a href="https://argocd.p.zacharie.org/applications?health=Missing" target="_blank"
+                        class="argocd-health-item missing">
+                        <span class="argocd-icon missing">❓</span> Missing
+                        <span class="argocd-val">0</span>
+                    </a>
+                    <a href="https://argocd.p.zacharie.org/applications?health=Unknown" target="_blank"
+                        class="argocd-health-item unknown">
+                        <span class="argocd-icon unknown">❔</span> Unknown
+                        <span class="argocd-val">0</span>
+                    </a>
+                </div>
+                <div id="overview-degraded-apps-list" class="degraded-apps-list">
+                    <!-- Degraded apps will be injected here by JS -->
+                </div>
+            </div>
+        </div>
+
         <!-- 1. Cluster Weather -->
-        <div class="overview-card weather-card panel">
-            <h3>1. Cluster Weather</h3>
+        <div class="overview-card weather-card panel" style="grid-column: span 2;">
+            <h3>Cluster Weather</h3>
             <div class="weather-content">
                 <div class="weather-graphic">
                     <img id="overview-weather-img" src="/static/images/weather/sunny.svg" alt="Sunny">
@@ -113,10 +158,16 @@
                 </div>
             </div>
         </div>
+    </div>
 
+    <!-- Zone FinOps -->
+    <h2 class="zone-title"
+        style="border-left-color: var(--neon-orange, #ff8800); background: linear-gradient(90deg, rgba(255, 136, 0, 0.1) 0%, transparent 100%);">
+        <span class="mdi mdi-cash-multiple"></span> Zone FinOps</h2>
+    <div class="overview-grid">
         <!-- 2. Cost Analysis -->
         <div class="overview-card cost-card panel">
-            <h3>2. Cost Analysis</h3>
+            <h3>Cost Analysis</h3>
             <div class="cost-estimate-basis" style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 0.5rem;">
                 Estimated from pod & node sizes
             </div>
@@ -136,9 +187,9 @@
         </div>
 
         <!-- 3. Cost by Namespace -->
-        <div class="overview-card namespace-cost-card panel">
+        <div class="overview-card namespace-cost-card panel" style="grid-column: span 2;">
             <div class="card-header-with-actions">
-                <h3>3. Cost by Namespace</h3>
+                <h3>Cost by Namespace</h3>
                 <div class="timeframe-toggle" id="namespace-cost-timeframe">
                     <button class="toggle-btn active" data-window="5m">Live</button>
                     <button class="toggle-btn" data-window="1d">1J</button>
@@ -149,10 +200,16 @@
                 <canvas id="overview-namespace-bar-chart" height="200"></canvas>
             </div>
         </div>
+    </div>
 
+    <!-- Zone Cyber Security -->
+    <h2 class="zone-title"
+        style="border-left-color: var(--neon-magenta, #ff00ff); background: linear-gradient(90deg, rgba(255, 0, 255, 0.1) 0%, transparent 100%);">
+        <span class="mdi mdi-shield-check"></span> Zone Cyber Security</h2>
+    <div class="overview-grid">
         <!-- 4. Security Score -->
         <div class="overview-card security-card panel">
-            <h3>4. Cluster Security Score</h3>
+            <h3>Cluster Security Score</h3>
             <div class="security-content">
                 <div class="security-score-gauge">
                     <span>Global Security Score</span>
@@ -190,54 +247,12 @@
         </div>
 
         <!-- 5. Recent Pipelines -->
-        <div class="overview-card panel">
-            <h3>5. Recent Pipelines</h3>
+        <div class="overview-card panel" style="grid-column: span 2;">
+            <h3>Recent Pipelines & PR Quality</h3>
             <div class="pipelines-summary-container" id="overview-pipelines-list">
                 <div class="loading-placeholder">Loading pipeline status...</div>
             </div>
         </div>
-
-        <!-- 6. Applications Health -->
-        <div class="overview-card panel">
-            <h3>6. Applications Health</h3>
-            <div class="argocd-health-summary">
-                <div class="argocd-health-header">HEALTH STATUS</div>
-                <div class="argocd-health-grid">
-                    <a href="https://argocd.p.zacharie.org/applications?health=Progressing" target="_blank"
-                        class="argocd-health-item progressing">
-                        <span class="argocd-icon progressing">🔄</span> Progressing
-                        <span class="argocd-val">0</span>
-                    </a>
-                    <a href="https://argocd.p.zacharie.org/applications?health=Suspended" target="_blank"
-                        class="argocd-health-item suspended">
-                        <span class="argocd-icon suspended">⏸️</span> Suspended
-                        <span class="argocd-val">0</span>
-                    </a>
-                    <a href="https://argocd.p.zacharie.org/applications?health=Healthy" target="_blank"
-                        class="argocd-health-item healthy">
-                        <span class="argocd-icon healthy">💚</span> Healthy
-                        <span class="argocd-val">0</span>
-                    </a>
-                    <a href="https://argocd.p.zacharie.org/applications?health=Degraded" target="_blank"
-                        class="argocd-health-item degraded">
-                        <span class="argocd-icon degraded">💔</span> Degraded
-                        <span class="argocd-val">0</span>
-                    </a>
-                    <a href="https://argocd.p.zacharie.org/applications?health=Missing" target="_blank"
-                        class="argocd-health-item missing">
-                        <span class="argocd-icon missing">❓</span> Missing
-                        <span class="argocd-val">0</span>
-                    </a>
-                    <a href="https://argocd.p.zacharie.org/applications?health=Unknown" target="_blank"
-                        class="argocd-health-item unknown">
-                        <span class="argocd-icon unknown">❔</span> Unknown
-                        <span class="argocd-val">0</span>
-                    </a>
-                </div>
-                <div id="overview-degraded-apps-list" class="degraded-apps-list">
-                    <!-- Degraded apps will be injected here by JS -->
-                </div>
-            </div>
-        </div>
     </div>
+
 </div>

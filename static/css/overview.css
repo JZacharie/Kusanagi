@@ -16,6 +16,23 @@
     border: 1px solid #2a3548;
 }
 
+.zone-title {
+    margin: 2rem 0 1rem 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 4px solid var(--neon-cyan, #00fff9);
+    padding-left: 15px;
+    background: linear-gradient(90deg, rgba(0, 255, 249, 0.1) 0%, transparent 100%);
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
 /* Header */
 .overview-header {
     display: flex;
@@ -634,6 +651,7 @@
     font-size: 0.75rem;
     opacity: 0.8;
 }
+
 /* Failed Jobs Alert Card */
 .overview-alert-card {
     border-left: 4px solid #f56565 !important;
