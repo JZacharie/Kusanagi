@@ -1552,8 +1552,15 @@ pub async fn get_failed_jobs(client: &reqwest::Client) -> Result<Value, String> 
     if let Some(results) = body.get("data").and_then(|d| d.get("result")).and_then(|r| r.as_array()) {
         for result in results {
             if let Some(metric) = result.get("metric") {
+                let job_name = metric.get("job_name").and_then(|v| v.as_str()).unwrap_or("unknown");
+                
+                // Filter out scan-vulnerabilityreport jobs as requested by user
+                if job_name.starts_with("scan-vulnerabilityreport-") {
+                    continue;
+                }
+
                 failed_jobs.push(json!({
-                    "job_name": metric.get("job_name").and_then(|v| v.as_str()).unwrap_or("unknown"),
+                    "job_name": job_name,
                     "namespace": metric.get("namespace").and_then(|v| v.as_str()).unwrap_or("unknown")
                 }));
             }
