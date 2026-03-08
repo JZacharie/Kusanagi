@@ -10,8 +10,14 @@ use async_trait::async_trait;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::config::Region;
 use aws_sdk_s3::Client as S3Client;
+use k8s_openapi::api::batch::v1::{CronJob, Job};
+use kube::{
+    api::{Api, PostParams},
+    Client,
+};
 use serde::Deserialize;
 use std::env;
+use std::sync::Arc;
 use tracing::{debug, error, info, warn};
 
 const DEFAULT_TRIVY_JSON_SERVER: &str = "http://trivy-json-server.trivy-system.svc:8080";
@@ -31,6 +37,7 @@ struct IndexEntry {
 pub struct SecurityRepositoryImpl {
     http_client: reqwest::Client,
     s3_client: Option<S3Client>,
+    kube_client: Option<Arc<Client>>,
     trivy_server_url: String,
     bucket_name: String,
 }
@@ -52,10 +59,12 @@ impl SecurityRepositoryImpl {
             .expect("Failed to create HTTP client");
 
         let s3_client = Self::init_s3_client().await.ok();
+        let kube_client = Client::try_default().await.ok().map(Arc::new);
 
         Self {
             http_client,
             s3_client,
+            kube_client,
             trivy_server_url,
             bucket_name,
         }
@@ -485,6 +494,53 @@ impl SecurityRepository for SecurityRepositoryImpl {
 
     fn is_local_mode(&self) -> bool {
         self.check_local_mode()
+    }
+
+    async fn trigger_scan(&self) -> Result<String> {
+        let client = self
+            .kube_client
+            .as_ref()
+            .ok_or_else(|| KusanagiError::configuration("Kubernetes client not available"))?;
+
+        let namespace = "trivy-system";
+        let cronjob_name = "trivy-rescan-all";
+
+        let cronjobs_api: Api<CronJob> = Api::namespaced(client.as_ref().clone(), namespace);
+
+        // Get the CronJob
+        let cronjob = cronjobs_api.get(cronjob_name).await.map_err(|e| {
+            KusanagiError::external_service(format!("Failed to get CronJob {}: {}", cronjob_name, e))
+        })?;
+
+        // Create a Job from the CronJob template
+        let job_spec = cronjob
+            .spec
+            .as_ref()
+            .and_then(|s| s.job_template.spec.clone())
+            .ok_or_else(|| KusanagiError::configuration("CronJob has no job template"))?;
+
+        let job = Job {
+            metadata: k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta {
+                name: Some(format!(
+                    "{}-manual-{}",
+                    cronjob_name,
+                    chrono::Utc::now().timestamp()
+                )),
+                namespace: Some(namespace.to_string()),
+                ..Default::default()
+            },
+            spec: Some(job_spec),
+            status: None,
+        };
+
+        let jobs_api: Api<Job> = Api::namespaced(client.as_ref().clone(), namespace);
+        jobs_api
+            .create(&PostParams::default(), &job)
+            .await
+            .map_err(|e| KusanagiError::external_service(format!("Failed to create Job: {}", e)))?;
+
+        info!("Triggered manual Trivy scan via CronJob {}", cronjob_name);
+        Ok(format!("Trivy scan triggered successfully"))
     }
 }
 

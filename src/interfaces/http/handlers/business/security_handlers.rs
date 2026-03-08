@@ -247,3 +247,31 @@ pub async fn get_security_report_handler(
         }
     }
 }
+
+/// Trigger a manual vulnerability scan
+#[utoipa::path(
+    post,
+    path = "/api/security/scan",
+    responses(
+        (status = 200, description = "Vulnerability scan triggered successfully"),
+        (status = 500, description = "Failed to trigger vulnerability scan")
+    ),
+    tag = "security"
+)]
+pub async fn post_security_scan_handler(State(state): State<AppState>) -> impl IntoResponse {
+    debug!("Manual security scan trigger requested");
+
+    match state.security_use_case.trigger_scan().await {
+        Ok(message) => {
+            info!("Manual security scan triggered: {}", message);
+            api_success(json!({ "message": message }))
+        }
+        Err(e) => {
+            error!("Failed to trigger manual security scan: {}", e);
+            api_error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to trigger vulnerability scan: {}", e),
+            )
+        }
+    }
+}

@@ -840,10 +840,52 @@ const SecurityDashboard = {
         return str.replace(/[^a-zA-Z0-9]/g, '_');
     },
 
+    async shadowScan(imageName) {
+        // This is a placeholder for future image-specific scanning
+        console.log('Individual scan requested for:', imageName);
+    },
+
+    async triggerScan() {
+        const btn = document.getElementById('trivy-scan-btn');
+        const originalText = btn ? btn.innerHTML : '';
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Scanning...';
+        }
+
+        try {
+            const result = await api.post('/api/security/scan');
+            console.log('Scan trigger result:', result);
+
+            // Show notification
+            if (window.utils && window.utils.showNotification) {
+                window.utils.showNotification('Trivy scan triggered successfully', 'success');
+            } else {
+                alert('Trivy scan triggered successfully. It may take a few minutes to complete.');
+            }
+
+            // Refresh dashboard after a short delay
+            setTimeout(() => this.refreshAll(), 5000);
+        } catch (error) {
+            console.error('Failed to trigger scan:', error);
+            if (window.utils && window.utils.showNotification) {
+                window.utils.showNotification('Failed to trigger scan: ' + (error.message || 'Unknown error'), 'error');
+            } else {
+                alert('Failed to trigger scan: ' + (error.message || 'Unknown error'));
+            }
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+    },
+
     async scanImage(imageName) {
-        // Could trigger a rescan via API
+        // Trigger global scan for now as individual scan is complex with current setup
         console.log('Rescan requested for:', imageName);
-        alert(`Rescan requested for: ${imageName}\n(Feature would trigger Trivy rescan)`);
+        this.triggerScan();
     },
 
     exportCSV() {
