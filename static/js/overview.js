@@ -125,11 +125,13 @@ const OverviewDashboard = {
         // Uptime handling
         if (systemData && systemData.uptime_secs) {
             const uptimeText = this.formatUptime(systemData.uptime_secs);
-            document.getElementById('overview-uptime-text').textContent = uptimeText;
+            const uptimeEl = document.getElementById('overview-uptime-text');
+            if (uptimeEl) uptimeEl.textContent = uptimeText;
         }
 
         // Mock Users (Keep as 42 or random)
-        document.getElementById('overview-users-text').textContent = "42";
+        const usersEl = document.getElementById('overview-users-text');
+        if (usersEl) usersEl.textContent = "42";
 
         // Backup handling
         if (backupsData && backupsData.cronjobs) {
@@ -137,7 +139,8 @@ const OverviewDashboard = {
             backupsData.cronjobs.forEach(cj => {
                 if (cj.last_schedule_age && !latestBackup) latestBackup = cj.last_schedule_age;
             });
-            document.getElementById('overview-backup-text').textContent = latestBackup || 'Never';
+            const backupEl = document.getElementById('overview-backup-text');
+            if (backupEl) backupEl.textContent = latestBackup || 'Never';
         }
 
         // Health logic: Sunny only if all nodes ready AND >90% pods running AND no failed jobs
@@ -152,10 +155,14 @@ const OverviewDashboard = {
             (failedJobsCount > 5 ? '/static/images/weather/stormy.svg' : '/static/images/weather/cloudy.svg');
 
         // Update DOM
-        document.getElementById('overview-health-icon').textContent = healthIcon;
+        const healthIconEl = document.getElementById('overview-health-icon');
+        if (healthIconEl) healthIconEl.textContent = healthIcon;
+
         const mainHealthText = document.getElementById('overview-health-text');
-        mainHealthText.textContent = healthText;
-        mainHealthText.className = isHealthy ? 'status-sunny' : 'status-warning';
+        if (mainHealthText) {
+            mainHealthText.textContent = healthText;
+            mainHealthText.className = isHealthy ? 'status-sunny' : 'status-warning';
+        }
 
         const weatherImgEl = document.getElementById('overview-weather-img');
         if (weatherImgEl) {
@@ -174,11 +181,16 @@ const OverviewDashboard = {
         }
 
         const weatherTitle = document.getElementById('overview-weather-title');
-        weatherTitle.textContent = healthText;
-        weatherTitle.className = `weather-title ${isHealthy ? 'status-sunny' : 'status-warning'}`;
+        if (weatherTitle) {
+            weatherTitle.textContent = healthText;
+            weatherTitle.className = `weather-title ${isHealthy ? 'status-sunny' : 'status-warning'}`;
+        }
 
-        document.getElementById('overview-nodes-stat').textContent = `${nodesReady}/${nodesTotal} Healthy`;
-        document.getElementById('overview-pods-stat').textContent = `${podsRunning}/${podsTotal} Running`;
+        const nodesStatEl = document.getElementById('overview-nodes-stat');
+        if (nodesStatEl) nodesStatEl.textContent = `${nodesReady}/${nodesTotal} Healthy`;
+
+        const podsStatEl = document.getElementById('overview-pods-stat');
+        if (podsStatEl) podsStatEl.textContent = `${podsRunning}/${podsTotal} Running`;
 
         // Detailed Cluster Resource Metrics
         const resources = metricsData?.cluster_resources;
@@ -187,27 +199,36 @@ const OverviewDashboard = {
             const mem = resources.memory || {};
 
             // CPU (cores)
-            document.getElementById('overview-cpu-usage').textContent = cpu.usage?.toFixed(2) || '0.00';
-            document.getElementById('overview-cpu-req').textContent = cpu.requests?.toFixed(2) || '0.00';
-            document.getElementById('overview-cpu-limit').textContent = cpu.limits?.toFixed(2) || '0.00';
-            document.getElementById('overview-cpu-alloc').textContent = cpu.allocatable?.toFixed(2) || '0.00';
-            document.getElementById('overview-cpu-cap').textContent = cpu.capacity?.toFixed(2) || '0.00';
+            const setRes = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = val;
+            };
+
+            setRes('overview-cpu-usage', cpu.usage?.toFixed(2) || '0.00');
+            setRes('overview-cpu-req', cpu.requests?.toFixed(2) || '0.00');
+            setRes('overview-cpu-limit', cpu.limits?.toFixed(2) || '0.00');
+            setRes('overview-cpu-alloc', cpu.allocatable?.toFixed(2) || '0.00');
+            setRes('overview-cpu-cap', cpu.capacity?.toFixed(2) || '0.00');
 
             // Memory (GiB)
             const toGiB = (bytes) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
-            document.getElementById('overview-mem-usage').textContent = toGiB(mem.usage || 0);
-            document.getElementById('overview-mem-req').textContent = toGiB(mem.requests || 0);
-            document.getElementById('overview-mem-limit').textContent = toGiB(mem.limits || 0);
-            document.getElementById('overview-mem-alloc').textContent = toGiB(mem.allocatable || 0);
-            document.getElementById('overview-mem-cap').textContent = toGiB(mem.capacity || 0);
+            setRes('overview-mem-usage', toGiB(mem.usage || 0));
+            setRes('overview-mem-req', toGiB(mem.requests || 0));
+            setRes('overview-mem-limit', toGiB(mem.limits || 0));
+            setRes('overview-mem-alloc', toGiB(mem.allocatable || 0));
+            setRes('overview-mem-cap', toGiB(mem.capacity || 0));
         }
 
         // Mock API latency
         const latency = Math.floor(Math.random() * 20) + 35;
-        document.getElementById('overview-latency-stat').textContent = `${latency}ms`;
+        const latencyEl = document.getElementById('overview-latency-stat');
+        if (latencyEl) latencyEl.textContent = `${latency}ms`;
 
-        document.getElementById('overview-cpu-stat').textContent = `${cpuPercent.toFixed(0)}%`;
-        document.getElementById('overview-mem-stat').textContent = `${memPercent.toFixed(0)}%`;
+        const cpuStatEl = document.getElementById('overview-cpu-stat');
+        if (cpuStatEl) cpuStatEl.textContent = `${cpuPercent.toFixed(0)}%`;
+
+        const memStatEl = document.getElementById('overview-mem-stat');
+        if (memStatEl) memStatEl.textContent = `${memPercent.toFixed(0)}%`;
 
         // Extract values from Prometheus history if available
         const extractHistory = (history) => {

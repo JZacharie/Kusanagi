@@ -98,8 +98,14 @@
                         </div>
                     </div>
                     <div class="weather-mini-charts">
-                        <canvas id="overview-cpu-chart" height="40"></canvas>
-                        <canvas id="overview-mem-chart" height="40"></canvas>
+                        <div class="mini-chart-item">
+                            <canvas id="overview-cpu-chart" height="40"></canvas>
+                            <div class="mini-chart-label">CPU: <span id="overview-cpu-stat">--%</span></div>
+                        </div>
+                        <div class="mini-chart-item">
+                            <canvas id="overview-mem-chart" height="40"></canvas>
+                            <div class="mini-chart-label">Mem: <span id="overview-mem-stat">--%</span></div>
+                        </div>
                     </div>
                 </div>
             </div>
