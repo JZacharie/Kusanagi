@@ -54,7 +54,7 @@ const OverviewDashboard = {
             const start = now - 3600;
 
             // Fetch real metrics where possible
-            const [clusterResp, nodesResp, metricsResp, systemResp, backupsResp, nsMetricsResp, podsResp, cpuHisResp, memHisResp] = await Promise.allSettled([
+            const [clusterResp, nodesResp, metricsResp, systemResp, backupsResp, nsMetricsResp, podsResp, cpuHisResp, memHisResp, argocdResp] = await Promise.allSettled([
                 api.get('/api/k8s/cluster'),
                 api.get('/api/k8s/nodes'),
                 api.get('/api/dashboard/metrics'),
