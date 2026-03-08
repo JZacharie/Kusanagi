@@ -1423,6 +1423,108 @@ async fn query_prometheus_by_namespace(
 
     Ok(results_map)
 }
+
+/// Fetch cluster-wide resource metrics (Usage, Requests, Limits, Capacity)
+pub async fn get_cluster_resource_metrics(client: &reqwest::Client) -> Result<Value, String> {
+    let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
+        "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
+    });
+
+    let url = format!("{}/api/v1/query", prometheus_url);
+    
+    // 1. Fetch Capacity and Allocatable from K8s API
+    let kube_client = Client::try_default().await.map_err(|e| e.to_string())?;
+    let nodes_api: Api<Node> = Api::all(kube_client);
+    let nodes = nodes_api.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
+    
+    let mut cpu_capacity = 0.0;
+    let mut cpu_allocatable = 0.0;
+    let mut mem_capacity_bytes = 0.0;
+    let mut mem_allocatable_bytes = 0.0;
+    
+    for node in nodes {
+        if let Some(status) = &node.status {
+            if let Some(cap) = &status.capacity {
+                if let Some(cpu) = cap.get("cpu") {
+                    cpu_capacity += cpu.0.parse::<f64>().unwrap_or(0.0);
+                }
+                if let Some(mem) = cap.get("memory") {
+                    mem_capacity_bytes += parse_k8s_quantity(&mem.0) as f64;
+                }
+            }
+            if let Some(alloc) = &status.allocatable {
+                if let Some(cpu) = alloc.get("cpu") {
+                    cpu_allocatable += cpu.0.parse::<f64>().unwrap_or(0.0);
+                }
+                if let Some(mem) = alloc.get("memory") {
+                    mem_allocatable_bytes += parse_k8s_quantity(&mem.0) as f64;
+                }
+            }
+        }
+    }
+
+    // 2. Fetch Usage, Requests, Limits from Prometheus
+    let queries = [
+        ("cpu_usage", "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m]))"),
+        ("cpu_requests", "sum(kube_pod_container_resource_requests{resource=\"cpu\"})"),
+        ("cpu_limits", "sum(kube_pod_container_resource_limits{resource=\"cpu\"})"),
+        ("mem_usage", "sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)"),
+        ("mem_requests", "sum(kube_pod_container_resource_requests{resource=\"memory\"})"),
+        ("mem_limits", "sum(kube_pod_container_resource_limits{resource=\"memory\"})"),
+    ];
+
+    let mut prometheus_metrics = std::collections::HashMap::new();
+    for (name, query) in &queries {
+        let val = query_prometheus_scalar(client, &url, query).await.unwrap_or(0.0);
+        prometheus_metrics.insert(name.to_string(), val);
+    }
+
+    Ok(json!({
+        "cpu": {
+            "usage": prometheus_metrics.get("cpu_usage").unwrap_or(&0.0),
+            "requests": prometheus_metrics.get("cpu_requests").unwrap_or(&0.0),
+            "limits": prometheus_metrics.get("cpu_limits").unwrap_or(&0.0),
+            "allocatable": cpu_allocatable,
+            "capacity": cpu_capacity
+        },
+        "memory": {
+            "usage": prometheus_metrics.get("mem_usage").unwrap_or(&0.0),
+            "requests": prometheus_metrics.get("mem_requests").unwrap_or(&0.0),
+            "limits": prometheus_metrics.get("mem_limits").unwrap_or(&0.0),
+            "allocatable": mem_allocatable_bytes,
+            "capacity": mem_capacity_bytes
+        }
+    }))
+}
+
+/// Helper to query Prometheus and extract a scalar value
+async fn query_prometheus_scalar(client: &reqwest::Client, url: &str, query: &str) -> Option<f64> {
+    let response = client
+        .get(url)
+        .query(&[("query", query)])
+        .timeout(std::time::Duration::from_secs(5))
+        .send()
+        .await
+        .ok()?;
+
+    if !response.status().is_success() {
+        return None;
+    }
+
+    let body: serde_json::Value = response.json().await.ok()?;
+
+    body.get("data")?
+        .get("result")?
+        .as_array()?
+        .first()?
+        .get("value")?
+        .as_array()?
+        .get(1)?
+        .as_str()?
+        .parse::<f64>()
+        .ok()
+}
+
 /// Fetch failed jobs from Prometheus
 pub async fn get_failed_jobs(client: &reqwest::Client) -> Result<Value, String> {
     let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {

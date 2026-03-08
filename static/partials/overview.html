@@ -49,14 +49,52 @@
                         <span id="overview-latency-stat" class="weather-stat-value">--ms</span>
                     </div>
                     <div class="weather-stat-resources">
-                        <div class="weather-stat-label">Resources:</div>
-                        <div class="weather-stat-row">
-                            <span>CPU:</span>
-                            <span id="overview-cpu-stat">--%</span>
+                        <div class="weather-stat-label">Detailed Resources:</div>
+                        <div class="resource-block">
+                            <div class="resource-title">CPU (cores)</div>
+                            <div class="weather-stat-row">
+                                <span>Usage:</span>
+                                <span id="overview-cpu-usage">--</span>
+                            </div>
+                            <div class="weather-stat-row">
+                                <span>Requests:</span>
+                                <span id="overview-cpu-req">--</span>
+                            </div>
+                            <div class="weather-stat-row">
+                                <span>Limits:</span>
+                                <span id="overview-cpu-limit">--</span>
+                            </div>
+                            <div class="weather-stat-row">
+                                <span>Allocatable:</span>
+                                <span id="overview-cpu-alloc">--</span>
+                            </div>
+                            <div class="weather-stat-row">
+                                <span>Capacity:</span>
+                                <span id="overview-cpu-cap">--</span>
+                            </div>
                         </div>
-                        <div class="weather-stat-row">
-                            <span>Memory:</span>
-                            <span id="overview-mem-stat">--%</span>
+                        <div class="resource-block">
+                            <div class="resource-title">Memory (GiB)</div>
+                            <div class="weather-stat-row">
+                                <span>Usage:</span>
+                                <span id="overview-mem-usage">--</span>
+                            </div>
+                            <div class="weather-stat-row">
+                                <span>Requests:</span>
+                                <span id="overview-mem-req">--</span>
+                            </div>
+                            <div class="weather-stat-row">
+                                <span>Limits:</span>
+                                <span id="overview-mem-limit">--</span>
+                            </div>
+                            <div class="weather-stat-row">
+                                <span>Allocatable:</span>
+                                <span id="overview-mem-alloc">--</span>
+                            </div>
+                            <div class="weather-stat-row">
+                                <span>Capacity:</span>
+                                <span id="overview-mem-cap">--</span>
+                            </div>
                         </div>
                     </div>
                     <div class="weather-mini-charts">
