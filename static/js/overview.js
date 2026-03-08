@@ -63,7 +63,8 @@ const OverviewDashboard = {
                 api.get(`/api/k8s/namespaces/metrics?window=${this.namespaceCostWindow}`),
                 api.get('/api/k8s/pods'),
                 api.get(`/api/prometheus/range?query=${encodeURIComponent('avg(1 - rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100')}&start=${start}&end=${now}&step=300`),
-                api.get(`/api/prometheus/range?query=${encodeURIComponent('avg(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100')}&start=${start}&end=${now}&step=300`)
+                api.get(`/api/prometheus/range?query=${encodeURIComponent('avg(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100')}&start=${start}&end=${now}&step=300`),
+                api.get('/api/argocd/status')
             ]);
 
             const clusterData = clusterResp.status === 'fulfilled' ? clusterResp.value : null;
@@ -75,13 +76,14 @@ const OverviewDashboard = {
             const podsData = podsResp.status === 'fulfilled' ? podsResp.value : null;
             const cpuHistory = cpuHisResp.status === 'fulfilled' ? cpuHisResp.value : null;
             const memHistory = memHisResp.status === 'fulfilled' ? memHisResp.value : null;
+            const argocdData = argocdResp.status === 'fulfilled' ? argocdResp.value : null;
 
             const pipelineResp = await fetch('/api/github/pipelines').then(r => r.json()).catch(() => ({ success: false }));
             const pipelineData = pipelineResp.success ? pipelineResp.data : [];
 
             this.renderWeather(clusterData, nodesData, metricsData, systemData, backupsData, cpuHistory, memHistory);
             this.renderCostData(nodesData, metricsData, nsMetricsData);
-            this.renderAppHealth(podsData);
+            this.renderAppHealth(podsData, argocdData);
             this.renderSecurityScore(metricsData);
             this.renderPipelines(pipelineData);
 
@@ -581,15 +583,39 @@ const OverviewDashboard = {
         });
     },
 
-    renderAppHealth(podsData) {
+    renderAppHealth(podsData, argocdData) {
+        // 1. Update ArgoCD Status counts
+        if (argocdData) {
+            const updateCount = (selector, val) => {
+                const el = document.querySelector(`.argocd-health-item.${selector} .argocd-val`);
+                if (el) el.textContent = val || 0;
+            };
+
+            updateCount('progressing', argocdData.progressing);
+            updateCount('suspended', argocdData.suspended);
+            updateCount('healthy', argocdData.healthy);
+            updateCount('degraded', argocdData.degraded);
+            updateCount('missing', argocdData.missing);
+            updateCount('unknown', argocdData.unknown);
+        }
+
+        // 2. Update Degraded Apps List
         const listContainer = document.getElementById('overview-degraded-apps-list');
         if (!listContainer) return;
 
         let degradedApps = [];
 
-        if (podsData && Array.isArray(podsData)) {
-            // Filter for pods that are not in "Running", "Succeeded", or "Completed"
-            // We group them roughly by name to find degraded apps
+        // Prefer data from ArgoCD if available for specific degraded apps
+        if (argocdData && argocdData.apps_with_issues) {
+            degradedApps = argocdData.apps_with_issues
+                .filter(app => app.health_status !== 'Healthy')
+                .map(app => ({
+                    name: app.name,
+                    namespace: app.namespace,
+                    status: app.health_status
+                }));
+        } else if (podsData && Array.isArray(podsData)) {
+            // Fallback to pod status heuristic
             const problematic = podsData.filter(pod => {
                 const status = pod.status;
                 return status !== 'Running' && status !== 'Succeeded' && status !== 'Completed';
@@ -617,11 +643,11 @@ const OverviewDashboard = {
         }
 
         if (degradedApps.length === 0) {
-            listContainer.style.display = 'none'; // Hide the container if no apps are degraded
+            listContainer.style.display = 'none';
             return;
         }
 
-        listContainer.style.display = 'flex'; // Ensure it is visible
+        listContainer.style.display = 'flex';
 
         let html = '';
         degradedApps.forEach(app => {
