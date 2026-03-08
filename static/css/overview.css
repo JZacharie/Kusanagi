@@ -18,19 +18,42 @@
 
 .zone-title {
     margin: 2rem 0 1rem 0;
-    font-size: 1.3rem;
-    font-weight: 700;
+    font-size: 1.1rem;
+    font-weight: 800;
     color: #fff;
     text-transform: uppercase;
     letter-spacing: 2px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
-    border-left: 4px solid var(--neon-cyan, #00fff9);
-    padding-left: 15px;
+    border-left: 5px solid var(--neon-cyan, #00fff9);
+    padding: 0.8rem 1.2rem;
     background: linear-gradient(90deg, rgba(0, 255, 249, 0.1) 0%, transparent 100%);
-    padding-top: 5px;
-    padding-bottom: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.zone-title:hover {
+    background: linear-gradient(90deg, rgba(0, 255, 249, 0.2) 0%, transparent 100%);
+}
+
+.zone-title .toggle-icon {
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+    opacity: 0.7;
+}
+
+.zone-title.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.zone-title.collapsed+.zone-content {
+    display: none !important;
+}
+
+.zone-content {
+    transition: all 0.3s ease;
 }
 
 /* Header */
@@ -664,28 +687,9 @@
     margin-bottom: 0.8rem !important;
 }
 
-.overview-alert-card.collapsed .alert-content {
+/* Collapsible Zone Support */
+.overview-alert-card.collapsed .zone-content {
     display: none;
-}
-
-.overview-alert-card.collapsed {
-    margin-bottom: 10px !important;
-}
-
-.overview-alert-card .zone-title {
-    transition: background 0.2s;
-}
-
-.overview-alert-card .zone-title:hover {
-    background: rgba(245, 101, 101, 0.2) !important;
-}
-
-.overview-alert-card.collapsed .toggle-icon {
-    transform: rotate(-90deg);
-}
-
-.toggle-icon {
-    transition: transform 0.3s;
 }
 
 .failed-jobs-full-list {

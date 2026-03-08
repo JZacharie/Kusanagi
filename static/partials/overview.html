@@ -26,14 +26,15 @@
         <div class="status-item">Last Backup: <span id="overview-backup-text" class="status-info">--</span></div>
     </div>
 
+    <!-- Zone Alerte -->
     <div id="overview-failed-jobs-alert" class="overview-alert-card panel status-critical"
         style="display: none; margin-bottom: 20px;">
-        <h2 id="overview-alert-header" class="zone-title"
-            style="border-left: 5px solid #f56565 !important; background: rgba(245, 101, 101, 0.1); cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 10px 15px; margin: -1rem -1rem 1rem -1rem; border-radius: 4px 4px 0 0;">
+        <h2 id="overview-alert-header" class="zone-title collapsible-header"
+            style="border-left: 5px solid #f56565 !important; background: rgba(245, 101, 101, 0.1); margin: -1rem -1rem 1rem -1rem; border-radius: 4px 4px 0 0;">
             <span><span class="mdi mdi-alert"></span> ZONE ALERTE</span>
-            <span class="mdi mdi-chevron-down toggle-icon" style="font-size: 1.2rem; opacity: 0.7;"></span>
+            <span class="mdi mdi-chevron-down toggle-icon"></span>
         </h2>
-        <div class="alert-content">
+        <div class="zone-content">
             <h3 id="overview-alert-title">⚠️ ATTENTION: Jobs en échec détectés</h3>
             <div id="overview-alert-summary"></div>
             <div id="overview-alert-details" class="failed-jobs-full-list"></div>
@@ -41,11 +42,12 @@
     </div>
 
     <!-- Zone Business KPI -->
-    <h2 class="zone-title"
+    <h2 class="zone-title collapsible-header"
         style="border-left-color: var(--neon-gold, #ecc94b); background: linear-gradient(90deg, rgba(236, 201, 75, 0.1) 0%, transparent 100%);">
-        <span class="mdi mdi-finance"></span> Zone Business KPI
+        <span><span class="mdi mdi-finance"></span> ZONE BUSINESS KPI</span>
+        <span class="mdi mdi-chevron-down toggle-icon"></span>
     </h2>
-    <div class="business-kpi-grid">
+    <div class="zone-content business-kpi-grid">
         <div class="kpi-card panel">
             <span class="kpi-label">Utilisateurs Totaux</span>
             <span id="biz-total-users" class="kpi-value">--</span>
@@ -83,8 +85,11 @@
     </div>
 
     <!-- Zone DevOps -->
-    <h2 class="zone-title"><span class="mdi mdi-rocket-launch"></span> Zone DevOps</h2>
-    <div class="overview-grid">
+    <h2 class="zone-title collapsible-header">
+        <span><span class="mdi mdi-rocket-launch"></span> ZONE DEVOPS</span>
+        <span class="mdi mdi-chevron-down toggle-icon"></span>
+    </h2>
+    <div class="zone-content overview-grid">
         <!-- 6. Applications Health -->
         <div class="overview-card panel">
             <h3>Applications Health</h3>
@@ -208,11 +213,12 @@
     </div>
 
     <!-- Zone FinOps -->
-    <h2 class="zone-title"
+    <h2 class="zone-title collapsible-header"
         style="border-left-color: var(--neon-orange, #ff8800); background: linear-gradient(90deg, rgba(255, 136, 0, 0.1) 0%, transparent 100%);">
-        <span class="mdi mdi-cash-multiple"></span> Zone FinOps
+        <span><span class="mdi mdi-cash-multiple"></span> ZONE FINOPS</span>
+        <span class="mdi mdi-chevron-down toggle-icon"></span>
     </h2>
-    <div class="overview-grid">
+    <div class="zone-content overview-grid">
         <!-- 2. Cost Analysis -->
         <div class="overview-card cost-card panel">
             <h3>Cost Analysis</h3>
@@ -251,11 +257,12 @@
     </div>
 
     <!-- Zone Cyber Security -->
-    <h2 class="zone-title"
+    <h2 class="zone-title collapsible-header"
         style="border-left-color: var(--neon-magenta, #ff00ff); background: linear-gradient(90deg, rgba(255, 0, 255, 0.1) 0%, transparent 100%);">
-        <span class="mdi mdi-shield-check"></span> Zone Cyber Security
+        <span><span class="mdi mdi-shield-check"></span> ZONE CYBER SECURITY</span>
+        <span class="mdi mdi-chevron-down toggle-icon"></span>
     </h2>
-    <div class="overview-grid">
+    <div class="zone-content overview-grid">
         <!-- 4. Security Score -->
         <div class="overview-card security-card panel">
             <h3>Cluster Security Score</h3>
