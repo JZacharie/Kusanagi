@@ -343,10 +343,12 @@ pub async fn metrics_handler(
     let gpu_metrics = fetch_gpu_and_energy_metrics(&state.http_client).await;
 
     // 7. Get Failed Jobs
-    let failed_jobs_count = match kubernetes_service::get_failed_jobs(&state.http_client).await {
-        Ok(data) => data["total"].as_i64().unwrap_or(0),
-        Err(_) => 0,
+    let failed_jobs_data = match kubernetes_service::get_failed_jobs(&state.http_client).await {
+        Ok(data) => data,
+        Err(_) => json!({"total": 0, "failed_jobs": []}),
     };
+    let failed_jobs_count = failed_jobs_data["total"].as_i64().unwrap_or(0);
+    let failed_jobs_list = failed_jobs_data["failed_jobs"].as_array().cloned().unwrap_or_default();
 
     // 8. Calculate Security Score (Trivy + Steampipe)
     let steampipe_data = crate::domain::services::steampipe_service::get_security_score_metrics().await.unwrap_or_else(|_| json!({"score": 100.0}));
@@ -391,6 +393,7 @@ pub async fn metrics_handler(
         "trivy_medium_count": trivy_medium,
         "trivy_low_count": trivy_low,
         "failed_jobs_count": failed_jobs_count,
+        "failed_jobs_list": failed_jobs_list,
         "security_score": final_security_score,
         "security_details": {
             "trivy_score": trivy_score,
