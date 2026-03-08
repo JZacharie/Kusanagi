@@ -37,16 +37,18 @@ const OverviewDashboard = {
             });
         }
 
-        // Alert Area Collapsibility
-        const alertHeader = document.getElementById('overview-alert-header');
-        if (alertHeader) {
-            alertHeader.addEventListener('click', () => {
-                const alertCard = document.getElementById('overview-failed-jobs-alert');
-                if (alertCard) {
-                    alertCard.classList.toggle('collapsed');
+        // Generic Zone Collapsibility
+        document.querySelectorAll('.zone-title').forEach(header => {
+            header.addEventListener('click', () => {
+                header.classList.toggle('collapsed');
+
+                // Special handling for the Alert Card wrapper if needed
+                const parentCard = header.closest('.overview-alert-card');
+                if (parentCard) {
+                    parentCard.classList.toggle('collapsed');
                 }
             });
-        }
+        });
 
         this.initialized = true;
         this.refreshData();
