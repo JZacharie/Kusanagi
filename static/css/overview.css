@@ -733,8 +733,8 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    min-height: 100px;
-    background: linear-gradient(135deg, #1a2332 0%, #151b28 100%);
+    min-height: 80px;
+    padding: 0.8rem;
     position: relative;
     overflow: hidden;
 }
@@ -758,7 +758,7 @@
 }
 
 .kpi-value {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     font-weight: 800;
     color: #ecc94b;
 }
@@ -771,4 +771,16 @@
 
 .business-chart-card {
     grid-column: span 2;
+    min-height: 100px !important;
+    max-height: 150px !important;
+    padding: 0.5rem !important;
+}
+
+.business-chart-card h3 {
+    font-size: 0.8rem !important;
+    margin-bottom: 5px !important;
+}
+
+#biz-users-chart {
+    height: 80px !important;
 }
