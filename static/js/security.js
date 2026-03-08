@@ -716,7 +716,11 @@ const SecurityDashboard = {
             return `
                             <tr class="vuln-row" data-image="${img.image}" style="cursor: pointer;" onclick="SecurityDashboard.toggleDetails('${this.escapeId(img.image)}')">
                                 <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
-                                    <code title="${img.image}" style="font-size: 0.8rem;">${this.truncate(img.image, 45)}</code>
+                                    <code title="${img.image}" 
+                                          style="font-size: 0.8rem; cursor: pointer; color: var(--neon-cyan); text-decoration: underline;" 
+                                          onclick="event.stopPropagation(); SecurityDashboard.viewReportDetail('${img.report_id}')">
+                                        ${this.truncate(img.image, 45)}
+                                    </code>
                                     <div style="font-size: 0.7rem; color: #888; margin-top: 2px;">${this.formatTime(img.last_scan)}</div>
                                 </td>
                                 <td><span class="status-badge info">${img.namespace}</span></td>
@@ -843,7 +847,9 @@ const SecurityDashboard = {
                         <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); ${i === 0 ? 'background: rgba(255,0,0,0.1);' : ''}">
                             <span style="font-size: 1.2rem;">${i === 0 ? '🔥' : i < 3 ? '⚠️' : '⚡'}</span>
                             <div style="flex: 1; min-width: 0;">
-                                <div style="font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${img.image}">
+                                <div style="font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; color: var(--neon-cyan); text-decoration: underline;" 
+                                     title="${img.image}"
+                                     onclick="SecurityDashboard.viewReportDetail('${img.report_id}')">
                                     ${this.truncate(img.image, 35)}
                                 </div>
                                 <div style="font-size: 0.7rem; color: #888;">${img.namespace}</div>
