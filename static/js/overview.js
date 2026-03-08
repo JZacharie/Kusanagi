@@ -692,11 +692,47 @@ const OverviewDashboard = {
                 `;
             }
         }
+
+        // Render Failed Jobs List
+        const listContainer = document.getElementById('overview-failed-jobs-list');
+        if (listContainer) {
+            const failedJobsList = metricsData.failed_jobs_list || [];
+            if (failedJobsList.length > 0) {
+                // Group by job name to avoid listing repetitive retries if possible, 
+                // but usually kube_job_failed already is per job.
+                const limitedJobs = failedJobsList.slice(0, 5);
+                let html = '<div style="margin-top: 1rem; border-top: 1px dashed #2a3548; padding-top: 0.8rem;">';
+                html += '<div style="font-size: 0.8rem; font-weight: bold; color: #f56565; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">';
+                html += '<span>❌ Recent Failed Jobs:</span>';
+                html += '</div>';
+
+                limitedJobs.forEach(job => {
+                    html += `
+                        <div class="failed-job-item" style="display: flex; justify-content: space-between; font-size: 0.75rem; padding: 4px 8px; background: rgba(245, 101, 101, 0.05); border: 1px solid rgba(245, 101, 101, 0.1); border-radius: 4px; margin-bottom: 4px;">
+                            <span style="font-weight: 600; color: #f56565;">${job.job_name}</span>
+                            <span style="color: #a0aec0; opacity: 0.7;">${job.namespace}</span>
+                        </div>
+                    `;
+                });
+
+                if (failedJobsList.length > 5) {
+                    html += `<div style="font-size: 0.7rem; color: #718096; text-align: right;">...and ${failedJobsList.length - 5} more</div>`;
+                }
+
+                html += '</div>';
+                listContainer.innerHTML = html;
+            } else {
+                listContainer.innerHTML = '';
+            }
+        }
     },
 
-    renderPipelines(pipelines) {
+    renderPipelines(data) {
         const listEl = document.getElementById('overview-pipelines-list');
         if (!listEl) return;
+
+        const pipelines = data.pipelines || [];
+        const repoStats = data.repo_stats || {};
 
         if (!pipelines || pipelines.length === 0) {
             listEl.innerHTML = '<div class="no-data" style="color:#a0aec0;font-size:0.85rem;">No recent pipelines found.</div>';
@@ -705,10 +741,11 @@ const OverviewDashboard = {
 
         const renderRepoLine = (repoName, searchStr) => {
             const repoPipelines = pipelines.filter(p => (p.repo || '').toLowerCase().includes(searchStr.toLowerCase())).slice(0, 5);
-            let iconsHtml = '';
+            const stats = repoStats[repoName] || { open_prs: 0, prs_url: '#' };
 
+            let iconsHtml = '';
             if (repoPipelines.length === 0) {
-                iconsHtml = '<span style="color:#718096;font-size:0.75rem;font-style:italic;">No runs</span>';
+                iconsHtml = '<span style="color:#718096;font-size:0.75rem;font-style:italic;">No recent runs</span>';
             } else {
                 repoPipelines.forEach(run => {
                     const statusClass = run.status === 'completed'
@@ -728,9 +765,16 @@ const OverviewDashboard = {
             }
 
             return `
-                <div class="pipeline-repo-line" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div class="pipeline-repo-name" style="font-weight: bold; font-size: 0.9rem;">${repoName}</div>
-                    <div class="pipeline-status-icons" style="display: flex; gap: 6px;">${iconsHtml}</div>
+                <div class="pipeline-repo-line" style="display: flex; flex-direction: column; background: #151b28; padding: 0.8rem; border-radius: 6px; border: 1px solid #2a3548; margin-bottom: 0.8rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <div class="pipeline-repo-name" style="font-weight: bold; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>📂 ${repoName}</span>
+                            <a href="${stats.prs_url}" target="_blank" style="font-size: 0.75rem; font-weight: normal; color: #4299e1; text-decoration: none; background: rgba(66, 153, 225, 0.1); padding: 2px 6px; border-radius: 10px; border: 1px solid rgba(66, 153, 225, 0.2);">
+                                🔄 ${stats.open_prs} Open PRs
+                            </a>
+                        </div>
+                        <div class="pipeline-status-icons" style="display: flex; gap: 6px;">${iconsHtml}</div>
+                    </div>
                 </div>
             `;
         };
