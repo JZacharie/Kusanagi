@@ -305,8 +305,20 @@ pub async fn get_nodes_status(
         total_cpu += cpu_capacity;
         total_memory_gb += memory_capacity_gb;
 
+        // Collect node IPs for better Prometheus matching
+        let mut node_ips = Vec::new();
+        if let Some(status) = &node.status {
+            if let Some(addresses) = &status.addresses {
+                for addr in addresses {
+                    if addr.type_ == "InternalIP" || addr.type_ == "ExternalIP" {
+                        node_ips.push(addr.address.clone());
+                    }
+                }
+            }
+        }
+
         // Metrics logic - try to find metrics with flexible name matching
-        let (cpu_usage_core, memory_usage_bytes) = find_node_metrics(name, &metrics_map);
+        let (cpu_usage_core, memory_usage_bytes) = find_node_metrics(name, &node_ips, &metrics_map);
 
         let cpu_usage_percent = if cpu_capacity > 0.0 {
             (cpu_usage_core / cpu_capacity) * 100.0
@@ -1014,16 +1026,16 @@ mod tests {
         metrics_map.insert("node3.cluster.local".to_string(), (3.0, 4096.0));
 
         // Exact match
-        assert_eq!(find_node_metrics("node1", &metrics_map), (1.0, 1024.0));
+        assert_eq!(find_node_metrics("node1", &[], &metrics_map), (1.0, 1024.0));
 
-        // IP match (instance label typically contains port)
-        assert_eq!(find_node_metrics("node-192.168.1.10", &metrics_map), (2.0, 2048.0));
+        // IP match (via node_ips)
+        assert_eq!(find_node_metrics("node-x", &["192.168.1.10".to_string()], &metrics_map), (2.0, 2048.0));
 
         // Short name match
-        assert_eq!(find_node_metrics("node3", &metrics_map), (3.0, 4096.0));
+        assert_eq!(find_node_metrics("node3", &[], &metrics_map), (3.0, 4096.0));
 
         // No match
-        assert_eq!(find_node_metrics("unknown", &metrics_map), (0.0, 0.0));
+        assert_eq!(find_node_metrics("unknown", &[], &metrics_map), (0.0, 0.0));
     }
 }
 
@@ -1277,6 +1289,7 @@ async fn query_prometheus(
 /// Handles cases where Prometheus node name differs from Kubernetes node name
 fn find_node_metrics(
     k8s_node_name: &str,
+    node_ips: &[String],
     metrics_map: &std::collections::HashMap<String, (f64, f64)>,
 ) -> (f64, f64) {
     // First try exact match
@@ -1308,14 +1321,27 @@ fn find_node_metrics(
         }
     }
 
-    // Try IP address matching - extract IP from instance label (e.g., "10.0.0.1:9100")
+    // Try IP address matching - check if any of the node's IPs match the metric source
+    for ip in node_ips {
+        for (metric_node, metrics) in metrics_map {
+            // metric_node might be "192.168.1.1:9100" or just "192.168.1.1"
+            let metric_ip = metric_node.split(':').next().unwrap_or(metric_node);
+            
+            if ip == metric_ip {
+                tracing::info!("Matched node {} to metrics via IP {}", k8s_node_name, ip);
+                return *metrics;
+            }
+        }
+    }
+
+    // Last resort: check if any metric_node (IP) is contained in any of our node IPs (or vice-versa)
     for (metric_node, metrics) in metrics_map {
         let metric_ip = metric_node.split(':').next().unwrap_or(metric_node);
-
-        // Check if node name contains the IP or vice versa
-        if k8s_node_name.contains(metric_ip) || metric_node.contains(k8s_short) {
-            tracing::debug!("IP match: {} ~ {}", k8s_node_name, metric_node);
-            return *metrics;
+        for ip in node_ips {
+            if ip.contains(metric_ip) || metric_ip.contains(ip) {
+                tracing::info!("Partial IP match: {} ~ {} for node {}", ip, metric_ip, k8s_node_name);
+                return *metrics;
+            }
         }
     }
 
