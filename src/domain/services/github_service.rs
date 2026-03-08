@@ -62,5 +62,5 @@ pub async fn get_last_pipelines() -> Result<Value, String> {
         b["created_at"].as_str().unwrap_or("").cmp(a["created_at"].as_str().unwrap_or(""))
     });
 
-    Ok(json!(all_runs.into_iter().take(5).collect::<Vec<Value>>()))
+    Ok(json!(all_runs))
 }
