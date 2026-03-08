@@ -49,62 +49,46 @@
                         <span id="overview-latency-stat" class="weather-stat-value">--ms</span>
                     </div>
                     <div class="weather-stat-resources">
-                        <div class="weather-stat-label">Detailed Resources:</div>
-                        <div class="resource-block">
-                            <div class="resource-title">CPU (cores)</div>
-                            <div class="weather-stat-row">
-                                <span>Usage:</span>
-                                <span id="overview-cpu-usage">--</span>
+                        <div class="detailed-resources-grid">
+                            <!-- CPU Gauge -->
+                            <div class="resource-gauge-block">
+                                <div class="resource-title">CPU</div>
+                                <div class="gauge-container">
+                                    <canvas id="overview-cpu-gauge" width="160" height="160"></canvas>
+                                </div>
+                                <ul class="resource-gauge-legend">
+                                    <li class="legend-item"><span class="legend-color legend-usage"></span> Usage: <span
+                                            id="overview-cpu-usage">--</span></li>
+                                    <li class="legend-item"><span class="legend-color legend-requests"></span> Requests:
+                                        <span id="overview-cpu-req">--</span></li>
+                                    <li class="legend-item"><span class="legend-color legend-limits"></span> Limits:
+                                        <span id="overview-cpu-limit">--</span></li>
+                                    <li class="legend-item"><span class="legend-color legend-allocatable"></span>
+                                        Allocatable Capacity: <span id="overview-cpu-alloc">--</span></li>
+                                    <li class="legend-item"><span class="legend-color legend-capacity"></span> Capacity:
+                                        <span id="overview-cpu-cap">--</span></li>
+                                </ul>
                             </div>
-                            <div class="weather-stat-row">
-                                <span>Requests:</span>
-                                <span id="overview-cpu-req">--</span>
+
+                            <!-- Memory Gauge -->
+                            <div class="resource-gauge-block">
+                                <div class="resource-title">Memory</div>
+                                <div class="gauge-container">
+                                    <canvas id="overview-mem-gauge" width="160" height="160"></canvas>
+                                </div>
+                                <ul class="resource-gauge-legend">
+                                    <li class="legend-item"><span class="legend-color legend-usage"></span> Usage: <span
+                                            id="overview-mem-usage">--</span></li>
+                                    <li class="legend-item"><span class="legend-color legend-requests"></span> Requests:
+                                        <span id="overview-mem-req">--</span></li>
+                                    <li class="legend-item"><span class="legend-color legend-limits"></span> Limits:
+                                        <span id="overview-mem-limit">--</span></li>
+                                    <li class="legend-item"><span class="legend-color legend-allocatable"></span>
+                                        Allocatable Capacity: <span id="overview-mem-alloc">--</span></li>
+                                    <li class="legend-item"><span class="legend-color legend-capacity"></span> Capacity:
+                                        <span id="overview-mem-cap">--</span></li>
+                                </ul>
                             </div>
-                            <div class="weather-stat-row">
-                                <span>Limits:</span>
-                                <span id="overview-cpu-limit">--</span>
-                            </div>
-                            <div class="weather-stat-row">
-                                <span>Allocatable:</span>
-                                <span id="overview-cpu-alloc">--</span>
-                            </div>
-                            <div class="weather-stat-row">
-                                <span>Capacity:</span>
-                                <span id="overview-cpu-cap">--</span>
-                            </div>
-                        </div>
-                        <div class="resource-block">
-                            <div class="resource-title">Memory (GiB)</div>
-                            <div class="weather-stat-row">
-                                <span>Usage:</span>
-                                <span id="overview-mem-usage">--</span>
-                            </div>
-                            <div class="weather-stat-row">
-                                <span>Requests:</span>
-                                <span id="overview-mem-req">--</span>
-                            </div>
-                            <div class="weather-stat-row">
-                                <span>Limits:</span>
-                                <span id="overview-mem-limit">--</span>
-                            </div>
-                            <div class="weather-stat-row">
-                                <span>Allocatable:</span>
-                                <span id="overview-mem-alloc">--</span>
-                            </div>
-                            <div class="weather-stat-row">
-                                <span>Capacity:</span>
-                                <span id="overview-mem-cap">--</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="weather-mini-charts">
-                        <div class="mini-chart-item">
-                            <canvas id="overview-cpu-chart" height="40"></canvas>
-                            <div class="mini-chart-label">CPU: <span id="overview-cpu-stat">--%</span></div>
-                        </div>
-                        <div class="mini-chart-item">
-                            <canvas id="overview-mem-chart" height="40"></canvas>
-                            <div class="mini-chart-label">Mem: <span id="overview-mem-stat">--%</span></div>
                         </div>
                     </div>
                 </div>

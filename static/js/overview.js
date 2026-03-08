@@ -198,25 +198,41 @@ const OverviewDashboard = {
             const cpu = resources.cpu || {};
             const mem = resources.memory || {};
 
-            // CPU (cores)
+            // Helper to set text and ensure no null errors
             const setRes = (id, val) => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = val;
             };
 
-            setRes('overview-cpu-usage', cpu.usage?.toFixed(2) || '0.00');
-            setRes('overview-cpu-req', cpu.requests?.toFixed(2) || '0.00');
-            setRes('overview-cpu-limit', cpu.limits?.toFixed(2) || '0.00');
-            setRes('overview-cpu-alloc', cpu.allocatable?.toFixed(2) || '0.00');
-            setRes('overview-cpu-cap', cpu.capacity?.toFixed(2) || '0.00');
+            // CPU
+            const cpuUsage = cpu.usage || 0;
+            const cpuReq = cpu.requests || 0;
+            const cpuLimit = cpu.limits || 0;
+            const cpuAlloc = cpu.allocatable || 0;
+            const cpuCap = cpu.capacity || 0;
+
+            setRes('overview-cpu-usage', cpuUsage.toFixed(2));
+            setRes('overview-cpu-req', cpuReq.toFixed(2));
+            setRes('overview-cpu-limit', cpuLimit.toFixed(2));
+            setRes('overview-cpu-alloc', cpuAlloc.toFixed(2));
+            setRes('overview-cpu-cap', cpuCap.toFixed(2));
+
+            this.renderGaugeChart('overview-cpu-gauge', cpuUsage, cpuReq, cpuLimit, cpuCap);
 
             // Memory (GiB)
-            const toGiB = (bytes) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
-            setRes('overview-mem-usage', toGiB(mem.usage || 0));
-            setRes('overview-mem-req', toGiB(mem.requests || 0));
-            setRes('overview-mem-limit', toGiB(mem.limits || 0));
-            setRes('overview-mem-alloc', toGiB(mem.allocatable || 0));
-            setRes('overview-mem-cap', toGiB(mem.capacity || 0));
+            const memUsage = (mem.usage || 0) / (1024 * 1024 * 1024);
+            const memReq = (mem.requests || 0) / (1024 * 1024 * 1024);
+            const memLimit = (mem.limits || 0) / (1024 * 1024 * 1024);
+            const memAlloc = (mem.allocatable || 0) / (1024 * 1024 * 1024);
+            const memCap = (mem.capacity || 0) / (1024 * 1024 * 1024);
+
+            setRes('overview-mem-usage', memUsage.toFixed(1) + 'GiB');
+            setRes('overview-mem-req', memReq.toFixed(1) + 'GiB');
+            setRes('overview-mem-limit', memLimit.toFixed(1) + 'GiB');
+            setRes('overview-mem-alloc', memAlloc.toFixed(1) + 'GiB');
+            setRes('overview-mem-cap', memCap.toFixed(1) + 'GiB');
+
+            this.renderGaugeChart('overview-mem-gauge', memUsage, memReq, memLimit, memCap);
         }
 
         // Mock API latency
@@ -290,6 +306,93 @@ const OverviewDashboard = {
         ctx.lineTo(0, height);
         ctx.fillStyle = (color || '#00fff9') + '33';
         ctx.fill();
+    },
+
+    renderGaugeChart(canvasId, usage, requests, limits, capacity) {
+        if (typeof Chart === 'undefined') {
+            console.warn('Chart.js not loaded. Skipping gauge chart.');
+            return;
+        }
+
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        if (this.charts[canvasId]) {
+            this.charts[canvasId].destroy();
+        }
+
+        const safeCapacity = capacity > 0 ? capacity : 1; // Prevent division by zero
+
+        // Calculate remaining capacities for each ring
+        const remainingUsage = Math.max(0, safeCapacity - usage);
+        const remainingRequests = Math.max(0, safeCapacity - requests);
+        const remainingLimits = Math.max(0, safeCapacity - limits);
+
+        this.charts[canvasId] = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Usage', 'Requests', 'Limits', 'Available'],
+                datasets: [
+                    {
+                        // Inner ring: Limits
+                        data: [0, 0, limits, remainingLimits],
+                        backgroundColor: ['transparent', 'transparent', '#319795', '#2d3748'],
+                        borderWidth: 0,
+                        circumference: 360,
+                        weight: 1
+                    },
+                    {
+                        // Middle ring: Requests
+                        data: [0, requests, 0, remainingRequests],
+                        backgroundColor: ['transparent', '#48bb78', 'transparent', '#2d3748'],
+                        borderWidth: 0,
+                        circumference: 360,
+                        weight: 1
+                    },
+                    {
+                        // Outer ring: Usage
+                        data: [usage, 0, 0, remainingUsage],
+                        backgroundColor: ['#d53f8c', 'transparent', 'transparent', '#2d3748'],
+                        borderWidth: 0,
+                        circumference: 360,
+                        weight: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '50%', // Size of the inner hole
+                plugins: {
+                    legend: {
+                        display: false // We use custom HTML legend
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                // Only show tooltip for the active (colored) section, not the gray background
+                                const dataIndex = context.dataIndex;
+                                const datasetIndex = context.datasetIndex; // 0: Limits, 1: Requests, 2: Usage
+
+                                if (datasetIndex === 0 && dataIndex === 2) return `Limits: ${context.raw.toFixed(2)}`;
+                                if (datasetIndex === 1 && dataIndex === 1) return `Requests: ${context.raw.toFixed(2)}`;
+                                if (datasetIndex === 2 && dataIndex === 0) return `Usage: ${context.raw.toFixed(2)}`;
+
+                                return null; // Hide tooltips for the gray background parts
+                            }
+                        },
+                        filter: function (tooltipItem) {
+                            // Filter out tooltips returning null label
+                            const dataIndex = tooltipItem.dataIndex;
+                            const datasetIndex = tooltipItem.datasetIndex;
+                            return (datasetIndex === 0 && dataIndex === 2) ||
+                                (datasetIndex === 1 && dataIndex === 1) ||
+                                (datasetIndex === 2 && dataIndex === 0);
+                        }
+                    }
+                }
+            }
+        });
     },
 
     renderCostData(nodesData, metricsData, nsMetricsData) {
