@@ -445,22 +445,26 @@ const SecurityDashboard = {
         const content = document.getElementById('report-detail-content');
         if (!content) return;
 
-        const enrichment = report.enrichment || {};
         const originalData = report.original_data || {};
-        // Real Trivy JSON: original_data.report.vulnerabilities
-        // Legacy format:   original_data.vulnerabilities
         const vulnerabilities = (originalData.report?.vulnerabilities)
             || (originalData.Report?.Vulnerabilities)
             || originalData.vulnerabilities
             || [];
+
+        // Store data for filtering
+        this.currentReportData = {
+            reportId: reportId,
+            vulnerabilities: vulnerabilities,
+            report: report
+        };
+
+        const enrichment = report.enrichment || {};
         const metadata = originalData.metadata || {};
-        // Use Trivy summary block if available
         const trivySummary = originalData.report?.summary || null;
 
         // Count severities
         const severityCount = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, UNKNOWN: 0 };
         if (trivySummary) {
-            // Fast path: use Trivy's pre-computed summary
             severityCount.CRITICAL = trivySummary.criticalCount || 0;
             severityCount.HIGH = trivySummary.highCount || 0;
             severityCount.MEDIUM = trivySummary.mediumCount || 0;
@@ -484,7 +488,7 @@ const SecurityDashboard = {
                             <span>🕐 ${report.timestamp ? new Date(report.timestamp).toLocaleString() : 'N/A'}</span>
                         </div>
                     </div>
-                    ${report.enrichment ? `
+                    ${report.enrichment && enrichment.criticality_score !== undefined ? `
                         <div style="text-align: right;">
                             <div style="font-size: 0.8rem; color: #888;">AI Criticality Score</div>
                             <div style="font-size: 2rem; font-weight: bold; color: ${this.getScoreColor(enrichment.criticality_score || 0)};">
@@ -498,61 +502,87 @@ const SecurityDashboard = {
                 ${report.enrichment ? `
                     <div style="background: rgba(255,0,128,0.05); border: 1px solid rgba(255,0,128,0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
                         <h3 style="margin: 0 0 1rem 0; color: var(--neon-magenta);">🤖 AI Analysis</h3>
-                        ${enrichment.summary ? `
-                            <div style="margin-bottom: 1rem;">
-                                <div style="font-size: 0.8rem; color: #888; margin-bottom: 0.25rem;">Summary</div>
-                                <div style="color: #fff; line-height: 1.5;">${enrichment.summary}</div>
-                            </div>
-                        ` : ''}
-                        ${enrichment.remediation_advice ? `
-                            <div>
-                                <div style="font-size: 0.8rem; color: #888; margin-bottom: 0.25rem;">Remediation Advice</div>
-                                <div style="color: #fff; line-height: 1.5; white-space: pre-wrap;">${enrichment.remediation_advice}</div>
-                            </div>
-                        ` : ''}
+                        ${enrichment.summary ? `<div style="margin-bottom: 1rem;"><div style="font-size: 0.8rem; color: #888; margin-bottom: 0.25rem;">Summary</div><div style="color: #fff; line-height: 1.5;">${enrichment.summary}</div></div>` : ''}
+                        ${enrichment.remediation_advice ? `<div><div style="font-size: 0.8rem; color: #888; margin-bottom: 0.25rem;">Remediation Advice</div><div style="color: #fff; line-height: 1.5; white-space: pre-wrap;">${enrichment.remediation_advice}</div></div>` : ''}
                     </div>
                 ` : ''}
 
-                <!-- Severity Summary -->
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
-                    <div style="background: rgba(255,68,68,0.1); border: 1px solid #ff4444; border-radius: 8px; padding: 1rem; text-align: center;">
-                        <div style="font-size: 2rem; font-weight: bold; color: #ff4444;">${severityCount.CRITICAL}</div>
-                        <div style="font-size: 0.8rem; color: #888;">Critical</div>
+                <!-- Severity Summary / Quick Filters -->
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.85rem; color: #888;">Filter by Severity:</span>
+                        <button onclick="SecurityDashboard.filterReportBySeverity('ALL')" class="cyber-btn small" style="font-size: 0.7rem; padding: 2px 8px;">Show All</button>
                     </div>
-                    <div style="background: rgba(255,136,0,0.1); border: 1px solid #ff8800; border-radius: 8px; padding: 1rem; text-align: center;">
-                        <div style="font-size: 2rem; font-weight: bold; color: #ff8800;">${severityCount.HIGH}</div>
-                        <div style="font-size: 0.8rem; color: #888;">High</div>
-                    </div>
-                    <div style="background: rgba(255,221,0,0.1); border: 1px solid #ffdd00; border-radius: 8px; padding: 1rem; text-align: center;">
-                        <div style="font-size: 2rem; font-weight: bold; color: #ffdd00;">${severityCount.MEDIUM}</div>
-                        <div style="font-size: 0.8rem; color: #888;">Medium</div>
-                    </div>
-                    <div style="background: rgba(68,255,68,0.1); border: 1px solid #44ff44; border-radius: 8px; padding: 1rem; text-align: center;">
-                        <div style="font-size: 2rem; font-weight: bold; color: #44ff44;">${severityCount.LOW}</div>
-                        <div style="font-size: 0.8rem; color: #888;">Low</div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+                        <div onclick="SecurityDashboard.filterReportBySeverity('CRITICAL')" style="cursor: pointer; background: rgba(255,68,68,0.1); border: 1px solid #ff4444; border-radius: 8px; padding: 0.75rem; text-align: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,68,68,0.2)'" onmouseout="this.style.background='rgba(255,68,68,0.1)'">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #ff4444;">${severityCount.CRITICAL}</div>
+                            <div style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Critical</div>
+                        </div>
+                        <div onclick="SecurityDashboard.filterReportBySeverity('HIGH')" style="cursor: pointer; background: rgba(255,136,0,0.1); border: 1px solid #ff8800; border-radius: 8px; padding: 0.75rem; text-align: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,136,0,0.2)'" onmouseout="this.style.background='rgba(255,136,0,0.1)'">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #ff8800;">${severityCount.HIGH}</div>
+                            <div style="font-size: 0.75rem; color: #888; text-transform: uppercase;">High</div>
+                        </div>
+                        <div onclick="SecurityDashboard.filterReportBySeverity('MEDIUM')" style="cursor: pointer; background: rgba(255,221,0,0.1); border: 1px solid #ffdd00; border-radius: 8px; padding: 0.75rem; text-align: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,221,0,0.2)'" onmouseout="this.style.background='rgba(255,221,0,0.1)'">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #ffdd00;">${severityCount.MEDIUM}</div>
+                            <div style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Medium</div>
+                        </div>
+                        <div onclick="SecurityDashboard.filterReportBySeverity('LOW')" style="cursor: pointer; background: rgba(68,255,68,0.1); border: 1px solid #44ff44; border-radius: 8px; padding: 0.75rem; text-align: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(68,255,68,0.2)'" onmouseout="this.style.background='rgba(68,255,68,0.1)'">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #44ff44;">${severityCount.LOW}</div>
+                            <div style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Low</div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Vulnerabilities List -->
-                <div style="margin-bottom: 1.5rem;">
-                    <h3 style="margin: 0 0 1rem 0; color: var(--neon-cyan);">🔍 Vulnerabilities (${vulnerabilities.length})</h3>
-                    ${vulnerabilities.length === 0 ?
+                <div>
+                    <h3 id="report-vuln-title" style="margin: 0 0 1rem 0; color: var(--neon-cyan);">🔍 Vulnerabilities (${vulnerabilities.length})</h3>
+                    <div id="vulnerabilities-list-container">
+                        ${vulnerabilities.length === 0 ?
                 '<div style="color: #888; text-align: center; padding: 2rem;">No vulnerabilities found in this report</div>' :
-                `<div style="max-height: 400px; overflow-y: auto;">
-                            ${vulnerabilities.map((v, i) => this.renderVulnerabilityItem(v, i)).join('')}
-                        </div>`
+                `<div style="max-height: 480px; overflow-y: auto; padding-right: 5px;">
+                                ${vulnerabilities.map((v, i) => this.renderVulnerabilityItem(v, i)).join('')}
+                            </div>`
             }
+                    </div>
                 </div>
 
                 <!-- Metadata -->
                 ${Object.keys(metadata).length > 0 ? `
-                    <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1rem;">
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1rem; margin-top: 1.5rem;">
                         <h3 style="margin: 0 0 0.5rem 0; color: #888; font-size: 0.9rem;">📋 Metadata</h3>
                         <pre style="margin: 0; color: #aaa; font-size: 0.8rem; overflow-x: auto;">${JSON.stringify(metadata, null, 2)}</pre>
                     </div>
                 ` : ''}
             </div>
         `;
+    },
+
+    filterReportBySeverity(severity) {
+        if (!this.currentReportData) return;
+
+        const vulnerabilities = this.currentReportData.vulnerabilities || [];
+        const filtered = severity === 'ALL'
+            ? vulnerabilities
+            : vulnerabilities.filter(v => (v.severity || 'UNKNOWN').toUpperCase() === severity);
+
+        const container = document.getElementById('vulnerabilities-list-container');
+        const titleEl = document.getElementById('report-vuln-title');
+
+        if (titleEl) {
+            titleEl.textContent = `🔍 ${severity === 'ALL' ? '' : severity + ' '}Vulnerabilities (${filtered.length})`;
+        }
+
+        if (container) {
+            if (filtered.length === 0) {
+                container.innerHTML = `<div style="color: #888; text-align: center; padding: 2rem; background: rgba(0,0,0,0.2); border-radius: 8px;">No ${severity.toLowerCase()} vulnerabilities found</div>`;
+            } else {
+                container.innerHTML = `
+                    <div style="max-height: 480px; overflow-y: auto; padding-right: 5px;">
+                        ${filtered.map((v, i) => this.renderVulnerabilityItem(v, i)).join('')}
+                    </div>
+                `;
+            }
+        }
     },
 
     renderVulnerabilityItem(vuln, index) {

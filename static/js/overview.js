@@ -652,26 +652,67 @@ const OverviewDashboard = {
         }
 
         const details = metricsData.security_details;
-        const failedJobs = metricsData.failed_jobs_count || 0;
+        const failedJobsCount = metricsData.failed_jobs_count || 0;
+        const failedJobsList = metricsData.failed_jobs_list || [];
 
         if (details) {
-            document.getElementById('overview-trivy-score').textContent = `${details.trivy_score.toFixed(0)}%`;
-            document.getElementById('overview-compliance-score').textContent = `${details.steampipe_score.toFixed(0)}%`;
+            document.getElementById('overview-trivy-score').textContent = `${(details.trivy_score || 0).toFixed(0)}%`;
+            document.getElementById('overview-compliance-score').textContent = `${(details.steampipe_score || 0).toFixed(0)}%`;
         }
 
         const failedJobsEl = document.getElementById('overview-failed-jobs-count');
         if (failedJobsEl) {
-            failedJobsEl.textContent = failedJobs;
-            failedJobsEl.className = failedJobs > 0 ? 'status-critical' : 'status-good';
+            failedJobsEl.textContent = failedJobsCount;
+            failedJobsEl.className = failedJobsCount > 0 ? 'status-critical' : 'status-good';
         }
 
-        // Summary text
+        // 1. Manage Global Alert Card for Failed Jobs
+        const alertCard = document.getElementById('overview-failed-jobs-alert');
+        if (alertCard) {
+            if (failedJobsCount > 0) {
+                alertCard.style.display = 'block';
+                const alertSummary = document.getElementById('overview-alert-summary');
+                const alertDetails = document.getElementById('overview-alert-details');
+
+                if (alertSummary) {
+                    alertSummary.innerHTML = `<div style="color: #f56565; font-weight: bold; margin-bottom: 10px;">⚠️ ATTENTION: ${failedJobsCount} jobs en échec détectés (Pénalité appliquée)</div>`;
+                    if (details && details.steampipe_stats) {
+                        const stats = details.steampipe_stats;
+                        alertSummary.innerHTML += `
+                            <div style="font-size: 0.85rem; color: #a0aec0; margin-bottom: 10px;">
+                                ${stats.passed || 0} tests réussis / ${stats.failed || 0} échecs conformité<br>
+                                ${metricsData.trivy_critical_count || 0} Vulnerabilités Critiques (Filtrées)
+                            </div>
+                        `;
+                    }
+                }
+
+                if (alertDetails) {
+                    let html = '<div style="font-size: 0.8rem; font-weight: bold; color: #f56565; margin-bottom: 0.5rem;">❌ Recent Failed Jobs:</div>';
+                    html += '<div class="failed-jobs-full-list">';
+                    failedJobsList.forEach(job => {
+                        html += `
+                            <div class="failed-job-full-item">
+                                <span class="job-name">${job.job_name}</span>
+                                <span class="job-ns">${job.namespace}</span>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    alertDetails.innerHTML = html;
+                }
+            } else {
+                alertCard.style.display = 'none';
+            }
+        }
+
+        // 2. Summary text inside Security Card (as fallback or secondary info)
         const summaryEl = document.getElementById('overview-security-summary');
         if (summaryEl) {
-            if (failedJobs > 0) {
+            if (failedJobsCount > 0) {
                 summaryEl.innerHTML = `
                     <div style="color: #f56565; font-weight: bold; margin-bottom: 5px; margin-top: 1rem; border-top: 1px dashed #2a3548; padding-top: 1rem;">
-                        ⚠️ ATTENTION: ${failedJobs} jobs en échec détectés (Pénalité appliquée)
+                        ⚠️ ${failedJobsCount} jobs en échec
                     </div>
                 `;
             } else {
@@ -686,62 +727,36 @@ const OverviewDashboard = {
                 const stats = details.steampipe_stats;
                 summaryEl.innerHTML += `
                     <div style="font-size: 0.75rem; color: #a0aec0;">
-                        ${stats.passed} tests réussis / ${stats.failed} échecs conformité<br>
+                        ${stats.passed || 0} tests réussis / ${stats.failed || 0} échecs conformité<br>
                         ${metricsData.trivy_critical_count || 0} Vulnerabilités Critiques (Filtrées)
                     </div>
                 `;
             }
         }
 
-        // Render Failed Jobs List
+        // Clear the old list inside the security card to avoid duplication
         const listContainer = document.getElementById('overview-failed-jobs-list');
-        if (listContainer) {
-            const failedJobsList = metricsData.failed_jobs_list || [];
-            if (failedJobsList.length > 0) {
-                // Group by job name to avoid listing repetitive retries if possible, 
-                // but usually kube_job_failed already is per job.
-                const limitedJobs = failedJobsList.slice(0, 5);
-                let html = '<div style="margin-top: 1rem; border-top: 1px dashed #2a3548; padding-top: 0.8rem;">';
-                html += '<div style="font-size: 0.8rem; font-weight: bold; color: #f56565; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">';
-                html += '<span>❌ Recent Failed Jobs:</span>';
-                html += '</div>';
-
-                limitedJobs.forEach(job => {
-                    html += `
-                        <div class="failed-job-item" style="display: flex; justify-content: space-between; font-size: 0.75rem; padding: 4px 8px; background: rgba(245, 101, 101, 0.05); border: 1px solid rgba(245, 101, 101, 0.1); border-radius: 4px; margin-bottom: 4px;">
-                            <span style="font-weight: 600; color: #f56565;">${job.job_name}</span>
-                            <span style="color: #a0aec0; opacity: 0.7;">${job.namespace}</span>
-                        </div>
-                    `;
-                });
-
-                if (failedJobsList.length > 5) {
-                    html += `<div style="font-size: 0.7rem; color: #718096; text-align: right;">...and ${failedJobsList.length - 5} more</div>`;
-                }
-
-                html += '</div>';
-                listContainer.innerHTML = html;
-            } else {
-                listContainer.innerHTML = '';
-            }
-        }
+        if (listContainer) listContainer.innerHTML = '';
     },
 
     renderPipelines(data) {
+        console.log('📦 Rendering pipelines with data:', data);
         const listEl = document.getElementById('overview-pipelines-list');
         if (!listEl) return;
 
-        const pipelines = data.pipelines || [];
-        const repoStats = data.repo_stats || {};
+        // Handle both old array format and new object format
+        const pipelines = (data && data.pipelines) || (Array.isArray(data) ? data : []);
+        const repoStats = (data && data.repo_stats) || {};
 
-        if (!pipelines || pipelines.length === 0) {
+        if (pipelines.length === 0 && Object.keys(repoStats).length === 0) {
             listEl.innerHTML = '<div class="no-data" style="color:#a0aec0;font-size:0.85rem;">No recent pipelines found.</div>';
             return;
         }
 
         const renderRepoLine = (repoName, searchStr) => {
-            const repoPipelines = pipelines.filter(p => (p.repo || '').toLowerCase().includes(searchStr.toLowerCase())).slice(0, 5);
-            const stats = repoStats[repoName] || { open_prs: 0, prs_url: '#' };
+            const filtered = Array.isArray(pipelines) ? pipelines : [];
+            const repoPipelines = filtered.filter(p => (p.repo || '').toLowerCase().includes(searchStr.toLowerCase())).slice(0, 5);
+            const stats = repoStats[repoName] || { open_prs: 0, prs_url: `https://github.com/JZacharie/${repoName}/pulls` };
 
             let iconsHtml = '';
             if (repoPipelines.length === 0) {

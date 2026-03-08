@@ -26,6 +26,15 @@
         <div class="status-item">Last Backup: <span id="overview-backup-text" class="status-info">--</span></div>
     </div>
 
+    <div id="overview-failed-jobs-alert" class="overview-alert-card panel status-critical"
+        style="display: none; margin-bottom: 20px;">
+        <div class="alert-content">
+            <h3 id="overview-alert-title">⚠️ ATTENTION: Jobs en échec détectés</h3>
+            <div id="overview-alert-summary"></div>
+            <div id="overview-alert-details" class="failed-jobs-full-list"></div>
+        </div>
+    </div>
+
     <div class="overview-grid">
         <!-- 1. Cluster Weather -->
         <div class="overview-card weather-card panel">
