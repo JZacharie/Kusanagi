@@ -60,13 +60,16 @@
                                     <li class="legend-item"><span class="legend-color legend-usage"></span> Usage: <span
                                             id="overview-cpu-usage">--</span></li>
                                     <li class="legend-item"><span class="legend-color legend-requests"></span> Requests:
-                                        <span id="overview-cpu-req">--</span></li>
+                                        <span id="overview-cpu-req">--</span>
+                                    </li>
                                     <li class="legend-item"><span class="legend-color legend-limits"></span> Limits:
-                                        <span id="overview-cpu-limit">--</span></li>
+                                        <span id="overview-cpu-limit">--</span>
+                                    </li>
                                     <li class="legend-item"><span class="legend-color legend-allocatable"></span>
                                         Allocatable Capacity: <span id="overview-cpu-alloc">--</span></li>
                                     <li class="legend-item"><span class="legend-color legend-capacity"></span> Capacity:
-                                        <span id="overview-cpu-cap">--</span></li>
+                                        <span id="overview-cpu-cap">--</span>
+                                    </li>
                                 </ul>
                             </div>
 
@@ -80,13 +83,16 @@
                                     <li class="legend-item"><span class="legend-color legend-usage"></span> Usage: <span
                                             id="overview-mem-usage">--</span></li>
                                     <li class="legend-item"><span class="legend-color legend-requests"></span> Requests:
-                                        <span id="overview-mem-req">--</span></li>
+                                        <span id="overview-mem-req">--</span>
+                                    </li>
                                     <li class="legend-item"><span class="legend-color legend-limits"></span> Limits:
-                                        <span id="overview-mem-limit">--</span></li>
+                                        <span id="overview-mem-limit">--</span>
+                                    </li>
                                     <li class="legend-item"><span class="legend-color legend-allocatable"></span>
                                         Allocatable Capacity: <span id="overview-mem-alloc">--</span></li>
                                     <li class="legend-item"><span class="legend-color legend-capacity"></span> Capacity:
-                                        <span id="overview-mem-cap">--</span></li>
+                                        <span id="overview-mem-cap">--</span>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -166,21 +172,47 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- 5. Recent Pipelines -->
-    <div class="overview-card full-width panel" style="margin-top: 2rem;">
-        <h3>5. Recent Pipelines (helmscharts & Kusanagi)</h3>
-        <div class="pipelines-grid" id="overview-pipelines-list">
-            <div class="loading-placeholder">Loading pipeline status...</div>
+        <!-- 5. Recent Pipelines -->
+        <div class="overview-card panel">
+            <h3>5. Recent Pipelines</h3>
+            <div class="pipelines-summary-container" id="overview-pipelines-list">
+                <div class="loading-placeholder">Loading pipeline status...</div>
+            </div>
         </div>
-    </div>
 
-    <!-- Applications Health -->
-    <div class="overview-apps-section">
-        <h3>6. Applications Health</h3>
-        <div class="apps-grid" id="overview-apps-grid">
-            <!-- Rendered by JS -->
+        <!-- 6. Applications Health -->
+        <div class="overview-card panel">
+            <h3>6. Applications Health</h3>
+            <div class="argocd-health-summary">
+                <div class="argocd-health-header">HEALTH STATUS</div>
+                <div class="argocd-health-grid">
+                    <div class="argocd-health-item">
+                        <span class="argocd-icon progressing">🔄</span> Progressing
+                        <span class="argocd-val">0</span>
+                    </div>
+                    <div class="argocd-health-item">
+                        <span class="argocd-icon suspended">⏸️</span> Suspended
+                        <span class="argocd-val">0</span>
+                    </div>
+                    <div class="argocd-health-item">
+                        <span class="argocd-icon healthy">💚</span> Healthy
+                        <span class="argocd-val">186</span>
+                    </div>
+                    <div class="argocd-health-item">
+                        <span class="argocd-icon degraded">💔</span> Degraded
+                        <span class="argocd-val">1</span>
+                    </div>
+                    <div class="argocd-health-item">
+                        <span class="argocd-icon missing">❓</span> Missing
+                        <span class="argocd-val">0</span>
+                    </div>
+                    <div class="argocd-health-item">
+                        <span class="argocd-icon unknown">❔</span> Unknown
+                        <span class="argocd-val">0</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

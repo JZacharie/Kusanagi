@@ -490,66 +490,96 @@
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* 5. Pipelines Section */
-.pipelines-grid {
+/* 5. Pipelines Section Updated */
+.pipelines-summary-container {
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
 
-.pipeline-item {
+.pipeline-repo-line {
     display: flex;
     align-items: center;
-    gap: 1.2rem;
-    padding: 1rem;
+    justify-content: space-between;
     background: #151b28;
-    border-radius: 8px;
+    padding: 0.8rem;
+    border-radius: 6px;
     border: 1px solid #2a3548;
-    transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-.pipeline-item:hover {
-    transform: translateX(4px);
-    border-color: #4a5568;
+.pipeline-repo-name {
+    font-weight: 600;
+    color: #e2e8f0;
+    font-size: 0.9rem;
 }
 
-.pipeline-status-icon {
-    font-size: 1.5rem;
-    width: 40px;
-    height: 40px;
+.pipeline-status-icons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pipeline-mini-icon {
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
+    font-size: 0.75rem;
     background: #1a2332;
     border: 1px solid #2a3548;
 }
 
-.pipeline-info {
-    flex: 1;
+/* 6. ArgoCD Health Summary */
+.argocd-health-summary {
+    background: #151b28;
+    border-radius: 6px;
+    border: 1px solid #2a3548;
+    padding: 1rem;
 }
 
-.pipeline-repo {
+.argocd-health-header {
     font-size: 0.75rem;
     color: #a0aec0;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    margin-bottom: 0.8rem;
+    font-weight: 600;
+}
+
+.argocd-health-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+}
+
+.argocd-health-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #e2e8f0;
+}
+
+.argocd-health-item .argocd-icon {
+    margin-right: 0.5rem;
+    font-size: 1rem;
+}
+
+.argocd-health-item .argocd-val {
+    margin-left: auto;
     font-weight: 700;
 }
 
-.pipeline-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #fff;
-    margin: 0.2rem 0;
+.argocd-icon.healthy {
+    color: #48bb78;
 }
 
-.pipeline-meta {
-    font-size: 0.85rem;
-    color: #718096;
+.argocd-icon.degraded {
+    color: #f56565;
 }
 
-.pipeline-actions .btn-xs {
-    padding: 0.3rem 0.8rem;
-    font-size: 0.75rem;
+.argocd-icon.progressing {
+    color: #4299e1;
+}
+
+.argocd-icon.suspended {
+    color: #a0aec0;
 }
