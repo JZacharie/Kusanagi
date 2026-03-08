@@ -133,6 +133,16 @@
     justify-content: space-between;
 }
 
+.weather-stat-link {
+    text-decoration: none;
+    color: inherit;
+    transition: opacity 0.2s;
+}
+
+.weather-stat-link:hover {
+    opacity: 0.8;
+}
+
 .health-good {
     color: #48bb78;
 }

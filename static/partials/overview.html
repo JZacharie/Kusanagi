@@ -37,11 +37,15 @@
                 </div>
                 <div class="weather-stats">
                     <div class="weather-stat-row">
-                        <span class="weather-stat-label">Nodes:</span>
+                        <a href="#nodes" class="weather-stat-link">
+                            <span class="weather-stat-label">🖥️ Nodes:</span>
+                        </a>
                         <span id="overview-nodes-stat" class="weather-stat-value health-good">--/-- Healthy</span>
                     </div>
                     <div class="weather-stat-row">
-                        <span class="weather-stat-label">Pods:</span>
+                        <a href="#pods" class="weather-stat-link">
+                            <span class="weather-stat-label">📦 Pods:</span>
+                        </a>
                         <span id="overview-pods-stat" class="weather-stat-value health-good">--/-- Running</span>
                     </div>
                     <div class="weather-stat-row">
@@ -169,6 +173,9 @@
                 </div>
                 <div class="security-summary" id="overview-security-summary">
                     <!-- Dynamic summary -->
+                </div>
+                <div id="overview-failed-jobs-list" class="failed-jobs-mini-list">
+                    <!-- Failed jobs will be injected here -->
                 </div>
             </div>
         </div>
