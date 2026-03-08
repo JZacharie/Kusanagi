@@ -706,38 +706,41 @@ const OverviewDashboard = {
 
     renderPipelines(pipelines) {
         const listEl = document.getElementById('overview-pipelines-list');
+        if (!listEl) return;
+
         if (!pipelines || pipelines.length === 0) {
-            listEl.innerHTML = '<div class="no-data">No recent pipelines found.</div>';
+            listEl.innerHTML = '<div class="no-data" style="color:#a0aec0;font-size:0.85rem;">No recent pipelines found.</div>';
             return;
         }
 
-        let html = '';
-        pipelines.forEach(run => {
-            const statusClass = run.status === 'completed'
-                ? (run.conclusion === 'success' ? 'health-good' : 'status-critical')
-                : 'status-warning';
+        const renderRepoLine = (repoName, searchStr) => {
+            const repoPipelines = pipelines.filter(p => (p.repo || '').toLowerCase().includes(searchStr)).slice(0, 5);
+            let iconsHtml = '';
 
-            const icon = run.status === 'completed'
-                ? (run.conclusion === 'success' ? '✅' : '❌')
-                : '⏳';
+            if (repoPipelines.length === 0) {
+                iconsHtml = '<span style="color:#718096;font-size:0.75rem;font-style:italic;">No runs</span>';
+            } else {
+                repoPipelines.forEach(run => {
+                    const statusClass = run.status === 'completed'
+                        ? (run.conclusion === 'success' ? 'health-good' : 'status-critical')
+                        : 'status-warning';
+                    const icon = run.status === 'completed'
+                        ? (run.conclusion === 'success' ? '✅' : '❌')
+                        : '⏳';
 
-            const date = new Date(run.created_at).toLocaleString();
+                    iconsHtml += `<div class="pipeline-mini-icon ${statusClass}" title="${run.name || 'Workflow'} - ${new Date(run.created_at).toLocaleString()}">${icon}</div>`;
+                });
+            }
 
-            html += `
-                <div class="pipeline-item">
-                    <div class="pipeline-status-icon ${statusClass}">${icon}</div>
-                    <div class="pipeline-info">
-                        <div class="pipeline-repo">${run.repo}</div>
-                        <div class="pipeline-name">${run.name || 'Workflow'}</div>
-                        <div class="pipeline-meta">${date}</div>
-                    </div>
-                    <div class="pipeline-actions">
-                        <a href="${run.url}" target="_blank" class="btn btn-xs">View</a>
-                    </div>
+            return `
+                <div class="pipeline-repo-line">
+                    <div class="pipeline-repo-name">${repoName}</div>
+                    <div class="pipeline-status-icons">${iconsHtml}</div>
                 </div>
             `;
-        });
-        listEl.innerHTML = html;
+        };
+
+        listEl.innerHTML = renderRepoLine('helmscharts', 'helmscharts') + renderRepoLine('Kusanagi', 'kusanagi');
     }
 };
 
