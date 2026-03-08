@@ -540,7 +540,7 @@ impl SecurityRepository for SecurityRepositoryImpl {
             .map_err(|e| KusanagiError::external_service(format!("Failed to create Job: {}", e)))?;
 
         info!("Triggered manual Trivy scan via CronJob {}", cronjob_name);
-        Ok(format!("Trivy scan triggered successfully"))
+        Ok("Trivy scan triggered successfully".to_string())
     }
 }
 

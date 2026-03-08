@@ -704,7 +704,7 @@ const OverviewDashboard = {
         }
 
         const renderRepoLine = (repoName, searchStr) => {
-            const repoPipelines = pipelines.filter(p => (p.repo || '').toLowerCase().includes(searchStr)).slice(0, 5);
+            const repoPipelines = pipelines.filter(p => (p.repo || '').toLowerCase().includes(searchStr.toLowerCase())).slice(0, 5);
             let iconsHtml = '';
 
             if (repoPipelines.length === 0) {
@@ -718,14 +718,19 @@ const OverviewDashboard = {
                         ? (run.conclusion === 'success' ? '✅' : '❌')
                         : '⏳';
 
-                    iconsHtml += `<div class="pipeline-mini-icon ${statusClass}" title="${run.name || 'Workflow'} - ${new Date(run.created_at).toLocaleString()}">${icon}</div>`;
+                    const tooltip = `${run.name || 'Workflow'} - ${run.status}${run.conclusion ? ' (' + run.conclusion + ')' : ''}\n${new Date(run.created_at).toLocaleString()}`;
+
+                    iconsHtml += `
+                        <a href="${run.url}" target="_blank" class="pipeline-mini-icon ${statusClass}" title="${tooltip}">
+                            ${icon}
+                        </a>`;
                 });
             }
 
             return `
-                <div class="pipeline-repo-line">
-                    <div class="pipeline-repo-name">${repoName}</div>
-                    <div class="pipeline-status-icons">${iconsHtml}</div>
+                <div class="pipeline-repo-line" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div class="pipeline-repo-name" style="font-weight: bold; font-size: 0.9rem;">${repoName}</div>
+                    <div class="pipeline-status-icons" style="display: flex; gap: 6px;">${iconsHtml}</div>
                 </div>
             `;
         };
