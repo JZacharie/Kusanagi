@@ -180,6 +180,28 @@ const OverviewDashboard = {
         document.getElementById('overview-nodes-stat').textContent = `${nodesReady}/${nodesTotal} Healthy`;
         document.getElementById('overview-pods-stat').textContent = `${podsRunning}/${podsTotal} Running`;
 
+        // Detailed Cluster Resource Metrics
+        const resources = metricsData?.cluster_resources;
+        if (resources) {
+            const cpu = resources.cpu || {};
+            const mem = resources.memory || {};
+
+            // CPU (cores)
+            document.getElementById('overview-cpu-usage').textContent = cpu.usage?.toFixed(2) || '0.00';
+            document.getElementById('overview-cpu-req').textContent = cpu.requests?.toFixed(2) || '0.00';
+            document.getElementById('overview-cpu-limit').textContent = cpu.limits?.toFixed(2) || '0.00';
+            document.getElementById('overview-cpu-alloc').textContent = cpu.allocatable?.toFixed(2) || '0.00';
+            document.getElementById('overview-cpu-cap').textContent = cpu.capacity?.toFixed(2) || '0.00';
+
+            // Memory (GiB)
+            const toGiB = (bytes) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
+            document.getElementById('overview-mem-usage').textContent = toGiB(mem.usage || 0);
+            document.getElementById('overview-mem-req').textContent = toGiB(mem.requests || 0);
+            document.getElementById('overview-mem-limit').textContent = toGiB(mem.limits || 0);
+            document.getElementById('overview-mem-alloc').textContent = toGiB(mem.allocatable || 0);
+            document.getElementById('overview-mem-cap').textContent = toGiB(mem.capacity || 0);
+        }
+
         // Mock API latency
         const latency = Math.floor(Math.random() * 20) + 35;
         document.getElementById('overview-latency-stat').textContent = `${latency}ms`;

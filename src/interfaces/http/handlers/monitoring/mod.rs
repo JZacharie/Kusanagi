@@ -362,6 +362,9 @@ pub async fn metrics_handler(
     // Additional penalty for failed jobs on the global health perception
     let final_security_score = (security_score - (failed_jobs_count as f64 * 2.0)).max(0.0);
 
+    // 9. Get detailed cluster resource metrics
+    let cluster_resources = kubernetes_service::get_cluster_resource_metrics(&state.http_client).await.unwrap_or(json!({}));
+
     api_success(serde_json::json!({
         "cpu_usage_percent": cpu_percent,
         "memory_usage_percent": mem_percent,
@@ -393,7 +396,8 @@ pub async fn metrics_handler(
             "trivy_score": trivy_score,
             "steampipe_score": steampipe_score,
             "steampipe_stats": steampipe_data
-        }
+        },
+        "cluster_resources": cluster_resources
     }))
 }
 
