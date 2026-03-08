@@ -634,3 +634,41 @@
     font-size: 0.75rem;
     opacity: 0.8;
 }
+/* Failed Jobs Alert Card */
+.overview-alert-card {
+    border-left: 4px solid #f56565 !important;
+    background: rgba(245, 101, 101, 0.05) !important;
+}
+
+.overview-alert-card h3 {
+    color: #f56565 !important;
+    border-bottom: 1px solid rgba(245, 101, 101, 0.2) !important;
+    margin-bottom: 0.8rem !important;
+}
+
+.failed-jobs-full-list {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 8px;
+}
+
+.failed-job-full-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #151b28;
+    border: 1px solid #2a3548;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.failed-job-full-item .job-name {
+    color: #f56565;
+    font-weight: 600;
+}
+
+.failed-job-full-item .job-ns {
+    color: #a0aec0;
+    font-size: 0.75rem;
+}

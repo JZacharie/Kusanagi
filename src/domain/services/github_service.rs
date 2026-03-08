@@ -55,6 +55,8 @@ pub async fn get_last_pipelines() -> Result<Value, String> {
             if response.status().is_success() {
                 if let Ok(data) = response.json::<Value>().await {
                     if let Some(runs) = data["workflow_runs"].as_array() {
+                        tracing::info!("Fetched {} runs for repo {}", runs.len(), repo);
+                        let mut count = 0;
                         for run in runs {
                             let created_at_str = run["created_at"].as_str().unwrap_or("");
                             if let Ok(created_at) = chrono::DateTime::parse_from_rfc3339(created_at_str) {
@@ -68,11 +70,15 @@ pub async fn get_last_pipelines() -> Result<Value, String> {
                                         "url": run["html_url"],
                                         "created_at": created_at_str,
                                     }));
+                                    count += 1;
                                 }
                             }
                         }
+                        tracing::info!("Kept {} runs for repo {} after 10-day filter", count, repo);
                     }
                 }
+            } else {
+                tracing::error!("Failed to fetch runs for repo {}: {}", repo, response.status());
             }
         }
 
