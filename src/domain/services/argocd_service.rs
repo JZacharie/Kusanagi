@@ -323,7 +323,7 @@ mod tests {
 
         assert_eq!(result["total"], 2);
         assert_eq!(result["healthy"], 1);
-        assert_eq!(result["unhealthy"], 1);
+        assert_eq!(result["degraded"], 1);
         assert_eq!(result["synced"], 1);
         assert_eq!(result["out_of_sync"], 1);
         assert_eq!(result["apps_with_issues"].as_array().unwrap().len(), 1);
