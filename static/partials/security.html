@@ -45,59 +45,7 @@
     </div>
 </div>
 
-<!-- Charts & Filters Row -->
-<div style="display: grid; grid-template-columns: 300px 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-    <!-- Vulnerability Chart -->
-    <div class="issues-table-container" style="border-color: var(--neon-orange);">
-        <div class="issues-table-header" style="background: rgba(255, 165, 0, 0.1); border-color: var(--neon-orange);">
-            <span class="issues-table-title" style="color: var(--neon-orange);">📊 Distribution</span>
-        </div>
-        <div id="security-chart-container"
-            style="padding: 1rem; height: 200px; display: flex; align-items: center; justify-content: center;">
-            <canvas id="vuln-chart"></canvas>
-        </div>
-    </div>
 
-    <!-- Filters -->
-    <div class="issues-table-container" style="border-color: var(--neon-blue, #4169e1);">
-        <div class="issues-table-header"
-            style="background: rgba(65, 105, 225, 0.1); border-color: var(--neon-blue, #4169e1);">
-            <span class="issues-table-title" style="color: var(--neon-blue, #4169e1);">🔧 Filters</span>
-            <span id="last-updated" style="font-size: 0.75rem; color: #888;">Last updated: Never</span>
-        </div>
-        <div style="padding: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
-            <div>
-                <label style="display: block; font-size: 0.75rem; color: #888; margin-bottom: 0.25rem;">Severity</label>
-                <select id="filter-severity" class="cyber-input small" onchange="SecurityDashboard.applyFilters()"
-                    style="background: rgba(0,0,0,0.5); color: var(--neon-cyan); border: 1px solid var(--neon-cyan);">
-                    <option value="all">All Severities</option>
-                    <option value="critical">Critical Only</option>
-                    <option value="high">High & Critical</option>
-                    <option value="medium">Medium+</option>
-                </select>
-            </div>
-            <div>
-                <label
-                    style="display: block; font-size: 0.75rem; color: #888; margin-bottom: 0.25rem;">Namespace</label>
-                <select id="filter-namespace" class="cyber-input small" onchange="SecurityDashboard.applyFilters()"
-                    style="background: rgba(0,0,0,0.5); color: var(--neon-cyan); border: 1px solid var(--neon-cyan);">
-                    <option value="all">All Namespaces</option>
-                </select>
-            </div>
-            <div>
-                <label style="display: block; font-size: 0.75rem; color: #888; margin-bottom: 0.25rem;">Search</label>
-                <input type="text" id="filter-search" class="cyber-input small" placeholder="Image name..."
-                    onkeyup="SecurityDashboard.applyFilters()"
-                    style="background: rgba(0,0,0,0.5); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); width: 200px;">
-            </div>
-            <div style="margin-left: auto; display: flex; gap: 0.5rem;">
-                <button onclick="SecurityDashboard.exportCSV()" class="cyber-btn small" title="Export to CSV">
-                    📥 CSV
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Report Selector -->
 <div id="security-report-selector" style="margin-bottom: 1rem;"></div>
