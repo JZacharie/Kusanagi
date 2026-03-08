@@ -651,11 +651,12 @@ const OverviewDashboard = {
 
         let html = '';
         degradedApps.forEach(app => {
+            const argoUrl = `https://argocd.p.zacharie.org/applications/${app.name}`;
             html += `
-                <div class="degraded-app-entry" title="${app.status}">
-                    <span class="degraded-app-name">${app.name}</span>
-                    <span class="degraded-app-ns">${app.namespace}</span>
-                </div>
+                <a href="${argoUrl}" target="_blank" class="degraded-app-entry" title="Status: ${app.status}">
+                    <span class="degraded-app-name" style="color: var(--status-critical); font-weight: bold;">${app.name}</span>
+                    <span class="degraded-app-status" style="font-size: 0.7rem; opacity: 0.7;">[${app.status}]</span>
+                </a>
             `;
         });
 
