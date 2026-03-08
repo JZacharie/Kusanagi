@@ -143,6 +143,7 @@ const PageLoader = {
             case 'alerts':
                 if (window.AlertsManager) AlertsManager.init();
                 break;
+            case 'metrics':
             case 'system':
                 if (window.KusanagiSystem) KusanagiSystem.activate();
                 break;

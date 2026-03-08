@@ -391,6 +391,9 @@ const MetricsManager = {
             this.saveToCache(metrics);
 
             this.renderMetrics(metrics);
+
+            // Also refresh system status as it's now part of the metrics page
+            if (window.KusanagiSystem) KusanagiSystem.refresh();
         } catch (error) {
             console.error('Metrics error:', error);
             this.renderMetricsError(error.message);

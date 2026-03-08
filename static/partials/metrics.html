@@ -52,3 +52,42 @@
 <div id="metrics-content">
     <div class="loading">Loading metrics from Prometheus...</div>
 </div>
+
+<!-- System Status - Merged from System page -->
+<h2 class="section-title" style="margin-top: 3rem;">🔮 System Status</h2>
+
+<div class="argocd-stats" style="margin-bottom: 20px;">
+    <div class="stat-box info">
+        <div class="stat-value" id="sys-tab-uptime">-</div>
+        <div class="stat-label">Uptime</div>
+    </div>
+    <div class="stat-box info">
+        <div class="stat-value" id="sys-tab-cpu">-</div>
+        <div class="stat-label">CPU Usage</div>
+    </div>
+    <div class="stat-box info">
+        <div class="stat-value" id="sys-tab-memory">-</div>
+        <div class="stat-label">Memory</div>
+    </div>
+    <div class="stat-box info">
+        <div class="stat-value" id="sys-tab-version">-</div>
+        <div class="stat-label">Version</div>
+    </div>
+</div>
+
+<div class="glass-panel"
+    style="margin-top: 20px; background: rgba(0,0,0,0.3); border: 1px solid var(--neon-cyan); padding: 15px; border-radius: 4px;">
+    <div class="panel-header"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="margin: 0; color: var(--neon-cyan);"><i class="fas fa-terminal"></i> System Logs</h3>
+        <div class="panel-actions">
+            <button class="cyber-btn icon-btn" onclick="KusanagiSystem.manualRefresh()"><i class="fas fa-sync"></i>
+                Refresh</button>
+        </div>
+    </div>
+    <div class="logs-container" id="system-logs-container"
+        style="background: rgba(0,0,0,0.8); height: 500px; overflow-y: auto; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.8rem; color: #ccc; border: 1px solid #333;">
+        <pre id="system-logs-content"
+            style="margin: 0; white-space: pre-wrap; word-break: break-all;">Loading logs...</pre>
+    </div>
+</div>
