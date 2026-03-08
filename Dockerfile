@@ -55,8 +55,18 @@ COPY scripts ./scripts
 RUN chmod +x scripts/*.sh
 RUN cargo build --release
 
-FROM runner AS release
-COPY static ./static
-COPY --from=builder /app/target/release/kusanagi /usr/local/bin/kusanagi
-RUN chown -R kusanagi:kusanagi /app
-USER kusanagi
+# Stage 4: Runtime - Minimal image (standard build)
+FROM gcr.io/distroless/cc-debian12
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /app/target/release/kusanagi /app/kusanagi
+
+# Copy static files
+COPY --from=builder /app/static /app/static
+
+# Expose port
+EXPOSE 8080
+
+# Run application
+CMD ["/app/kusanagi"]

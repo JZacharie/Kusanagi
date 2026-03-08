@@ -35,6 +35,48 @@
         </div>
     </div>
 
+    <!-- Zone Business KPI -->
+    <h2 class="zone-title"
+        style="border-left-color: var(--neon-gold, #ecc94b); background: linear-gradient(90deg, rgba(236, 201, 75, 0.1) 0%, transparent 100%);">
+        <span class="mdi mdi-finance"></span> Zone Business KPI
+    </h2>
+    <div class="business-kpi-grid">
+        <div class="kpi-card panel">
+            <span class="kpi-label">Utilisateurs Totaux</span>
+            <span id="biz-total-users" class="kpi-value">--</span>
+            <span class="kpi-subtext">Compte client actif</span>
+        </div>
+        <div class="kpi-card panel">
+            <span class="kpi-label">U. Uniques / 24h</span>
+            <span id="biz-unique-users" class="kpi-value">--</span>
+            <span class="kpi-subtext">Visites session unique</span>
+        </div>
+        <div class="kpi-card panel">
+            <span class="kpi-label">Volume Transac. / Jour</span>
+            <span id="biz-daily-transactions" class="kpi-value">--</span>
+            <span class="kpi-subtext">Transactions validées</span>
+        </div>
+        <div class="kpi-card panel">
+            <span class="kpi-label">Users / Heure</span>
+            <span id="biz-hourly-users" class="kpi-value">--</span>
+            <span class="kpi-subtext">Activité temps réel</span>
+        </div>
+        <div class="kpi-card panel">
+            <span class="kpi-label">Contrats Actifs</span>
+            <span id="biz-active-contracts" class="kpi-value">--</span>
+            <span class="kpi-subtext">Engagements en cours</span>
+        </div>
+        <div class="kpi-card panel">
+            <span class="kpi-label">Investissement / Contrat</span>
+            <span id="biz-avg-investment" class="kpi-value">--</span>
+            <span class="kpi-subtext">Moyenne pondérée</span>
+        </div>
+        <div class="kpi-card panel business-chart-card">
+            <h3>Activité Utilisateurs (24h)</h3>
+            <canvas id="biz-users-chart" height="100"></canvas>
+        </div>
+    </div>
+
     <!-- Zone DevOps -->
     <h2 class="zone-title"><span class="mdi mdi-rocket-launch"></span> Zone DevOps</h2>
     <div class="overview-grid">
@@ -163,7 +205,8 @@
     <!-- Zone FinOps -->
     <h2 class="zone-title"
         style="border-left-color: var(--neon-orange, #ff8800); background: linear-gradient(90deg, rgba(255, 136, 0, 0.1) 0%, transparent 100%);">
-        <span class="mdi mdi-cash-multiple"></span> Zone FinOps</h2>
+        <span class="mdi mdi-cash-multiple"></span> Zone FinOps
+    </h2>
     <div class="overview-grid">
         <!-- 2. Cost Analysis -->
         <div class="overview-card cost-card panel">
@@ -205,7 +248,8 @@
     <!-- Zone Cyber Security -->
     <h2 class="zone-title"
         style="border-left-color: var(--neon-magenta, #ff00ff); background: linear-gradient(90deg, rgba(255, 0, 255, 0.1) 0%, transparent 100%);">
-        <span class="mdi mdi-shield-check"></span> Zone Cyber Security</h2>
+        <span class="mdi mdi-shield-check"></span> Zone Cyber Security
+    </h2>
     <div class="overview-grid">
         <!-- 4. Security Score -->
         <div class="overview-card security-card panel">

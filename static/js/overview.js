@@ -86,10 +86,76 @@ const OverviewDashboard = {
             this.renderAppHealth(podsData, argocdData);
             this.renderSecurityScore(metricsData);
             this.renderPipelines(pipelineData);
+            this.renderBusinessKPIs();
 
         } catch (error) {
             console.error('Error refreshing overview data:', error);
         }
+    },
+
+    renderBusinessKPIs() {
+        // Mock data generation
+        const totalUsers = 12450 + Math.floor(Math.random() * 50);
+        const uniqueUsers = 3240 + Math.floor(Math.random() * 100);
+        const dailyTransactions = 850 + Math.floor(Math.random() * 30);
+        const hourlyUsers = 450 + Math.floor(Math.random() * 20);
+        const activeContracts = 1542;
+        const avgInvestment = 2450.75 + (Math.random() * 10);
+
+        // Update DOM
+        const setText = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+
+        setText('biz-total-users', totalUsers.toLocaleString());
+        setText('biz-unique-users', uniqueUsers.toLocaleString());
+        setText('biz-daily-transactions', dailyTransactions.toLocaleString());
+        setText('biz-hourly-users', hourlyUsers.toLocaleString());
+        setText('biz-active-contracts', activeContracts.toLocaleString());
+        setText('biz-avg-investment', `${avgInvestment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`);
+
+        // Render Activity Chart
+        if (typeof Chart === 'undefined') return;
+
+        const ctx = document.getElementById('biz-users-chart');
+        if (!ctx) return;
+
+        if (this.charts['biz-users-chart']) {
+            this.charts['biz-users-chart'].destroy();
+        }
+
+        const labels = Array.from({ length: 24 }, (_, i) => `${i}h`);
+        const data = labels.map(() => 200 + Math.floor(Math.random() * 400));
+
+        this.charts['biz-users-chart'] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Users per Hour',
+                    data: data,
+                    borderColor: '#ecc94b',
+                    backgroundColor: 'rgba(236, 201, 75, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#2a3548' },
+                        ticks: { color: '#a0aec0', font: { size: 10 } }
+                    }
+                }
+            }
+        });
     },
 
     async refreshNamespaceCost() {
