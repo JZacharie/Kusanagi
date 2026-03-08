@@ -187,30 +187,39 @@
             <div class="argocd-health-summary">
                 <div class="argocd-health-header">HEALTH STATUS</div>
                 <div class="argocd-health-grid">
-                    <div class="argocd-health-item">
+                    <a href="https://argocd.zacharie.org/applications?health=Progressing" target="_blank"
+                        class="argocd-health-item">
                         <span class="argocd-icon progressing">🔄</span> Progressing
                         <span class="argocd-val">0</span>
-                    </div>
-                    <div class="argocd-health-item">
+                    </a>
+                    <a href="https://argocd.zacharie.org/applications?health=Suspended" target="_blank"
+                        class="argocd-health-item">
                         <span class="argocd-icon suspended">⏸️</span> Suspended
                         <span class="argocd-val">0</span>
-                    </div>
-                    <div class="argocd-health-item">
+                    </a>
+                    <a href="https://argocd.zacharie.org/applications?health=Healthy" target="_blank"
+                        class="argocd-health-item">
                         <span class="argocd-icon healthy">💚</span> Healthy
                         <span class="argocd-val">186</span>
-                    </div>
-                    <div class="argocd-health-item">
+                    </a>
+                    <a href="https://argocd.zacharie.org/applications?health=Degraded" target="_blank"
+                        class="argocd-health-item">
                         <span class="argocd-icon degraded">💔</span> Degraded
                         <span class="argocd-val">1</span>
-                    </div>
-                    <div class="argocd-health-item">
+                    </a>
+                    <a href="https://argocd.zacharie.org/applications?health=Missing" target="_blank"
+                        class="argocd-health-item">
                         <span class="argocd-icon missing">❓</span> Missing
                         <span class="argocd-val">0</span>
-                    </div>
-                    <div class="argocd-health-item">
+                    </a>
+                    <a href="https://argocd.zacharie.org/applications?health=Unknown" target="_blank"
+                        class="argocd-health-item">
                         <span class="argocd-icon unknown">❔</span> Unknown
                         <span class="argocd-val">0</span>
-                    </div>
+                    </a>
+                </div>
+                <div id="overview-degraded-apps-list" class="degraded-apps-list">
+                    <!-- Degraded apps will be injected here by JS -->
                 </div>
             </div>
         </div>
