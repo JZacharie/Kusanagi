@@ -191,6 +191,11 @@ impl GetSecurityUseCase {
         self.repository.get_security_report(category, name).await
     }
 
+    /// Trigger a manual vulnerability scan
+    pub async fn trigger_scan(&self) -> Result<String> {
+        self.repository.trigger_scan().await
+    }
+
     /// Check if running in local mode
     pub fn is_local_mode(&self) -> bool {
         self.repository.is_local_mode()

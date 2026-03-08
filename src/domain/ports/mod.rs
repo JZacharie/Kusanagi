@@ -80,6 +80,9 @@ pub trait SecurityRepository: Send + Sync {
     /// Get a specific security report by category and name
     async fn get_security_report(&self, category: &str, name: &str) -> Result<SecurityReport>;
 
+    /// Trigger a manual vulnerability scan
+    async fn trigger_scan(&self) -> Result<String>;
+
     /// Check if running in local mode (mock data)
     fn is_local_mode(&self) -> bool;
 }

@@ -72,6 +72,7 @@ pub fn configure_routes(state: AppState) -> Router {
             "/api/security/vulnerabilities",
             get(get_vulnerabilities_handler),
         )
+        .route("/api/security/scan", post(post_security_scan_handler))
         .route("/api/security/policies", get(mcp_policies_handler))
         .route(
             "/api/security/policies/violations",
