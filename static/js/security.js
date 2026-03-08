@@ -735,16 +735,22 @@ const SecurityDashboard = {
         images.forEach(img => {
             const ns = img.namespace || 'unknown';
             if (!byNs[ns]) {
-                byNs[ns] = { count: 0, critical: 0, high: 0, medium: 0, low: 0 };
+                byNs[ns] = { count: 0, critical: 0, high: 0, medium: 0, low: 0, score: 0 };
             }
             byNs[ns].count++;
             byNs[ns].critical += img.critical_count || 0;
             byNs[ns].high += img.high_count || 0;
             byNs[ns].medium += img.medium_count || 0;
             byNs[ns].low += img.low_count || 0;
+
+            // Calculate score addition
+            byNs[ns].score += (img.critical_count || 0) * 10
+                + (img.high_count || 0) * 5
+                + (img.medium_count || 0) * 2
+                + (img.low_count || 0);
         });
 
-        const sorted = Object.entries(byNs).sort((a, b) => (b[1].critical + b[1].high) - (a[1].critical + a[1].high));
+        const sorted = Object.entries(byNs).sort((a, b) => b[1].score - a[1].score);
 
         container.innerHTML = `
             <table class="issues-table" style="font-size: 0.85rem;">
@@ -754,17 +760,26 @@ const SecurityDashboard = {
                         <th style="text-align: center;">Images</th>
                         <th style="text-align: center;">🔴</th>
                         <th style="text-align: center;">🟠</th>
+                        <th style="text-align: center;">Score</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${sorted.map(([ns, data]) => `
+                    ${sorted.map(([ns, data]) => {
+            let scoreColor = '#44ff44';
+            if (data.score > 50) scoreColor = '#ff4444';
+            else if (data.score > 20) scoreColor = '#ff8800';
+            else if (data.score > 5) scoreColor = '#ffdd00';
+
+            return `
                         <tr>
                             <td><span class="status-badge info">${ns}</span></td>
                             <td style="text-align: center;">${data.count}</td>
                             <td style="text-align: center;">${data.critical > 0 ? `<span class="status-badge unhealthy">${data.critical}</span>` : '-'}</td>
                             <td style="text-align: center;">${data.high > 0 ? `<span class="status-badge warning">${data.high}</span>` : '-'}</td>
+                            <td style="text-align: center; font-weight: bold; color: ${scoreColor};">${data.score}</td>
                         </tr>
-                    `).join('')}
+                        `;
+        }).join('')}
                 </tbody>
             </table>
         `;
