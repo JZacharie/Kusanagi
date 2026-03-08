@@ -160,10 +160,14 @@ async fn fetch_argocd_status_from_cluster() -> Result<Value, String> {
 
 fn parse_argocd_applications(items: &[ArgoCDApplication]) -> Result<Value, String> {
     let mut healthy = 0;
-    let mut unhealthy = 0;
+    let mut degraded = 0;
+    let mut progressing = 0;
+    let mut suspended = 0;
+    let mut missing = 0;
+    let mut unknown = 0;
     let mut synced = 0;
     let mut out_of_sync = 0;
-    let mut progressing = 0;
+
     let mut apps_with_issues = Vec::new();
     let mut apps_with_upgrades = Vec::new();
     let total = items.len();
@@ -195,9 +199,11 @@ fn parse_argocd_applications(items: &[ArgoCDApplication]) -> Result<Value, Strin
 
         match health_status {
             "Healthy" => healthy += 1,
-            "Degraded" | "Missing" | "Unknown" => unhealthy += 1,
+            "Degraded" => degraded += 1,
             "Progressing" => progressing += 1,
-            _ => {}
+            "Suspended" => suspended += 1,
+            "Missing" => missing += 1,
+            _ => unknown += 1,
         }
 
         match sync_status {
@@ -229,10 +235,13 @@ fn parse_argocd_applications(items: &[ArgoCDApplication]) -> Result<Value, Strin
     Ok(json!({
         "total": total,
         "healthy": healthy,
-        "unhealthy": unhealthy,
+        "degraded": degraded,
+        "progressing": progressing,
+        "suspended": suspended,
+        "missing": missing,
+        "unknown": unknown,
         "synced": synced,
         "out_of_sync": out_of_sync,
-        "progressing": progressing,
         "upgrades_available": apps_with_upgrades.len(),
         "apps_with_issues": apps_with_issues,
         "apps_with_upgrades": apps_with_upgrades
