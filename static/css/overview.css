@@ -145,42 +145,86 @@
     color: #f56565;
 }
 
-.weather-stat-resources {
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: 1px dashed #2a3548;
-}
-
-.weather-mini-charts {
-    display: flex;
+.detailed-resources-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
-    margin-top: 0.8rem;
-    height: auto;
+    margin-top: 1rem;
 }
 
-.mini-chart-item {
-    flex: 1;
+.resource-gauge-block {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    align-items: center;
+    background: rgba(26, 32, 44, 0.4);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #2d3748;
 }
 
-.mini-chart-item canvas {
-    height: 40px;
-}
-
-.mini-chart-label {
-    font-size: 0.75rem;
-    color: #a0aec0;
-    text-align: center;
+.resource-gauge-block .resource-title {
+    font-size: 1rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    color: #e2e8f0;
+    margin-bottom: 1rem;
 }
 
-.mini-chart-label span {
-    color: #f6ad55;
-    margin-left: 2px;
+.gauge-container {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin-bottom: 1.5rem;
+}
+
+.resource-gauge-legend {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #a0aec0;
+    margin-bottom: 0.5rem;
+}
+
+.legend-item span:first-child {
+    margin-right: 8px;
+}
+
+.legend-color {
+    width: 10px;
+    height: 10px;
+    display: inline-block;
+    border-radius: 2px;
+}
+
+.legend-usage {
+    background-color: #d53f8c;
+}
+
+.legend-requests {
+    background-color: #48bb78;
+}
+
+.legend-limits {
+    background-color: #319795;
+}
+
+.legend-allocatable {
+    background-color: #2b6cb0;
+}
+
+.legend-capacity {
+    background-color: #4a5568;
+}
+
+.legend-item span[id^="overview-"] {
+    margin-left: auto;
+    color: #e2e8f0;
 }
 
 /* 2. Cost Card */
