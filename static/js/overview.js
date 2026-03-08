@@ -37,6 +37,17 @@ const OverviewDashboard = {
             });
         }
 
+        // Alert Area Collapsibility
+        const alertHeader = document.getElementById('overview-alert-header');
+        if (alertHeader) {
+            alertHeader.addEventListener('click', () => {
+                const alertCard = document.getElementById('overview-failed-jobs-alert');
+                if (alertCard) {
+                    alertCard.classList.toggle('collapsed');
+                }
+            });
+        }
+
         this.initialized = true;
         this.refreshData();
 
@@ -764,24 +775,33 @@ const OverviewDashboard = {
         if (alertCard) {
             if (failedJobsCount > 0) {
                 alertCard.style.display = 'block';
+                const alertTitle = document.getElementById('overview-alert-title');
                 const alertSummary = document.getElementById('overview-alert-summary');
                 const alertDetails = document.getElementById('overview-alert-details');
 
+                if (alertTitle) {
+                    alertTitle.innerHTML = `⚠️ ATTENTION: ${failedJobsCount} jobs en échec détectés (Pénalité appliquée)`;
+                }
+
                 if (alertSummary) {
-                    alertSummary.innerHTML = `<div style="color: #f56565; font-weight: bold; margin-bottom: 10px;">⚠️ ATTENTION: ${failedJobsCount} jobs en échec détectés (Pénalité appliquée)</div>`;
+                    let summaryHtml = '';
                     if (details && details.steampipe_stats) {
                         const stats = details.steampipe_stats;
-                        alertSummary.innerHTML += `
-                            <div style="font-size: 0.85rem; color: #a0aec0; margin-bottom: 10px;">
-                                ${stats.passed || 0} tests réussis / ${stats.failed || 0} échecs conformité<br>
+                        summaryHtml += `
+                            <div style="font-size: 0.95rem; color: #a0aec0; margin-bottom: 5px;">
+                                <span style="color: #48bb78;">${stats.passed || 0} tests réussis</span> / 
+                                <span style="color: #f56565;">${stats.failed || 0} échecs conformité</span>
+                            </div>
+                            <div style="font-size: 0.95rem; color: #718096; margin-bottom: 15px;">
                                 ${metricsData.trivy_critical_count || 0} Vulnerabilités Critiques (Filtrées)
                             </div>
                         `;
                     }
+                    alertSummary.innerHTML = summaryHtml;
                 }
 
                 if (alertDetails) {
-                    let html = '<div style="font-size: 0.8rem; font-weight: bold; color: #f56565; margin-bottom: 0.5rem;">❌ Recent Failed Jobs:</div>';
+                    let html = '<div style="font-size: 0.85rem; font-weight: bold; color: #f56565; margin-bottom: 0.5rem; text-transform: uppercase; border-bottom: 1px dashed rgba(245,101,101,0.3); padding-bottom: 5px;">❌ Recent Failed Jobs:</div>';
                     html += '<div class="failed-jobs-full-list">';
                     failedJobsList.forEach(job => {
                         html += `

@@ -664,6 +664,30 @@
     margin-bottom: 0.8rem !important;
 }
 
+.overview-alert-card.collapsed .alert-content {
+    display: none;
+}
+
+.overview-alert-card.collapsed {
+    margin-bottom: 10px !important;
+}
+
+.overview-alert-card .zone-title {
+    transition: background 0.2s;
+}
+
+.overview-alert-card .zone-title:hover {
+    background: rgba(245, 101, 101, 0.2) !important;
+}
+
+.overview-alert-card.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.toggle-icon {
+    transition: transform 0.3s;
+}
+
 .failed-jobs-full-list {
     margin-top: 1rem;
     display: grid;
@@ -690,6 +714,7 @@
     color: #a0aec0;
     font-size: 0.75rem;
 }
+
 /* Zone Business KPI Styles */
 .business-kpi-grid {
     display: grid;
