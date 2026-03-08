@@ -9,7 +9,7 @@ use axum::{
     response::IntoResponse,
 };
 use serde_json::json;
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
