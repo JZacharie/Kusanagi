@@ -784,3 +784,146 @@
 #biz-users-chart {
     height: 80px !important;
 }
+
+/* Business Intelligence Zone Styles */
+.bi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.bi-map-card,
+.bi-data-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 400px;
+}
+
+.bi-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid rgba(0, 255, 249, 0.2);
+}
+
+.bi-card-header h3 {
+    margin: 0 !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.bi-icon {
+    font-size: 1.4rem;
+    color: var(--neon-cyan);
+    opacity: 0.8;
+}
+
+.world-map-container {
+    flex: 1;
+    position: relative;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    min-height: 300px;
+}
+
+.map-loading {
+    color: var(--neon-cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    animation: flash 1.5s infinite;
+}
+
+/* SVG Map Country Styling */
+.country {
+    fill: #1a2332;
+    stroke: #2a3548;
+    stroke-width: 0.5;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.country:hover {
+    stroke: var(--neon-cyan);
+    stroke-width: 1;
+    filter: drop-shadow(0 0 5px var(--neon-cyan));
+}
+
+/* BI Table Styling */
+.bi-table-container {
+    overflow-x: auto;
+}
+
+.bi-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+}
+
+.bi-data-table th {
+    text-align: left;
+    padding: 0.8rem;
+    color: #a0aec0;
+    font-weight: 600;
+    border-bottom: 2px solid #2a3548;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+}
+
+.bi-data-table td {
+    padding: 0.8rem;
+    border-bottom: 1px solid #2a3548;
+    color: #e2e8f0;
+}
+
+.bi-data-table tr:hover {
+    background: rgba(0, 255, 249, 0.05);
+}
+
+.bi-data-table .country-name {
+    font-weight: 700;
+    color: var(--neon-cyan);
+}
+
+.bi-data-table .finance-value {
+    font-family: 'JetBrains Mono', monospace;
+    color: #ecc94b;
+}
+
+.bi-data-table .bi-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    background: rgba(0, 255, 249, 0.1);
+    border: 1px solid rgba(0, 255, 249, 0.3);
+}
+
+@keyframes flash {
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+@media (max-width: 1000px) {
+    .bi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .bi-data-card {
+        grid-column: span 1;
+    }
+}

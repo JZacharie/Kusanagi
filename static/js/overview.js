@@ -100,6 +100,7 @@ const OverviewDashboard = {
             this.renderSecurityScore(metricsData);
             this.renderPipelines(pipelineData);
             this.renderBusinessKPIs();
+            this.renderBusinessBI();
 
         } catch (error) {
             console.error('Error refreshing overview data:', error);
@@ -111,9 +112,9 @@ const OverviewDashboard = {
         const totalUsers = 12450 + Math.floor(Math.random() * 50);
         const uniqueUsers = 3240 + Math.floor(Math.random() * 100);
         const dailyTransactions = 850 + Math.floor(Math.random() * 30);
-        const hourlyUsers = 450 + Math.floor(Math.random() * 20);
-        const activeContracts = 1542;
-        const avgInvestment = 2450.75 + (Math.random() * 10);
+        const conversionRate = 65.4 + (Math.random() * 2);
+        const churnRate = 1.2 + (Math.random() * 0.5);
+        const loyaltyPoints = 458200 + Math.floor(Math.random() * 1000);
 
         // Update DOM
         const setText = (id, val) => {
@@ -124,9 +125,9 @@ const OverviewDashboard = {
         setText('biz-total-users', totalUsers.toLocaleString());
         setText('biz-unique-users', uniqueUsers.toLocaleString());
         setText('biz-daily-transactions', dailyTransactions.toLocaleString());
-        setText('biz-hourly-users', hourlyUsers.toLocaleString());
-        setText('biz-active-contracts', activeContracts.toLocaleString());
-        setText('biz-avg-investment', `${avgInvestment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`);
+        setText('biz-conversion-rate', `${conversionRate.toFixed(1)}%`);
+        setText('biz-churn-rate', `${churnRate.toFixed(2)}%`);
+        setText('biz-loyalty-points', loyaltyPoints.toLocaleString());
 
         // Render Activity Chart
         if (typeof Chart === 'undefined') return;
@@ -169,6 +170,74 @@ const OverviewDashboard = {
                 }
             }
         });
+    },
+
+    /**
+     * Renders World Maps and Financial Data
+     */
+    renderBusinessBI() {
+        if (!document.getElementById('user-world-map')) return;
+
+        // 1. Data Definitions
+        const countryData = [
+            { id: 'FR', name: 'France', users: 4500, investorsCount: 120, totalInvested: 2450000, performance: '+12.5%', geo: 'Europe' },
+            { id: 'US', name: 'USA', users: 3200, investorsCount: 85, totalInvested: 5800000, performance: '+15.2%', geo: 'NA' },
+            { id: 'GB', name: 'UK', users: 1800, investorsCount: 45, totalInvested: 1200000, performance: '+8.7%', geo: 'Europe' },
+            { id: 'DE', name: 'Germany', users: 1500, investorsCount: 38, totalInvested: 950000, performance: '+10.1%', geo: 'Europe' },
+            { id: 'JP', name: 'Japan', users: 1200, investorsCount: 25, totalInvested: 1100000, performance: '+6.4%', geo: 'Asia' },
+            { id: 'CN', name: 'China', users: 950, investorsCount: 15, totalInvested: 750000, performance: '+18.9%', geo: 'Asia' },
+            { id: 'IN', name: 'India', users: 800, investorsCount: 12, totalInvested: 450000, performance: '+22.5%', geo: 'Asia' },
+            { id: 'CA', name: 'Canada', users: 650, investorsCount: 18, totalInvested: 550000, performance: '+11.2%', geo: 'NA' },
+            { id: 'BR', name: 'Brazil', users: 500, investorsCount: 8, totalInvested: 150000, performance: '+5.3%', geo: 'SA' }
+        ];
+
+        // 2. Map Rendering Logic (SVG Injection)
+        // Note: Using a simplified World Map SVG skeleton
+        const svgStart = `<svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">`;
+        const svgEnd = `</svg>`;
+
+        // Country coordinates (approximate for the visualization)
+        const countries = [
+            { id: 'NA', path: 'M200,100 L350,100 L350,250 L200,250 Z', color: 'rgba(0, 255, 249, 0.4)', label: 'North America' },
+            { id: 'SA', path: 'M300,280 L400,280 L350,450 L250,450 Z', color: 'rgba(0, 255, 249, 0.2)', label: 'South America' },
+            { id: 'EUR', path: 'M450,100 L550,100 L550,220 L450,220 Z', color: 'rgba(0, 255, 249, 0.8)', label: 'Europe' },
+            { id: 'AFR', path: 'M450,240 L550,240 L500,420 L400,420 Z', color: 'rgba(0, 255, 249, 0.1)', label: 'Africa' },
+            { id: 'ASIA', path: 'M600,80 L850,80 L800,320 L600,320 Z', color: 'rgba(0, 255, 249, 0.5)', label: 'Asia' },
+            { id: 'OCE', path: 'M750,350 L850,350 L820,450 L720,450 Z', color: 'rgba(0, 255, 249, 0.1)', label: 'Oceania' }
+        ];
+
+        const generateMapHtml = (isFinance) => {
+            let paths = '';
+            countries.forEach(c => {
+                const color = isFinance ? c.color.replace('0, 255, 249', '236, 201, 75') : c.color;
+                paths += `<path d="${c.path}" class="country" fill="${color}" title="${c.label}">
+                    <title>${c.label}</title>
+                </path>`;
+            });
+            return svgStart + paths + svgEnd;
+        };
+
+        const userMapEl = document.getElementById('user-world-map');
+        const financeMapEl = document.getElementById('finance-world-map');
+
+        if (userMapEl) userMapEl.innerHTML = generateMapHtml(false);
+        if (financeMapEl) financeMapEl.innerHTML = generateMapHtml(true);
+
+        // 3. Table Rendering
+        const tableBody = document.getElementById('bi-investment-table-body');
+        if (tableBody) {
+            tableBody.innerHTML = countryData.map(c => `
+                <tr>
+                    <td class="country-name">${c.name}</td>
+                    <td>${c.investorsCount} <span class="mdi mdi-account-star" style="color: var(--neon-cyan);"></span></td>
+                    <td class="finance-value">${c.totalInvested.toLocaleString()} €</td>
+                    <td style="color: ${c.performance.includes('+') ? '#48bb78' : '#f56565'}; font-weight: bold;">
+                        ${c.performance}
+                    </td>
+                    <td><span class="bi-badge">${c.geo}</span></td>
+                </tr>
+            `).join('');
+        }
     },
 
     async refreshNamespaceCost() {
