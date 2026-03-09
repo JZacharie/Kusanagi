@@ -51,11 +51,49 @@ const OverviewDashboard = {
         });
 
         this.initialized = true;
+        this.initBusinessMap();
         this.refreshData();
         this.initPromotionHandler();
 
         // Refresh every 5 minutes (300000 ms) to match the mockup text
         this.updateInterval = setInterval(() => this.refreshData(), 300000);
+    },
+
+    initBusinessMap() {
+        const mapEl = document.getElementById('overview-business-map');
+        if (!mapEl) return;
+
+        console.log('🌍 Initializing Business Map on Overview...');
+
+        if (!this.map) {
+            this.map = L.map('overview-business-map', {
+                center: [20, 0],
+                zoom: 2,
+                zoomControl: false,
+                attributionControl: true
+            });
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(this.map);
+
+            L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+
+            // Force resize after init
+            setTimeout(() => this.map.invalidateSize(), 100);
+        }
+
+        // Add special handling for collapsibility to resize map
+        const bizHeader = mapEl.closest('.zone-content').previousElementSibling;
+        if (bizHeader && bizHeader.classList.contains('zone-title')) {
+            bizHeader.addEventListener('click', () => {
+                if (!bizHeader.classList.contains('collapsed')) {
+                    setTimeout(() => this.map.invalidateSize(), 200);
+                }
+            });
+        }
     },
 
     initPromotionHandler() {
@@ -134,10 +172,61 @@ const OverviewDashboard = {
             this.renderAppHealth(podsData, argocdData);
             this.renderSecurityScore(metricsData);
             this.renderPipelines(pipelineData);
+            this.renderBusinessMap();
 
         } catch (error) {
             console.error('Error refreshing overview data:', error);
         }
+    },
+
+    renderBusinessMap() {
+        const mapEl = document.getElementById('overview-business-map');
+        if (!mapEl) return;
+
+        const countryData = [
+            { id: 'FRA', name: 'France', users: 4500, investorsCount: 120, totalInvested: 2450000, performance: '+12.5%', geo: 'Europe', latlng: [46.2276, 2.2137] },
+            { id: 'USA', name: 'USA', users: 3200, investorsCount: 85, totalInvested: 5800000, performance: '+15.2%', geo: 'NA', latlng: [37.0902, -95.7129] },
+            { id: 'GBR', name: 'UK', users: 1800, investorsCount: 45, totalInvested: 1200000, performance: '+8.7%', geo: 'Europe', latlng: [55.3781, -3.4360] },
+            { id: 'DEU', name: 'Germany', users: 1500, investorsCount: 38, totalInvested: 950000, performance: '+10.1%', geo: 'Europe', latlng: [51.1657, 10.4515] },
+            { id: 'JPN', name: 'Japan', users: 1200, investorsCount: 25, totalInvested: 1100000, performance: '+6.4%', geo: 'Asia', latlng: [36.2048, 138.2529] },
+            { id: 'CHN', name: 'China', users: 950, investorsCount: 15, totalInvested: 750000, performance: '+18.9%', geo: 'Asia', latlng: [35.8617, 104.1954] },
+            { id: 'IND', name: 'India', users: 800, investorsCount: 12, totalInvested: 450000, performance: '+22.5%', geo: 'Asia', latlng: [20.5937, 78.9629] },
+            { id: 'CAN', name: 'Canada', users: 650, investorsCount: 18, totalInvested: 550000, performance: '+11.2%', geo: 'NA', latlng: [56.1304, -106.3468] },
+            { id: 'BRA', name: 'Brazil', users: 500, investorsCount: 8, totalInvested: 150000, performance: '+5.3%', geo: 'SA', latlng: [-14.2350, -51.9253] }
+        ];
+
+        // Ensure map is initialized
+        if (!this.map) return;
+
+        // Clear existing layers if any
+        if (this.mapLayers) {
+            this.mapLayers.forEach(layer => this.map.removeLayer(layer));
+        }
+        this.mapLayers = [];
+
+        // Render Investment Markers (Orange Circles)
+        countryData.forEach(c => {
+            const radius = Math.sqrt(c.totalInvested) / 100; // Scale radius
+            const marker = L.circleMarker(c.latlng, {
+                radius: radius,
+                fillColor: '#ed8936',
+                color: '#fff',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.6
+            }).addTo(this.map);
+
+            marker.bindPopup(`
+                <div style="font-family: 'Rajdhani', sans-serif;">
+                    <strong style="color: #ed8936; font-size: 1.1rem;">${c.name}</strong><br/>
+                    <span style="color: #f6e05e;">${c.users.toLocaleString()} Utilisateurs</span><br/>
+                    <span>${c.investorsCount} Investisseurs</span><br/>
+                    <span style="font-weight: bold;">${c.totalInvested.toLocaleString()} €</span>
+                </div>
+            `);
+
+            this.mapLayers.push(marker);
+        });
     },
 
     async refreshNamespaceCost() {
