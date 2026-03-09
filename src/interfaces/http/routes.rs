@@ -159,6 +159,7 @@ pub fn configure_routes(state: AppState) -> Router {
         // MQTT routes
         .route("/api/mqtt/devices", get(get_mqtt_devices_handler))
         .route("/api/mqtt/messages", get(get_mqtt_messages_handler))
+        .route("/api/github/promote", post(promote_to_prod_handler))
         // Apply rate limiting specifically to these routes
         .layer(GovernorLayer::new(governor_conf))
         // Convert 429 errors to JSON
