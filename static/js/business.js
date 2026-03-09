@@ -108,48 +108,81 @@ const BusinessDashboard = {
     },
 
     renderBusinessBI() {
-        if (!document.getElementById('user-world-map')) return;
+        const mapEl = document.getElementById('business-global-map');
+        if (!mapEl) return;
 
         const countryData = [
-            { id: 'FR', name: 'France', users: 4500, investorsCount: 120, totalInvested: 2450000, performance: '+12.5%', geo: 'Europe' },
-            { id: 'US', name: 'USA', users: 3200, investorsCount: 85, totalInvested: 5800000, performance: '+15.2%', geo: 'NA' },
-            { id: 'GB', name: 'UK', users: 1800, investorsCount: 45, totalInvested: 1200000, performance: '+8.7%', geo: 'Europe' },
-            { id: 'DE', name: 'Germany', users: 1500, investorsCount: 38, totalInvested: 950000, performance: '+10.1%', geo: 'Europe' },
-            { id: 'JP', name: 'Japan', users: 1200, investorsCount: 25, totalInvested: 1100000, performance: '+6.4%', geo: 'Asia' },
-            { id: 'CN', name: 'China', users: 950, investorsCount: 15, totalInvested: 750000, performance: '+18.9%', geo: 'Asia' },
-            { id: 'IN', name: 'India', users: 800, investorsCount: 12, totalInvested: 450000, performance: '+22.5%', geo: 'Asia' },
-            { id: 'CA', name: 'Canada', users: 650, investorsCount: 18, totalInvested: 550000, performance: '+11.2%', geo: 'NA' },
-            { id: 'BR', name: 'Brazil', users: 500, investorsCount: 8, totalInvested: 150000, performance: '+5.3%', geo: 'SA' }
+            { id: 'FRA', name: 'France', users: 4500, investorsCount: 120, totalInvested: 2450000, performance: '+12.5%', geo: 'Europe', latlng: [46.2276, 2.2137] },
+            { id: 'USA', name: 'USA', users: 3200, investorsCount: 85, totalInvested: 5800000, performance: '+15.2%', geo: 'NA', latlng: [37.0902, -95.7129] },
+            { id: 'GBR', name: 'UK', users: 1800, investorsCount: 45, totalInvested: 1200000, performance: '+8.7%', geo: 'Europe', latlng: [55.3781, -3.4360] },
+            { id: 'DEU', name: 'Germany', users: 1500, investorsCount: 38, totalInvested: 950000, performance: '+10.1%', geo: 'Europe', latlng: [51.1657, 10.4515] },
+            { id: 'JPN', name: 'Japan', users: 1200, investorsCount: 25, totalInvested: 1100000, performance: '+6.4%', geo: 'Asia', latlng: [36.2048, 138.2529] },
+            { id: 'CHN', name: 'China', users: 950, investorsCount: 15, totalInvested: 750000, performance: '+18.9%', geo: 'Asia', latlng: [35.8617, 104.1954] },
+            { id: 'IND', name: 'India', users: 800, investorsCount: 12, totalInvested: 450000, performance: '+22.5%', geo: 'Asia', latlng: [20.5937, 78.9629] },
+            { id: 'CAN', name: 'Canada', users: 650, investorsCount: 18, totalInvested: 550000, performance: '+11.2%', geo: 'NA', latlng: [56.1304, -106.3468] },
+            { id: 'BRA', name: 'Brazil', users: 500, investorsCount: 8, totalInvested: 150000, performance: '+5.3%', geo: 'SA', latlng: [-14.2350, -51.9253] }
         ];
 
-        const svgStart = `<svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">`;
-        const svgEnd = `</svg>`;
-
-        const regions = [
-            { id: 'NA', path: 'M200,100 L350,100 L350,250 L200,250 Z', color: 'rgba(0, 255, 249, 0.4)', label: 'North America' },
-            { id: 'SA', path: 'M300,280 L400,280 L350,450 L250,450 Z', color: 'rgba(0, 255, 249, 0.2)', label: 'South America' },
-            { id: 'EUR', path: 'M450,100 L550,100 L550,220 L450,220 Z', color: 'rgba(0, 255, 249, 0.8)', label: 'Europe' },
-            { id: 'AFR', path: 'M450,240 L550,240 L500,420 L400,420 Z', color: 'rgba(0, 255, 249, 0.1)', label: 'Africa' },
-            { id: 'ASIA', path: 'M600,80 L850,80 L800,320 L600,320 Z', color: 'rgba(0, 255, 249, 0.5)', label: 'Asia' },
-            { id: 'OCE', path: 'M750,350 L850,350 L820,450 L720,450 Z', color: 'rgba(0, 255, 249, 0.1)', label: 'Oceania' }
-        ];
-
-        const generateMapHtml = (isFinance) => {
-            let paths = '';
-            regions.forEach(c => {
-                const color = isFinance ? c.color.replace('0, 255, 249', '236, 201, 75') : c.color;
-                paths += `<path d="${c.path}" class="country" fill="${color}" title="${c.label}">
-                    <title>${c.label}</title>
-                </path>`;
+        // Initialize Leaflet Map if not already done
+        if (!this.map) {
+            this.map = L.map('business-global-map', {
+                center: [20, 0],
+                zoom: 2,
+                zoomControl: false,
+                attributionControl: true
             });
-            return svgStart + paths + svgEnd;
+
+            // Dark Matter tile layer (CartoDB)
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(this.map);
+
+            // Add Zoom Control at bottom right
+            L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+
+            // Force resize after init
+            setTimeout(() => this.map.invalidateSize(), 100);
+        }
+
+        // Clear existing layers if any
+        if (this.mapLayers) {
+            this.mapLayers.forEach(layer => this.map.removeLayer(layer));
+        }
+        this.mapLayers = [];
+
+        // Helper to get color based on user density (Yellow scale)
+        const getUserColor = d => {
+            return d > 4000 ? '#f6e05e' :
+                d > 2000 ? '#faf089' :
+                    d > 1000 ? '#fefcbf' :
+                        '#fff9c4';
         };
 
-        const userMapEl = document.getElementById('user-world-map');
-        const financeMapEl = document.getElementById('finance-world-map');
+        // Render Investment Markers (Orange Circles)
+        countryData.forEach(c => {
+            const radius = Math.sqrt(c.totalInvested) / 100; // Scale radius
+            const marker = L.circleMarker(c.latlng, {
+                radius: radius,
+                fillColor: '#ed8936',
+                color: '#fff',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.6
+            }).addTo(this.map);
 
-        if (userMapEl) userMapEl.innerHTML = generateMapHtml(false);
-        if (financeMapEl) financeMapEl.innerHTML = generateMapHtml(true);
+            marker.bindPopup(`
+                <div style="font-family: 'Rajdhani', sans-serif;">
+                    <strong style="color: #ed8936; font-size: 1.1rem;">${c.name}</strong><br/>
+                    <span style="color: #f6e05e;">${c.users.toLocaleString()} Utilisateurs</span><br/>
+                    <span>${c.investorsCount} Investisseurs</span><br/>
+                    <span style="font-weight: bold;">${c.totalInvested.toLocaleString()} €</span>
+                </div>
+            `);
+
+            this.mapLayers.push(marker);
+        });
 
         const tableBody = document.getElementById('bi-investment-table-body');
         if (tableBody) {
