@@ -109,6 +109,7 @@
     <script src="/static/js/mqtt.js?v={{VERSION}}"></script>
     <script system src="/static/js/system.js?v={{VERSION}}"></script>
     <script streaming src="/static/js/streaming.js?v={{VERSION}}"></script>
+    <script src="/static/js/business.js?v={{VERSION}}"></script>
 
     <!-- Main Orchestrator -->
     <script src="/static/js/dashboard.js?v={{VERSION}}"></script>
@@ -155,6 +156,12 @@
                         <a class="nav-link" data-page="argocd" href="#argocd">
                             <i class="mdi mdi-rocket-launch"></i>
                             <span class="nav-link-text">ArgoCD</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="business" href="#business">
+                            <i class="mdi mdi-finance"></i>
+                            <span class="nav-link-text">Business</span>
                         </a>
                     </li>
                     <!-- System merged into Metrics -->
@@ -596,6 +603,11 @@
 
             <!-- Proxmox Section -->
             <section class="argocd-section tab-content" data-tab="proxmox" style="display: none;">
+                <div class="loading">Loading...</div>
+            </section>
+
+            <!-- Business Section -->
+            <section class="argocd-section tab-content" data-tab="business" style="display: none;">
                 <div class="loading">Loading...</div>
             </section>
 

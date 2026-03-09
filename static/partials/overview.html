@@ -41,329 +41,237 @@
         </div>
     </div>
 
-    <!-- Zone Business KPI -->
-    <h2 class="zone-title collapsible-header"
-        style="border-left-color: var(--neon-gold, #ecc94b); background: linear-gradient(90deg, rgba(236, 201, 75, 0.1) 0%, transparent 100%);">
-        <span><span class="mdi mdi-finance"></span> ZONE BUSINESS KPI</span>
+    <!-- Zone DevOps -->
+    <h2 class="zone-title collapsible-header">
+        <span><span class="mdi mdi-rocket-launch"></span> ZONE DEVOPS</span>
         <span class="mdi mdi-chevron-down toggle-icon"></span>
     </h2>
-    <div class="zone-content business-kpi-grid">
-        <div class="kpi-card panel">
-            <span class="kpi-label">Utilisateurs Totaux</span>
-            <span id="biz-total-users" class="kpi-value">--</span>
-            <span class="kpi-subtext">Compte client actif</span>
-        </div>
-        <div class="kpi-card panel">
-            <span class="kpi-label">U. Uniques / 24h</span>
-            <span id="biz-unique-users" class="kpi-value">--</span>
-            <span class="kpi-subtext">Visites session unique</span>
-        </div>
-        <div class="kpi-card panel">
-            <span class="kpi-label">Volume Transac. / Jour</span>
-            <span id="biz-daily-transactions" class="kpi-value">--</span>
-            <span class="kpi-subtext">Transactions validées</span>
-        </div>
-        <div class="kpi-card panel">
-            <span class="kpi-label">Taux de Conversion</span>
-            <span id="biz-conversion-rate" class="kpi-value">--</span>
-            <span class="kpi-subtext">Prospects vers Clients</span>
-        </div>
-        <div class="kpi-card panel">
-            <span class="kpi-label">Taux de Churn</span>
-            <span id="biz-churn-rate" class="kpi-value">--</span>
-            <span class="kpi-subtext">Attrition mensuelle</span>
-        </div>
-        <div class="kpi-card panel">
-            <span class="kpi-label">Points de Fidélité</span>
-            <span id="biz-loyalty-points" class="kpi-value">--</span>
-            <span class="kpi-subtext">Cumul communautaire</span>
-        </div>
-        <div class="kpi-card panel business-chart-card">
-            <h3>Activité Utilisateurs (24h)</h3>
-            <canvas id="biz-users-chart" height="100"></canvas>
-        </div>
-    </div>
-
-    <!-- Zone Business Intelligence (World Maps & Investments) -->
-    <h2 class="zone-title collapsible-header"
-        style="border-left-color: var(--neon-cyan, #00fff9); background: linear-gradient(90deg, rgba(0, 255, 249, 0.1) 0%, transparent 100%);">
-        <span><span class="mdi mdi-globe-model"></span> ZONE BUSINESS INTELLIGENCE</span>
-        <span class="mdi mdi-chevron-down toggle-icon"></span>
-    </h2>
-    <div class="zone-content bi-grid">
-        <div class="bi-map-card panel">
-            <div class="bi-card-header">
-                <h3>Localisation des Utilisateurs</h3>
-                <span class="mdi mdi-account-group bi-icon"></span>
-            </div>
-            <div id="user-world-map" class="world-map-container">
-                <!-- SVG Map will be injected here -->
-                <div class="map-loading">Initialisation de la carte...</div>
-            </div>
-        </div>
-        <div class="bi-map-card panel">
-            <div class="bi-card-header">
-                <h3>Investissements Financiers / Pays</h3>
-                <span class="mdi mdi-bank bi-icon"></span>
-            </div>
-            <div id="finance-world-map" class="world-map-container">
-                <!-- SVG Map will be injected here -->
-                <div class="map-loading">Initialisation de la carte...</div>
-            </div>
-        </div>
-
-        <div class="bi-data-card panel" style="grid-column: span 2;">
-            <div class="bi-card-header">
-                <h3>Détails des Investissements en Bourse</h3>
-                <span class="mdi mdi-chart-areaspline bi-icon"></span>
-            </div>
-            <div class="bi-table-container">
-                <table class="bi-data-table">
-                    <thead>
-                        <tr>
-                            <th>Pays</th>
-                            <th>Nombre d'Investisseurs</th>
-                            <th>Total Investi (€)</th>
-                            <th>Performance Moyenne</th>
-                            <th>Zone Géo.</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bi-investment-table-body">
-                        <!-- Data will be injected here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Zone DevOps -->
-        <h2 class="zone-title collapsible-header">
-            <span><span class="mdi mdi-rocket-launch"></span> ZONE DEVOPS</span>
-            <span class="mdi mdi-chevron-down toggle-icon"></span>
-        </h2>
-        <div class="zone-content overview-grid">
-            <!-- 6. Applications Health -->
-            <div class="overview-card panel">
-                <h3>Applications Health</h3>
-                <div class="argocd-health-summary">
-                    <div class="argocd-health-header">HEALTH STATUS</div>
-                    <div class="argocd-health-grid">
-                        <a href="https://argocd.p.zacharie.org/applications?health=Progressing" target="_blank"
-                            class="argocd-health-item progressing">
-                            <span class="argocd-icon progressing">🔄</span> Progressing
-                            <span class="argocd-val">0</span>
-                        </a>
-                        <a href="https://argocd.p.zacharie.org/applications?health=Suspended" target="_blank"
-                            class="argocd-health-item suspended">
-                            <span class="argocd-icon suspended">⏸️</span> Suspended
-                            <span class="argocd-val">0</span>
-                        </a>
-                        <a href="https://argocd.p.zacharie.org/applications?health=Healthy" target="_blank"
-                            class="argocd-health-item healthy">
-                            <span class="argocd-icon healthy">💚</span> Healthy
-                            <span class="argocd-val">0</span>
-                        </a>
-                        <a href="https://argocd.p.zacharie.org/applications?health=Degraded" target="_blank"
-                            class="argocd-health-item degraded">
-                            <span class="argocd-icon degraded">💔</span> Degraded
-                            <span class="argocd-val">0</span>
-                        </a>
-                        <a href="https://argocd.p.zacharie.org/applications?health=Missing" target="_blank"
-                            class="argocd-health-item missing">
-                            <span class="argocd-icon missing">❓</span> Missing
-                            <span class="argocd-val">0</span>
-                        </a>
-                        <a href="https://argocd.p.zacharie.org/applications?health=Unknown" target="_blank"
-                            class="argocd-health-item unknown">
-                            <span class="argocd-icon unknown">❔</span> Unknown
-                            <span class="argocd-val">0</span>
-                        </a>
-                    </div>
-                    <div id="overview-degraded-apps-list" class="degraded-apps-list">
-                        <!-- Degraded apps will be injected here by JS -->
-                    </div>
+    <div class="zone-content overview-grid">
+        <!-- 6. Applications Health -->
+        <div class="overview-card panel">
+            <h3>Applications Health</h3>
+            <div class="argocd-health-summary">
+                <div class="argocd-health-header">HEALTH STATUS</div>
+                <div class="argocd-health-grid">
+                    <a href="https://argocd.p.zacharie.org/applications?health=Progressing" target="_blank"
+                        class="argocd-health-item progressing">
+                        <span class="argocd-icon progressing">🔄</span> Progressing
+                        <span class="argocd-val">0</span>
+                    </a>
+                    <a href="https://argocd.p.zacharie.org/applications?health=Suspended" target="_blank"
+                        class="argocd-health-item suspended">
+                        <span class="argocd-icon suspended">⏸️</span> Suspended
+                        <span class="argocd-val">0</span>
+                    </a>
+                    <a href="https://argocd.p.zacharie.org/applications?health=Healthy" target="_blank"
+                        class="argocd-health-item healthy">
+                        <span class="argocd-icon healthy">💚</span> Healthy
+                        <span class="argocd-val">0</span>
+                    </a>
+                    <a href="https://argocd.p.zacharie.org/applications?health=Degraded" target="_blank"
+                        class="argocd-health-item degraded">
+                        <span class="argocd-icon degraded">💔</span> Degraded
+                        <span class="argocd-val">0</span>
+                    </a>
+                    <a href="https://argocd.p.zacharie.org/applications?health=Missing" target="_blank"
+                        class="argocd-health-item missing">
+                        <span class="argocd-icon missing">❓</span> Missing
+                        <span class="argocd-val">0</span>
+                    </a>
+                    <a href="https://argocd.p.zacharie.org/applications?health=Unknown" target="_blank"
+                        class="argocd-health-item unknown">
+                        <span class="argocd-icon unknown">❔</span> Unknown
+                        <span class="argocd-val">0</span>
+                    </a>
+                </div>
+                <div id="overview-degraded-apps-list" class="degraded-apps-list">
+                    <!-- Degraded apps will be injected here by JS -->
                 </div>
             </div>
+        </div>
 
-            <!-- 1. Cluster Weather -->
-            <div class="overview-card weather-card panel" style="grid-column: span 2;">
-                <h3>Cluster Weather</h3>
-                <div class="weather-content">
-                    <div class="weather-graphic">
-                        <img id="overview-weather-img" src="/static/images/weather/sunny.svg" alt="Sunny">
-                        <div id="overview-weather-title" class="weather-title status-sunny">SUNNY</div>
+        <!-- 1. Cluster Weather -->
+        <div class="overview-card weather-card panel" style="grid-column: span 2;">
+            <h3>Cluster Weather</h3>
+            <div class="weather-content">
+                <div class="weather-graphic">
+                    <img id="overview-weather-img" src="/static/images/weather/sunny.svg" alt="Sunny">
+                    <div id="overview-weather-title" class="weather-title status-sunny">SUNNY</div>
+                </div>
+                <div class="weather-stats">
+                    <div class="weather-stat-row">
+                        <a href="#nodes" class="weather-stat-link">
+                            <span class="weather-stat-label">🖥️ Nodes:</span>
+                        </a>
+                        <span id="overview-nodes-stat" class="weather-stat-value health-good">--/-- Healthy</span>
                     </div>
-                    <div class="weather-stats">
-                        <div class="weather-stat-row">
-                            <a href="#nodes" class="weather-stat-link">
-                                <span class="weather-stat-label">🖥️ Nodes:</span>
-                            </a>
-                            <span id="overview-nodes-stat" class="weather-stat-value health-good">--/-- Healthy</span>
-                        </div>
-                        <div class="weather-stat-row">
-                            <a href="#pods" class="weather-stat-link">
-                                <span class="weather-stat-label">📦 Pods:</span>
-                            </a>
-                            <span id="overview-pods-stat" class="weather-stat-value health-good">--/-- Running</span>
-                        </div>
-                        <div class="weather-stat-row">
-                            <span class="weather-stat-label">API Latency:</span>
-                            <span id="overview-latency-stat" class="weather-stat-value">--ms</span>
-                        </div>
-                        <div class="weather-stat-resources">
-                            <div class="detailed-resources-grid">
-                                <!-- CPU Gauge -->
-                                <div class="resource-gauge-block">
-                                    <div class="resource-title">CPU</div>
-                                    <div class="gauge-container">
-                                        <canvas id="overview-cpu-gauge" width="160" height="160"></canvas>
-                                    </div>
-                                    <ul class="resource-gauge-legend">
-                                        <li class="legend-item"><span class="legend-color legend-usage"></span> Usage:
-                                            <span id="overview-cpu-usage">--</span></li>
-                                        <li class="legend-item"><span class="legend-color legend-requests"></span>
-                                            Requests:
-                                            <span id="overview-cpu-req">--</span>
-                                        </li>
-                                        <li class="legend-item"><span class="legend-color legend-limits"></span> Limits:
-                                            <span id="overview-cpu-limit">--</span>
-                                        </li>
-                                        <li class="legend-item"><span class="legend-color legend-allocatable"></span>
-                                            Allocatable Capacity: <span id="overview-cpu-alloc">--</span></li>
-                                        <li class="legend-item"><span class="legend-color legend-capacity"></span>
-                                            Capacity:
-                                            <span id="overview-cpu-cap">--</span>
-                                        </li>
-                                    </ul>
+                    <div class="weather-stat-row">
+                        <a href="#pods" class="weather-stat-link">
+                            <span class="weather-stat-label">📦 Pods:</span>
+                        </a>
+                        <span id="overview-pods-stat" class="weather-stat-value health-good">--/-- Running</span>
+                    </div>
+                    <div class="weather-stat-row">
+                        <span class="weather-stat-label">API Latency:</span>
+                        <span id="overview-latency-stat" class="weather-stat-value">--ms</span>
+                    </div>
+                    <div class="weather-stat-resources">
+                        <div class="detailed-resources-grid">
+                            <!-- CPU Gauge -->
+                            <div class="resource-gauge-block">
+                                <div class="resource-title">CPU</div>
+                                <div class="gauge-container">
+                                    <canvas id="overview-cpu-gauge" width="160" height="160"></canvas>
                                 </div>
+                                <ul class="resource-gauge-legend">
+                                    <li class="legend-item"><span class="legend-color legend-usage"></span> Usage:
+                                        <span id="overview-cpu-usage">--</span>
+                                    </li>
+                                    <li class="legend-item"><span class="legend-color legend-requests"></span>
+                                        Requests:
+                                        <span id="overview-cpu-req">--</span>
+                                    </li>
+                                    <li class="legend-item"><span class="legend-color legend-limits"></span> Limits:
+                                        <span id="overview-cpu-limit">--</span>
+                                    </li>
+                                    <li class="legend-item"><span class="legend-color legend-allocatable"></span>
+                                        Allocatable Capacity: <span id="overview-cpu-alloc">--</span></li>
+                                    <li class="legend-item"><span class="legend-color legend-capacity"></span>
+                                        Capacity:
+                                        <span id="overview-cpu-cap">--</span>
+                                    </li>
+                                </ul>
+                            </div>
 
-                                <!-- Memory Gauge -->
-                                <div class="resource-gauge-block">
-                                    <div class="resource-title">Memory</div>
-                                    <div class="gauge-container">
-                                        <canvas id="overview-mem-gauge" width="160" height="160"></canvas>
-                                    </div>
-                                    <ul class="resource-gauge-legend">
-                                        <li class="legend-item"><span class="legend-color legend-usage"></span> Usage:
-                                            <span id="overview-mem-usage">--</span></li>
-                                        <li class="legend-item"><span class="legend-color legend-requests"></span>
-                                            Requests:
-                                            <span id="overview-mem-req">--</span>
-                                        </li>
-                                        <li class="legend-item"><span class="legend-color legend-limits"></span> Limits:
-                                            <span id="overview-mem-limit">--</span>
-                                        </li>
-                                        <li class="legend-item"><span class="legend-color legend-allocatable"></span>
-                                            Allocatable Capacity: <span id="overview-mem-alloc">--</span></li>
-                                        <li class="legend-item"><span class="legend-color legend-capacity"></span>
-                                            Capacity:
-                                            <span id="overview-mem-cap">--</span>
-                                        </li>
-                                    </ul>
+                            <!-- Memory Gauge -->
+                            <div class="resource-gauge-block">
+                                <div class="resource-title">Memory</div>
+                                <div class="gauge-container">
+                                    <canvas id="overview-mem-gauge" width="160" height="160"></canvas>
                                 </div>
+                                <ul class="resource-gauge-legend">
+                                    <li class="legend-item"><span class="legend-color legend-usage"></span> Usage:
+                                        <span id="overview-mem-usage">--</span>
+                                    </li>
+                                    <li class="legend-item"><span class="legend-color legend-requests"></span>
+                                        Requests:
+                                        <span id="overview-mem-req">--</span>
+                                    </li>
+                                    <li class="legend-item"><span class="legend-color legend-limits"></span> Limits:
+                                        <span id="overview-mem-limit">--</span>
+                                    </li>
+                                    <li class="legend-item"><span class="legend-color legend-allocatable"></span>
+                                        Allocatable Capacity: <span id="overview-mem-alloc">--</span></li>
+                                    <li class="legend-item"><span class="legend-color legend-capacity"></span>
+                                        Capacity:
+                                        <span id="overview-mem-cap">--</span>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Zone FinOps -->
-        <h2 class="zone-title collapsible-header"
-            style="border-left-color: var(--neon-orange, #ff8800); background: linear-gradient(90deg, rgba(255, 136, 0, 0.1) 0%, transparent 100%);">
-            <span><span class="mdi mdi-cash-multiple"></span> ZONE FINOPS</span>
-            <span class="mdi mdi-chevron-down toggle-icon"></span>
-        </h2>
-        <div class="zone-content overview-grid">
-            <!-- 2. Cost Analysis -->
-            <div class="overview-card cost-card panel">
-                <h3>Cost Analysis</h3>
-                <div class="cost-estimate-basis" style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 0.5rem;">
-                    Estimated from pod & node sizes
-                </div>
-                <div class="cost-header">
-                    <div>
-                        <div class="cost-label">Current Cost:</div>
-                        <div class="cost-value" id="overview-current-cost">$--.--</div>
-                    </div>
-                    <div>
-                        <div class="cost-label">Forecasted:</div>
-                        <div class="cost-value" id="overview-forecast-cost">$--.--</div>
-                    </div>
-                </div>
-                <div class="cost-chart-container">
-                    <canvas id="overview-cost-pie-chart" height="150"></canvas>
-                </div>
-            </div>
-
-            <!-- 3. Cost by Namespace -->
-            <div class="overview-card namespace-cost-card panel" style="grid-column: span 2;">
-                <div class="card-header-with-actions">
-                    <h3>Cost by Namespace</h3>
-                    <div class="timeframe-toggle" id="namespace-cost-timeframe">
-                        <button class="toggle-btn active" data-window="5m">Live</button>
-                        <button class="toggle-btn" data-window="1d">1J</button>
-                        <button class="toggle-btn" data-window="30d">30J</button>
-                    </div>
-                </div>
-                <div class="namespace-chart-container">
-                    <canvas id="overview-namespace-bar-chart" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Zone Cyber Security -->
-        <h2 class="zone-title collapsible-header"
-            style="border-left-color: var(--neon-magenta, #ff00ff); background: linear-gradient(90deg, rgba(255, 0, 255, 0.1) 0%, transparent 100%);">
-            <span><span class="mdi mdi-shield-check"></span> ZONE CYBER SECURITY</span>
-            <span class="mdi mdi-chevron-down toggle-icon"></span>
-        </h2>
-        <div class="zone-content overview-grid">
-            <!-- 4. Security Score -->
-            <div class="overview-card security-card panel">
-                <h3>Cluster Security Score</h3>
-                <div class="security-content">
-                    <div class="security-score-gauge">
-                        <span>Global Security Score</span>
-                        <span id="overview-security-score" class="security-score-value">--%</span>
-                    </div>
-                    <div class="security-details">
-                        <div class="security-detail-row">
-                            <span>Trivy (Vulnerabilities Apps)</span>
-                            <span id="overview-trivy-score">--%</span>
-                        </div>
-                        <div class="security-detail-row">
-                            <span>Compliance (Steampipe)</span>
-                            <span id="overview-compliance-score">--%</span>
-                        </div>
-                        <div class="security-detail-row">
-                            <span>Jobs en échec (Pénalité)</span>
-                            <span id="overview-failed-jobs-count" class="status-good">0</span>
-                        </div>
-                    </div>
-                    <div class="security-formula">
-                        <span class="formula-title">Calcul du Score</span>
-                        <span class="formula-text">
-                            <strong>Score = (Trivy × 0.4) + (Compliance × 0.6) - (Jobs échecs × 2)</strong>
-                        </span>
-                        <span class="formula-note">Note : Trivy se concentre uniquement sur vos applications et Kusanagi
-                            (hors outils d'observabilité).</span>
-                    </div>
-                    <div class="security-summary" id="overview-security-summary">
-                        <!-- Dynamic summary -->
-                    </div>
-                    <div id="overview-failed-jobs-list" class="failed-jobs-mini-list">
-                        <!-- Failed jobs will be injected here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5. Recent Pipelines -->
-            <div class="overview-card panel" style="grid-column: span 2;">
-                <h3>Recent Pipelines & PR Quality</h3>
-                <div class="pipelines-summary-container" id="overview-pipelines-list">
-                    <div class="loading-placeholder">Loading pipeline status...</div>
-                </div>
-            </div>
-        </div>
-
     </div>
+
+    <!-- Zone FinOps -->
+    <h2 class="zone-title collapsible-header"
+        style="border-left-color: var(--neon-orange, #ff8800); background: linear-gradient(90deg, rgba(255, 136, 0, 0.1) 0%, transparent 100%);">
+        <span><span class="mdi mdi-cash-multiple"></span> ZONE FINOPS</span>
+        <span class="mdi mdi-chevron-down toggle-icon"></span>
+    </h2>
+    <div class="zone-content overview-grid">
+        <!-- 2. Cost Analysis -->
+        <div class="overview-card cost-card panel">
+            <h3>Cost Analysis</h3>
+            <div class="cost-estimate-basis" style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 0.5rem;">
+                Estimated from pod & node sizes
+            </div>
+            <div class="cost-header">
+                <div>
+                    <div class="cost-label">Current Cost:</div>
+                    <div class="cost-value" id="overview-current-cost">$--.--</div>
+                </div>
+                <div>
+                    <div class="cost-label">Forecasted:</div>
+                    <div class="cost-value" id="overview-forecast-cost">$--.--</div>
+                </div>
+            </div>
+            <div class="cost-chart-container">
+                <canvas id="overview-cost-pie-chart" height="150"></canvas>
+            </div>
+        </div>
+
+        <!-- 3. Cost by Namespace -->
+        <div class="overview-card namespace-cost-card panel" style="grid-column: span 2;">
+            <div class="card-header-with-actions">
+                <h3>Cost by Namespace</h3>
+                <div class="timeframe-toggle" id="namespace-cost-timeframe">
+                    <button class="toggle-btn active" data-window="5m">Live</button>
+                    <button class="toggle-btn" data-window="1d">1J</button>
+                    <button class="toggle-btn" data-window="30d">30J</button>
+                </div>
+            </div>
+            <div class="namespace-chart-container">
+                <canvas id="overview-namespace-bar-chart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zone Cyber Security -->
+    <h2 class="zone-title collapsible-header"
+        style="border-left-color: var(--neon-magenta, #ff00ff); background: linear-gradient(90deg, rgba(255, 0, 255, 0.1) 0%, transparent 100%);">
+        <span><span class="mdi mdi-shield-check"></span> ZONE CYBER SECURITY</span>
+        <span class="mdi mdi-chevron-down toggle-icon"></span>
+    </h2>
+    <div class="zone-content overview-grid">
+        <!-- 4. Security Score -->
+        <div class="overview-card security-card panel">
+            <h3>Cluster Security Score</h3>
+            <div class="security-content">
+                <div class="security-score-gauge">
+                    <span>Global Security Score</span>
+                    <span id="overview-security-score" class="security-score-value">--%</span>
+                </div>
+                <div class="security-details">
+                    <div class="security-detail-row">
+                        <span>Trivy (Vulnerabilities Apps)</span>
+                        <span id="overview-trivy-score">--%</span>
+                    </div>
+                    <div class="security-detail-row">
+                        <span>Compliance (Steampipe)</span>
+                        <span id="overview-compliance-score">--%</span>
+                    </div>
+                    <div class="security-detail-row">
+                        <span>Jobs en échec (Pénalité)</span>
+                        <span id="overview-failed-jobs-count" class="status-good">0</span>
+                    </div>
+                </div>
+                <div class="security-formula">
+                    <span class="formula-title">Calcul du Score</span>
+                    <span class="formula-text">
+                        <strong>Score = (Trivy × 0.4) + (Compliance × 0.6) - (Jobs échecs × 2)</strong>
+                    </span>
+                    <span class="formula-note">Note : Trivy se concentre uniquement sur vos applications et Kusanagi
+                        (hors outils d'observabilité).</span>
+                </div>
+                <div class="security-summary" id="overview-security-summary">
+                    <!-- Dynamic summary -->
+                </div>
+                <div id="overview-failed-jobs-list" class="failed-jobs-mini-list">
+                    <!-- Failed jobs will be injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Recent Pipelines -->
+        <div class="overview-card panel" style="grid-column: span 2;">
+            <h3>Recent Pipelines & PR Quality</h3>
+            <div class="pipelines-summary-container" id="overview-pipelines-list">
+                <div class="loading-placeholder">Loading pipeline status...</div>
+            </div>
+        </div>
+    </div>
+
+</div>
