@@ -26,6 +26,19 @@
         <div class="status-item">Last Backup: <span id="overview-backup-text" class="status-info">--</span></div>
     </div>
 
+    <!-- Zone Business Intelligence -->
+    <h2 class="zone-title collapsible-header"
+        style="border-left-color: var(--neon-yellow, #f6e05e); background: linear-gradient(90deg, rgba(246, 224, 94, 0.1) 0%, transparent 100%);">
+        <span><span class="mdi mdi-globe-model"></span> ZONE BUSINESS INTELLIGENCE</span>
+        <span class="mdi mdi-chevron-down toggle-icon"></span>
+    </h2>
+    <div class="zone-content bi-map-container" style="margin-bottom: 20px;">
+        <div id="overview-business-map" class="world-map-container"
+            style="height: 1400px; border: 1px solid var(--panel-border); border-radius: 4px;">
+            <div class="map-loading">Initialisation de la carte interactive...</div>
+        </div>
+    </div>
+
     <!-- Zone Alerte -->
     <div id="overview-failed-jobs-alert" class="overview-alert-card panel status-critical"
         style="display: none; margin-bottom: 20px;">
