@@ -70,3 +70,20 @@ pub async fn news_refresh() -> impl IntoResponse {
         })).into_response(),
     }
 }
+
+/// Promote dev version to production
+#[utoipa::path(
+    post,
+    path = "/api/github/promote",
+    responses(
+        (status = 200, description = "Promotion successful"),
+        (status = 500, description = "Promotion failed")
+    ),
+    tag = "system"
+)]
+pub async fn promote_to_prod_handler() -> impl IntoResponse {
+    match crate::domain::services::promotion_service::promote_to_production().await {
+        Ok(data) => api_success(data),
+        Err(e) => api_error(axum::http::StatusCode::INTERNAL_SERVER_ERROR, e),
+    }
+}

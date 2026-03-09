@@ -14,6 +14,7 @@ pub mod monitoring_service;
 pub mod mqtt_service;
 pub mod news_service;
 pub mod proxmox_service;
+pub mod promotion_service;
 pub mod slack_service;
 pub mod streaming_service;
 pub mod system_service;

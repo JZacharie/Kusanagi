@@ -37,7 +37,7 @@ const K8sStorage = {
 
             this.renderStorageTable(storageData);
             this.renderUnattachedPvcs(data.unattached_pvcs || []);
-            this.renderOrphanedProxmox(data.orphaned_proxmox_volumes || []);
+            this.renderOrphanedPv(data.orphaned_proxmox_volumes || []);
 
         } catch (error) {
             console.error('Failed to fetch storage status:', error);
@@ -90,7 +90,7 @@ const K8sStorage = {
         alert('Please run: ./scripts/force-detach-k8s-volume.sh or kubectl delete pvc');
     },
 
-    renderOrphanedProxmox(orphans) {
+    renderOrphanedPv(orphans) {
         const container = document.getElementById('orphaned-proxmox-container');
         const content = document.getElementById('orphaned-proxmox-content');
         const countSpan = document.getElementById('orphaned-proxmox-table-count');
