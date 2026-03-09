@@ -159,6 +159,7 @@ const DashboardManager = {
         pods: { name: 'Pods', icon: '📦', enabled: true, order: 4 },
         network: { name: 'Network', icon: '🌐', enabled: true, order: 5 },
         metrics: { name: 'Metrics', icon: '📊', enabled: true, order: 6 },
+        business: { name: 'Business', icon: '📈', enabled: true, order: 7 },
         // alerts/events deprecated
 
         chat: { name: 'Chat', icon: '💬', enabled: true, order: 8 },

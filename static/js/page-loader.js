@@ -13,6 +13,7 @@ const PageLoader = {
     // Mapping of tab names to partial files
     partials: {
         'overview': 'overview.html',
+        'business': 'business.html',
         'nodes': 'nodes.html',
         'storage': 'storage.html',
         'services': 'services.html',
@@ -124,6 +125,9 @@ const PageLoader = {
         switch (tabName) {
             case 'overview':
                 if (window.OverviewDashboard) OverviewDashboard.init();
+                break;
+            case 'business':
+                if (window.BusinessDashboard) BusinessDashboard.init();
                 break;
             case 'proxmox':
                 if (window.ProxmoxDashboard) ProxmoxDashboard.init();

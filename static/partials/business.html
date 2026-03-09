@@ -1,0 +1,105 @@
+<div class="overview-dashboard">
+    <div class="overview-header">
+        <h2 class="overview-title">
+            <span class="overview-icon">📈</span> Business Dashboard
+        </h2>
+        <div class="overview-header-actions">
+            <div class="overview-meta">
+                Refresh: 5m | Admin | <span id="biz-last-update">--</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zone Business KPI -->
+    <h2 class="zone-title collapsible-header"
+        style="border-left-color: var(--neon-gold, #ecc94b); background: linear-gradient(90deg, rgba(236, 201, 75, 0.1) 0%, transparent 100%);">
+        <span><span class="mdi mdi-finance"></span> ZONE BUSINESS KPI</span>
+        <span class="mdi mdi-chevron-down toggle-icon"></span>
+    </h2>
+    <div class="zone-content business-kpi-grid">
+        <div class="kpi-card panel">
+            <span class="kpi-label">Utilisateurs Totaux</span>
+            <span id="biz-total-users" class="kpi-value">--</span>
+            <span class="kpi-subtext">Compte client actif</span>
+        </div>
+        <div class="kpi-card panel">
+            <span class="kpi-label">U. Uniques / 24h</span>
+            <span id="biz-unique-users" class="kpi-value">--</span>
+            <span class="kpi-subtext">Visites session unique</span>
+        </div>
+        <div class="kpi-card panel">
+            <span class="kpi-label">Volume Transac. / Jour</span>
+            <span id="biz-daily-transactions" class="kpi-value">--</span>
+            <span class="kpi-subtext">Transactions validées</span>
+        </div>
+        <div class="kpi-card panel">
+            <span class="kpi-label">Taux de Conversion</span>
+            <span id="biz-conversion-rate" class="kpi-value">--</span>
+            <span class="kpi-subtext">Prospects vers Clients</span>
+        </div>
+        <div class="kpi-card panel">
+            <span class="kpi-label">Taux de Churn</span>
+            <span id="biz-churn-rate" class="kpi-value">--</span>
+            <span class="kpi-subtext">Attrition mensuelle</span>
+        </div>
+        <div class="kpi-card panel">
+            <span class="kpi-label">Points de Fidélité</span>
+            <span id="biz-loyalty-points" class="kpi-value">--</span>
+            <span class="kpi-subtext">Cumul communautaire</span>
+        </div>
+        <div class="kpi-card panel business-chart-card">
+            <h3>Activité Utilisateurs (24h)</h3>
+            <canvas id="biz-users-chart" height="100"></canvas>
+        </div>
+    </div>
+
+    <!-- Zone Business Intelligence (World Maps & Investments) -->
+    <h2 class="zone-title collapsible-header"
+        style="border-left-color: var(--neon-cyan, #00fff9); background: linear-gradient(90deg, rgba(0, 255, 249, 0.1) 0%, transparent 100%);">
+        <span><span class="mdi mdi-globe-model"></span> ZONE BUSINESS INTELLIGENCE</span>
+        <span class="mdi mdi-chevron-down toggle-icon"></span>
+    </h2>
+    <div class="zone-content bi-grid">
+        <div class="bi-map-card panel">
+            <div class="bi-card-header">
+                <h3>Localisation des Utilisateurs</h3>
+                <span class="mdi mdi-account-group bi-icon"></span>
+            </div>
+            <div id="user-world-map" class="world-map-container">
+                <div class="map-loading">Initialisation de la carte...</div>
+            </div>
+        </div>
+        <div class="bi-map-card panel">
+            <div class="bi-card-header">
+                <h3>Investissements Financiers / Pays</h3>
+                <span class="mdi mdi-bank bi-icon"></span>
+            </div>
+            <div id="finance-world-map" class="world-map-container">
+                <div class="map-loading">Initialisation de la carte...</div>
+            </div>
+        </div>
+
+        <div class="bi-data-card panel" style="grid-column: span 2;">
+            <div class="bi-card-header">
+                <h3>Détails des Investissements en Bourse</h3>
+                <span class="mdi mdi-chart-areaspline bi-icon"></span>
+            </div>
+            <div class="bi-table-container">
+                <table class="bi-data-table">
+                    <thead>
+                        <tr>
+                            <th>Pays</th>
+                            <th>Nombre d'Investisseurs</th>
+                            <th>Total Investi (€)</th>
+                            <th>Performance Moyenne</th>
+                            <th>Zone Géo.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bi-investment-table-body">
+                        <!-- Data will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
