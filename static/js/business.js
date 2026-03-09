@@ -112,15 +112,36 @@ const BusinessDashboard = {
         if (!mapEl) return;
 
         const countryData = [
-            { id: 'FRA', name: 'France', users: 4500, investorsCount: 120, totalInvested: 2450000, performance: '+12.5%', geo: 'Europe', latlng: [46.2276, 2.2137] },
-            { id: 'USA', name: 'USA', users: 3200, investorsCount: 85, totalInvested: 5800000, performance: '+15.2%', geo: 'NA', latlng: [37.0902, -95.7129] },
-            { id: 'GBR', name: 'UK', users: 1800, investorsCount: 45, totalInvested: 1200000, performance: '+8.7%', geo: 'Europe', latlng: [55.3781, -3.4360] },
-            { id: 'DEU', name: 'Germany', users: 1500, investorsCount: 38, totalInvested: 950000, performance: '+10.1%', geo: 'Europe', latlng: [51.1657, 10.4515] },
-            { id: 'JPN', name: 'Japan', users: 1200, investorsCount: 25, totalInvested: 1100000, performance: '+6.4%', geo: 'Asia', latlng: [36.2048, 138.2529] },
-            { id: 'CHN', name: 'China', users: 950, investorsCount: 15, totalInvested: 750000, performance: '+18.9%', geo: 'Asia', latlng: [35.8617, 104.1954] },
-            { id: 'IND', name: 'India', users: 800, investorsCount: 12, totalInvested: 450000, performance: '+22.5%', geo: 'Asia', latlng: [20.5937, 78.9629] },
-            { id: 'CAN', name: 'Canada', users: 650, investorsCount: 18, totalInvested: 550000, performance: '+11.2%', geo: 'NA', latlng: [56.1304, -106.3468] },
-            { id: 'BRA', name: 'Brazil', users: 500, investorsCount: 8, totalInvested: 150000, performance: '+5.3%', geo: 'SA', latlng: [-14.2350, -51.9253] }
+            // Europe
+            { id: 'FRA', name: 'France', users: 4850, investorsCount: 142, totalInvested: 2850000, performance: '+12.5%', geo: 'Europe', latlng: [46.2276, 2.2137] },
+            { id: 'DEU', name: 'Germany', users: 3800, investorsCount: 95, totalInvested: 1950000, performance: '+10.1%', geo: 'Europe', latlng: [51.1657, 10.4515] },
+            { id: 'GBR', name: 'UK', users: 3100, investorsCount: 78, totalInvested: 2200000, performance: '+8.7%', geo: 'Europe', latlng: [55.3781, -3.4360] },
+            { id: 'ITA', name: 'Italy', users: 2400, investorsCount: 56, totalInvested: 1100000, performance: '+7.2%', geo: 'Europe', latlng: [41.8719, 12.5674] },
+            { id: 'ESP', name: 'Spain', users: 2100, investorsCount: 48, totalInvested: 950000, performance: '+9.4%', geo: 'Europe', latlng: [40.4637, -3.7492] },
+            { id: 'NLD', name: 'Netherlands', users: 1850, investorsCount: 64, totalInvested: 1550000, performance: '+11.8%', geo: 'Europe', latlng: [52.1326, 5.2913] },
+            { id: 'CHE', name: 'Switzerland', users: 1200, investorsCount: 82, totalInvested: 3200000, performance: '+6.5%', geo: 'Europe', latlng: [46.8182, 8.2275] },
+            { id: 'BEL', name: 'Belgium', users: 1150, investorsCount: 34, totalInvested: 750000, performance: '+8.2%', geo: 'Europe', latlng: [50.5039, 4.4699] },
+            { id: 'SWE', name: 'Sweden', users: 1400, investorsCount: 41, totalInvested: 1100000, performance: '+10.4%', geo: 'Europe', latlng: [60.1282, 18.6435] },
+            { id: 'NOR', name: 'Norway', users: 950, investorsCount: 38, totalInvested: 1450000, performance: '+5.8%', geo: 'Europe', latlng: [60.4720, 8.4689] },
+            { id: 'DNK', name: 'Denmark', users: 850, investorsCount: 29, totalInvested: 880000, performance: '+9.1%', geo: 'Europe', latlng: [56.2639, 9.5018] },
+            { id: 'FIN', name: 'Finland', users: 780, investorsCount: 22, totalInvested: 650000, performance: '+7.7%', geo: 'Europe', latlng: [61.9241, 25.7481] },
+            { id: 'POL', name: 'Poland', users: 1600, investorsCount: 28, totalInvested: 550000, performance: '+14.2%', geo: 'Europe', latlng: [51.9194, 19.1451] },
+            { id: 'AUT', name: 'Austria', users: 920, investorsCount: 31, totalInvested: 780000, performance: '+8.9%', geo: 'Europe', latlng: [47.5162, 14.5501] },
+            { id: 'PRT', name: 'Portugal', users: 1100, investorsCount: 19, totalInvested: 420000, performance: '+6.1%', geo: 'Europe', latlng: [39.3999, -8.2245] },
+            { id: 'IRL', name: 'Ireland', users: 850, investorsCount: 45, totalInvested: 1850000, performance: '+13.4%', geo: 'Europe', latlng: [53.4129, -8.2439] },
+            { id: 'GRC', name: 'Greece', users: 750, investorsCount: 12, totalInvested: 280000, performance: '+4.5%', geo: 'Europe', latlng: [39.0742, 21.8243] },
+            { id: 'CZE', name: 'Czechia', users: 980, investorsCount: 18, totalInvested: 480000, performance: '+9.8%', geo: 'Europe', latlng: [49.8175, 15.4730] },
+            { id: 'HUN', name: 'Hungary', users: 680, investorsCount: 11, totalInvested: 240000, performance: '+11.2%', geo: 'Europe', latlng: [47.1625, 19.5033] },
+            { id: 'ROU', name: 'Romania', users: 1250, investorsCount: 14, totalInvested: 320000, performance: '+15.5%', geo: 'Europe', latlng: [45.9432, 24.9668] },
+
+            // Rest of the World
+            { id: 'USA', name: 'USA', users: 12500, investorsCount: 450, totalInvested: 15800000, performance: '+15.2%', geo: 'NA', latlng: [37.0902, -95.7129] },
+            { id: 'JPN', name: 'Japan', users: 4200, investorsCount: 95, totalInvested: 3100000, performance: '+6.4%', geo: 'Asia', latlng: [36.2048, 138.2529] },
+            { id: 'CHN', name: 'China', users: 18000, investorsCount: 120, totalInvested: 4500000, performance: '+18.9%', geo: 'Asia', latlng: [35.8617, 104.1954] },
+            { id: 'IND', name: 'India', users: 22000, investorsCount: 85, totalInvested: 2250000, performance: '+22.5%', geo: 'Asia', latlng: [20.5937, 78.9629] },
+            { id: 'CAN', name: 'Canada', users: 2800, investorsCount: 64, totalInvested: 1850000, performance: '+11.2%', geo: 'NA', latlng: [56.1304, -106.3468] },
+            { id: 'BRA', name: 'Brazil', users: 4500, investorsCount: 42, totalInvested: 950000, performance: '+5.3%', geo: 'SA', latlng: [-14.2350, -51.9253] },
+            { id: 'AUS', name: 'Australia', users: 1800, investorsCount: 52, totalInvested: 2150000, performance: '+9.7%', geo: 'Oceania', latlng: [-25.2744, 133.7751] }
         ];
 
         // Initialize Leaflet Map if not already done
