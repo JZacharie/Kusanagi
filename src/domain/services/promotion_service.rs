@@ -56,7 +56,7 @@ pub async fn promote_to_production() -> Result<Value, String> {
     let prod_sha = prod_content_json["sha"].as_str().ok_or("No SHA in prod values response")?;
     let prod_content_b64 = prod_content_json["content"].as_str().ok_or("No content in prod values response")?.replace("\n", "");
     let prod_content_bytes = general_purpose::STANDARD.decode(prod_content_b64).map_err(|e| e.to_string())?;
-    let mut prod_content_str = String::from_utf8(prod_content_bytes).map_err(|e| e.to_string())?;
+    let prod_content_str = String::from_utf8(prod_content_bytes).map_err(|e| e.to_string())?;
 
     // 3. Update prod content
     // Replace tag
