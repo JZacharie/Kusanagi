@@ -274,4 +274,23 @@
         </div>
     </div>
 
+    <!-- Zone Release Operations -->
+    <h2 class="zone-title collapsible-header"
+        style="border-left-color: var(--neon-purple, #9f7aea); background: linear-gradient(90deg, rgba(159, 122, 234, 0.1) 0%, transparent 100%);">
+        <span><span class="mdi mdi-rocket-launch"></span> ZONE RELEASE OPERATIONS</span>
+        <span class="mdi mdi-chevron-down toggle-icon"></span>
+    </h2>
+    <div class="zone-content release-ops-grid">
+        <div class="release-card panel">
+            <div class="release-info">
+                <h3>Promotion vers Production</h3>
+                <p>Déployer la version stable actuelle de Dev vers l'environnement de Production.</p>
+            </div>
+            <button id="btn-promote-prod" class="btn-action">
+                <span class="mdi mdi-cloud-upload"></span> PROMOTE TO PROD
+            </button>
+            <div id="promote-status" class="release-status"></div>
+        </div>
+    </div>
+
 </div>

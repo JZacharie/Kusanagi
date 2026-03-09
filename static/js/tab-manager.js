@@ -63,7 +63,7 @@ const TabManager = {
         });
 
         // Initialiser avec l'onglet actuel
-        const initialTab = window.KusanagiDashboard?.activeTab || 'argocd';
+        const initialTab = window.KusanagiDashboard?.activeTab || 'overview';
         this.switchToTab(initialTab);
     },
 
