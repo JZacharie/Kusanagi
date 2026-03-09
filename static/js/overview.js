@@ -52,9 +52,44 @@ const OverviewDashboard = {
 
         this.initialized = true;
         this.refreshData();
+        this.initPromotionHandler();
 
         // Refresh every 5 minutes (300000 ms) to match the mockup text
         this.updateInterval = setInterval(() => this.refreshData(), 300000);
+    },
+
+    initPromotionHandler() {
+        const btn = document.getElementById('btn-promote-prod');
+        const statusEl = document.getElementById('promote-status');
+        if (!btn) return;
+
+        btn.addEventListener('click', async () => {
+            if (!confirm("Êtes-vous sûr de vouloir promouvoir la version Dev vers la Production ?")) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="mdi mdi-loading mdi-spin"></span> PROMOTION EN COURS...';
+            statusEl.innerHTML = '';
+            statusEl.className = 'release-status';
+
+            try {
+                const response = await fetch('/api/github/promote', { method: 'POST' });
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    statusEl.innerHTML = `<span class="mdi mdi-check-circle"></span> ${result.message}`;
+                    statusEl.className = 'release-status status-success';
+                    btn.innerHTML = '<span class="mdi mdi-check"></span> PROMU AVEC SUCCÈS';
+                } else {
+                    throw new Error(result.message || 'Erreur lors de la promotion');
+                }
+            } catch (error) {
+                console.error('Promotion error:', error);
+                statusEl.innerHTML = `<span class="mdi mdi-alert-circle"></span> Erreur: ${error.message}`;
+                statusEl.className = 'release-status status-error';
+                btn.disabled = false;
+                btn.innerHTML = '<span class="mdi mdi-cloud-upload"></span> RÉESSAYER LA PROMOTION';
+            }
+        });
     },
 
     async refreshData() {
