@@ -11,10 +11,8 @@ use chrono::{DateTime, Utc};
 use k8s_openapi::api::batch::v1::{CronJob, Job};
 use kube::{
     api::{Api, ListParams, PostParams},
-    Client, CustomResource,
+    Client,
 };
-use kube::api::DynamicObject;
-use kube::core::GroupVersionKind;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -55,7 +53,6 @@ impl BackupRepositoryImpl {
                     succeeded_jobs: entry.data.succeeded_jobs,
                     failed_jobs: entry.data.failed_jobs,
                     cronjobs: entry.data.cronjobs.clone(),
-                    pg_backup: entry.data.pg_backup.clone(),
                 });
             }
         }
@@ -159,53 +156,6 @@ impl BackupRepositoryImpl {
             .take(5) // Keep only 5 most recent
             .collect()
     }
-
-    /// Fetch latest PostgreSQL backup info from CNPG in pg-prd namespace
-    async fn get_pg_backup_status(&self) -> Option<crate::domain::entities::PgBackupInfo> {
-        let gvk = GroupVersionKind::gvk("postgresql.cnpg.io", "v1", "Backup");
-        let api: Api<DynamicObject> = Api::namespaced_with(self.client.as_ref().clone(), "pg-prd", &kube::api::ApiResource::from_gvk(&gvk));
-
-        let lp = ListParams::default();
-        let backups = api.list(&lp).await.ok()?;
-
-        let mut completed_backups: Vec<_> = backups.items.into_iter()
-            .filter(|b| {
-                b.data["status"]["phase"].as_str() == Some("completed")
-            })
-            .collect();
-
-        // Sort by completion time if available
-        completed_backups.sort_by(|a, b| {
-            let a_time = a.data["status"]["completionTime"].as_str().unwrap_or("");
-            let b_time = b.data["status"]["completionTime"].as_str().unwrap_or("");
-            b_time.cmp(a_time) // Descending
-        });
-
-        let latest = completed_backups.into_iter().next()?;
-        
-        let name = latest.metadata.name.clone().unwrap_or_else(|| "unknown".to_string());
-        let status = latest.data["status"]["phase"].as_str().unwrap_or("unknown").to_string();
-        let method = latest.data["spec"]["method"].as_str().unwrap_or("unknown").to_string();
-        let completed_at = latest.data["status"]["completionTime"].as_str().map(|s| s.to_string());
-        
-        let age = if let Some(ref ct) = completed_at {
-            if let Ok(ts) = DateTime::parse_from_rfc3339(ct) {
-                self.format_duration(Utc::now().signed_duration_since(ts.with_timezone(&Utc)))
-            } else {
-                "Unknown".to_string()
-            }
-        } else {
-            "Unknown".to_string()
-        };
-
-        Some(crate::domain::entities::PgBackupInfo {
-            name,
-            status,
-            method,
-            completed_at,
-            age,
-        })
-    }
 }
 
 #[async_trait]
@@ -219,9 +169,6 @@ impl BackupRepository for BackupRepositoryImpl {
             );
             return Ok(cached);
         }
-
-        // Fetch CNPG backup info
-        let pg_backup = self.get_pg_backup_status().await;
 
         // Get all CronJobs
         let cronjobs_api: Api<CronJob> = Api::all(self.client.as_ref().clone());
@@ -313,7 +260,6 @@ impl BackupRepository for BackupRepositoryImpl {
             succeeded_jobs: total_succeeded,
             failed_jobs: total_failed,
             cronjobs: cronjob_infos,
-            pg_backup,
         };
 
         // Store in cache
