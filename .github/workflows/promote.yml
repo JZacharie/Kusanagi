@@ -1,0 +1,52 @@
+name: Kusanagi Promotion
+
+on:
+  workflow_dispatch:
+
+jobs:
+  promote:
+    name: 🚀 Promote Dev to Production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull, Tag and Push
+        run: |
+          # Pull latest (dev) image
+          docker pull ghcr.io/${{ github.repository }}:latest
+          # Tag as production
+          docker tag ghcr.io/${{ github.repository }}:latest ghcr.io/${{ github.repository }}:production
+          # Push production image
+          docker push ghcr.io/${{ github.repository }}:production
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_JO3 }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Restart Production Deployment
+        run: |
+          kubectl rollout restart deployment kusanagi -n kusanagi
+          kubectl rollout status deployment kusanagi -n kusanagi
+
+      - name: Notify Slack
+        if: success()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          jq -n \
+            '{text: "🚀 *Kusanagi Promoted to Production*\n\n✅ Version `:latest` is now `:production` in namespace `kusanagi`.\n🌐 URL: https://kusanagi.p.zacharie.org"}' \
+            | curl -X POST -H 'Content-type: application/json' -d @- $SLACK_WEBHOOK
