@@ -30,8 +30,8 @@ class Sidebar {
   init() {
     if (!this.sidebar) return;
 
-    // Get current tab from URL hash or default to dashboard
-    const currentTab = window.location.hash.slice(1) || 'argocd';
+    // Get current tab from URL hash or default to overview
+    const currentTab = window.location.hash.slice(1) || 'overview';
     this.setActiveTab(currentTab);
 
     // Event listeners
@@ -270,8 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const dashboardHeader = document.getElementById("dashboard-header-elements");
   const hash = window.location.hash.slice(1);
   if (dashboardHeader) {
-    // Show only on ArgoCD page (default if no hash)
-    dashboardHeader.style.display = (hash === "" || hash === "argocd") ? "block" : "none";
+    // Show only on overview page (default if no hash)
+    dashboardHeader.style.display = (hash === "" || hash === "overview") ? "block" : "none";
   }
 
   // Handle initial hash
@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Handle back/forward buttons
   window.addEventListener('popstate', () => {
-    const tab = window.location.hash.slice(1) || 'argocd';
+    const tab = window.location.hash.slice(1) || 'overview';
     if (typeof switchTab === 'function') {
       switchTab(tab);
       window.sidebar.setActiveTab(tab);
