@@ -14,6 +14,7 @@ pub struct SystemStatus {
     pub cpu_usage: f32,
     pub memory_usage_mb: u64,
     pub version: String,
+    pub namespace: String,
 }
 
 static START_TIME: OnceLock<Instant> = OnceLock::new();
@@ -47,6 +48,7 @@ impl SystemService {
             cpu_usage,
             memory_usage_mb: memory_used / 1024 / 1024,
             version: env!("CARGO_PKG_VERSION").to_string(),
+            namespace: std::env::var("KUSANAGI_NAMESPACE").unwrap_or_else(|_| "unknown".to_string()),
         }
     }
 

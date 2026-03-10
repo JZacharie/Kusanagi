@@ -66,7 +66,7 @@ const OverviewDashboard = {
         if (!btn) return;
 
         btn.addEventListener('click', async () => {
-            if (!confirm("Êtes-vous sûr de vouloir promouvoir la version Dev vers la Production ?")) return;
+            const response = await fetch('/api/github/promote', { method: 'POST' });
 
             btn.disabled = true;
             btn.innerHTML = '<span class="mdi mdi-loading mdi-spin"></span> PROMOTION EN COURS...';
@@ -199,7 +199,7 @@ const OverviewDashboard = {
         // Health logic: Sunny only if all nodes ready AND >90% pods running AND no failed jobs AND ArgoCD is healthy
         const failedJobsCount = metricsData?.failed_jobs_count || 0;
         const argoHealthy = argocdData ? (argocdData.healthy === argocdData.total) : true;
-        
+
         const isHealthy = (nodesTotal > 0 && nodesReady === nodesTotal) &&
             (podsTotal > 0 && podsRunning / podsTotal > 0.9) &&
             (failedJobsCount === 0) &&
@@ -247,6 +247,13 @@ const OverviewDashboard = {
 
         const podsStatEl = document.getElementById('overview-pods-stat');
         if (podsStatEl) podsStatEl.textContent = `${podsRunning}/${podsTotal} Running`;
+
+        // Namespace-based UI logic
+        const namespace = systemData?.namespace || 'unknown';
+        const releaseZone = document.getElementById('overview-release-zone');
+        if (releaseZone) {
+            releaseZone.style.display = (namespace === 'kusanagi-dev') ? 'block' : 'none';
+        }
 
         // Detailed Cluster Resource Metrics
         const resources = metricsData?.cluster_resources;
@@ -646,7 +653,7 @@ const OverviewDashboard = {
             const totalApps = argocdData.total || 0;
             const appsWithIssues = argocdData.apps_with_issues || [];
             const outOfSyncCount = argocdData.out_of_sync || 0;
-            
+
             // True Healthy = Total - (Apps with any health or sync issue)
             const realHealthy = totalApps - appsWithIssues.length;
             // Total Degraded/Issues = Apps with health issue OR apps that are OutOfSync

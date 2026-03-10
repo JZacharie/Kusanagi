@@ -200,8 +200,8 @@ jobs:
 
       - name: Rollout deployment
         run: |
-          kubectl rollout restart deployment kusanagi -n kusanagi
-          kubectl rollout status deployment kusanagi -n kusanagi
+          kubectl rollout restart deployment kusanagi -n kusanagi-dev
+          kubectl rollout status deployment kusanagi -n kusanagi-dev
 
       - name: Notify Slack
         if: success()
@@ -211,5 +211,5 @@ jobs:
         run: |
           jq -n \
             --arg msg "$COMMIT_MSG" \
-            '{text: ("✅ *Kusanagi Deployed*\n\n🚀 Version: `${{ github.sha }}`\n📝 " + $msg)}' \
-            | curl -X POST -H 'Content-type: application/json' -d @- $SLACK_WEBHOOK          
+            '{text: ("✅ *Kusanagi (Dev) Deployed*\n\n🚀 Version: `${{ github.sha }}`\n🌐 URL: https://kusanagi-dev.p.zacharie.org\n📝 " + $msg)}' \
+            | curl -X POST -H 'Content-type: application/json' -d @- $SLACK_WEBHOOK
