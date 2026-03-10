@@ -15,7 +15,6 @@ impl BackupRepository for NoOpBackupRepository {
             succeeded_jobs: 0,
             failed_jobs: 0,
             cronjobs: vec![],
-            pg_backup: None,
         })
     }
 

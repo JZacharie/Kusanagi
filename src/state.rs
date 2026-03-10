@@ -70,14 +70,12 @@ impl AppState {
 
         // Services
         let llm_service = Arc::new(crate::domain::services::llm_service::LlmService::new());
-        /*
         let chat_service = Arc::new(crate::domain::services::chat_service::ChatService::new(
             llm_service.clone(),
             http_client.as_ref().clone(),
             k8s_cache.clone(),
             kube_client.clone(),
         ));
-        */
 
         let cluster_repo: Arc<dyn crate::domain::ports::ClusterRepository> = Arc::new(
             crate::infrastructure::repositories::KubernetesClusterRepository::new(
