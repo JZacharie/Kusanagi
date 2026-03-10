@@ -1,7 +1,6 @@
 use serde_json::{json, Value};
 use std::env;
 use reqwest::Client;
-use base64::{engine::general_purpose, Engine as _};
 
 pub async fn promote_to_production() -> Result<Value, String> {
     let pat = env::var("GH_PAT").map_err(|_| "GH_PAT not set".to_string())?;
@@ -29,8 +28,9 @@ pub async fn promote_to_production() -> Result<Value, String> {
         .map_err(|e| format!("Failed to trigger promotion workflow: {}", e))?;
 
     if !resp.status().is_success() {
+        let status = resp.status();
         let error_body = resp.text().await.unwrap_or_default();
-        return Err(format!("GitHub API error ({}): {}", resp.status(), error_body));
+        return Err(format!("GitHub API error ({}): {}", status, error_body));
     }
 
     Ok(json!({
