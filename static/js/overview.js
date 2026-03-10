@@ -196,16 +196,19 @@ const OverviewDashboard = {
             if (backupEl) backupEl.textContent = latestBackup || 'Never';
         }
 
-        // Health logic: Sunny only if all nodes ready AND >90% pods running AND no failed jobs
+        // Health logic: Sunny only if all nodes ready AND >90% pods running AND no failed jobs AND ArgoCD is healthy
         const failedJobsCount = metricsData?.failed_jobs_count || 0;
+        const argoHealthy = argocdData ? (argocdData.healthy === argocdData.total) : true;
+        
         const isHealthy = (nodesTotal > 0 && nodesReady === nodesTotal) &&
             (podsTotal > 0 && podsRunning / podsTotal > 0.9) &&
-            (failedJobsCount === 0);
+            (failedJobsCount === 0) &&
+            argoHealthy;
 
-        const healthText = isHealthy ? 'SUNNY' : (failedJobsCount > 5 ? 'STORMY' : 'CLOUDY');
-        const healthIcon = isHealthy ? '☀️' : (failedJobsCount > 5 ? '⛈️' : '⛅');
+        const healthText = isHealthy ? 'SUNNY' : (failedJobsCount > 5 || !argoHealthy ? 'STORMY' : 'CLOUDY');
+        const healthIcon = isHealthy ? '☀️' : (failedJobsCount > 5 || !argoHealthy ? '⛈️' : '⛅');
         const weatherImg = isHealthy ? '/static/images/weather/sunny.svg' :
-            (failedJobsCount > 5 ? '/static/images/weather/stormy.svg' : '/static/images/weather/cloudy.svg');
+            (failedJobsCount > 5 || !argoHealthy ? '/static/images/weather/stormy.svg' : '/static/images/weather/cloudy.svg');
 
         // Update DOM
         const healthIconEl = document.getElementById('overview-health-icon');
@@ -637,6 +640,19 @@ const OverviewDashboard = {
     renderAppHealth(podsData, argocdData) {
         // 1. Update ArgoCD Status counts
         if (argocdData) {
+            // Calculate "Real" status for the dashboard summary
+            // We want "Healthy" to mean "Healthy AND Synced"
+            // and "Degraded" to include "OutOfSync"
+            const totalApps = argocdData.total || 0;
+            const appsWithIssues = argocdData.apps_with_issues || [];
+            const outOfSyncCount = argocdData.out_of_sync || 0;
+            
+            // True Healthy = Total - (Apps with any health or sync issue)
+            const realHealthy = totalApps - appsWithIssues.length;
+            // Total Degraded/Issues = Apps with health issue OR apps that are OutOfSync
+            // Note: Data.degraded only counts health status. We want to show all issues.
+            const totalIssues = appsWithIssues.length;
+
             const updateCount = (selector, val) => {
                 const el = document.querySelector(`.argocd-health-item.${selector} .argocd-val`);
                 if (el) el.textContent = val || 0;
@@ -644,15 +660,15 @@ const OverviewDashboard = {
 
             updateCount('progressing', argocdData.progressing);
             updateCount('suspended', argocdData.suspended);
-            updateCount('healthy', argocdData.healthy);
-            updateCount('degraded', argocdData.degraded);
+            updateCount('healthy', realHealthy); // Use adjusted "True Healthy"
+            updateCount('degraded', totalIssues); // Use adjusted "Total Issues"
             updateCount('missing', argocdData.missing);
             updateCount('unknown', argocdData.unknown);
 
             const syncSyncedEl = document.getElementById('argocd-sync-synced');
             if (syncSyncedEl) syncSyncedEl.textContent = argocdData.synced || 0;
             const syncOutEl = document.getElementById('argocd-sync-outofsync');
-            if (syncOutEl) syncOutEl.textContent = argocdData.out_of_sync || 0;
+            if (syncOutEl) syncOutEl.textContent = outOfSyncCount;
         }
 
         // 2. Update Degraded Apps List
