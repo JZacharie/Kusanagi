@@ -643,6 +643,14 @@
     color: #a0aec0;
 }
 
+.argocd-icon.synced {
+    color: #48bb78;
+}
+
+.argocd-icon.outofsync {
+    color: #ecc94b;
+}
+
 .degraded-apps-list {
     margin-top: 1rem;
     padding-top: 0.8rem;
