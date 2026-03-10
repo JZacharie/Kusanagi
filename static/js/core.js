@@ -287,9 +287,9 @@ async function switchTab(tabName) {
         section.style.display = isTarget ? "" : "none";
     });
 
-    // Show/hide dashboard header elements (only on ArgoCD page)
+    // Show/hide dashboard header elements (only on Overview page)
     if (dashboardHeader) {
-        dashboardHeader.style.display = (tabName === "argocd") ? "" : "none";
+        dashboardHeader.style.display = (tabName === "overview") ? "" : "none";
     }
 
     // Update active tab tracking
@@ -343,7 +343,7 @@ async function switchTab(tabName) {
  * @param {boolean} manualTrigger - Whether this was called by user interaction (shows notification)
  */
 function refreshAllKusanagiData(manualTrigger = false) {
-    const activeTab = window.KusanagiDashboard?.activeTab || 'argocd';
+    const activeTab = window.KusanagiDashboard?.activeTab || 'overview';
     console.log(`🔄 Refresh requested for active tab: ${activeTab} (manual: ${manualTrigger})`);
 
     // Visual feedback
@@ -375,7 +375,7 @@ function refreshAllKusanagiData(manualTrigger = false) {
 
 // Global dashboard state
 window.KusanagiDashboard = {
-    activeTab: 'argocd'
+    activeTab: 'overview'
 };
 
 // Export TableManager for module access
