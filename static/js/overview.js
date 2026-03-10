@@ -131,7 +131,7 @@ const OverviewDashboard = {
             const pipelineResp = await fetch('/api/github/pipelines').then(r => r.json()).catch(() => ({ success: false }));
             const pipelineData = pipelineResp.success ? pipelineResp.data : [];
 
-            this.renderWeather(clusterData, nodesData, metricsData, systemData, backupsData, cpuHistory, memHistory);
+            this.renderWeather(clusterData, nodesData, metricsData, systemData, backupsData, cpuHistory, memHistory, argocdData);
             this.renderCostData(nodesData, metricsData, nsMetricsData);
             this.renderAppHealth(podsData, argocdData);
             this.renderSecurityScore(metricsData);
@@ -165,7 +165,7 @@ const OverviewDashboard = {
         span.textContent = now.toLocaleString('en-US', options);
     },
 
-    renderWeather(clusterData, nodesData, metricsData, systemData, backupsData, cpuHistory, memHistory) {
+    renderWeather(clusterData, nodesData, metricsData, systemData, backupsData, cpuHistory, memHistory, argocdData) {
         // Safe extractions
         const nodesTotal = nodesData?.total_nodes || 0;
         const nodesReady = nodesData?.ready_nodes || 0;
