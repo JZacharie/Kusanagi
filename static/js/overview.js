@@ -187,19 +187,26 @@ const OverviewDashboard = {
         if (usersEl) usersEl.textContent = "42";
 
         // Backup handling
-        if (backupsData && backupsData.cronjobs) {
-            let latestBackup = null;
-            backupsData.cronjobs.forEach(cj => {
-                if (cj.last_schedule_age && !latestBackup) latestBackup = cj.last_schedule_age;
-            });
-            const backupEl = document.getElementById('overview-backup-text');
-            if (backupEl) backupEl.textContent = latestBackup || 'Never';
+        const backupEl = document.getElementById('overview-backup-text');
+        if (backupEl) {
+            if (backupsData && backupsData.pg_backup) {
+                backupEl.textContent = backupsData.pg_backup.age || 'Never';
+                backupEl.title = `Source: CNPG pg-prd (${backupsData.pg_backup.name})`;
+            } else if (backupsData && backupsData.cronjobs) {
+                let latestBackup = null;
+                backupsData.cronjobs.forEach(cj => {
+                    if (cj.last_schedule_age && !latestBackup) latestBackup = cj.last_schedule_age;
+                });
+                backupEl.textContent = latestBackup || 'Never';
+            } else {
+                backupEl.textContent = 'Never';
+            }
         }
 
         // Health logic: Sunny only if all nodes ready AND >90% pods running AND no failed jobs AND ArgoCD is healthy
         const failedJobsCount = metricsData?.failed_jobs_count || 0;
         const argoHealthy = argocdData ? (argocdData.healthy === argocdData.total) : true;
-        
+
         const isHealthy = (nodesTotal > 0 && nodesReady === nodesTotal) &&
             (podsTotal > 0 && podsRunning / podsTotal > 0.9) &&
             (failedJobsCount === 0) &&
@@ -646,7 +653,7 @@ const OverviewDashboard = {
             const totalApps = argocdData.total || 0;
             const appsWithIssues = argocdData.apps_with_issues || [];
             const outOfSyncCount = argocdData.out_of_sync || 0;
-            
+
             // True Healthy = Total - (Apps with any health or sync issue)
             const realHealthy = totalApps - appsWithIssues.length;
             // Total Degraded/Issues = Apps with health issue OR apps that are OutOfSync

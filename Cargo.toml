@@ -34,8 +34,12 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rustls = { version = "0.23", features = ["aws-lc-rs"] }
 toml = "0.8"
-aws-config = "1.1"
-aws-sdk-s3 = "1.13"
+# aws-config = "1.1.7"
+# aws-sdk-s3 = "1.17.0"
+# aws-runtime = "1.1.7"
+# aws-smithy-runtime = "1.1.7"
+# aws-smithy-runtime-api = "1.1.7"
+# aws-types = "1.1.7"
 tracing-appender = "0.2.4"
 
 # Sprint 5: Robustness & Observability

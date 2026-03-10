@@ -72,6 +72,7 @@ impl SecurityRepositoryImpl {
 
     /// Initialize S3 client for caching
     async fn init_s3_client() -> Result<S3Client> {
+        /*
         let endpoint = env::var("S3_ENDPOINT").unwrap_or_else(|_| DEFAULT_S3_ENDPOINT.to_string());
 
         let config = aws_config::defaults(BehaviorVersion::latest())
@@ -85,6 +86,8 @@ impl SecurityRepositoryImpl {
             .build();
 
         Ok(S3Client::from_conf(s3_config))
+        */
+        Err(KusanagiError::configuration("S3 client not available".to_string()))
     }
 
     /// Check if running in local mode

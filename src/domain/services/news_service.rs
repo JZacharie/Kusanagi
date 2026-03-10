@@ -274,6 +274,7 @@ async fn get_aggregated_news() -> Result<Value, String> {
         match tokio::time::timeout(std::time::Duration::from_secs(5), list_future).await {
             Ok(Ok(output)) => {
                 let mut tasks = FuturesUnordered::new();
+                /*
                 for object in output.contents.unwrap_or_default() {
                     if let Some(key) = object.key {
                         let client = s3_client.clone();
@@ -286,6 +287,7 @@ async fn get_aggregated_news() -> Result<Value, String> {
                         }));
                     }
                 }
+                */
 
                 while let Some(result) = tasks.next().await {
                     if let Ok(Ok(file_val)) = result {
