@@ -66,10 +66,10 @@ const OverviewDashboard = {
         if (!btn) return;
 
         btn.addEventListener('click', async () => {
-            const response = await fetch('/api/github/promote', { method: 'POST' });
+            if (!confirm("Confirm Upgrade: This will tag the current Dev version as Production and rollout to the Production environment. Proceed?")) return;
 
             btn.disabled = true;
-            btn.innerHTML = '<span class="mdi mdi-loading mdi-spin"></span> PROMOTION EN COURS...';
+            btn.innerHTML = '<span class="mdi mdi-loading mdi-spin"></span> UPGRADE IN PROGRESS...';
             statusEl.innerHTML = '';
             statusEl.className = 'release-status';
 
@@ -80,16 +80,16 @@ const OverviewDashboard = {
                 if (response.ok && result.success) {
                     statusEl.innerHTML = `<span class="mdi mdi-check-circle"></span> ${result.message}`;
                     statusEl.className = 'release-status status-success';
-                    btn.innerHTML = '<span class="mdi mdi-check"></span> PROMU AVEC SUCCÈS';
+                    btn.innerHTML = '<span class="mdi mdi-check"></span> UPGRADED SUCCESSFULLY';
                 } else {
-                    throw new Error(result.message || 'Erreur lors de la promotion');
+                    throw new Error(result.message || 'Error during upgrade');
                 }
             } catch (error) {
                 console.error('Promotion error:', error);
-                statusEl.innerHTML = `<span class="mdi mdi-alert-circle"></span> Erreur: ${error.message}`;
+                statusEl.innerHTML = `<span class="mdi mdi-alert-circle"></span> Error: ${error.message}`;
                 statusEl.className = 'release-status status-error';
                 btn.disabled = false;
-                btn.innerHTML = '<span class="mdi mdi-cloud-upload"></span> RÉESSAYER LA PROMOTION';
+                btn.innerHTML = '<span class="mdi mdi-cloud-upload"></span> RETRY UPGRADE';
             }
         });
     },
