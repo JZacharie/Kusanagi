@@ -85,6 +85,20 @@
                         <span class="argocd-val">0</span>
                     </a>
                 </div>
+
+                <div class="argocd-health-header" style="margin-top: 1rem;">SYNC STATUS</div>
+                <div class="argocd-health-grid">
+                    <a href="https://argocd.p.zacharie.org/applications?sync=Synced" target="_blank"
+                        class="argocd-health-item synced">
+                        <span class="argocd-icon healthy">🟢</span> Synced
+                        <span class="argocd-val" id="argocd-sync-synced">0</span>
+                    </a>
+                    <a href="https://argocd.p.zacharie.org/applications?sync=OutOfSync" target="_blank"
+                        class="argocd-health-item outofsync">
+                        <span class="argocd-icon degraded">🟡</span> Out of Sync
+                        <span class="argocd-val" id="argocd-sync-outofsync">0</span>
+                    </a>
+                </div>
                 <div id="overview-degraded-apps-list" class="degraded-apps-list">
                     <!-- Degraded apps will be injected here by JS -->
                 </div>

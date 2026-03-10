@@ -648,6 +648,11 @@ const OverviewDashboard = {
             updateCount('degraded', argocdData.degraded);
             updateCount('missing', argocdData.missing);
             updateCount('unknown', argocdData.unknown);
+
+            const syncSyncedEl = document.getElementById('argocd-sync-synced');
+            if (syncSyncedEl) syncSyncedEl.textContent = argocdData.synced || 0;
+            const syncOutEl = document.getElementById('argocd-sync-outofsync');
+            if (syncOutEl) syncOutEl.textContent = argocdData.out_of_sync || 0;
         }
 
         // 2. Update Degraded Apps List
@@ -659,11 +664,11 @@ const OverviewDashboard = {
         // Prefer data from ArgoCD if available for specific degraded apps
         if (argocdData && argocdData.apps_with_issues) {
             degradedApps = argocdData.apps_with_issues
-                .filter(app => app.health_status !== 'Healthy')
+                .filter(app => app.health_status !== 'Healthy' || app.sync_status !== 'Synced')
                 .map(app => ({
                     name: app.name,
                     namespace: app.namespace,
-                    status: app.health_status
+                    status: `${app.health_status} / ${app.sync_status}`
                 }));
         } else if (podsData && Array.isArray(podsData)) {
             // Fallback to pod status heuristic
