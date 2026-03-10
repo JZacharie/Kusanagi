@@ -1,3 +1,4 @@
+# --- Runner ---
 FROM debian:trixie-slim AS runner
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates libssl3 curl \
@@ -10,11 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && curl -L "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" -o /usr/local/bin/kubectl \
     && chmod +x /usr/local/bin/kubectl
 
-# Create base app structure (without static - will be added later)
 WORKDIR /app
 RUN useradd -r -s /bin/false kusanagi && chown -R kusanagi:kusanagi /app
 
-# Ensure CA certificates are accessible
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 ENV SSL_CERT_DIR=/etc/ssl/certs
 
@@ -25,35 +24,31 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 CMD ["/usr/local/bin/kusanagi"]
 
 # --- CI Build (uses pre-built binary) ---
-# Start from runner but explicitly remove any cached static first
 FROM runner AS release-ci
 ARG PREBUILT_BINARY
-
-# Copy fresh static from build context
 COPY static ./static
 COPY ${PREBUILT_BINARY} /usr/local/bin/kusanagi
-
-# Verify and set permissions
 RUN ls -la /app/static/js/k8s/ && test -f /app/static/js/k8s/main.js \
     && chown -R kusanagi:kusanagi /app/static \
     && chmod +x /usr/local/bin/kusanagi
-
 USER kusanagi
 
-# --- Full Build (local or fallback) ---
-FROM rust:1.93-slim AS builder
+# --- Full Build (optimized with cargo-chef) ---
+FROM lukemathwalker/cargo-chef:latest-rust-1.93-slim AS chef
 WORKDIR /app
-RUN apt-get update && apt-get install -y pkg-config libssl-dev git curl unzip && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y pkg-config libssl-dev curl && rm -rf /var/lib/apt/lists/*
 
-COPY Cargo.toml ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && rm src/main.rs
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-COPY src ./src
-
-COPY build.rs ./
-COPY scripts ./scripts
-RUN chmod +x scripts/*.sh
-RUN cargo build --release
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+# Build dependencies - this is the layer that will be cached
+RUN cargo chef cook --release --recipe-path recipe.json
+# Build application
+COPY . .
+RUN cargo build --release --bin kusanagi
 
 FROM runner AS release
 COPY static ./static
