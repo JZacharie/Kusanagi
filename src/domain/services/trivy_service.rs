@@ -247,6 +247,7 @@ async fn cache_report_to_s3(report_id: &str, report: &TrivyReport) -> Result<(),
     let bucket_name = env::var("S3_BUCKET_SECURITY_REPORTS")
         .unwrap_or_else(|_| "kusanagi-security-reports".to_string());
 
+    /*
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
 
     // Use custom endpoint if S3_ENDPOINT is set (for MinIO)
@@ -257,8 +258,8 @@ async fn cache_report_to_s3(report_id: &str, report: &TrivyReport) -> Result<(),
             .build();
         aws_sdk_s3::Client::from_conf(s3_config)
     } else {
-        aws_sdk_s3::Client::new(&config)
-    };
+        };
+    */
 
     let report_json =
         serde_json::to_string(report).map_err(|e| format!("Failed to serialize report: {}", e))?;
@@ -298,6 +299,7 @@ async fn fetch_from_s3_cache() -> Result<Value, String> {
     let bucket_name = env::var("S3_BUCKET_SECURITY_REPORTS")
         .unwrap_or_else(|_| "kusanagi-security-reports".to_string());
 
+    /*
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
 
     // Use custom endpoint if S3_ENDPOINT is set (for MinIO)
@@ -308,10 +310,10 @@ async fn fetch_from_s3_cache() -> Result<Value, String> {
             .build();
         aws_sdk_s3::Client::from_conf(s3_config)
     } else {
-        aws_sdk_s3::Client::new(&config)
-    };
+        };
+    */
 
-    // List objects in the bucket
+    /*
     let objects = s3_client
         .list_objects_v2()
         .bucket(&bucket_name)
@@ -319,6 +321,8 @@ async fn fetch_from_s3_cache() -> Result<Value, String> {
         .send()
         .await
         .map_err(|e| format!("Failed to list S3 objects: {}", e))?;
+    */
+    return Err("S3 client not available".to_string());
 
     let mut all_reports = Vec::new();
 
@@ -332,6 +336,7 @@ async fn fetch_from_s3_cache() -> Result<Value, String> {
                 .send()
                 .await
             {
+                /*
                 Ok(output) => {
                     let body = output
                         .body
@@ -346,6 +351,8 @@ async fn fetch_from_s3_cache() -> Result<Value, String> {
                         Err(e) => tracing::warn!("Failed to parse cached report {}: {}", key, e),
                     }
                 }
+                */
+                _ => {}
                 Err(e) => tracing::warn!("Failed to fetch S3 object {}: {}", key, e),
             }
         }
@@ -363,6 +370,7 @@ pub async fn list_reports() -> Result<Value, String> {
     let bucket_name = env::var("S3_BUCKET_SECURITY_REPORTS")
         .unwrap_or_else(|_| "kusanagi-security-reports".to_string());
 
+    /*
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
 
     // Use custom endpoint if S3_ENDPOINT is set (for MinIO)
@@ -373,8 +381,8 @@ pub async fn list_reports() -> Result<Value, String> {
             .build();
         aws_sdk_s3::Client::from_conf(s3_config)
     } else {
-        aws_sdk_s3::Client::new(&config)
-    };
+        };
+    */
 
     let objects = s3_client
         .list_objects_v2()
@@ -488,6 +496,7 @@ pub async fn get_report_by_id(report_id: &str) -> Result<Value, String> {
     let bucket_name = env::var("S3_BUCKET_SECURITY_REPORTS")
         .unwrap_or_else(|_| "kusanagi-security-reports".to_string());
 
+    /*
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
 
     // Use custom endpoint if S3_ENDPOINT is set (for MinIO)
@@ -498,11 +507,12 @@ pub async fn get_report_by_id(report_id: &str) -> Result<Value, String> {
             .build();
         aws_sdk_s3::Client::from_conf(s3_config)
     } else {
-        aws_sdk_s3::Client::new(&config)
-    };
+        };
+    */
 
     let key = format!("trivy-reports/{}.json", report_id);
 
+    /*
     let output = s3_client
         .get_object()
         .bucket(&bucket_name)
@@ -510,7 +520,11 @@ pub async fn get_report_by_id(report_id: &str) -> Result<Value, String> {
         .send()
         .await
         .map_err(|e| format!("Failed to fetch report from S3: {}", e))?;
+    */
+    let output: Option<Value> = None;
+    let body: Vec<u8> = Vec::new(); // Dummy
 
+    /*
     let body = output
         .body
         .collect()
@@ -522,6 +536,9 @@ pub async fn get_report_by_id(report_id: &str) -> Result<Value, String> {
 
     let report: TrivyReport = serde_json::from_str(&report_json)
         .map_err(|e| format!("Failed to parse report JSON: {}", e))?;
+    */
+    let report_json = String::new(); // Dummy
+    let report: TrivyReport = TrivyReport { artifact_name: None, artifact_type: None, results: None }; // Dummy
 
     Ok(aggregate_vulnerabilities(&[report]))
 }

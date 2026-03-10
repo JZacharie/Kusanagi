@@ -94,6 +94,7 @@ impl WeatherRepositoryImpl {
 
     /// Initialize S3 client for caching
     async fn init_s3_client() -> Result<S3Client> {
+        /*
         let endpoint =
             env::var("S3_ENDPOINT").unwrap_or_else(|_| DEFAULT_MINIO_ENDPOINT.to_string());
 
@@ -108,6 +109,8 @@ impl WeatherRepositoryImpl {
             .build();
 
         Ok(S3Client::from_conf(s3_config))
+        */
+        Err(KusanagiError::configuration("S3 client not available".to_string()))
     }
 
     /// Fetch weather from S3 cache

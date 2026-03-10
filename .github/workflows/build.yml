@@ -47,18 +47,23 @@ jobs:
       - name: Quick compile check
         run: cargo check
 
-      - name: Install cargo-audit
-        run: cargo install cargo-audit
-
+  security-audit:
+    name: 🛡️ Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Run cargo-audit
-        run: cargo audit
+        uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ github.token }}
 
   # ============================================================================
-  # Phase 2: Audit de Sécurité
+  # Phase 2: Audit de Secrets
   # Recherche de secrets exposés dans le code
   # ============================================================================
-  security:
-    name: 🔒 Security Audit
+  secrets-scan:
+    name: 🔒 Secrets Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -82,21 +87,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Rust with cache
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Cargo registry
-        uses: actions/cache@v4
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target/release/deps
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          shared-key: "kusanagi-build"
 
-      - name: Build Rust binary (cached)
+      - name: Build Rust binary (release)
         run: |
           cargo build --release --bin kusanagi
           ls -lh target/release/kusanagi
@@ -114,7 +113,7 @@ jobs:
   # Récupère le binaire compilé et le place dans une image Docker minimale
   # ============================================================================
   build-docker:
-    needs: build-rust
+    needs: [build-rust, fast-check, security-audit, secrets-scan]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -155,7 +154,7 @@ jobs:
             type=sha,prefix=
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build Docker image (no cache)
+      - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -165,7 +164,8 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          no-cache: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Summary
         if: github.event_name != 'pull_request'

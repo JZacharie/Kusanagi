@@ -113,6 +113,17 @@ pub struct BackupsResponse {
     pub succeeded_jobs: usize,
     pub failed_jobs: usize,
     pub cronjobs: Vec<CronJobInfo>,
+    pub pg_backup: Option<PgBackupInfo>,
+}
+
+/// PostgreSQL Backup Information (CNPG)
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PgBackupInfo {
+    pub name: String,
+    pub status: String,
+    pub method: String,
+    pub completed_at: Option<String>,
+    pub age: String,
 }
 
 /// CronJob information
