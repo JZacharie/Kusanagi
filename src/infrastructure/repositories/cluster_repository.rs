@@ -21,7 +21,7 @@ impl ClusterRepository for KubernetesClusterRepository {
     async fn get_cluster_info(&self) -> Result<ClusterInfo> {
         // We can get version and node count from get_nodes_status or get_cluster_overview
         // For now, let's use get_nodes_status as it gives us node count
-        let nodes_data = kubernetes_service::get_nodes_status(&self.client, &self.cache)
+        let nodes_data = kubernetes_service::get_nodes_status(&self.client, &self.cache, false)
             .await
             .map_err(|e| {
                 crate::error::KusanagiError::ExternalService(format!(
@@ -57,7 +57,7 @@ impl ClusterRepository for KubernetesClusterRepository {
     }
 
     async fn get_nodes(&self) -> Result<Vec<NodeInfo>> {
-        let nodes_data = kubernetes_service::get_nodes_status(&self.client, &self.cache)
+        let nodes_data = kubernetes_service::get_nodes_status(&self.client, &self.cache, false)
             .await
             .map_err(|e| {
                 crate::error::KusanagiError::ExternalService(format!(

@@ -30,13 +30,13 @@ impl KubernetesRepositoryImpl {
 #[async_trait]
 impl KubernetesRepository for KubernetesRepositoryImpl {
     async fn get_pods_status(&self) -> Result<Value> {
-        kubernetes_service::get_pods_status(&self.cache)
+        kubernetes_service::get_pods_status(&self.cache, false)
             .await
             .map_err(crate::error::KusanagiError::ExternalService)
     }
 
     async fn get_nodes_status(&self) -> Result<Value> {
-        kubernetes_service::get_nodes_status(&self.http_client, &self.cache)
+        kubernetes_service::get_nodes_status(&self.http_client, &self.cache, false)
             .await
             .map_err(crate::error::KusanagiError::ExternalService)
     }
@@ -46,6 +46,7 @@ impl KubernetesRepository for KubernetesRepositoryImpl {
             &self.http_client,
             &self.kube_client,
             &self.cache,
+            false,
         )
         .await
         .map_err(crate::error::KusanagiError::ExternalService)
