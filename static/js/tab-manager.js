@@ -25,6 +25,7 @@ const TabManager = {
         mqtt: { interval: 30000, module: 'MqttManager', fetch: 'refresh' },
         metrics: { interval: 30000, module: 'MetricsManager', fetch: 'loadMetrics' },
         network: { interval: 30000, module: 'KusanagiNetwork', fetch: 'fetchNetworkData' },
+        compose: { interval: null, module: 'ComposeConverter', fetch: 'init' },
 
         // No auto-refresh
         chat: { interval: null },

@@ -2371,6 +2371,7 @@ dependencies = [
  "rustls-pemfile",
  "serde",
  "serde_json",
+ "serde_yaml",
  "sysinfo",
  "thiserror 2.0.18",
  "tokio",

@@ -114,6 +114,7 @@
     <script system src="/static/js/system.js?v={{VERSION}}"></script>
     <script streaming src="/static/js/streaming.js?v={{VERSION}}"></script>
     <script src="/static/js/business.js?v={{VERSION}}"></script>
+    <script src="/static/js/compose.js?v={{VERSION}}"></script>
 
     <!-- Main Orchestrator -->
     <script src="/static/js/dashboard.js?v={{VERSION}}"></script>
@@ -301,10 +302,10 @@
                             <span class="nav-link-text">News</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" data-page="streaming" href="#streaming">
-                            <i class="mdi mdi-play-circle"></i>
-                            <span class="nav-link-text">Streaming</span>
+                    <li class="nav-item full-feature-only" style="display: none;">
+                        <a class="nav-link" data-page="compose" href="#compose">
+                            <i class="mdi mdi-cube-send"></i>
+                            <span class="nav-link-text">Stack Converter</span>
                         </a>
                     </li>
                     <!-- Quotas moved to Metrics section -->
@@ -613,6 +614,61 @@
             <!-- Business Section -->
             <section class="argocd-section tab-content" data-tab="business" style="display: none;">
                 <div class="loading">Loading...</div>
+            </section>
+
+            <!-- Compose Converter Section -->
+            <section class="argocd-section tab-content" data-tab="compose" style="display: none;">
+                <h2 class="section-title">Docker Compose to Proxmox LXC</h2>
+                
+                <div class="terminal" style="margin-top: 0; padding: 1.5rem;">
+                    <div class="terminal-header">CONVERT_STACK_INITV3 // AQUABOT_NODE_TARGET</div>
+                    <div class="terminal-content">
+                        <p class="terminal-line" style="opacity: 1; margin-bottom: 1rem;">
+                            <span class="prompt">root@kusanagi:</span> <span class="command">deploy-stack --pro-mode</span>
+                        </p>
+                        
+                        <div class="compose-input-container" style="background: rgba(0,0,0,0.4); border: 1px solid var(--neon-cyan); border-radius: 4px; padding: 1rem;">
+                            <label style="display: block; color: var(--neon-cyan); font-size: 0.8rem; margin-bottom: 0.5rem; text-transform: uppercase;">Paste docker-compose.yml content:</label>
+                            <textarea id="compose-yaml" style="width: 100%; height: 300px; background: rgba(0,0,0,0.6); color: var(--neon-green); border: 1px solid rgba(0,255,255,0.2); border-radius: 4px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; outline: none; resize: vertical;" placeholder="services:
+  web:
+    image: nginx
+    ports:
+      - '80:80'"></textarea>
+                            
+                            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                                <div style="flex: 1;">
+                                    <label style="display: block; color: var(--text-secondary); font-size: 0.7rem; margin-bottom: 0.2rem;">TARGET NODE</label>
+                                    <input type="text" id="compose-target-node" value="aquabot" style="width: 100%; background: rgba(0,0,0,0.6); color: var(--neon-cyan); border: 1px solid rgba(0,255,255,0.2); border-radius: 4px; padding: 0.5rem; font-family: 'JetBrains Mono', monospace;">
+                                </div>
+                                <div style="display: flex; align-items: flex-end;">
+                                    <button onclick="ComposeConverter.deploy()" class="cyber-btn" style="padding: 0.6rem 2rem; background: var(--neon-green); color: black; border: none; font-weight: bold; cursor: pointer;">
+                                        🚀 DEPLOY TO PROXMOX
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="compose-results" style="margin-top: 2rem; display: none;">
+                            <h3 style="color: var(--neon-magenta); font-size: 0.9rem; margin-bottom: 1rem; text-transform: uppercase;">Deployment Status:</h3>
+                            <div id="compose-results-list" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="issues-table-container" style="border-color: var(--neon-cyan); margin-top: 2rem;">
+                    <div class="issues-table-header" style="background: rgba(0, 255, 255, 0.1); border-bottom-color: var(--neon-cyan);">
+                        <span class="issues-table-title" style="color: var(--neon-cyan);">ℹ Documentation</span>
+                    </div>
+                    <div style="padding: 1.5rem; color: var(--text-primary); font-size: 0.9rem; line-height: 1.6;">
+                        <p>This tool converts <code>docker-compose.yml</code> services into Proxmox LXC containers.</p>
+                        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                            <li>Images are pulled directly from Docker Hub via <code>docker://</code> template.</li>
+                            <li>The target node must support unprivileged OCI containers.</li>
+                            <li>Default network: <code>vmbr0</code>, DHCP.</li>
+                        }
+                        <p style="margin-top: 1rem; color: var(--neon-pink); font-size: 0.8rem;">⚠ IMPORTANT: Volume and complex network configurations are not yet supported.</p>
+                    </div>
+                </div>
             </section>
 
             <!-- Home Assistant Section -->

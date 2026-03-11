@@ -60,6 +60,7 @@ use utoipa::OpenApi;
         proxmox_handlers::get_nodes_handler,
         proxmox_handlers::control_vm_handler,
         proxmox_handlers::control_ct_handler,
+        proxmox_compose_handlers::deploy_compose_handler,
     ),
     components(
         schemas(
@@ -71,6 +72,8 @@ use utoipa::OpenApi;
             crate::domain::services::mqtt_service::MqttDevice,
             crate::domain::services::mqtt_service::MqttMessage,
             security_handlers::ReportPath,
+            crate::interfaces::http::handlers::business::proxmox_compose_handlers::DeployComposeInput,
+            crate::interfaces::http::handlers::business::proxmox_compose_handlers::ServiceDeployResult,
         )
     ),
     tags(

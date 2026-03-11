@@ -507,3 +507,136 @@ pub async fn ct_control(
         Err(e) => Err(format!("Network error: {}", e)),
     }
 }
+
+pub async fn deploy_docker_compose_to_proxmox(
+    client: &reqwest::Client,
+    yaml_content: &str,
+    target_node: Option<&str>,
+) -> Result<Vec<crate::interfaces::http::handlers::business::proxmox_compose_handlers::ServiceDeployResult>, String> {
+    use crate::interfaces::http::handlers::business::proxmox_compose_handlers::ServiceDeployResult;
+    
+    // Parse Compose YAML
+    let compose: serde_yaml::Value = serde_yaml::from_str(yaml_content)
+        .map_err(|e| format!("Invalid YAML: {}", e))?;
+    
+    let services = compose.get("services")
+        .and_then(|v| v.as_mapping())
+        .ok_or("Missing or invalid 'services' in compose file")?;
+    
+    let mut results = Vec::new();
+    let node = target_node.unwrap_or("aquabot");
+    
+    let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
+    let server = proxmox_urls.split(',').next().unwrap_or_default().trim();
+    
+    if server.is_empty() {
+        return Err("PROXMOX_URLS not set".to_string());
+    }
+
+    for (name_val, config) in services {
+        let service_name = name_val.as_str().unwrap_or("unknown").to_string();
+        let image = config.get("image").and_then(|v| v.as_str()).unwrap_or("");
+        
+        if image.is_empty() {
+            results.push(ServiceDeployResult {
+                service_name: service_name.clone(),
+                status: "error".to_string(),
+                message: "Missing 'image' for service".to_string(),
+            });
+            continue;
+        }
+
+        // Create LXC container
+        match create_lxc_from_image(client, server, node, &service_name, image).await {
+            Ok(upid) => {
+                results.push(ServiceDeployResult {
+                    service_name: service_name.clone(),
+                    status: "success".to_string(),
+                    message: format!("Deployment started: UPID {}", upid),
+                });
+            }
+            Err(e) => {
+                results.push(ServiceDeployResult {
+                    service_name: service_name.clone(),
+                    status: "error".to_string(),
+                    message: e,
+                });
+            }
+        }
+    }
+    
+    Ok(results)
+}
+
+async fn create_lxc_from_image(
+    client: &reqwest::Client,
+    server: &str,
+    node: &str,
+    name: &str,
+    image: &str,
+) -> Result<String, String> {
+    let proxmox_user = std::env::var("PROXMOX_USER").unwrap_or_default();
+    let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
+
+    let Some((ticket, csrf)) =
+        get_proxmox_ticket(client, server, &proxmox_user, &proxmox_password).await
+    else {
+        return Err(format!("Auth failed for server {}", server));
+    };
+
+    // Find next available VMID
+    let nextid_url = format!("{}/api2/json/cluster/nextid", server);
+    let vmid = match client.get(&nextid_url).header("Cookie", format!("PVEAuthCookie={}", ticket)).send().await {
+        Ok(res) if res.status().is_success() => {
+            let data = res.json::<Value>().await.map_err(|e| e.to_string())?;
+            data["data"].as_u64().ok_or("Failed to get next VMID")?
+        }
+        _ => return Err("Failed to get next available VMID".to_string()),
+    };
+
+    let api_url = format!("{}/api2/json/nodes/{}/lxc", server, node);
+    
+    // Convert image to Proxmox OCI format if it's just a docker image name
+    let ostemplate = if image.starts_with("docker://") {
+        image.to_string()
+    } else {
+        format!("docker://{}", image)
+    };
+
+    let params = [
+        ("vmid", vmid.to_string()),
+        ("ostemplate", ostemplate),
+        ("hostname", name.to_string()),
+        ("memory", "512".to_string()),
+        ("swap", "512".to_string()),
+        ("net0", "name=eth0,bridge=vmbr0,ip=dhcp".to_string()),
+        ("storage", "local-lvm".to_string()),
+        ("unprivileged", "1".to_string()),
+        ("start", "1".to_string()),
+    ];
+
+    match client
+        .post(&api_url)
+        .header("Cookie", format!("PVEAuthCookie={}", ticket))
+        .header("CSRFPreventionToken", csrf)
+        .form(&params)
+        .send()
+        .await
+    {
+        Ok(response) => {
+            if response.status().is_success() {
+                if let Ok(data) = response.json::<Value>().await {
+                    if let Some(upid) = data["data"].as_str() {
+                        return Ok(upid.to_string());
+                    }
+                }
+                Ok("Command sent".to_string())
+            } else {
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                Err(format!("Proxmox API error: {} - {}", status, body))
+            }
+        }
+        Err(e) => Err(format!("Network error: {}", e)),
+    }
+}

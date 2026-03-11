@@ -156,6 +156,7 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/proxmox/containers", get(get_containers_handler))
         .route("/api/proxmox/nodes", get(get_nodes_handler))
         .route("/api/proxmox/volume/{server}/{node}/{storage}/{volume}", delete(delete_volume_handler))
+        .route("/api/proxmox/deploy-compose", post(deploy_compose_handler))
         // MQTT routes
         .route("/api/mqtt/devices", get(get_mqtt_devices_handler))
         .route("/api/mqtt/messages", get(get_mqtt_messages_handler))
