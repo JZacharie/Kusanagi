@@ -883,14 +883,24 @@ const OverviewDashboard = {
 
         const renderRepoLine = (repoName, searchStr) => {
             const filtered = Array.isArray(pipelines) ? pipelines : [];
-            const repoPipelines = filtered.filter(p => (p.repo || '').toLowerCase().includes(searchStr.toLowerCase())).slice(0, 5);
+            const repoPipelinesMap = new Map();
+
+            // pipelines are sorted by created_at DESC in backend, so first one we find is the latest
+            filtered.filter(p => (p.repo || '').toLowerCase().includes(searchStr.toLowerCase()))
+                   .forEach(p => {
+                       if (p.name && !repoPipelinesMap.has(p.name)) {
+                           repoPipelinesMap.set(p.name, p);
+                       }
+                   });
+
+            const uniquePipelines = Array.from(repoPipelinesMap.values());
             const stats = repoStats[repoName] || { open_prs: 0, prs_url: `https://github.com/JZacharie/${repoName}/pulls` };
 
             let iconsHtml = '';
-            if (repoPipelines.length === 0) {
+            if (uniquePipelines.length === 0) {
                 iconsHtml = '<span style="color:#718096;font-size:0.75rem;font-style:italic;">No recent runs</span>';
             } else {
-                repoPipelines.forEach(run => {
+                uniquePipelines.forEach(run => {
                     const statusClass = run.status === 'completed'
                         ? (run.conclusion === 'success' ? 'health-good' : 'status-critical')
                         : 'status-warning';
