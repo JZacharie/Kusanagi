@@ -19,14 +19,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set lower case IMAGE_NAME
+        run: |
+          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+
       - name: Pull, Tag and Push
         run: |
           # Pull latest (dev) image
-          docker pull ghcr.io/${{ github.repository }}:latest
+          docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
           # Tag as production
-          docker tag ghcr.io/${{ github.repository }}:latest ghcr.io/${{ github.repository }}:production
+          docker tag ghcr.io/${{ env.IMAGE_NAME }}:latest ghcr.io/${{ env.IMAGE_NAME }}:production
           # Push production image
-          docker push ghcr.io/${{ github.repository }}:production
+          docker push ghcr.io/${{ env.IMAGE_NAME }}:production
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
