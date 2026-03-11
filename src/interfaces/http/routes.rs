@@ -21,7 +21,7 @@ use super::helpers::{api_info, index_handler, log_request};
 
 // Import other handlers
 use crate::domain::services::fusion_service::fusion_handler;
-// use crate::interfaces::http::docs::ApiDoc;
+use crate::interfaces::http::docs::ApiDoc;
 use crate::interfaces::http::handlers::business::chat::post_chat_handler;
 use tower_governor::{
     governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor, GovernorLayer,
@@ -192,7 +192,7 @@ pub fn configure_routes(state: AppState) -> Router {
             crate::interfaces::http::middleware::metrics::track_metrics,
         ))
         .layer(CorsLayer::permissive())
-        // .layer(CompressionLayer::new())
+        .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http())
         // State (must be last)
         .with_state(state)
