@@ -24,6 +24,7 @@ pub async fn cluster_overview(State(state): State<AppState>) -> Response {
         &state.http_client,
         &state.kube_client,
         &state.k8s_cache,
+        false,
     )
     .await
     {
@@ -43,7 +44,7 @@ pub async fn cluster_overview(State(state): State<AppState>) -> Response {
     tag = "kubernetes"
 )]
 pub async fn nodes_status(State(state): State<AppState>) -> Response {
-    match kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache).await {
+    match kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache, false).await {
         Ok(data) => api_success(json!(data)),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
@@ -62,10 +63,10 @@ pub async fn nodes_status(State(state): State<AppState>) -> Response {
 pub async fn nodes_debug(State(state): State<AppState>) -> Response {
     use crate::domain::services::kubernetes_service::fetch_node_metrics;
 
-    let k8s_nodes_ok = kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache)
+    let k8s_nodes_ok = kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache, false)
         .await
         .is_ok();
-    let k8s_pods_ok = kubernetes_service::get_pods_status(&state.k8s_cache)
+    let k8s_pods_ok = kubernetes_service::get_pods_status(&state.k8s_cache, false)
         .await
         .is_ok();
 
@@ -119,7 +120,7 @@ pub async fn nodes_debug(State(state): State<AppState>) -> Response {
     tag = "kubernetes"
 )]
 pub async fn pods_status(State(state): State<AppState>) -> Response {
-    match kubernetes_service::get_pods_status(&state.k8s_cache).await {
+    match kubernetes_service::get_pods_status(&state.k8s_cache, false).await {
         Ok(data) => api_success(json!(data)),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }

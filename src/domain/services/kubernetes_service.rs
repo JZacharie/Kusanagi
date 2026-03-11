@@ -6,10 +6,12 @@ use serde_json::{json, Value};
 use tracing::error;
 
 #[tracing::instrument(name = "k8s_get_pods", skip(cache))]
-pub async fn get_pods_status(cache: &crate::AdvancedCache<String>) -> Result<Value, String> {
+pub async fn get_pods_status(cache: &crate::AdvancedCache<String>, force_refresh: bool) -> Result<Value, String> {
     const CACHE_KEY: &str = "kusanagi_pods_status";
 
-    if let Some(cached) = cache.get(CACHE_KEY).await {
+    if force_refresh {
+        cache.delete(CACHE_KEY).await;
+    } else if let Some(cached) = cache.get(CACHE_KEY).await {
         if let Ok(value) = serde_json::from_str::<Value>(&cached) {
             return Ok(value);
         }
@@ -159,10 +161,13 @@ pub async fn get_pods_status(cache: &crate::AdvancedCache<String>) -> Result<Val
 pub async fn get_nodes_status(
     client: &reqwest::Client,
     cache: &crate::AdvancedCache<String>,
+    force_refresh: bool,
 ) -> Result<Value, String> {
     const CACHE_KEY: &str = "kusanagi_nodes_status";
 
-    if let Some(cached) = cache.get(CACHE_KEY).await {
+    if force_refresh {
+        cache.delete(CACHE_KEY).await;
+    } else if let Some(cached) = cache.get(CACHE_KEY).await {
         if let Ok(value) = serde_json::from_str::<Value>(&cached) {
             return Ok(value);
         }
@@ -395,9 +400,10 @@ pub async fn get_cluster_overview(
     client: &reqwest::Client,
     kube_client: &Option<std::sync::Arc<kube::Client>>,
     cache: &crate::AdvancedCache<String>,
+    force_refresh: bool,
 ) -> Result<Value, String> {
     metrics::counter!("kubernetes_requests_total", 1, "operation" => "cluster_overview");
-    let pods = get_pods_status(cache).await.unwrap_or_else(|_| {
+    let pods = get_pods_status(cache, force_refresh).await.unwrap_or_else(|_| {
         json!({
             "total_pods": 0,
             "running_pods": 0,
@@ -406,7 +412,7 @@ pub async fn get_cluster_overview(
         })
     });
 
-    let nodes = get_nodes_status(client, cache).await.unwrap_or_else(|_| {
+    let nodes = get_nodes_status(client, cache, force_refresh).await.unwrap_or_else(|_| {
         json!({
             "total_nodes": 0,
             "ready_nodes": 0,

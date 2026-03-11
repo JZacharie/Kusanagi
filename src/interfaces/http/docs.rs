@@ -1,6 +1,6 @@
 use crate::interfaces::http::handlers::business::{
-    alert_handlers, backup_handlers, homeassistant_handlers, proxmox_handlers, security_handlers,
-    weather_handlers,
+    alert_handlers, backup_handlers, homeassistant_handlers, proxmox_compose_handlers,
+    proxmox_handlers, security_handlers, weather_handlers,
 };
 use crate::interfaces::http::handlers::core::{health, system};
 use crate::interfaces::http::handlers::k8s;

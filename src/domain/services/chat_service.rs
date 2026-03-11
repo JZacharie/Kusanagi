@@ -74,7 +74,7 @@ impl ChatService {
 
         // Nodes
         if let Ok(nodes) =
-            kubernetes_service::get_nodes_status(&self.http_client, &self.k8s_cache).await
+            kubernetes_service::get_nodes_status(&self.http_client, &self.k8s_cache, false).await
         {
             if let Some(total) = nodes.get("total_nodes") {
                 parts.push(format!("Nodes: {} total", total));
@@ -86,6 +86,7 @@ impl ChatService {
             &self.http_client,
             &self.kube_client,
             &self.k8s_cache,
+            false,
         )
         .await
         {

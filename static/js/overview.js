@@ -20,6 +20,14 @@ const OverviewDashboard = {
             clusterDropdown.addEventListener('change', () => this.refreshData());
         }
 
+        // Force Refresh Button
+        const refreshBtn = document.getElementById('overview-refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.refreshData(true);
+            });
+        }
+
         // Timeframe toggle for Namespace Cost
         const timeframeContainer = document.getElementById('namespace-cost-timeframe');
         if (timeframeContainer) {
@@ -51,7 +59,6 @@ const OverviewDashboard = {
         });
 
         this.initialized = true;
-        this.refreshData();
         this.refreshData();
         this.initPromotionHandler();
 
@@ -94,20 +101,24 @@ const OverviewDashboard = {
         });
     },
 
-    async refreshData() {
+    async refreshData(force = false) {
         if (!document.getElementById('overview-health-icon')) return; // Not on page
+
+        const refreshBtn = document.getElementById('overview-refresh-btn');
+        if (refreshBtn) refreshBtn.classList.add('refreshing');
 
         this.updateTimestamp();
 
         try {
             const now = Math.floor(Date.now() / 1000);
             const start = now - 3600;
+            const refreshParam = force ? '?refresh=true' : '';
 
             // Fetch real metrics where possible
             const [clusterResp, nodesResp, metricsResp, systemResp, backupsResp, nsMetricsResp, podsResp, cpuHisResp, memHisResp, argocdResp] = await Promise.allSettled([
                 api.get('/api/k8s/cluster'),
                 api.get('/api/k8s/nodes'),
-                api.get('/api/dashboard/metrics'),
+                api.get(`/api/dashboard/metrics${refreshParam}`),
                 api.get('/api/system/status'),
                 api.get('/api/backups'),
                 api.get(`/api/k8s/namespaces/metrics?window=${this.namespaceCostWindow}`),
@@ -139,6 +150,8 @@ const OverviewDashboard = {
 
         } catch (error) {
             console.error('Error refreshing overview data:', error);
+        } finally {
+            if (refreshBtn) refreshBtn.classList.remove('refreshing');
         }
     },
 

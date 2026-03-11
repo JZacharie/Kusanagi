@@ -249,15 +249,23 @@ pub async fn gpu_debug_handler(
 }
 
 /// Metrics endpoint for the dashboard
+#[derive(serde::Deserialize)]
+pub struct RefreshQuery {
+    pub refresh: Option<bool>,
+}
+
 pub async fn metrics_handler(
     axum::extract::State(state): axum::extract::State<crate::state::AppState>,
+    axum::extract::Query(query): axum::extract::Query<RefreshQuery>,
 ) -> impl IntoResponse {
     use crate::domain::services::kubernetes_service;
     use crate::domain::services::trivy_service;
 
+    let force_refresh = query.refresh.unwrap_or(false);
+
     // 1. Get nodes status for resource usage
     let (cpu_percent, mem_percent, node_count) =
-        match kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache).await {
+        match kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache, force_refresh).await {
             Ok(data) => {
                 if let Some(nodes) = data["nodes"].as_array() {
                     let mut cpu_sum = 0.0;
@@ -285,6 +293,7 @@ pub async fn metrics_handler(
         &state.http_client,
         &state.kube_client,
         &state.k8s_cache,
+        force_refresh,
     )
     .await
     {

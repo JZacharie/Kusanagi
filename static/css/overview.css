@@ -79,9 +79,48 @@
 .overview-header-actions {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 1.5rem;
     font-size: 0.9rem;
     color: #a0aec0;
+}
+
+.overview-refresh-btn {
+    background: rgba(0, 255, 249, 0.1);
+    border: 1px solid rgba(0, 255, 249, 0.3);
+    color: var(--neon-cyan, #00fff9);
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.overview-refresh-btn:hover {
+    background: rgba(0, 255, 249, 0.2);
+    border-color: var(--neon-cyan, #00fff9);
+    box-shadow: 0 0 10px rgba(0, 255, 249, 0.3);
+    transform: translateY(-1px);
+}
+
+.overview-refresh-btn:active {
+    transform: translateY(0);
+}
+
+.overview-refresh-btn span {
+    font-size: 1.1rem;
+}
+
+.overview-refresh-btn.refreshing span {
+    animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 .overview-cluster-select {
