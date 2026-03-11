@@ -51,6 +51,7 @@ impl HomeAssistantRepositoryImpl {
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(DEFAULT_TIMEOUT_SECONDS))
+            .danger_accept_invalid_certs(true)
             .build()
             .map_err(|e| {
                 AppError::external_service(format!("Failed to build HTTP client: {}", e))
