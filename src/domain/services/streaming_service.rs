@@ -1,4 +1,5 @@
 use aws_sdk_s3::Client as S3Client;
+use crate::infrastructure::s3_utils::configure_insecure_s3;
 use chrono::Utc;
 use reqwest::Client;
 use serde_json::{json, Value};
@@ -516,7 +517,7 @@ async fn create_s3_client() -> Result<S3Client, String> {
     let secret_key = std::env::var("S3_SECRET_KEY").map_err(|_| "S3_SECRET_KEY not set".to_string())?;
 
     let credentials = aws_sdk_s3::config::Credentials::new(access_key, secret_key, None, None, "custom");
-    let s3_config_builder = aws_sdk_s3::config::Builder::new()
+    let mut s3_config_builder = aws_sdk_s3::config::Builder::new()
         .behavior_version(aws_sdk_s3::config::BehaviorVersion::latest())
         .region(aws_sdk_s3::config::Region::new(region))
         .endpoint_url(&endpoint)
@@ -526,8 +527,7 @@ async fn create_s3_client() -> Result<S3Client, String> {
     let ignore_ssl = std::env::var("S3_IGNORE_SSL").unwrap_or_default() == "true" || endpoint.starts_with("http://192.168.0.170");
     
     if ignore_ssl {
-        tracing::warn!("⚠️  S3 SSL verification is DISABLED for {}", endpoint);
-        // Custom connector would go here for HTTPS bypass
+        s3_config_builder = configure_insecure_s3(s3_config_builder);
     }
     
     let s3_config = s3_config_builder.build();
