@@ -11,6 +11,7 @@ use tokio::sync::Semaphore;
 
 const CACHE_PREFIX: &str = "news/";
 const CACHE_DAYS: i64 = 7;
+use crate::infrastructure::s3_utils::configure_insecure_s3;
 
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -378,7 +379,7 @@ async fn create_s3_client() -> Result<S3Client, String> {
         access_key, secret_key, None, None, "custom",
     );
 
-    let s3_config_builder = aws_sdk_s3::config::Builder::new()
+    let mut s3_config_builder = aws_sdk_s3::config::Builder::new()
         .behavior_version(aws_sdk_s3::config::BehaviorVersion::latest())
         .region(aws_sdk_s3::config::Region::new(region.clone()))
         .endpoint_url(&endpoint)
@@ -388,10 +389,7 @@ async fn create_s3_client() -> Result<S3Client, String> {
     let ignore_ssl = std::env::var("S3_IGNORE_SSL").unwrap_or_default() == "true" || endpoint.starts_with("http://192.168.0.170");
     
     if ignore_ssl {
-        tracing::warn!("⚠️  S3 SSL verification is DISABLED for {}", endpoint);
-        // This is a bit complex with the current SDK, but we can try to use a custom connector if needed.
-        // For now, if it's http it works, if it's https with self-signed, we'd need a custom hyper client.
-        // A simpler way for recent SDKs is often environment variables or specific rustls config.
+        s3_config_builder = configure_insecure_s3(s3_config_builder);
     }
     
     let s3_config = s3_config_builder.build();
