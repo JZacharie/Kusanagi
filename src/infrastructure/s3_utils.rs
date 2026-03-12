@@ -1,9 +1,9 @@
 use aws_sdk_s3::config::Builder as S3ConfigBuilder;
 use aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder;
-use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
-use rustls::{DigitallySignedStruct, SignatureScheme};
-use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
+use rustls_021::client::{ServerCertVerified, ServerCertVerifier};
+use rustls_021::{Certificate, Error, ServerName};
 use std::sync::Arc;
+use std::time::SystemTime;
 
 #[derive(Debug)]
 struct NoVerifier;
@@ -11,45 +11,22 @@ struct NoVerifier;
 impl ServerCertVerifier for NoVerifier {
     fn verify_server_cert(
         &self,
-        _end_entity: &CertificateDer<'_>,
-        _intermediates: &[CertificateDer<'_>],
-        _server_name: &ServerName<'_>,
+        _end_entity: &Certificate,
+        _intermediates: &[Certificate],
+        _server_name: &ServerName,
+        _scts: &mut dyn Iterator<Item = &[u8]>,
         _ocsp_response: &[u8],
-        _now: UnixTime,
-    ) -> Result<ServerCertVerified, rustls::Error> {
+        _now: SystemTime,
+    ) -> Result<ServerCertVerified, Error> {
         Ok(ServerCertVerified::assertion())
-    }
-
-    fn verify_tls12_signature(
-        &self,
-        _message: &[u8],
-        _cert: &CertificateDer<'_>,
-        _dss: &DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, rustls::Error> {
-        Ok(HandshakeSignatureValid::assertion())
-    }
-
-    fn verify_tls13_signature(
-        &self,
-        _message: &[u8],
-        _cert: &CertificateDer<'_>,
-        _dss: &DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, rustls::Error> {
-        Ok(HandshakeSignatureValid::assertion())
-    }
-
-    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
-        rustls::crypto::aws_lc_rs::default_provider()
-            .signature_verification_algorithms
-            .supported_schemes()
     }
 }
 
 pub fn configure_insecure_s3(builder: S3ConfigBuilder) -> S3ConfigBuilder {
     tracing::warn!("⚠️  Configuring S3 client to IGNORE SSL certificate verification");
     
-    let mut rustls_config = rustls::ClientConfig::builder()
-        .dangerous()
+    let mut rustls_config = rustls_021::ClientConfig::builder()
+        .with_safe_defaults()
         .with_custom_certificate_verifier(Arc::new(NoVerifier))
         .with_no_client_auth();
     
