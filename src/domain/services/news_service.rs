@@ -24,8 +24,20 @@ pub async fn get_news() -> Result<Value, String> {
             Ok(news)
         }
         _ => {
-            tracing::warn!("⚠️  News cache aggregate MISS/Empty - fetching fresh news");
-            fetch_fresh_news().await
+            tracing::warn!("⚠️  News cache aggregate MISS/Empty - fetching fresh news in background");
+            // Spawn background refresh
+            tokio::spawn(async {
+                if let Err(e) = fetch_fresh_news().await {
+                    tracing::error!("❌ Background news fetch failed: {}", e);
+                }
+            });
+            // Return fallback immediately
+            Ok(json!({
+                "items": get_fallback_news(),
+                "cached_at": Utc::now().to_rfc3339(),
+                "source": "fallback",
+                "message": "Fresh news being fetched in background"
+            }))
         }
     }
 }
@@ -363,9 +375,7 @@ async fn create_s3_client() -> Result<S3Client, String> {
         .map_err(|_| "S3_SECRET_KEY environment variable not set".to_string())?;
 
     let credentials = aws_sdk_s3::config::Credentials::new(
-        access_key, secret_key, None, // session token
-        None, // expiry
-        "custom",
+        access_key, secret_key, None, None, "custom",
     );
 
     let s3_config = aws_sdk_s3::config::Builder::new()
@@ -877,7 +887,7 @@ async fn translate_news_items(items: Vec<Value>, s3_info: Option<(S3Client, Stri
     let concurrency = std::env::var("NEWS_LLM_CONCURRENCY")
         .ok()
         .and_then(|s| s.parse::<usize>().ok())
-        .unwrap_or(3);
+        .unwrap_or(1); // Reduced from 3 to 1 to avoid overwhelming Ollama
 
     tracing::info!("🚀 Translation config: model={}, concurrency={}, debug={}", config.model, concurrency, debug_mode);
 
