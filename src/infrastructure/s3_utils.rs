@@ -25,12 +25,10 @@ impl ServerCertVerifier for NoVerifier {
 pub fn configure_insecure_s3(builder: S3ConfigBuilder) -> S3ConfigBuilder {
     tracing::warn!("⚠️  Configuring S3 client to IGNORE SSL certificate verification");
     
-    let mut rustls_config = rustls_021::ClientConfig::builder()
+    let rustls_config = rustls_021::ClientConfig::builder()
         .with_safe_defaults()
         .with_custom_certificate_verifier(Arc::new(NoVerifier))
         .with_no_client_auth();
-    
-    rustls_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
 
     let connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(rustls_config)
