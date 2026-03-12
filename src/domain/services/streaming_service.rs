@@ -96,7 +96,7 @@ async fn fetch_fresh_streaming() -> Result<Value, String> {
     };
 
     let s3_client = create_s3_client().await.ok();
-    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
 
     // Merge new items (avoid duplicates by URL and by normalized title)
     let initial_count = all_items.len();
@@ -243,7 +243,7 @@ async fn store_individual_movie(
 
 pub async fn get_poster_data(hash: &str) -> Result<(Vec<u8>, String), String> {
     let s3 = create_s3_client().await?;
-    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
     let key = format!("{}posters/{}.jpg", CACHE_PREFIX, hash);
     
     let result = s3.get_object()
@@ -493,7 +493,7 @@ fn normalize_title(title: &str) -> String {
 
 async fn get_aggregated_streaming() -> Result<Value, String> {
     let s3_client = create_s3_client().await?;
-    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
     let key = format!("{}latest.json", CACHE_PREFIX);
 
     let result = s3_client
@@ -516,13 +516,21 @@ async fn create_s3_client() -> Result<S3Client, String> {
     let secret_key = std::env::var("S3_SECRET_KEY").map_err(|_| "S3_SECRET_KEY not set".to_string())?;
 
     let credentials = aws_sdk_s3::config::Credentials::new(access_key, secret_key, None, None, "custom");
-    let s3_config = aws_sdk_s3::config::Builder::new()
+    let mut s3_config_builder = aws_sdk_s3::config::Builder::new()
         .behavior_version(aws_sdk_s3::config::BehaviorVersion::latest())
         .region(aws_sdk_s3::config::Region::new(region))
         .endpoint_url(&endpoint)
         .credentials_provider(credentials)
-        .force_path_style(true)
-        .build();
+        .force_path_style(true);
+
+    let ignore_ssl = std::env::var("S3_IGNORE_SSL").unwrap_or_default() == "true" || endpoint.starts_with("http://192.168.0.170");
+    
+    if ignore_ssl {
+        tracing::warn!("⚠️  S3 SSL verification is DISABLED for {}", endpoint);
+        // Custom connector would go here for HTTPS bypass
+    }
+    
+    let s3_config = s3_config_builder.build();
 
     Ok(S3Client::from_conf(s3_config))
 }

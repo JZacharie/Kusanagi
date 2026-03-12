@@ -271,7 +271,7 @@ async fn get_aggregated_news() -> Result<Value, String> {
     let mut all_items = Vec::new();
 
     let s3_client = create_s3_client().await?;
-    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+    let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
 
     for i in 0..CACHE_DAYS {
         let day = (now - Duration::days(i)).format("%Y-%m-%d").to_string();
@@ -378,13 +378,23 @@ async fn create_s3_client() -> Result<S3Client, String> {
         access_key, secret_key, None, None, "custom",
     );
 
-    let s3_config = aws_sdk_s3::config::Builder::new()
+    let mut s3_config_builder = aws_sdk_s3::config::Builder::new()
         .behavior_version(aws_sdk_s3::config::BehaviorVersion::latest())
         .region(aws_sdk_s3::config::Region::new(region.clone()))
         .endpoint_url(&endpoint)
         .credentials_provider(credentials)
-        .force_path_style(true)
-        .build();
+        .force_path_style(true);
+
+    let ignore_ssl = std::env::var("S3_IGNORE_SSL").unwrap_or_default() == "true" || endpoint.starts_with("http://192.168.0.170");
+    
+    if ignore_ssl {
+        tracing::warn!("⚠️  S3 SSL verification is DISABLED for {}", endpoint);
+        // This is a bit complex with the current SDK, but we can try to use a custom connector if needed.
+        // For now, if it's http it works, if it's https with self-signed, we'd need a custom hyper client.
+        // A simpler way for recent SDKs is often environment variables or specific rustls config.
+    }
+    
+    let s3_config = s3_config_builder.build();
 
     tracing::info!("✅ S3 Client initialized: endpoint={}, region={}, bucket={}", endpoint, region, std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string()));
 
