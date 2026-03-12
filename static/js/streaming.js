@@ -49,20 +49,27 @@ const StreamingManager = {
         if (btn) btn.classList.add('loading');
 
         try {
-            showNotification("Refreshing streaming list...", "info");
+            showNotification("Requesting streaming refresh...", "info");
             const data = await api.post('/api/streaming/refresh');
-            this.allMovies = data.items || [];
-            this._updateStats(data);
-            this.render();
-
-            const updatedEl = document.getElementById('streaming-updated-at');
-            if (updatedEl && data.cached_at) {
-                updatedEl.textContent = new Date(data.cached_at).toLocaleString();
+            
+            // If it returned items immediately (old behavior, just in case)
+            if (data.items) {
+                this.allMovies = data.items;
+                this._updateStats(data);
+                this.render();
+                
+                const updatedEl = document.getElementById('streaming-updated-at');
+                if (updatedEl && data.cached_at) {
+                    updatedEl.textContent = new Date(data.cached_at).toLocaleString();
+                }
+                showNotification("Streaming list refreshed", "success");
+            } else {
+                // Background refresh started (new behavior)
+                showNotification(data.message || "Streaming refresh started in background", "success");
             }
-            showNotification("Streaming list refreshed", "success");
         } catch (error) {
             console.error("❌ Failed to refresh streaming movies:", error);
-            showNotification("Failed to refresh streaming data", "error");
+            showNotification("Failed to refresh streaming data: " + error.message, "error");
         } finally {
             if (btn) btn.classList.remove('loading');
         }
