@@ -494,7 +494,7 @@ dependencies = [
  "pin-project-lite",
  "rustls 0.21.12",
  "rustls 0.23.36",
- "rustls-native-certs",
+ "rustls-native-certs 0.8.3",
  "rustls-pki-types",
  "tokio",
  "tokio-rustls 0.26.4",
@@ -1850,6 +1850,7 @@ dependencies = [
  "hyper 0.14.32",
  "log",
  "rustls 0.21.12",
+ "rustls-native-certs 0.6.3",
  "tokio",
  "tokio-rustls 0.24.1",
 ]
@@ -1865,7 +1866,7 @@ dependencies = [
  "hyper-util",
  "log",
  "rustls 0.23.36",
- "rustls-native-certs",
+ "rustls-native-certs 0.8.3",
  "rustls-pki-types",
  "tokio",
  "tokio-rustls 0.26.4",
@@ -2358,7 +2359,7 @@ dependencies = [
  "dotenvy",
  "env_logger",
  "futures",
- "hyper-rustls 0.27.7",
+ "hyper-rustls 0.24.2",
  "irc",
  "k8s-openapi",
  "kube",
@@ -2369,8 +2370,9 @@ dependencies = [
  "postgres-native-tls",
  "reqwest",
  "rumqttc",
+ "rustls 0.21.12",
  "rustls 0.23.36",
- "rustls-pemfile",
+ "rustls-pemfile 2.2.0",
  "rustls-pki-types",
  "serde",
  "serde_json",
@@ -3254,8 +3256,8 @@ dependencies = [
  "flume",
  "futures-util",
  "log",
- "rustls-native-certs",
- "rustls-pemfile",
+ "rustls-native-certs 0.8.3",
+ "rustls-pemfile 2.2.0",
  "rustls-webpki 0.102.8",
  "thiserror 2.0.18",
  "tokio",
@@ -3350,6 +3352,18 @@ dependencies = [
 
 [[package]]
 name = "rustls-native-certs"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9aace74cb666635c918e9c12bc0d348266037aa8eb599b5cba565709a8dff00"
+dependencies = [
+ "openssl-probe 0.1.6",
+ "rustls-pemfile 1.0.4",
+ "schannel",
+ "security-framework 2.11.1",
+]
+
+[[package]]
+name = "rustls-native-certs"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "612460d5f7bea540c490b2b6395d8e34a953e52b491accd6c86c8164c5932a63"
@@ -3358,6 +3372,15 @@ dependencies = [
  "rustls-pki-types",
  "schannel",
  "security-framework 3.5.1",
+]
+
+[[package]]
+name = "rustls-pemfile"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c74cae0a4cf6ccbbf5f359f08efdf8ee7e1dc532573bf0db71968cb56b1448c"
+dependencies = [
+ "base64 0.21.7",
 ]
 
 [[package]]
