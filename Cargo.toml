@@ -30,13 +30,16 @@ base64 = "0.22"
 sysinfo = "0.38"
 rumqttc = "0.25"
 irc = "1.0"
-rustls-pemfile = "2.2" # Force version to avoid unmaintained warning
+rustls-pemfile = "2.2"
+rustls-pki-types = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rustls = { version = "0.23", features = ["aws-lc-rs"] }
 toml = "0.8"
 aws-config = "1.1"
 aws-sdk-s3 = "1.13"
+aws-smithy-runtime = { version = "1.1", features = ["client", "connector-hyper-0-14-x"] }
+hyper-rustls = { version = "0.27", features = ["rustls-native-certs", "http2"] }
 tracing-appender = "0.2.4"
 
 # Sprint 5: Robustness & Observability
