@@ -188,8 +188,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
-      name: production
-      url: https://kusanagi.p.zacharie.org
+      name: Dev
+      url: https://kusanagi-dev.p.zacharie.org
     steps:
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
