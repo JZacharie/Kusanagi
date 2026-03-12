@@ -516,7 +516,7 @@ async fn create_s3_client() -> Result<S3Client, String> {
     let secret_key = std::env::var("S3_SECRET_KEY").map_err(|_| "S3_SECRET_KEY not set".to_string())?;
 
     let credentials = aws_sdk_s3::config::Credentials::new(access_key, secret_key, None, None, "custom");
-    let mut s3_config_builder = aws_sdk_s3::config::Builder::new()
+    let s3_config_builder = aws_sdk_s3::config::Builder::new()
         .behavior_version(aws_sdk_s3::config::BehaviorVersion::latest())
         .region(aws_sdk_s3::config::Region::new(region))
         .endpoint_url(&endpoint)
