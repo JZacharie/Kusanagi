@@ -14,6 +14,9 @@ on:
   pull_request:
     branches: [main, master]
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
@@ -94,10 +97,15 @@ jobs:
         with:
           shared-key: "kusanagi"
 
+      - name: Install mold linker
+        run: sudo apt-get update && sudo apt-get install -y mold clang
+
       - name: Build Rust binary (cached)
         run: |
           cargo build --release --bin kusanagi
           ls -lh target/release/kusanagi
+        env:
+          RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
 
       # Sauvegarde le binaire compilé pour qu'il soit utilisé par le job Docker
       - name: Upload binary artifact
