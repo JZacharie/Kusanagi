@@ -235,4 +235,7 @@ impl GetHomeAssistantUseCase {
 }
 
 pub mod chat_use_case;
+pub mod a2ui_use_case;
+
 pub use chat_use_case::ChatUseCase;
+pub use a2ui_use_case::A2UIUseCase;

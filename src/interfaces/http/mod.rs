@@ -10,6 +10,7 @@ pub mod routes;
 
 // Legacy individual handler files (will be removed once fully migrated to handlers/)
 pub mod alert_handlers;
+pub mod a2ui_handlers;
 pub mod backup_handlers;
 
 pub mod homeassistant_handlers;
