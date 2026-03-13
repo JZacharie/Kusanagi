@@ -88,4 +88,7 @@ pub trait SecurityRepository: Send + Sync {
 }
 
 pub mod kubernetes;
+pub mod a2ui_repository;
+
 pub use kubernetes::KubernetesRepository;
+pub use a2ui_repository::A2UIRepository;

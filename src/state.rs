@@ -3,7 +3,8 @@
 use std::sync::Arc;
 
 use crate::application::use_cases::{
-    BackupUseCase, GetAlertsUseCase, GetHomeAssistantUseCase, GetSecurityUseCase, GetWeatherUseCase,
+    A2UIUseCase, BackupUseCase, GetAlertsUseCase, GetHomeAssistantUseCase, GetSecurityUseCase,
+    GetWeatherUseCase,
 };
 
 /// Application state shared across all handlers
@@ -18,6 +19,7 @@ pub struct AppState {
     pub ha_use_case: Arc<GetHomeAssistantUseCase>,
     pub backup_use_case: Arc<BackupUseCase>,
     pub chat_use_case: Arc<crate::application::use_cases::ChatUseCase>,
+    pub a2ui_use_case: Arc<A2UIUseCase>,
     pub kube_client: Option<Arc<kube::Client>>,
     pub http_client: Arc<reqwest::Client>,
     pub cilium_cache: Arc<crate::domain::services::cilium_service::CiliumCache>,
@@ -31,12 +33,13 @@ impl AppState {
     /// Create a new application state with all use cases initialized
     pub async fn new() -> anyhow::Result<Self> {
         use crate::domain::ports::{
-            AlertRepository, BackupRepository, HomeAssistantRepository, SecurityRepository,
-            WeatherRepository,
+            A2UIRepository, AlertRepository, BackupRepository, HomeAssistantRepository,
+            SecurityRepository, WeatherRepository,
         };
         use crate::infrastructure::repositories::{
-            AlertRepositoryImpl, BackupRepositoryImpl, HomeAssistantRepositoryImpl,
-            NoOpBackupRepository, SecurityRepositoryImpl, WeatherRepositoryImpl,
+            A2UIRepositoryImpl, AlertRepositoryImpl, BackupRepositoryImpl,
+            HomeAssistantRepositoryImpl, NoOpBackupRepository, SecurityRepositoryImpl,
+            WeatherRepositoryImpl,
         };
         use crate::init::{setup_caches, setup_http_client_arc, setup_kube_client_arc};
 
@@ -60,6 +63,8 @@ impl AppState {
             tracing::warn!("Kubernetes not available - using NoOp backup repository");
             Arc::new(NoOpBackupRepository)
         };
+        let a2ui_repo: Arc<dyn A2UIRepository> =
+            Arc::new(A2UIRepositoryImpl::new(general_cache.clone()));
 
         // Initialize use cases
         let alerts_use_case = Arc::new(GetAlertsUseCase::new(alert_repo.clone()));
@@ -67,6 +72,7 @@ impl AppState {
         let security_use_case = Arc::new(GetSecurityUseCase::new(security_repo));
         let ha_use_case = Arc::new(GetHomeAssistantUseCase::new(ha_repo));
         let backup_use_case = Arc::new(BackupUseCase::new(backup_repo, k8s_cache.clone()));
+        let a2ui_use_case = Arc::new(A2UIUseCase::new(a2ui_repo));
 
         // Services
         let llm_service = Arc::new(crate::domain::services::llm_service::LlmService::new());
@@ -111,6 +117,7 @@ impl AppState {
             ha_use_case,
             backup_use_case,
             chat_use_case,
+            a2ui_use_case,
             kube_client,
             http_client,
             cilium_cache: Arc::new(crate::domain::services::cilium_service::CiliumCache::new()),
