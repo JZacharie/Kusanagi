@@ -87,8 +87,10 @@ const StreamingManager = {
         }
 
         container.innerHTML = this.filteredMovies.map(movie => {
+            if (!movie || !movie.title) return ''; // Skip invalid items
+
             const searchUrl = `https://thpibay.site/search/${encodeURIComponent(movie.title)}/1/99/0`;
-            const escapedTitle = movie.title.replace(/"/g, '&quot;');
+            const escapedTitle = (movie.title || '').replace(/"/g, '&quot;');
             const isJustWatch = movie.source === 'JustWatch';
             const isSerie = movie.content_type === 'serie';
             const typeIcon = isSerie ? '📺' : '🎬';
@@ -118,16 +120,16 @@ const StreamingManager = {
                          class="movie-poster" 
                          alt="${escapedTitle}" 
                          onerror="this.src='/static/images/no-poster.png'"
-                         onclick="window.open('${movie.url}', '_blank')">
+                         onclick="window.open('${movie.url || '#'}', '_blank')">
                     <div class="movie-info">
                         <div class="movie-title">${typeIcon} ${movie.title}</div>
                         <div class="movie-meta">
                             <span>${movie.year || 'N/A'}</span>
-                            <span style="opacity: 0.6; font-size: 0.75rem;">${movie.source}</span>
+                            <span style="opacity: 0.6; font-size: 0.75rem;">${movie.source || 'Unknown'}</span>
                         </div>
                         <div class="movie-genres" title="${movie.genres || ''}">${movie.genres || ''}</div>
                         <div class="movie-actions" style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
-                            <a href="${movie.url}" target="_blank" class="cyber-btn btn-small" style="flex: 1; text-align: center; font-size: 0.7rem; padding: 0.3rem;">
+                            <a href="${movie.url || '#'}" target="_blank" class="cyber-btn btn-small" style="flex: 1; text-align: center; font-size: 0.7rem; padding: 0.3rem;">
                                 ${typeIcon} VIEW
                             </a>
                             <a href="${searchUrl}" target="_blank" class="cyber-btn btn-small" style="flex: 1; text-align: center; font-size: 0.7rem; padding: 0.3rem;">
@@ -181,7 +183,7 @@ const StreamingManager = {
         this.filteredMovies = this.allMovies.filter(movie => {
             // Search match
             const matchesSearch = !this.searchQuery ||
-                movie.title.toLowerCase().includes(this.searchQuery) ||
+                (movie.title || '').toLowerCase().includes(this.searchQuery) ||
                 (movie.year || '').toString().includes(this.searchQuery) ||
                 (movie.genres || '').toLowerCase().includes(this.searchQuery);
 
