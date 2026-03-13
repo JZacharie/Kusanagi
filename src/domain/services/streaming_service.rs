@@ -261,16 +261,26 @@ pub async fn get_poster_data(hash: &str) -> Result<(Vec<u8>, String), String> {
 fn parse_cinestream_html(html: &str) -> Vec<Value> {
     let mut movies = Vec::new();
     
-    // Cinestream uses a grid of <article> elements for movies
+    // Cinestream uses Next.js with flight data. 
+    // We look for self.__next_f.push scripts which contain the movie data.
     let mut current_pos = 0;
-    while let Some(article_start) = html[current_pos..].find("<article") {
-        let absolute_start = current_pos + article_start;
-        if let Some(article_end) = html[absolute_start..].find("</article>") {
-            let absolute_end = absolute_start + article_end + 10;
-            let article_content = &html[absolute_start..absolute_end];
+    while let Some(script_start) = html[current_pos..].find("self.__next_f.push([1,\"") {
+        let absolute_start = current_pos + script_start + 23;
+        if let Some(script_end) = html[absolute_start..].find("\"])") {
+            let absolute_end = absolute_start + script_end;
+            let content = &html[absolute_start..absolute_end];
             
-            if let Some(movie) = parse_movie_article(article_content) {
-                movies.push(movie);
+            // The content is escaped JSON-like data. We look for patterns like:
+            // \"title\": \"...\", \"href\": \"...\", \"src\": \"...\"
+            
+            // This is a naive but effective way to extract from Next.js flight data strings
+            // A more robust way would be to properly unescape and parse, but flight data is complex.
+            
+            // Try to find movie patterns in this chunk
+            if content.contains("\\\"title\\\"") && content.contains("\\\"href\\\"") {
+                if let Some(movie) = parse_movie_from_json_chunk(content) {
+                    movies.push(movie);
+                }
             }
             
             current_pos = absolute_end;
@@ -279,7 +289,73 @@ fn parse_cinestream_html(html: &str) -> Vec<Value> {
         }
     }
     
+    // Fallback to old article parsing if Next.js data wasn't found or parsed nothing
+    if movies.is_empty() {
+        let mut current_pos = 0;
+        while let Some(article_start) = html[current_pos..].find("<article") {
+            let absolute_start = current_pos + article_start;
+            if let Some(article_end) = html[absolute_start..].find("</article>") {
+                let absolute_end = absolute_start + article_end + 10;
+                let article_content = &html[absolute_start..absolute_end];
+                
+                if let Some(movie) = parse_movie_article(article_content) {
+                    movies.push(movie);
+                }
+                
+                current_pos = absolute_end;
+            } else {
+                break;
+            }
+        }
+    }
+    
     movies
+}
+
+fn parse_movie_from_json_chunk(content: &str) -> Option<Value> {
+    // Helper to extract \"key\":\"value\"
+    let extract = |key: &str| -> Option<String> {
+        let marker = format!("\\\\\\\"{}\\\\\\\":\\\\\\\"", key);
+        if let Some(start_pos) = content.find(&marker) {
+            let start = start_pos + marker.len();
+            if let Some(end_pos) = content[start..].find("\\\\\\\"") {
+                return Some(content[start..start + end_pos].replace("\\\\", ""));
+            }
+        }
+        None
+    };
+
+    let title = extract("title")?;
+    let path = extract("href")?;
+    let poster_url = extract("src");
+    
+    let url = if path.starts_with("http") {
+        path
+    } else {
+        format!("{}{}", BASE_URL, path)
+    };
+
+    // Try to find language and quality nearby
+    let mut language = "Unknown".to_string();
+    let mut quality = "HD".to_string();
+    
+    if content.contains("TrueFrench") { language = "TrueFrench".to_string(); }
+    else if content.contains("VOSTFR") { language = "VOSTFR".to_string(); }
+    
+    if content.contains("HDLight") { quality = "HDLight".to_string(); }
+    else if content.contains("WEB-DL") { quality = "WEB-DL".to_string(); }
+
+    Some(json!({
+        "title": title,
+        "url": url,
+        "poster_url": poster_url,
+        "year": "2025", // Hardcoded fallback for now as Next.js data is noisy
+        "genres": "",
+        "language": language,
+        "quality": quality,
+        "source": "Cinestream",
+        "content_type": "film"
+    }))
 }
 
 fn parse_movie_article(content: &str) -> Option<Value> {
@@ -400,9 +476,9 @@ fn parse_justwatch_html(html: &str, content_type: &str) -> Vec<Value> {
             if let Some(href_end) = html[href_start..].find('"') {
                 let path = &html[href_start..href_start + href_end];
                 
-                if path.starts_with(link_prefix) {
+        if path.starts_with(link_prefix) || path.contains(link_prefix) {
                     // Find the next <img alt="..." for the title
-                    let search_end = std::cmp::min(abs_link_pos + 3000, html.len());
+                    let search_end = std::cmp::min(abs_link_pos + 5000, html.len());
                     let block = &html[abs_link_pos..search_end];
                     
                     if let Some(img_alt) = extract_img_alt(block) {
