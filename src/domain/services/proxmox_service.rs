@@ -586,10 +586,17 @@ async fn create_lxc_from_image(
 
     // Find next available VMID
     let nextid_url = format!("{}/api2/json/cluster/nextid", server);
-    let vmid = match client.get(&nextid_url).header("Cookie", format!("PVEAuthCookie={}", ticket)).send().await {
+    let vmid_str = match client.get(&nextid_url).header("Cookie", format!("PVEAuthCookie={}", ticket)).send().await {
         Ok(res) if res.status().is_success() => {
             let data = res.json::<Value>().await.map_err(|e| e.to_string())?;
-            data["data"].as_u64().ok_or("Failed to get next VMID")?
+            let vmid_val = &data["data"];
+            if let Some(s) = vmid_val.as_str() {
+                s.to_string()
+            } else if let Some(num) = vmid_val.as_u64() {
+                num.to_string()
+            } else {
+                return Err(format!("Failed to get next VMID: {:?}", vmid_val));
+            }
         }
         _ => return Err("Failed to get next available VMID".to_string()),
     };
@@ -604,7 +611,7 @@ async fn create_lxc_from_image(
     };
 
     let params = [
-        ("vmid", vmid.to_string()),
+        ("vmid", vmid_str),
         ("ostemplate", ostemplate),
         ("hostname", name.to_string()),
         ("memory", "512".to_string()),
