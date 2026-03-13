@@ -164,8 +164,8 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/github/promote", post(promote_to_prod_handler))
         // A2UI routes
         .route("/api/a2ui/message", post(post_a2ui_message_handler))
-        .route("/api/a2ui/surface/:id", get(get_a2ui_surface_handler))
-        .route("/api/a2ui/data/:id", get(get_a2ui_data_handler))
+        .route("/api/a2ui/surface/{id}", get(get_a2ui_surface_handler))
+        .route("/api/a2ui/data/{id}", get(get_a2ui_data_handler))
         // Apply rate limiting specifically to these routes
         .layer(GovernorLayer::new(governor_conf))
         // Convert 429 errors to JSON
