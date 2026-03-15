@@ -27,6 +27,7 @@ pub struct AppState {
     pub mqtt_state: crate::domain::services::mqtt_service::MqttState,
     pub prometheus_handle: metrics_exporter_prometheus::PrometheusHandle,
     pub kubernetes_repository: Arc<dyn crate::domain::ports::KubernetesRepository>,
+    pub ws_broadcast: tokio::sync::broadcast::Sender<crate::interfaces::http::handlers::core::websocket::NotificationMessage>,
 }
 
 impl AppState {
@@ -129,6 +130,9 @@ impl AppState {
             chat_service.clone(),
         ));
 
+        // WebSocket Broadcast Channel
+        let (ws_broadcast, _) = tokio::sync::broadcast::channel(100);
+
         // Metrics
         let prometheus_handle = crate::infrastructure::metrics::setup_metrics()?;
 
@@ -156,9 +160,11 @@ impl AppState {
             cilium_cache: Arc::new(crate::domain::services::cilium_service::CiliumCache::new()),
             llm_service,
             mqtt_state: crate::domain::services::mqtt_service::MqttState::new()
-                .with_process_audio(process_audio_use_case),
+                .with_process_audio(process_audio_use_case)
+                .with_broadcast(ws_broadcast.clone()),
             prometheus_handle,
             kubernetes_repository,
+            ws_broadcast,
         })
     }
 }

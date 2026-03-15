@@ -35,6 +35,7 @@ struct InnerState {
 pub struct MqttState {
     inner: Arc<Mutex<InnerState>>,
     pub process_audio_use_case: Option<Arc<crate::application::use_cases::ProcessAudioUseCase>>,
+    pub broadcast_sender: Option<tokio::sync::broadcast::Sender<crate::interfaces::http::handlers::core::websocket::NotificationMessage>>,
 }
 
 impl Default for MqttState {
@@ -51,11 +52,17 @@ impl MqttState {
                 messages: VecDeque::with_capacity(500),
             })),
             process_audio_use_case: None,
+            broadcast_sender: None,
         }
     }
 
     pub fn with_process_audio(mut self, use_case: Arc<crate::application::use_cases::ProcessAudioUseCase>) -> Self {
         self.process_audio_use_case = Some(use_case);
+        self
+    }
+
+    pub fn with_broadcast(mut self, sender: tokio::sync::broadcast::Sender<crate::interfaces::http::handlers::core::websocket::NotificationMessage>) -> Self {
+        self.broadcast_sender = Some(sender);
         self
     }
 
@@ -78,6 +85,16 @@ impl MqttState {
             payload: payload.clone(),
             timestamp: now,
         });
+
+        // Broadcast to WebSockets
+        if let Some(sender) = &self.broadcast_sender {
+            let msg = crate::interfaces::http::handlers::core::websocket::NotificationMessage::Mqtt {
+                topic: topic.clone(),
+                payload: payload.clone(),
+                timestamp: now,
+            };
+            let _ = sender.send(msg);
+        }
 
         // Update Device
         // Assumption: topic format is "deviceId/..." or just match first part

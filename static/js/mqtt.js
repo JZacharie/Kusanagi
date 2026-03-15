@@ -13,8 +13,14 @@ const MqttManager = {
 
     init: function () {
         if (this.isInitialized) return;
-        console.log('✅ MqttManager initialized (no internal polling)');
+        console.log('✅ MqttManager initialized (Real-time enabled)');
         this.setDefaultValues();
+        
+        // Listen for real-time WebSocket messages
+        window.addEventListener('kusanagi-ws-message', (e) => {
+            this.handleWsMessage(e.detail);
+        });
+
         this.isInitialized = true;
     },
 
@@ -59,8 +65,7 @@ const MqttManager = {
         }
     },
 
-    // Note: Real-time WebSocket updates not implemented in backend
-    // Polling via TabManager (every 30s) is sufficient
+    // Real-time WebSocket updates integrated with backend broadcasting
 
     refresh: async function () {
         return this.fetchInitialData();
@@ -94,6 +99,33 @@ const MqttManager = {
 
     clearFlux: function () {
         this.messageBuffer = [];
+        this.analyzeTopics();
+        this.render();
+    },
+
+    handleWsMessage: function (data) {
+        if (data.type !== 'mqtt') return;
+
+        console.log('📡 Real-time MQTT message:', data.topic);
+
+        // Add to buffer
+        const newMsg = {
+            topic: data.topic,
+            payload: data.payload,
+            timestamp: data.timestamp
+        };
+
+        this.messageBuffer.unshift(newMsg);
+        if (this.messageBuffer.length > 500) {
+            this.messageBuffer.pop();
+        }
+
+        // Update last update timestamp
+        this.lastUpdate = new Date();
+
+        // Update devices list if needed (or just trigger fetch if it's complex)
+        // For now, let's update topic stats and re-render
+        // A full analyzeTopics + render is fine for 500 messages
         this.analyzeTopics();
         this.render();
     },
