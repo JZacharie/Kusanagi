@@ -181,6 +181,14 @@ pub struct LlmResponse {
     pub provider: String,
 }
 
+/// Result of ASR (Speech-to-Text)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AsrResult {
+    pub text: String,
+    pub duration: Option<f32>,
+    pub language: Option<String>,
+}
+
 /// Health check response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmHealthResponse {

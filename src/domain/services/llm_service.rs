@@ -2,7 +2,8 @@
 //!
 //! Handles communication with various LLM providers
 
-use crate::domain::entities::llm::{LlmConfig, LlmError, LlmProvider};
+use crate::domain::entities::llm::{AsrResult, LlmConfig, LlmError, LlmProvider};
+use reqwest::multipart;
 use reqwest::Client;
 use std::time::Duration;
 use tracing::{debug, warn};
@@ -52,6 +53,62 @@ impl LlmService {
         }
 
         Err(last_error.unwrap_or(LlmError::Unknown("Max retries exceeded".to_string())))
+    }
+
+    /// Perform ASR (Speech-to-Text) using LiteLLM
+    pub async fn asr(&self, audio_data: Vec<u8>, filename: &str) -> Result<AsrResult, LlmError> {
+        if self.config.provider != LlmProvider::Litellm {
+            return Err(LlmError::ConfigError("ASR only supported with LiteLLM provider".to_string()));
+        }
+
+        let url = format!("{}/audio/transcriptions", self.config.base_url);
+        
+        let part = multipart::Part::bytes(audio_data)
+            .file_name(filename.to_string())
+            .mime_str("video/mp4")
+            .map_err(|e| LlmError::Unknown(format!("Failed to create multipart: {}", e)))?;
+
+        let form = multipart::Form::new()
+            .text("model", self.config.model.clone())
+            .part("file", part);
+
+        let mut request = self.http_client.post(&url).multipart(form);
+
+        if let Some(ref key) = self.config.api_key {
+            request = request.header("Authorization", format!("Bearer {}", key));
+        }
+
+        debug!("Calling LiteLLM ASR at {}", url);
+
+        let response = request.send().await.map_err(|e| {
+            if e.is_timeout() {
+                LlmError::Timeout(e.to_string())
+            } else {
+                LlmError::RequestFailed(e.to_string())
+            }
+        })?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let text = response.text().await.unwrap_or_default();
+            return Err(LlmError::ApiError(format!("HTTP {}: {}", status, text)));
+        }
+
+        let json: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| LlmError::ParseError(e.to_string()))?;
+
+        let text = json["text"]
+            .as_str()
+            .map(|s| s.trim().to_string())
+            .ok_or_else(|| LlmError::ParseError("No text in ASR response".to_string()))?;
+
+        Ok(AsrResult {
+            text,
+            duration: None,
+            language: None,
+        })
     }
 
     /// Single completion attempt

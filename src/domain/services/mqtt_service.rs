@@ -34,6 +34,7 @@ struct InnerState {
 #[derive(Clone)]
 pub struct MqttState {
     inner: Arc<Mutex<InnerState>>,
+    pub process_audio_use_case: Option<Arc<crate::application::use_cases::ProcessAudioUseCase>>,
 }
 
 impl Default for MqttState {
@@ -49,7 +50,13 @@ impl MqttState {
                 devices: Vec::new(),
                 messages: VecDeque::with_capacity(500),
             })),
+            process_audio_use_case: None,
         }
+    }
+
+    pub fn with_process_audio(mut self, use_case: Arc<crate::application::use_cases::ProcessAudioUseCase>) -> Self {
+        self.process_audio_use_case = Some(use_case);
+        self
     }
 
     pub fn handle_message(&self, topic: String, payload: String) {
@@ -105,6 +112,31 @@ impl MqttState {
         }
     }
 
+    pub async fn handle_publish(&self, topic: String, payload_bytes: Vec<u8>) {
+        let payload_str = String::from_utf8_lossy(&payload_bytes).to_string();
+        
+        // Standard message handling
+        self.handle_message(topic.clone(), payload_str);
+
+        // Special handling for "kitt" topic (Audio ASR)
+        if topic == "kitt" {
+            if let Some(use_case) = &self.process_audio_use_case {
+                let filename = format!("mqtt_audio_{}", 
+                    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
+                );
+                
+                let use_case = use_case.clone();
+                tokio::spawn(async move {
+                    if let Err(e) = use_case.execute(payload_bytes, &filename).await {
+                        error!("Failed to process MQTT audio: {}", e);
+                    }
+                });
+            } else {
+                warn!("Received audio on 'kitt' but ProcessAudioUseCase is not configured");
+            }
+        }
+    }
+
     pub fn get_devices(&self) -> Value {
         use crate::utils::MutexExt;
         let inner = self.inner.lock_safe();
@@ -152,8 +184,7 @@ pub fn start_mqtt_client(
             match eventloop.poll().await {
                 Ok(notification) => {
                     if let Event::Incoming(Packet::Publish(publish)) = notification {
-                        let payload = String::from_utf8_lossy(&publish.payload).to_string();
-                        state.handle_message(publish.topic, payload);
+                        state.handle_publish(publish.topic, publish.payload.to_vec()).await;
                     }
                 }
                 Err(e) => {

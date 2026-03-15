@@ -74,8 +74,30 @@ impl AppState {
         let backup_use_case = Arc::new(BackupUseCase::new(backup_repo, k8s_cache.clone()));
         let a2ui_use_case = Arc::new(A2UIUseCase::new(a2ui_repo));
 
-        // Services
+        // S3 & Transcription
+        let s3_config = aws_config::from_env().load().await;
+        let mut s3_builder = aws_sdk_s3::config::Builder::from(&s3_config);
+        
+        // Use custom verifier if needed (Minio usually)
+        if std::env::var("S3_INSECURE").map(|v| v == "true").unwrap_or(false) {
+            s3_builder = crate::infrastructure::s3_utils::configure_insecure_s3(s3_builder);
+        }
+        
+        let s3_client = aws_sdk_s3::Client::from_conf(s3_builder.build());
+        let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
+        let transcription_repo = Arc::new(
+            crate::infrastructure::repositories::S3TranscriptionRepository::new(s3_client, s3_bucket)
+        );
+
+        // Initialize services
         let llm_service = Arc::new(crate::domain::services::llm_service::LlmService::new());
+        
+        let process_audio_use_case = Arc::new(
+            crate::application::use_cases::ProcessAudioUseCase::new(
+                llm_service.clone(),
+                transcription_repo
+            )
+        );
         let chat_service = Arc::new(crate::domain::services::chat_service::ChatService::new(
             llm_service.clone(),
             http_client.as_ref().clone(),
@@ -122,7 +144,8 @@ impl AppState {
             http_client,
             cilium_cache: Arc::new(crate::domain::services::cilium_service::CiliumCache::new()),
             llm_service,
-            mqtt_state: crate::domain::services::mqtt_service::MqttState::new(),
+            mqtt_state: crate::domain::services::mqtt_service::MqttState::new()
+                .with_process_audio(process_audio_use_case),
             prometheus_handle,
             kubernetes_repository,
         })
