@@ -7,7 +7,6 @@ use crate::error::{KusanagiError, Result};
 use async_trait::async_trait;
 use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Client;
-use std::sync::Arc;
 use tracing::{info, error};
 
 pub struct S3TranscriptionRepository {
