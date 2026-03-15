@@ -73,6 +73,7 @@ async fn main() -> anyhow::Result<()> {
             mqtt_port,
             mqtt_user,
             mqtt_pass,
+            state.namespace.clone(),
         );
     } else {
         info!("ℹ️ MQTT_HOST not set — MQTT client disabled");

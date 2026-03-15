@@ -98,6 +98,7 @@ impl AppState {
                 1883,
                 Some("joseph".to_string()),
                 Some("2f21ZxB5JC6XfujK".to_string()),
+                namespace.clone(),
             ).await
         );
 
