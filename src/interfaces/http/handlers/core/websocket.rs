@@ -28,19 +28,28 @@ pub enum NotificationMessage {
         source: String,
         timestamp: String,
     },
+    #[serde(rename = "mqtt")]
+    Mqtt {
+        topic: String,
+        payload: String,
+        timestamp: u128,
+    },
 }
 
 /// WebSocket upgrade handler
 pub async fn ws_notifications_handler(
-    _state: State<AppState>,
+    State(state): State<AppState>,
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
-    ws.on_upgrade(handle_socket)
+    ws.on_upgrade(move |socket| handle_socket(socket, state))
 }
 
 /// Handle the WebSocket connection
-async fn handle_socket(mut socket: WebSocket) {
+async fn handle_socket(mut socket: WebSocket, state: AppState) {
     info!("WebSocket client connected");
+
+    // Subscribe to broadcast channel
+    let mut rx = state.ws_broadcast.subscribe();
 
     // Send welcome message
     let welcome = NotificationMessage::Connected {
@@ -62,6 +71,14 @@ async fn handle_socket(mut socket: WebSocket) {
                     timestamp: chrono::Utc::now().to_rfc3339(),
                 };
                 if let Ok(json) = serde_json::to_string(&hb) {
+                    if socket.send(Message::Text(json.into())).await.is_err() {
+                        break;
+                    }
+                }
+            }
+            // Listen for broadcasted notifications
+            Ok(notif) = rx.recv() => {
+                if let Ok(json) = serde_json::to_string(&notif) {
                     if socket.send(Message::Text(json.into())).await.is_err() {
                         break;
                     }
