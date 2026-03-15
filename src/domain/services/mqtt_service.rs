@@ -125,10 +125,16 @@ impl MqttState {
                     SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
                 );
                 
+                let state_clone = self.clone();
                 let use_case = use_case.clone();
                 tokio::spawn(async move {
-                    if let Err(e) = use_case.execute(payload_bytes, &filename).await {
-                        error!("Failed to process MQTT audio: {}", e);
+                    match use_case.execute(payload_bytes, &filename).await {
+                        Ok(text) => {
+                            state_clone.handle_message("kitt/transcription".to_string(), text);
+                        }
+                        Err(e) => {
+                            error!("Failed to process MQTT audio: {}", e);
+                        }
                     }
                 });
             } else {
