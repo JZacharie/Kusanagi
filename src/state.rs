@@ -89,13 +89,24 @@ impl AppState {
             crate::infrastructure::repositories::S3TranscriptionRepository::new(s3_client, s3_bucket)
         );
 
+        // External MQTT Notification
+        let notification_repo = Arc::new(
+            crate::infrastructure::repositories::MqttNotificationRepository::new(
+                "ipv4.zacharie.org".to_string(),
+                1883,
+                Some("joseph".to_string()),
+                Some("2f21ZxB5JC6XfujK".to_string()),
+            ).await
+        );
+
         // Initialize services
         let llm_service = Arc::new(crate::domain::services::llm_service::LlmService::new());
         
         let process_audio_use_case = Arc::new(
             crate::application::use_cases::ProcessAudioUseCase::new(
                 llm_service.clone(),
-                transcription_repo
+                transcription_repo,
+                notification_repo
             )
         );
         let chat_service = Arc::new(crate::domain::services::chat_service::ChatService::new(
