@@ -36,6 +36,7 @@ pub struct MqttState {
     inner: Arc<Mutex<InnerState>>,
     pub process_audio_use_case: Option<Arc<crate::application::use_cases::ProcessAudioUseCase>>,
     pub broadcast_sender: Option<tokio::sync::broadcast::Sender<crate::interfaces::http::handlers::core::websocket::NotificationMessage>>,
+    pub namespace: String,
 }
 
 impl Default for MqttState {
@@ -53,6 +54,7 @@ impl MqttState {
             })),
             process_audio_use_case: None,
             broadcast_sender: None,
+            namespace: "unknown".to_string(),
         }
     }
 
@@ -63,6 +65,11 @@ impl MqttState {
 
     pub fn with_broadcast(mut self, sender: tokio::sync::broadcast::Sender<crate::interfaces::http::handlers::core::websocket::NotificationMessage>) -> Self {
         self.broadcast_sender = Some(sender);
+        self
+    }
+
+    pub fn with_namespace(mut self, namespace: String) -> Self {
+        self.namespace = namespace;
         self
     }
 
@@ -147,7 +154,8 @@ impl MqttState {
                 tokio::spawn(async move {
                     match use_case.execute(payload_bytes, &filename).await {
                         Ok(text) => {
-                            state_clone.handle_message("kitt/transcription".to_string(), text);
+                            let topic = format!("{}/kitt/transcription", state_clone.namespace);
+                            state_clone.handle_message(topic, text);
                         }
                         Err(e) => {
                             error!("Failed to process MQTT audio: {}", e);

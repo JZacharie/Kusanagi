@@ -11,10 +11,11 @@ use tracing::{info, error, warn};
 
 pub struct MqttNotificationRepository {
     client: AsyncClient,
+    namespace: String,
 }
 
 impl MqttNotificationRepository {
-    pub async fn new(host: String, port: u16, username: Option<String>, password: Option<String>) -> Self {
+    pub async fn new(host: String, port: u16, username: Option<String>, password: Option<String>, namespace: String) -> Self {
         let hostname = std::env::var("HOSTNAME").unwrap_or_else(|_| "kusanagi".to_string());
         
         use std::hash::{Hash, Hasher};
@@ -58,22 +59,28 @@ impl MqttNotificationRepository {
             }
         });
 
-        Self { client }
+        Self { client, namespace }
     }
 }
 
 #[async_trait]
 impl NotificationRepository for MqttNotificationRepository {
     async fn send_message(&self, topic: &str, message: &str) -> Result<()> {
+        let prefixed_topic = if topic.starts_with(&self.namespace) {
+            topic.to_string()
+        } else {
+            format!("{}/{}", self.namespace, topic)
+        };
+
         self.client
-            .publish(topic, QoS::AtLeastOnce, false, message.as_bytes().to_vec())
+            .publish(prefixed_topic.clone(), QoS::AtLeastOnce, false, message.as_bytes().to_vec())
             .await
             .map_err(|e| {
                 error!("Failed to publish MQTT notification: {}", e);
                 KusanagiError::external_service(format!("MQTT publish error: {}", e))
             })?;
 
-        info!("Successfully sent MQTT notification to topic: {}", topic);
+        info!("Successfully sent MQTT notification to topic: {}", prefixed_topic);
         Ok(())
     }
 }
