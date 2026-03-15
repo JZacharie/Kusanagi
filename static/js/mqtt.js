@@ -196,8 +196,8 @@ const MqttManager = {
             const payload = msg.payload || '';
             const timestamp = msg.timestamp || 0;
 
-            // Truncate long payloads
-            const displayPayload = payload.length > 200 ? payload.substring(0, 200) + '...' : payload;
+            // Do not truncate payloads (as requested by user)
+            const displayPayload = payload;
 
             return `
             <div class="flux-line" style="margin-bottom: 0.3rem; border-left: 2px solid var(--neon-magenta); padding-left: 0.5rem; font-size: 0.8rem;">
