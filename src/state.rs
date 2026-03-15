@@ -49,6 +49,7 @@ impl AppState {
         let (k8s_cache, argocd_cache, general_cache) = setup_caches();
         let http_client = setup_http_client_arc();
         let kube_client = setup_kube_client_arc().await;
+        let namespace = std::env::var("KUSANAGI_NAMESPACE").unwrap_or_else(|_| "unknown".to_string());
 
         // Initialize repositories
         let alert_repo: Arc<dyn AlertRepository> = Arc::new(AlertRepositoryImpl::new());
@@ -146,7 +147,6 @@ impl AppState {
             ),
         );
 
-        let namespace = std::env::var("KUSANAGI_NAMESPACE").unwrap_or_else(|_| "unknown".to_string());
 
         Ok(Self {
             k8s_cache,
