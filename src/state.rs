@@ -75,7 +75,7 @@ impl AppState {
         let a2ui_use_case = Arc::new(A2UIUseCase::new(a2ui_repo));
 
         // S3 & Transcription
-        let s3_config = aws_config::from_env().load().await;
+        let s3_config = aws_config::defaults(aws_config::BehaviorVersion::latest()).load().await;
         let mut s3_builder = aws_sdk_s3::config::Builder::from(&s3_config);
         
         // Use custom verifier if needed (Minio usually)
