@@ -28,6 +28,7 @@ pub struct AppState {
     pub prometheus_handle: metrics_exporter_prometheus::PrometheusHandle,
     pub kubernetes_repository: Arc<dyn crate::domain::ports::KubernetesRepository>,
     pub ws_broadcast: tokio::sync::broadcast::Sender<crate::interfaces::http::handlers::core::websocket::NotificationMessage>,
+    pub namespace: String,
 }
 
 impl AppState {
@@ -144,6 +145,8 @@ impl AppState {
             ),
         );
 
+        let namespace = std::env::var("KUSANAGI_NAMESPACE").unwrap_or_else(|_| "unknown".to_string());
+
         Ok(Self {
             k8s_cache,
             argocd_cache,
@@ -160,11 +163,13 @@ impl AppState {
             cilium_cache: Arc::new(crate::domain::services::cilium_service::CiliumCache::new()),
             llm_service,
             mqtt_state: crate::domain::services::mqtt_service::MqttState::new()
+                .with_namespace(namespace.clone())
                 .with_process_audio(process_audio_use_case)
                 .with_broadcast(ws_broadcast.clone()),
             prometheus_handle,
             kubernetes_repository,
             ws_broadcast,
+            namespace,
         })
     }
 }
