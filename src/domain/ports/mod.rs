@@ -99,3 +99,10 @@ pub trait TranscriptionRepository: Send + Sync {
     /// Store a transcription in persistent storage
     async fn store_transcription(&self, filename: &str, text: &str) -> Result<String>;
 }
+
+// ==================== Notification Ports ====================
+#[async_trait]
+pub trait NotificationRepository: Send + Sync {
+    /// Send a notification message to a specific topic
+    async fn send_message(&self, topic: &str, message: &str) -> Result<()>;
+}
