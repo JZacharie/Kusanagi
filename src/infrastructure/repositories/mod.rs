@@ -21,5 +21,8 @@ pub mod a2ui_repository_impl;
 pub use kubernetes::KubernetesRepositoryImpl;
 pub use a2ui_repository_impl::A2UIRepositoryImpl;
 
+pub mod s3_repository;
+pub use s3_repository::S3TranscriptionRepository;
+
 pub mod mock;
 pub use mock::{MockClusterRepository, NoOpBackupRepository};

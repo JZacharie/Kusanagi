@@ -92,3 +92,10 @@ pub mod a2ui_repository;
 
 pub use kubernetes::KubernetesRepository;
 pub use a2ui_repository::A2UIRepository;
+
+// ==================== Transcription Ports ====================
+#[async_trait]
+pub trait TranscriptionRepository: Send + Sync {
+    /// Store a transcription in persistent storage
+    async fn store_transcription(&self, filename: &str, text: &str) -> Result<String>;
+}
