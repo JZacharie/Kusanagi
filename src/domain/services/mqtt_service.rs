@@ -187,10 +187,11 @@ pub fn start_mqtt_client(
     port: u16,
     username: Option<String>,
     password: Option<String>,
+    namespace: String,
 ) {
     task::spawn(async move {
         let hostname = std::env::var("HOSTNAME").unwrap_or_else(|_| "kusanagi".to_string());
-        let client_id = format!("{}-{}", hostname, std::process::id());
+        let client_id = format!("{}-{}-{}", namespace, hostname, std::process::id());
         let mut mqttoptions = MqttOptions::new(client_id, host.clone(), port);
         mqttoptions.set_keep_alive(Duration::from_secs(30));
         mqttoptions.set_clean_session(true);
