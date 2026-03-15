@@ -15,8 +15,12 @@ pub struct MqttNotificationRepository {
 
 impl MqttNotificationRepository {
     pub async fn new(host: String, port: u16, username: Option<String>, password: Option<String>) -> Self {
-        let mut mqttoptions = MqttOptions::new("kusanagi-notifier", host, port);
+        let hostname = std::env::var("HOSTNAME").unwrap_or_else(|_| "kusanagi".to_string());
+        let client_id = format!("kusanagi-notifier-{}-{}", hostname, std::process::id());
+        
+        let mut mqttoptions = MqttOptions::new(client_id, host, port);
         mqttoptions.set_keep_alive(Duration::from_secs(30));
+        mqttoptions.set_clean_session(true);
         
         if let (Some(u), Some(p)) = (username, password) {
             mqttoptions.set_credentials(u, p);
