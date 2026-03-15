@@ -185,6 +185,7 @@ pub fn start_mqtt_client(
         let client_id = format!("{}-{}", hostname, std::process::id());
         let mut mqttoptions = MqttOptions::new(client_id, host.clone(), port);
         mqttoptions.set_keep_alive(Duration::from_secs(30));
+        mqttoptions.set_clean_session(true);
 
         if let (Some(u), Some(p)) = (username, password) {
             mqttoptions.set_credentials(u, p);
