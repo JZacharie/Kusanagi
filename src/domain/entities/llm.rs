@@ -77,23 +77,17 @@ impl LlmConfig {
             })
             .unwrap_or_default();
 
-        let base_url = match std::env::var("LLM_BASE_URL") {
-            Ok(url) => url,
-            Err(_) => match std::env::var("OLLAMA_HOST") {
-                Ok(url) => url,
-                Err(_) => match std::env::var("LITELLM_URL") {
-                    Ok(url) => url,
-                    Err(_) => match provider {
-                        LlmProvider::Litellm => {
-                            "http://litellm.default.svc.cluster.local:4000".to_string()
-                        }
-                        LlmProvider::Ollama => "http://localhost:11434".to_string(),
-                        LlmProvider::Openai => "https://api.openai.com/v1".to_string(),
-                        LlmProvider::Anthropic => "https://api.anthropic.com/v1".to_string(),
-                    },
-                },
-            },
-        };
+        let base_url = std::env::var("LLM_BASE_URL")
+            .or_else(|_| std::env::var("LITELLM_URL"))
+            .or_else(|_| std::env::var("OLLAMA_HOST"))
+            .unwrap_or_else(|_| match provider {
+                LlmProvider::Litellm => {
+                    "http://litellm.litellm.svc.cluster.local:4000".to_string()
+                }
+                LlmProvider::Ollama => "http://localhost:11434".to_string(),
+                LlmProvider::Openai => "https://api.openai.com/v1".to_string(),
+                LlmProvider::Anthropic => "https://api.anthropic.com/v1".to_string(),
+            });
 
         let model = match std::env::var("LLM_MODEL") {
             Ok(m) => m,
