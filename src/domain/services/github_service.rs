@@ -20,7 +20,7 @@ pub struct GithubRepoSummary {
 }
 
 pub async fn get_last_pipelines() -> Result<Value, String> {
-    let repositories = vec!["helmscharts", "Kusanagi"];
+    let repositories = vec!["helmscharts", "Kusanagi", "rust-s3-asr"];
     let client = Client::builder()
         .user_agent("Kusanagi-Dashboard/0.3.0")
         .build()
