@@ -932,7 +932,9 @@ const OverviewDashboard = {
             `;
         };
 
-        listEl.innerHTML = renderRepoLine('helmscharts', 'helmscharts') + renderRepoLine('Kusanagi', 'kusanagi');
+        listEl.innerHTML = renderRepoLine('helmscharts', 'helmscharts') + 
+                           renderRepoLine('Kusanagi', 'kusanagi') +
+                           renderRepoLine('rust-s3-asr', 'rust-s3-asr');
     }
 };
 
