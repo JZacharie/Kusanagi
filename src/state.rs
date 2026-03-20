@@ -20,6 +20,7 @@ pub struct AppState {
     pub backup_use_case: Arc<BackupUseCase>,
     pub chat_use_case: Arc<crate::application::use_cases::ChatUseCase>,
     pub a2ui_use_case: Arc<A2UIUseCase>,
+    pub business_use_case: Arc<crate::application::use_cases::GetBusinessOverviewUseCase>,
     pub kube_client: Option<Arc<kube::Client>>,
     pub http_client: Arc<reqwest::Client>,
     pub cilium_cache: Arc<crate::domain::services::cilium_service::CiliumCache>,
@@ -36,12 +37,12 @@ impl AppState {
     pub async fn new() -> anyhow::Result<Self> {
         use crate::domain::ports::{
             A2UIRepository, AlertRepository, BackupRepository, HomeAssistantRepository,
-            SecurityRepository, WeatherRepository,
+            SecurityRepository, WeatherRepository, business::CloudflareRepository,
         };
         use crate::infrastructure::repositories::{
             A2UIRepositoryImpl, AlertRepositoryImpl, BackupRepositoryImpl,
             HomeAssistantRepositoryImpl, NoOpBackupRepository, SecurityRepositoryImpl,
-            WeatherRepositoryImpl,
+            WeatherRepositoryImpl, CloudflareRepositoryImpl,
         };
         use crate::init::{setup_caches, setup_http_client_arc, setup_kube_client_arc};
 
@@ -76,6 +77,9 @@ impl AppState {
         let ha_use_case = Arc::new(GetHomeAssistantUseCase::new(ha_repo));
         let backup_use_case = Arc::new(BackupUseCase::new(backup_repo, k8s_cache.clone()));
         let a2ui_use_case = Arc::new(A2UIUseCase::new(a2ui_repo));
+        
+        let cf_repo = Arc::new(CloudflareRepositoryImpl::new());
+        let business_use_case = Arc::new(crate::application::use_cases::GetBusinessOverviewUseCase::new(cf_repo));
 
         // S3 & Transcription
         let s3_config = aws_config::defaults(aws_config::BehaviorVersion::latest()).load().await;
@@ -159,6 +163,7 @@ impl AppState {
             backup_use_case,
             chat_use_case,
             a2ui_use_case,
+            business_use_case,
             kube_client,
             http_client,
             cilium_cache: Arc::new(crate::domain::services::cilium_service::CiliumCache::new()),

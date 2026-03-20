@@ -104,7 +104,9 @@ pub fn configure_routes(state: AppState) -> Router {
             get(get_security_report_handler),
         )
         .route("/api/weather/current", get(get_weather_handler))
+        .route("/api/business/cloudflare", get(get_cloudflare_analytics_handler))
         // System routes
+
         .route("/api/system/status", get(system_status))
         .route("/api/system/logs", get(system_logs))
         // Kubernetes routes

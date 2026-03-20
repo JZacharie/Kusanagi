@@ -30,8 +30,48 @@ const BusinessDashboard = {
         if (!document.getElementById('biz-total-users')) return; // Not on page
 
         this.updateTimestamp();
-        this.renderBusinessKPIs();
+        
+        try {
+            const response = await fetch('/api/business/cloudflare');
+            if (response.ok) {
+                const data = await response.json();
+                this.renderCloudflareKPIs(data);
+            } else {
+                console.error('Failed to fetch Cloudflare data');
+                this.renderBusinessKPIs(); // Fallback to mock
+            }
+        } catch (e) {
+            console.error('Error fetching Cloudflare data:', e);
+            this.renderBusinessKPIs(); // Fallback to mock
+        }
+        
         this.renderBusinessBI();
+    },
+
+    renderCloudflareKPIs(data) {
+        const cf = data.cloudflare || {};
+        
+        // Update DOM with real Cloudflare data
+        const setText = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+
+        setText('biz-total-requests', cf.requests.toLocaleString());
+        setText('biz-bandwidth', this.formatBytes(cf.bandwidth));
+        setText('biz-threats', cf.threats.toLocaleString());
+        setText('biz-page-views', cf.page_views.toLocaleString());
+        
+        // Since we don't have conversion/churn from CF easily, we can keep them mock or hide
+    },
+
+    formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     },
 
     updateTimestamp() {

@@ -12,8 +12,12 @@ pub use homeassistant_repository::{create_homeassistant_repository, HomeAssistan
 pub use security_repository::{create_security_repository, SecurityRepositoryImpl};
 pub use weather_repository::{create_weather_repository, WeatherRepositoryImpl};
 
+pub mod cloudflare_repository;
+pub use cloudflare_repository::CloudflareRepositoryImpl;
+
 pub mod cluster_repository;
 pub use cluster_repository::KubernetesClusterRepository;
+
 
 pub mod kubernetes;
 pub mod a2ui_repository_impl;

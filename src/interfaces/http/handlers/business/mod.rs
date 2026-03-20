@@ -7,11 +7,14 @@ pub mod chat;
 pub mod homeassistant_handlers;
 pub mod proxmox_handlers;
 pub mod proxmox_compose_handlers;
+pub mod cloudflare_handlers;
 pub mod security_handlers;
 pub mod weather_handlers;
 
-// Re-export handler functions (not configuration functions which are Actix-specific)
+// Re-export handler functions
+pub use cloudflare_handlers::get_cloudflare_analytics_handler;
 pub use alert_handlers::get_alerts_handler;
+
 pub use backup_handlers::{get_backups_handler, trigger_backup_handler};
 pub use chat::post_chat_handler;
 pub use homeassistant_handlers::{
