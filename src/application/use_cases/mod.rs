@@ -234,10 +234,12 @@ impl GetHomeAssistantUseCase {
     }
 }
 
+pub mod business;
 pub mod chat_use_case;
 pub mod a2ui_use_case;
 pub mod process_audio_use_case;
 
+pub use business::GetBusinessOverviewUseCase;
 pub use chat_use_case::ChatUseCase;
 pub use a2ui_use_case::A2UIUseCase;
 pub use process_audio_use_case::ProcessAudioUseCase;

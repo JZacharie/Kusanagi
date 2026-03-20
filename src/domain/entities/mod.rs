@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 // ==================== Modules ====================
 pub mod a2ui;
+pub mod business;
 pub mod chat;
 pub mod cilium;
 pub mod diagnostic;
@@ -10,6 +11,7 @@ pub mod llm;
 pub mod mcp;
 
 pub use a2ui::*;
+pub use business::*;
 
 // Re-export Cilium entities
 pub use cilium::{
