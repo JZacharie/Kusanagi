@@ -1,5 +1,5 @@
 use crate::domain::entities::business::BusinessOverview;
-use crate::domain::ports::business::CloudflareRepository;
+use crate::domain::ports::CloudflareRepository;
 use crate::error::Result;
 use std::sync::Arc;
 

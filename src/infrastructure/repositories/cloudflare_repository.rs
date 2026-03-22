@@ -1,15 +1,21 @@
 use crate::domain::entities::business::{BusinessOverview, CloudflareAnalytics};
-use crate::domain::ports::business::CloudflareRepository;
+use crate::domain::ports::CloudflareRepository;
 use crate::error::{KusanagiError, Result};
 use async_trait::async_trait;
 use serde_json::{json, Value};
 use std::env;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 
 pub struct CloudflareRepositoryImpl {
     account_id: String,
     api_token: String,
     http_client: reqwest::Client,
+}
+
+impl Default for CloudflareRepositoryImpl {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl CloudflareRepositoryImpl {

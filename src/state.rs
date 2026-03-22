@@ -37,7 +37,7 @@ impl AppState {
     pub async fn new() -> anyhow::Result<Self> {
         use crate::domain::ports::{
             A2UIRepository, AlertRepository, BackupRepository, HomeAssistantRepository,
-            SecurityRepository, WeatherRepository, business::CloudflareRepository,
+            SecurityRepository, WeatherRepository,
         };
         use crate::infrastructure::repositories::{
             A2UIRepositoryImpl, AlertRepositoryImpl, BackupRepositoryImpl,
