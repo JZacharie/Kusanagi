@@ -87,10 +87,12 @@ pub trait SecurityRepository: Send + Sync {
     fn is_local_mode(&self) -> bool;
 }
 
-pub mod business;
+mod business;
 pub mod kubernetes;
 
 pub mod a2ui_repository;
+
+pub use business::CloudflareRepository;
 
 pub use kubernetes::KubernetesRepository;
 pub use a2ui_repository::A2UIRepository;
