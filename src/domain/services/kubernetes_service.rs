@@ -728,7 +728,7 @@ pub async fn get_storage_analysis(client: &reqwest::Client) -> Result<Value, Str
     if let Some(volumes) = proxmox_volumes.as_array() {
         for vol in volumes {
             if let Some(volid) = vol["volid"].as_str() {
-                // E.g. "wpool:vm-9999-pvc-a76a..."
+                // E.g. "bpool:vm-9999-pvc-a76a..."
                 let mut found_k8s_match = false;
                 
                 // Usually the 'pvc-xxxxx' part is the PV name in K8s
