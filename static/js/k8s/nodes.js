@@ -80,6 +80,8 @@ const K8sNodes = {
             const cpuColorClass = getColorClass(cpuPercent);
             const memColorClass = getColorClass(memPercent);
             const podColorClass = getColorClass(podPercent);
+            const diskPercent = parseFloat(node.disk_usage_percent) || 0;
+            const diskColorClass = getColorClass(diskPercent);
 
             // Rendu des conditions avec icônes
             const renderConditions = () => {
@@ -144,6 +146,13 @@ const K8sNodes = {
                             <div class="gauge-mini-value" style="color: ${getColorValue(memPercent)}">${memPercent.toFixed(0)}%</div>
                             <div class="gauge-mini-bar">
                                 <div class="gauge-mini-fill ${memColorClass}" style="width: ${Math.min(memPercent, 100)}%"></div>
+                            </div>
+                        </div>
+                        <div class="gauge-mini">
+                            <div class="gauge-mini-label">Disk (/)</div>
+                            <div class="gauge-mini-value" style="color: ${getColorValue(diskPercent)}">${diskPercent.toFixed(0)}%</div>
+                            <div class="gauge-mini-bar">
+                                <div class="gauge-mini-fill ${diskColorClass}" style="width: ${Math.min(diskPercent, 100)}%"></div>
                             </div>
                         </div>
                         <div class="gauge-mini">

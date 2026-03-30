@@ -76,7 +76,16 @@ impl ClusterRepository for KubernetesClusterRepository {
             let status = node["status"].as_str().unwrap_or("Unknown").to_string();
             let role = node["role"].as_str().unwrap_or("worker").to_string();
 
-            result.push(NodeInfo { name, status, role });
+            let disk_usage = node["disk_usage_percent"]
+                .as_f64()
+                .map(|v| format!("{:.1}%", v));
+
+            result.push(NodeInfo {
+                name,
+                status,
+                role,
+                disk_usage,
+            });
         }
 
         Ok(result)

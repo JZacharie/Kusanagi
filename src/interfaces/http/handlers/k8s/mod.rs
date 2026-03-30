@@ -89,12 +89,13 @@ pub async fn nodes_debug(State(state): State<AppState>) -> Response {
         .unwrap_or_default();
     let metrics_info: serde_json::Map<String, serde_json::Value> = metrics_debug
         .into_iter()
-        .map(|(node, (cpu, mem))| {
+        .map(|(node, (cpu, mem, disk))| {
             (
                 node,
                 json!({
                     "cpu_cores": cpu,
-                    "memory_bytes": mem
+                    "memory_bytes": mem,
+                    "disk_percent": disk
                 }),
             )
         })
