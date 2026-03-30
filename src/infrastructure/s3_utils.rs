@@ -10,10 +10,10 @@ pub fn configure_insecure_s3(builder: S3ConfigBuilder) -> S3ConfigBuilder {
         .build()
         .expect("Failed to build insecure tls connector");
         
-    let mut http_connector = hyper::client::HttpConnector::new();
+    let mut http_connector = hyper_014::client::HttpConnector::new();
     http_connector.enforce_http(false);
     
-    let connector = hyper_tls::HttpsConnector::from((
+    let connector = hyper_tls_05::HttpsConnector::from((
         http_connector,
         tls_connector.into()
     ));
