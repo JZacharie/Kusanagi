@@ -47,6 +47,7 @@ pub struct NodeInfo {
     pub name: String,
     pub status: String,
     pub role: String,
+    pub disk_usage: Option<String>,
 }
 
 // ==================== Weather Entities ====================

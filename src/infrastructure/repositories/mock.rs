@@ -44,11 +44,13 @@ impl ClusterRepository for MockClusterRepository {
                 name: "mock-node-01".to_string(),
                 status: "Ready".to_string(),
                 role: "control-plane".to_string(),
+                disk_usage: Some("15.2%".to_string()),
             },
             NodeInfo {
                 name: "mock-node-02".to_string(),
                 status: "Ready".to_string(),
                 role: "worker".to_string(),
+                disk_usage: Some("42.8%".to_string()),
             },
         ])
     }

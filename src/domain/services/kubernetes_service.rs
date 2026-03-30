@@ -323,7 +323,7 @@ pub async fn get_nodes_status(
         }
 
         // Metrics logic - try to find metrics with flexible name matching
-        let (cpu_usage_core, memory_usage_bytes) = find_node_metrics(name, &node_ips, &metrics_map);
+        let (cpu_usage_core, memory_usage_bytes, disk_usage_percent) = find_node_metrics(name, &node_ips, &metrics_map);
 
         let cpu_usage_percent = if cpu_capacity > 0.0 {
             (cpu_usage_core / cpu_capacity) * 100.0
@@ -365,6 +365,7 @@ pub async fn get_nodes_status(
             "cpu_usage_percent": cpu_usage_percent,
             "memory_allocatable": memory_allocatable,
             "memory_usage_percent": memory_usage_percent,
+            "disk_usage_percent": disk_usage_percent,
             "pod_capacity": pod_capacity,
             "pod_count": actual_pod_count,
             "age": age,
@@ -1138,17 +1139,17 @@ pub async fn delete_error_pods(
 }
 
 /// Helper to fetch node metrics from Prometheus
-/// Returns Map<NodeName, (CpuUsageCores, MemoryUsageBytes)>
+/// Returns Map<NodeName, (CpuUsageCores, MemoryUsageBytes, DiskUsagePercent)>
 /// Tries multiple metric sources: node_exporter, kubelet, or kubernetes metrics
 pub async fn fetch_node_metrics(
     client: &reqwest::Client,
-) -> Result<std::collections::HashMap<String, (f64, f64)>, String> {
+) -> Result<std::collections::HashMap<String, (f64, f64, f64)>, String> {
     let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
         "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
     });
 
     let url = format!("{}/api/v1/query", prometheus_url);
-    let mut metrics_map: std::collections::HashMap<String, (f64, f64)> =
+    let mut metrics_map: std::collections::HashMap<String, (f64, f64, f64)> =
         std::collections::HashMap::new();
 
     tracing::debug!(
@@ -1182,7 +1183,7 @@ pub async fn fetch_node_metrics(
                         } else {
                             value
                         };
-                        metrics_map.insert(node, (cpu_cores, 0.0));
+                        metrics_map.insert(node, (cpu_cores, 0.0, 0.0));
                     }
                     break;
                 }
@@ -1215,7 +1216,7 @@ pub async fn fetch_node_metrics(
                             entry.1 = value;
                         } else {
                             // Node exists in memory metrics but not CPU
-                            metrics_map.insert(node, (0.0, value));
+                            metrics_map.insert(node, (0.0, value, 0.0));
                         }
                     }
                     break;
@@ -1227,9 +1228,37 @@ pub async fn fetch_node_metrics(
         }
     }
 
+    // Fetch Disk queries (Root partition)
+    let disk_queries = [
+        // node_exporter: Disk usage percentage for /
+        "100 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"} * 100)",
+    ];
+
+    for query in &disk_queries {
+        match query_prometheus(client, &url, query).await {
+            Ok(results) => {
+                if !results.is_empty() {
+                    tracing::info!("Disk metrics found using query: {}", query);
+                    for (node, value) in results {
+                        if let Some(entry) = metrics_map.get_mut(&node) {
+                            entry.2 = value;
+                        } else {
+                            // Node exists in disk metrics but not CPU/MEM
+                            metrics_map.insert(node, (0.0, 0.0, value));
+                        }
+                    }
+                    break;
+                }
+            }
+            Err(e) => {
+                tracing::warn!("Disk query failed: {} - {}", query, e);
+            }
+        }
+    }
+
     tracing::info!("Fetched metrics for {} nodes", metrics_map.len());
-    for (node, (cpu, mem)) in &metrics_map {
-        tracing::debug!("Node {}: CPU={:.2} cores, MEM={:.2} bytes", node, cpu, mem);
+    for (node, (cpu, mem, disk)) in &metrics_map {
+        tracing::debug!("Node {}: CPU={:.2} cores, MEM={:.2} bytes, DISK={:.1}%", node, cpu, mem, disk);
     }
 
     Ok(metrics_map)
@@ -1296,8 +1325,8 @@ async fn query_prometheus(
 fn find_node_metrics(
     k8s_node_name: &str,
     node_ips: &[String],
-    metrics_map: &std::collections::HashMap<String, (f64, f64)>,
-) -> (f64, f64) {
+    metrics_map: &std::collections::HashMap<String, (f64, f64, f64)>,
+) -> (f64, f64, f64) {
     // First try exact match
     if let Some(metrics) = metrics_map.get(k8s_node_name) {
         return *metrics;
@@ -1352,7 +1381,7 @@ fn find_node_metrics(
     }
 
     tracing::warn!("No metrics found for node {}", k8s_node_name);
-    (0.0, 0.0)
+    (0.0, 0.0, 0.0)
 }
 
 /// Fetch resource usage metrics per namespace from Prometheus

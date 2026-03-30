@@ -657,8 +657,8 @@ body.theme-modern .nodes-grid-container {
 
 body.theme-modern .node-gauges {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem 1rem;
     padding: 0.75rem;
     background: rgba(255, 255, 255, 0.02);
     border-radius: var(--radius-md);
