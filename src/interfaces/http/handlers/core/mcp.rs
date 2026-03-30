@@ -1,7 +1,11 @@
 use crate::domain::services::mcp_service::McpService;
 use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
-use axum::{extract::State, http::StatusCode, response::IntoResponse};
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+};
 use serde_json::json;
 use tracing::error;
 
@@ -94,6 +98,32 @@ pub async fn mcp_fence_handler(State(state): State<AppState>) -> impl IntoRespon
         Ok(status) => api_success(status),
         Err(e) => {
             error!("Failed to get fence status: {}", e);
+            api_error(StatusCode::INTERNAL_SERVER_ERROR, e)
+        }
+    }
+}
+
+/// Query OpenObserve logs via MCP
+/// GET /api/monitoring/logs?query=...&limit=...
+pub async fn mcp_openobserve_logs_handler(
+    State(state): State<AppState>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> impl IntoResponse {
+    let service = McpService::new(
+        state.kube_client.as_ref().map(|c| c.as_ref().clone()),
+        state.k8s_cache.clone(),
+    );
+
+    let query = params.get("query").map(|s| s.as_str()).unwrap_or("*");
+    let limit = params
+        .get("limit")
+        .and_then(|l| l.parse::<i32>().ok())
+        .unwrap_or(100);
+
+    match service.query_logs(query, Some(limit)).await {
+        Ok(result) => api_success(json!(result)),
+        Err(e) => {
+            error!("Failed to query logs: {}", e);
             api_error(StatusCode::INTERNAL_SERVER_ERROR, e)
         }
     }

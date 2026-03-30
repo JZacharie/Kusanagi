@@ -5,8 +5,8 @@
 
 use crate::domain::entities::mcp::{
     CiliumPolicySummary, K8sResourceSummary, McpConfig, McpRequest, McpResponse,
-    PolicyReportOverview, PolicySummary, PolicyViolation, SteampipeResult,
-    TrivyVulnerabilitySummary,
+    OpenObserveQueryResult, PolicyReportOverview, PolicySummary, PolicyViolation,
+    SteampipeResult, TrivyVulnerabilitySummary,
 };
 use tracing::{info, warn};
 
@@ -249,6 +249,46 @@ impl McpService {
         }
 
         result
+    }
+
+    // ==================== OpenObserve MCP ====================
+
+    /// Query logs from OpenObserve via MCP
+    pub async fn query_logs(
+        &self,
+        query: &str,
+        limit: Option<i32>,
+    ) -> Result<OpenObserveQueryResult, String> {
+        info!("Querying OpenObserve logs via MCP: {}", query);
+
+        let params = serde_json::json!({
+            "query": query,
+            "limit": limit.unwrap_or(100)
+        });
+
+        match self
+            .request(&self.config.openobserve_url, "query", params)
+            .await
+        {
+            Ok(response) => {
+                if response.success {
+                    if let Some(data) = response.data {
+                        serde_json::from_value(data)
+                            .map_err(|e| format!("Failed to parse OpenObserve result: {}", e))
+                    } else {
+                        Err("No data in MCP response".to_string())
+                    }
+                } else {
+                    Err(response
+                        .error
+                        .unwrap_or_else(|| "Unknown MCP error".to_string()))
+                }
+            }
+            Err(e) => {
+                warn!("MCP OpenObserve unavailable: {}", e);
+                Err(format!("OpenObserve MCP server unavailable: {}", e))
+            }
+        }
     }
 
     // ==================== Kyverno Policy Reports ====================
