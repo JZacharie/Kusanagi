@@ -118,6 +118,29 @@ pub struct PolicyReportOverview {
     pub summary: PolicySummary,
 }
 
+// ==================== OpenObserve Logs ====================
+
+/// Single log entry from OpenObserve
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenObserveLog {
+    pub timestamp: String,
+    pub log: String,
+    pub stream: String,
+    pub level: Option<String>,
+    pub pod: Option<String>,
+    pub namespace: Option<String>,
+    pub container: Option<String>,
+}
+
+/// Result of an OpenObserve query
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenObserveQueryResult {
+    pub logs: Vec<OpenObserveLog>,
+    pub total: i32,
+    pub took_ms: i32,
+    pub query: String,
+}
+
 // ==================== MCP Configuration ====================
 
 /// MCP server URLs configuration
@@ -127,6 +150,7 @@ pub struct McpConfig {
     pub cilium_url: String,
     pub steampipe_url: String,
     pub trivy_url: String,
+    pub openobserve_url: String,
     pub timeout_secs: u64,
 }
 
@@ -145,6 +169,9 @@ impl Default for McpConfig {
             trivy_url: std::env::var("KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL")
                 .or_else(|_| std::env::var("MCP_TRIVY_URL"))
                 .unwrap_or_else(|_| "http://localhost:3000/mcp/trivy".to_string()),
+            openobserve_url: std::env::var("KUSANAGI_INTEGRATIONS_MCP_OPENOBSERVE_URL")
+                .or_else(|_| std::env::var("MCP_OPENOBSERVE_URL"))
+                .unwrap_or_else(|_| "http://localhost:3000/mcp/openobserve".to_string()),
             timeout_secs: std::env::var("KUSANAGI_INTEGRATIONS_MCP_TIMEOUT_SECS")
                 .or_else(|_| std::env::var("MCP_TIMEOUT_SECS"))
                 .ok()
