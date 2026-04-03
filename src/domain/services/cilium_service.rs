@@ -281,6 +281,24 @@ impl CiliumService {
                         .and_then(|s| s.phase.as_deref())
                         .unwrap_or("Unknown");
 
+                    let mut restart_count = 0;
+                    let mut latest_error = None;
+
+                    if let Some(container_statuses) = pod.status.as_ref().and_then(|s| s.container_statuses.as_ref()) {
+                        for cs in container_statuses {
+                            restart_count += cs.restart_count;
+                            if let Some(state) = &cs.state {
+                                if let Some(waiting) = &state.waiting {
+                                    latest_error = waiting.reason.clone();
+                                } else if let Some(terminated) = &state.terminated {
+                                    if terminated.exit_code != 0 {
+                                        latest_error = terminated.reason.clone();
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     let ready = pod
                         .status
                         .as_ref()
@@ -294,7 +312,7 @@ impl CiliumService {
                         })
                         .unwrap_or(false);
 
-                    if phase == "Running" && ready {
+                    if phase == "Running" && ready && restart_count < 10 {
                         running_count += 1;
                     } else {
                         error_count += 1;
@@ -304,6 +322,8 @@ impl CiliumService {
                         "name": name,
                         "phase": phase,
                         "ready": ready,
+                        "restarts": restart_count,
+                        "latest_error": latest_error,
                         "node": pod.spec.as_ref().and_then(|s| s.node_name.clone()).unwrap_or_default(),
                     }));
                 }
