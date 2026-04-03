@@ -212,10 +212,15 @@ pub async fn services(State(state): State<AppState>) -> Response {
     ),
     tag = "kubernetes"
 )]
-pub async fn argocd_status(State(state): State<AppState>) -> Response {
+pub async fn argocd_status(
+    State(state): State<AppState>,
+    axum::extract::Query(query): axum::extract::Query<RefreshQuery>,
+) -> Response {
     use crate::domain::services::argocd_service::get_argocd_status;
 
-    match get_argocd_status(&state.k8s_cache).await {
+    let force_refresh = query.refresh.unwrap_or(false);
+
+    match get_argocd_status(&state.argocd_cache, force_refresh).await {
         Ok(status) => api_success(json!(status)),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
@@ -270,6 +275,7 @@ pub async fn delete_error_pods_handler(State(state): State<AppState>) -> Respons
 #[derive(serde::Deserialize, utoipa::ToSchema)]
 pub struct SyncAppRequest {
     pub app_name: String,
+    pub refresh: Option<bool>,
 }
 
 /// Trigger ArgoCD app sync
@@ -284,14 +290,21 @@ pub struct SyncAppRequest {
     tag = "kubernetes"
 )]
 pub async fn argocd_sync(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     axum::Json(payload): axum::Json<SyncAppRequest>,
 ) -> Response {
-    use crate::domain::services::argocd_service::sync_app;
+    use crate::domain::services::argocd_service::{refresh_app, sync_app};
 
-    match sync_app(&payload.app_name).await {
-        Ok(msg) => api_success(json!({ "success": true, "message": msg })),
-        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+    if payload.refresh.unwrap_or(false) {
+        match refresh_app(&payload.app_name, Some(&state.argocd_cache)).await {
+            Ok(msg) => api_success(json!({ "success": true, "message": msg })),
+            Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+        }
+    } else {
+        match sync_app(&payload.app_name, Some(&state.argocd_cache)).await {
+            Ok(msg) => api_success(json!({ "success": true, "message": msg })),
+            Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+        }
     }
 }
 

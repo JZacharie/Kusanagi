@@ -59,13 +59,15 @@ struct SyncStatus {
     pub revision: Option<String>,
 }
 
-pub async fn get_argocd_status(cache: &AdvancedCache<String>) -> Result<Value, String> {
+pub async fn get_argocd_status(cache: &AdvancedCache<String>, force_refresh: bool) -> Result<Value, String> {
     let cache_key = "argocd_status";
 
-    // Try cache first
-    if let Some(cached_json) = cache.get(cache_key).await {
-        if let Ok(json) = serde_json::from_str::<Value>(&cached_json) {
-            return Ok(json);
+    // Try cache first if not forcing refresh
+    if !force_refresh {
+        if let Some(cached_json) = cache.get(cache_key).await {
+            if let Ok(json) = serde_json::from_str::<Value>(&cached_json) {
+                return Ok(json);
+            }
         }
     }
 
@@ -220,7 +222,7 @@ fn parse_argocd_applications(items: &[ArgoCDApplication]) -> Result<Value, Strin
             "current_revision": revision,
             "argocd_url": format!("https://argocd.p.zacharie.org/applications/{}", name),
             "message": "",
-            "can_sync": sync_status == "OutOfSync"
+            "can_sync": true
         });
 
         if health_status != "Healthy" || sync_status == "OutOfSync" {
@@ -248,7 +250,7 @@ fn parse_argocd_applications(items: &[ArgoCDApplication]) -> Result<Value, Strin
     }))
 }
 
-pub async fn sync_app(app_name: &str) -> Result<String, String> {
+pub async fn sync_app(app_name: &str, cache: Option<&AdvancedCache<String>>) -> Result<String, String> {
     tracing::info!("🔄 Triggering sync for ArgoCD app: {}", app_name);
 
     let client = Client::try_default().await.map_err(|e| e.to_string())?;
@@ -258,19 +260,60 @@ pub async fn sync_app(app_name: &str) -> Result<String, String> {
     let patch = serde_json::json!({
         "operation": {
             "sync": {
-                "prune": true
+                "prune": true,
+                "syncStrategy": {
+                    "apply": {}
+                }
             }
         }
     });
 
-    let patch_params = kube::api::PatchParams::apply("kusanagi");
+    let patch_params = kube::api::PatchParams::default();
 
     match apps_api
         .patch(app_name, &patch_params, &kube::api::Patch::Merge(&patch))
         .await
     {
-        Ok(_) => Ok(format!("Sync triggered for {}", app_name)),
+        Ok(_) => {
+            // Invalidate cache if provided
+            if let Some(c) = cache {
+                c.delete("argocd_status").await;
+            }
+            Ok(format!("Sync triggered for {}", app_name))
+        }
         Err(e) => Err(format!("Sync failed: {}", e)),
+    }
+}
+
+pub async fn refresh_app(app_name: &str, cache: Option<&AdvancedCache<String>>) -> Result<String, String> {
+    tracing::info!("🔄 Triggering refresh for ArgoCD app: {}", app_name);
+
+    let client = Client::try_default().await.map_err(|e| e.to_string())?;
+    let apps_api: Api<ArgoCDApplication> = Api::namespaced(client, "argocd");
+
+    // Adding this annotation triggers a refresh in ArgoCD
+    let patch = serde_json::json!({
+        "metadata": {
+            "annotations": {
+                "argocd.argoproj.io/refresh": "normal"
+            }
+        }
+    });
+
+    let patch_params = kube::api::PatchParams::default();
+
+    match apps_api
+        .patch(app_name, &patch_params, &kube::api::Patch::Merge(&patch))
+        .await
+    {
+        Ok(_) => {
+            // Invalidate cache if provided
+            if let Some(c) = cache {
+                c.delete("argocd_status").await;
+            }
+            Ok(format!("Refresh triggered for {}", app_name))
+        }
+        Err(e) => Err(format!("Refresh failed: {}", e)),
     }
 }
 
