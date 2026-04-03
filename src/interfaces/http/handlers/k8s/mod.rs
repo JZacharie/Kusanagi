@@ -273,6 +273,11 @@ pub async fn delete_error_pods_handler(State(state): State<AppState>) -> Respons
 }
 
 #[derive(serde::Deserialize, utoipa::ToSchema)]
+pub struct RefreshQuery {
+    pub refresh: Option<bool>,
+}
+
+#[derive(serde::Deserialize, utoipa::ToSchema)]
 pub struct SyncAppRequest {
     pub app_name: String,
     pub refresh: Option<bool>,
