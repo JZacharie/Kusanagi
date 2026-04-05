@@ -1,0 +1,80 @@
+<div class="lab-container">
+    <h2 class="section-title">🧪 Design Lab: Notebook Redesign</h2>
+    
+    <div style="background: rgba(255, 255, 255, 0.05); padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border: 1px dashed var(--neon-cyan);">
+        <p>This lab environment allows you to test the <strong>"Notebook" theme</strong> inspired by the documentation frames. 
+           It converts the interface into a high-contrast, paper-like aesthetic with yellow cards and sketchy accents.</p>
+        <button onclick="ThemeManager.setTheme('notebook')" class="cyber-btn" style="margin-top: 1rem; background: #FFEB3B; color: #000; border: 2px solid #000;">
+            📒 Activate Notebook Redesign
+        </button>
+    </div>
+
+    <!-- Notebook Content Cards -->
+    <div class="argocd-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem;">
+        
+        <!-- Frame 4 Replication -->
+        <div class="stat-box" style="padding: 2.5rem; text-align: left; display: flex; flex-direction: column; gap: 1rem;">
+            <div style="border-bottom: 2px solid #000; width: 60px; margin-bottom: 1rem;"></div>
+            <h1 style="font-size: 3rem; line-height: 1.1; margin: 0; font-weight: 800;">L'Intelligence Artificielle</h1>
+            <p style="font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem;">
+                Le Cerveau. L'IA est le chef d'orchestre. Elle anticipe, conçoit et optimise la production.
+            </p>
+            <div style="margin-top: auto; padding-top: 2rem; display: flex; justify-content: flex-end;">
+                <span style="font-size: 3rem; opacity: 0.8;">🧠</span>
+            </div>
+        </div>
+
+        <!-- Frame 7 Replication -->
+        <div class="stat-box" style="padding: 2.5rem; text-align: left; border-color: #000;">
+            <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem;">
+                <span style="font-size: 3rem;">⚙️</span>
+                <div style="flex: 1; height: 3px; background: #000;"></div>
+                <span style="font-size: 3rem;">🏹</span>
+            </div>
+            <h3 style="font-size: 2rem; font-weight: 800; margin-bottom: 1rem;">Un cycle de production autonome</h3>
+            <p style="font-size: 1.2rem; opacity: 0.9;">
+                Chaque étape est interconnectée et intelligente. Le système s'auto-régule pour garantir une performance maximale.
+            </p>
+            <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+                <div style="width: 20px; height: 20px; background: #000; border-radius: 50%;"></div>
+                <div style="width: 20px; height: 20px; border: 2px solid #000; border-radius: 50%;"></div>
+                <div style="width: 20px; height: 20px; border: 2px solid #000; border-radius: 50%;"></div>
+            </div>
+        </div>
+
+        <!-- Extra: Interactive Notebook Element -->
+        <div class="stat-box" style="padding: 2.5rem; background: #fff !important; border-style: dashed !important;">
+            <h4 style="font-weight: 800; margin-bottom: 1rem;">📝 Redesign Objectives</h4>
+            <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.75rem;">
+                <li style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span style="border: 2px solid #000; width: 1.5rem; height: 1.5rem; border-radius: 4px; display: inline-block; background: #FFEB3B;"></span>
+                    <span>High-contrast visual hierarchy</span>
+                </li>
+                <li style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span style="border: 2px solid #000; width: 1.5rem; height: 1.5rem; border-radius: 4px; display: inline-block; background: #FFEB3B;"></span>
+                    <span>Paper-like tactile feel</span>
+                </li>
+                <li style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span style="border: 2px solid #000; width: 1.5rem; height: 1.5rem; border-radius: 4px; display: inline-block;"></span>
+                    <span>Sketch-inspired icons & connectors</span>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+
+    <div style="margin-top: 3rem; text-align: center; border-top: 2px solid rgba(0,0,0,0.1); padding-top: 2rem;">
+        <button onclick="ThemeManager.setTheme('cyberpunk')" class="cyber-btn" style="opacity: 0.6;">
+            &laquo; Back to Cyberpunk interface
+        </button>
+    </div>
+</div>
+
+<style>
+    /* Section-specific tweaks when notebook is active */
+    body.theme-notebook .lab-container {
+        color: #000;
+        background: #fff;
+        padding: 1rem;
+    }
+</style>

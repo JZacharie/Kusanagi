@@ -140,7 +140,8 @@ class Sidebar {
         'backups': 'Backups', 'security': 'Security',
         'homeassistant': 'Home Assistant', 'mqtt': 'MQTT', 'calendar': 'Calendar',
         'weather': 'Weather', 'chat': 'AI Chat', 'docs': 'About',
-        'news': 'News', 'streaming': 'Streams', 'compose': 'Proxmox Converter'
+        'news': 'News', 'streaming': 'Streams', 'compose': 'Proxmox Converter',
+        'lab': 'Design Lab'
       };
       headerTitle.textContent = titles[tabName] || tabName.charAt(0).toUpperCase() + tabName.slice(1);
     }
