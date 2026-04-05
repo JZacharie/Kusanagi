@@ -34,6 +34,11 @@ const ThemeManager = {
             name: 'Apple Style',
             class: 'theme-apple',
             icon: '🍎'
+        },
+        notebook: {
+            name: 'Notebook',
+            class: 'theme-notebook',
+            icon: '📒'
         }
     },
 

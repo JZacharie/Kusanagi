@@ -57,6 +57,7 @@
     <link rel="stylesheet" href="/static/css/fundy.css">
     <link rel="stylesheet" href="/static/css/white.css">
     <link rel="stylesheet" href="/static/css/apple.css">
+    <link rel="stylesheet" href="/static/css/notebook.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
     <link
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&family=Rajdhani:wght@500;700&display=swap"
@@ -306,6 +307,12 @@
                         <a class="nav-link" data-page="streaming" href="#streaming">
                             <i class="mdi mdi-play-circle-outline"></i>
                             <span class="nav-link-text">Streams</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="lab" href="#lab">
+                            <i class="mdi mdi-flask-outline"></i>
+                            <span class="nav-link-text">Design Lab</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -659,6 +666,10 @@
             <!-- Proxmox Section -->
             <section class="argocd-section tab-content" data-tab="proxmox" style="display: none;">
                 <div class="loading">Loading...</div>
+            </section>
+
+            <section class="argocd-section tab-content" data-tab="lab" style="display: none;">
+                <div class="loading">Loading design lab...</div>
             </section>
 
             <!-- Business Section -->

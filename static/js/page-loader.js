@@ -34,7 +34,8 @@ const PageLoader = {
         'weather': 'weather.html',
         'monitors': 'monitors.html',
         'streaming': 'streaming.html',
-        'docs': 'docs.html'
+        'docs': 'docs.html',
+        'lab': 'lab.html'
     },
 
     /**

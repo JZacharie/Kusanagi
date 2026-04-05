@@ -1,0 +1,205 @@
+/* ============================================
+   KUSANAGI - Notebook Theme (Inspired by NotebookLM)
+   "Sketchy / Knowledge / Paper" Aesthetic
+   ============================================ */
+
+body.theme-notebook {
+    /* Core Colors - Notebook Palette */
+    --notebook-bg: #FFFFFF;
+    --notebook-dots: #E5E7EB;
+    --notebook-card-bg: #FFEB3B; /* Bright Notebook Yellow */
+    --notebook-card-alt: #FFF59D; /* Lighter Yellow */
+    --notebook-text-primary: #1A1A1A;
+    --notebook-text-secondary: #4B5563;
+    --notebook-border: #000000;
+    --notebook-shadow: #000000;
+
+    /* Overrides for Kusanagi Variables */
+    --dark-bg: var(--notebook-bg);
+    --darker-bg: #F9FAFB;
+    --text-primary: var(--notebook-text-primary);
+    --text-secondary: var(--notebook-text-secondary);
+    --neon-cyan: #2563EB; /* Deep Blue for contrast */
+    --neon-green: #059669; /* Deep Green */
+    --neon-pink: #DC2626;  /* Deep Red */
+    --sidebar-bg: #F3F4F6;
+    --sidebar-border: #D1D5DB;
+    --sidebar-text: #111827;
+
+    background-color: var(--notebook-bg);
+    background-image: radial-gradient(var(--notebook-dots) 1px, transparent 1px);
+    background-size: 24px 24px;
+    color: var(--notebook-text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+}
+
+/* Removal of Cyberpunk Effects */
+body.theme-notebook .grid-bg,
+body.theme-notebook .scanlines {
+    display: none;
+}
+
+/* Sidebar Styling */
+body.theme-notebook .sidebar {
+    background: var(--sidebar-bg);
+    border-right: 3px solid var(--notebook-border);
+    box-shadow: 4px 0 0 var(--notebook-border);
+}
+
+body.theme-notebook .sidebar-logo-text {
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    color: var(--notebook-text-primary);
+}
+
+body.theme-notebook .nav-link {
+    color: var(--notebook-text-secondary);
+    border: 2px solid transparent;
+    margin: 4px 10px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+body.theme-notebook .nav-link:hover {
+    background: var(--notebook-card-alt);
+    border-color: var(--notebook-border);
+    color: var(--notebook-text-primary);
+    transform: translate(-2px, -2px);
+    box-shadow: 2px 2px 0 var(--notebook-border);
+}
+
+body.theme-notebook .nav-link.active {
+    background: var(--notebook-card-bg);
+    border-color: var(--notebook-border);
+    color: var(--notebook-text-primary);
+    font-weight: 700;
+    box-shadow: 4px 4px 0 var(--notebook-border);
+    transform: translate(-3px, -3px);
+}
+
+/* Content Header */
+body.theme-notebook .content-header {
+    background: rgba(255, 255, 255, 0.9);
+    border-bottom: 3px solid var(--notebook-border);
+    backdrop-filter: blur(5px);
+}
+
+body.theme-notebook .header-title {
+    color: var(--notebook-text-primary);
+    font-weight: 900;
+    text-transform: uppercase;
+    text-shadow: none;
+    letter-spacing: -0.02em;
+}
+
+/* Main Cards & Stat Boxes */
+body.theme-notebook .stat-box,
+body.theme-notebook .node-card,
+body.theme-notebook .pod-card,
+body.theme-notebook .issues-table-container,
+body.theme-notebook .argocd-section:not(.tab-content) {
+    background: var(--notebook-card-bg) !important;
+    border: 3px solid var(--notebook-border) !important;
+    border-radius: 8px !important;
+    box-shadow: 8px 8px 0 var(--notebook-border) !important;
+    color: var(--notebook-text-primary) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.theme-notebook .stat-box:hover,
+body.theme-notebook .node-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 10px 10px 0 var(--notebook-border) !important;
+}
+
+/* Stat Values */
+body.theme-notebook .stat-value {
+    font-weight: 900;
+    color: var(--notebook-text-primary) !important;
+    text-shadow: none !important;
+}
+
+body.theme-notebook .stat-label {
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--notebook-text-secondary);
+}
+
+/* Tables */
+body.theme-notebook .issues-table-header {
+    background: var(--notebook-card-alt);
+    border-bottom: 2px solid var(--notebook-border);
+}
+
+body.theme-notebook .issues-table th {
+    background: #F3F4F6;
+    color: var(--notebook-text-primary);
+    border-bottom: 2px solid var(--notebook-border);
+    font-weight: 800;
+}
+
+body.theme-notebook .issues-table td {
+    background: white;
+    border-bottom: 1px solid var(--notebook-border);
+    color: var(--notebook-text-primary);
+}
+
+/* Status Badges - Notebook Style */
+body.theme-notebook .status-badge {
+    border: 2px solid var(--notebook-border);
+    border-radius: 4px;
+    font-weight: 800;
+    text-transform: uppercase;
+    box-shadow: 2px 2px 0 var(--notebook-border);
+}
+
+body.theme-notebook .status-badge.healthy {
+    background: #10B981;
+    color: white;
+}
+
+body.theme-notebook .status-badge.unhealthy {
+    background: #EF4444;
+    color: white;
+}
+
+/* Buttons */
+body.theme-notebook .cyber-btn {
+    background: #FFFFFF;
+    border: 2px solid var(--notebook-border);
+    color: var(--notebook-text-primary);
+    font-weight: 800;
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 var(--notebook-border);
+    clip-path: none;
+    text-transform: uppercase;
+    transition: all 0.1s ease;
+}
+
+body.theme-notebook .cyber-btn:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 var(--notebook-border);
+}
+
+body.theme-notebook .cyber-btn:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px 0 var(--notebook-border);
+}
+
+/* Special Element: "Hand-drawn" Dividers */
+body.theme-notebook hr {
+    border: none;
+    height: 3px;
+    background: var(--notebook-border);
+    margin: 1.5rem 0;
+}
+
+/* Footer Quote */
+body.theme-notebook .footer-quote {
+    font-family: serif;
+    font-style: italic;
+    font-size: 1.2rem;
+    color: var(--notebook-text-primary);
+}
