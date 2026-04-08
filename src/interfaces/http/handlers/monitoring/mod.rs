@@ -10,6 +10,7 @@ pub use cilium::*;
 pub use mqtt::*;
 
 use crate::interfaces::http::response::{api_error, api_success};
+use super::RefreshQuery;
 
 /// Alerts endpoint
 pub async fn alerts() -> impl IntoResponse {
@@ -249,10 +250,6 @@ pub async fn gpu_debug_handler(
 }
 
 /// Metrics endpoint for the dashboard
-#[derive(serde::Deserialize)]
-pub struct RefreshQuery {
-    pub refresh: Option<bool>,
-}
 
 pub async fn metrics_handler(
     axum::extract::State(state): axum::extract::State<crate::state::AppState>,
