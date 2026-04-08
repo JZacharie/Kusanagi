@@ -8,6 +8,7 @@ use serde_json::json;
 use crate::domain::services::kubernetes_service;
 use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
+use super::RefreshQuery;
 
 /// Cluster overview endpoint
 #[utoipa::path(
@@ -272,10 +273,6 @@ pub async fn delete_error_pods_handler(State(state): State<AppState>) -> Respons
     }
 }
 
-#[derive(serde::Deserialize, utoipa::ToSchema)]
-pub struct RefreshQuery {
-    pub refresh: Option<bool>,
-}
 
 #[derive(serde::Deserialize, utoipa::ToSchema)]
 pub struct SyncAppRequest {

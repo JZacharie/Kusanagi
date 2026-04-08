@@ -2,6 +2,15 @@
 pub mod core;
 pub use core::*;
 
+// Shared types for handlers
+use serde::Deserialize;
+use utoipa::ToSchema;
+
+#[derive(Deserialize, ToSchema)]
+pub struct RefreshQuery {
+    pub refresh: Option<bool>,
+}
+
 // Re-exports des handlers K8s
 pub mod k8s;
 pub use k8s::*;
