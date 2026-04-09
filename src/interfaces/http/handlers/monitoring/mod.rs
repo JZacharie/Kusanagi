@@ -250,7 +250,6 @@ pub async fn gpu_debug_handler(
 }
 
 /// Metrics endpoint for the dashboard
-
 pub async fn metrics_handler(
     axum::extract::State(state): axum::extract::State<crate::state::AppState>,
     axum::extract::Query(query): axum::extract::Query<RefreshQuery>,
