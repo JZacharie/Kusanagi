@@ -23,6 +23,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: short
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ============================================================================
@@ -166,7 +167,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build Docker image (no cache)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           target: release-ci
@@ -200,7 +201,7 @@ jobs:
       url: https://kusanagi-dev.p.zacharie.org
     steps:
       - name: Install kubectl
-        uses: azure/setup-kubectl@v3
+        uses: azure/setup-kubectl@v4
 
       - name: Configure kubectl
         run: |

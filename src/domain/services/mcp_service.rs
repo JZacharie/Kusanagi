@@ -446,4 +446,38 @@ impl McpService {
             Err(e) => Err(format!("Failed to list Fence pods: {}", e)),
         }
     }
+
+    // ==================== Netbox MCP ====================
+
+    /// Get Netbox inventory summary via MCP
+    pub async fn get_netbox_inventory(&self) -> Result<serde_json::Value, String> {
+        info!("Fetching Netbox inventory via MCP");
+
+        let params = serde_json::json!({});
+
+        match self
+            .request(&self.config.netbox_url, "get_inventory_summary", params)
+            .await
+        {
+            Ok(response) => {
+                if response.success {
+                    Ok(response.data.unwrap_or(serde_json::json!({})))
+                } else {
+                    Err(response
+                        .error
+                        .unwrap_or_else(|| "Unknown MCP error".to_string()))
+                }
+            }
+            Err(e) => {
+                warn!("MCP Netbox unavailable: {}", e);
+                // Fallback: return empty data or error
+                Ok(serde_json::json!({
+                    "devices": 0,
+                    "prefixes": 0,
+                    "ip_addresses": 0,
+                    "status": "offline"
+                }))
+            }
+        }
+    }
 }

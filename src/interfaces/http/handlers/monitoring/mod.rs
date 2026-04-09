@@ -256,6 +256,7 @@ pub async fn metrics_handler(
 ) -> impl IntoResponse {
     use crate::domain::services::kubernetes_service;
     use crate::domain::services::trivy_service;
+    use crate::domain::services::mcp_service::McpService;
 
     let force_refresh = query.refresh.unwrap_or(false);
 
@@ -372,6 +373,18 @@ pub async fn metrics_handler(
     // 9. Get detailed cluster resource metrics
     let cluster_resources = kubernetes_service::get_cluster_resource_metrics(&state.http_client).await.unwrap_or(json!({}));
 
+    // 10. Get Netbox Inventory via MCP
+    let mcp_service = McpService::new(
+        state.kube_client.as_ref().map(|c| c.as_ref().clone()),
+        state.k8s_cache.clone(),
+    );
+    let netbox_inventory = mcp_service.get_netbox_inventory().await.unwrap_or(json!({
+        "devices": 0,
+        "ip_addresses": 0,
+        "prefixes": 0,
+        "status": "error"
+    }));
+
     api_success(serde_json::json!({
         "cpu_usage_percent": cpu_percent,
         "memory_usage_percent": mem_percent,
@@ -405,7 +418,8 @@ pub async fn metrics_handler(
             "steampipe_score": steampipe_score,
             "steampipe_stats": steampipe_data
         },
-        "cluster_resources": cluster_resources
+        "cluster_resources": cluster_resources,
+        "netbox_inventory": netbox_inventory
     }))
 }
 

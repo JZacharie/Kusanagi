@@ -81,6 +81,7 @@ pub fn configure_routes(state: AppState) -> Router {
         )
         .route("/api/security/fence", get(mcp_fence_handler))
         .route("/api/monitoring/logs", get(mcp_openobserve_logs_handler))
+        .route("/api/monitoring/netbox", get(mcp_netbox_handler))
         // Cilium routes
         .route("/api/cilium/flows", get(get_flows_handler))
         .route("/api/cilium/matrix", get(get_matrix_handler))

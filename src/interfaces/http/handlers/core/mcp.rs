@@ -128,3 +128,20 @@ pub async fn mcp_openobserve_logs_handler(
         }
     }
 }
+
+/// Get Netbox inventory via MCP
+/// GET /api/monitoring/netbox
+pub async fn mcp_netbox_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let service = McpService::new(
+        state.kube_client.as_ref().map(|c| c.as_ref().clone()),
+        state.k8s_cache.clone(),
+    );
+
+    match service.get_netbox_inventory().await {
+        Ok(inventory) => api_success(inventory),
+        Err(e) => {
+            error!("Failed to get Netbox inventory: {}", e);
+            api_error(StatusCode::INTERNAL_SERVER_ERROR, e)
+        }
+    }
+}
