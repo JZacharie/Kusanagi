@@ -151,6 +151,7 @@ pub struct McpConfig {
     pub steampipe_url: String,
     pub trivy_url: String,
     pub openobserve_url: String,
+    pub netbox_url: String,
     pub timeout_secs: u64,
 }
 
@@ -172,6 +173,9 @@ impl Default for McpConfig {
             openobserve_url: std::env::var("KUSANAGI_INTEGRATIONS_MCP_OPENOBSERVE_URL")
                 .or_else(|_| std::env::var("MCP_OPENOBSERVE_URL"))
                 .unwrap_or_else(|_| "http://localhost:3000/mcp/openobserve".to_string()),
+            netbox_url: std::env::var("KUSANAGI_INTEGRATIONS_MCP_NETBOX_URL")
+                .or_else(|_| std::env::var("MCP_NETBOX_URL"))
+                .unwrap_or_else(|_| "http://netbox-mcp-server.netbox.svc.cluster.local".to_string()),
             timeout_secs: std::env::var("KUSANAGI_INTEGRATIONS_MCP_TIMEOUT_SECS")
                 .or_else(|_| std::env::var("MCP_TIMEOUT_SECS"))
                 .ok()

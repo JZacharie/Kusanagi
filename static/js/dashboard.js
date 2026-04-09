@@ -655,11 +655,61 @@ const MetricsManager = {
             </div>
         `;
 
+        // Render Netbox if available
+        if (metrics.netbox_inventory) {
+            this.renderNetboxMetrics(metrics);
+        }
+
         // Load 24h graph data asynchronously
         this.loadSolarGraph();
 
         // Load LiteLLM metrics asynchronously
         this.loadLitellmMetrics();
+    },
+
+
+    /**
+     * Render Netbox inventory metrics
+     */
+    renderNetboxMetrics(metrics) {
+        const sectionHeaderStyle = "margin: 2rem 0 1rem; color: var(--neon-cyan); font-family: 'Orbitron', sans-serif; font-size: 1.1rem; border-bottom: 1px solid rgba(0, 255, 249, 0.2); padding-bottom: 0.5rem;";
+        const container = document.getElementById('metrics-content');
+        if (!container || !metrics.netbox_inventory) return;
+
+        const netbox = metrics.netbox_inventory;
+        const html = `
+            <h3 style="${sectionHeaderStyle}">📦 Netbox IPAM Inventory</h3>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon">🖥️</div>
+                    <div class="metric-value">${netbox.devices || 0}</div>
+                    <div class="metric-label">Devices</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🌐</div>
+                    <div class="metric-value">${netbox.ip_addresses || 0}</div>
+                    <div class="metric-label">IP Addresses</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🗺️</div>
+                    <div class="metric-value">${netbox.prefixes || 0}</div>
+                    <div class="metric-label">Prefixes</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">📡</div>
+                    <div class="metric-value" style="color: ${netbox.status === 'offline' ? 'var(--neon-magenta)' : 'var(--neon-green)'};">${(netbox.status || 'ONLINE').toUpperCase()}</div>
+                    <div class="metric-label">MCP Server Status</div>
+                </div>
+            </div>
+        `;
+
+        // Append to container before LiteLLM
+        const litellmHeader = Array.from(container.querySelectorAll('h3')).find(h => h.textContent.includes('LiteLLM'));
+        if (litellmHeader) {
+            litellmHeader.insertAdjacentHTML('beforebegin', html);
+        } else {
+            container.insertAdjacentHTML('beforeend', html);
+        }
     },
 
     /**
