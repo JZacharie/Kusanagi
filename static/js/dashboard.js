@@ -653,6 +653,11 @@ const MetricsManager = {
             <div id="litellm-metrics-container">
                 <div class="loading-mini" style="text-align: center; padding: 2rem; opacity: 0.5;">SCANNING_AI_NEURAL_NET...</div>
             </div>
+
+            <h3 style="${sectionHeaderStyle}">☁️ AWS Bedrock Consumption</h3>
+            <div id="bedrock-metrics-container">
+                <div class="loading-mini" style="text-align: center; padding: 2rem; opacity: 0.5;">FETCHING_BEDROCK_CONSUMPTION...</div>
+            </div>
         `;
 
         // Render Netbox if available
@@ -665,6 +670,9 @@ const MetricsManager = {
 
         // Load LiteLLM metrics asynchronously
         this.loadLitellmMetrics();
+
+        // Load Bedrock metrics asynchronously
+        this.loadBedrockMetrics();
     },
 
 
@@ -773,6 +781,130 @@ const MetricsManager = {
                     <p style="margin: 0; font-size: 0.8rem; color: var(--text-secondary);">
                         ⚠️ <strong>LiteLLM Metrics Offline</strong> - Unable to fetch gateway data.<br>
                         <span style="font-size: 0.7rem; opacity: 0.7;">${error.message}</span>
+                    </p>
+                </div>
+            `;
+        }
+    },
+
+    /**
+     * Load Bedrock metrics from AWS CloudWatch
+     */
+    async loadBedrockMetrics() {
+        const container = document.getElementById('bedrock-metrics-container');
+        if (!container) return;
+
+        try {
+            const data = await api.get('/api/monitoring/bedrock/metrics');
+
+            if (!data || !data.bedrock) throw new Error('No Bedrock data received');
+
+            const bedrock = data.bedrock;
+            const accountLabel = data.account_label || 'AWS Account';
+            const last24h = bedrock.last_24h || {};
+            const last7d = bedrock.last_7d || {};
+
+            // Extract metrics with safe defaults
+            const inv24h = last24h.InvocationCount?.total || 0;
+            const inpTokens24h = last24h.InputTokenCount?.total || 0;
+            const outTokens24h = last24h.OutputTokenCount?.total || 0;
+            const lat24h = last24h.InvocationLatency?.total || 0;
+
+            const inv7d = last7d.InvocationCount?.total || 0;
+            const inpTokens7d = last7d.InputTokenCount?.total || 0;
+            const outTokens7d = last7d.OutputTokenCount?.total || 0;
+
+            const totalTokens24h = inpTokens24h + outTokens24h;
+            const totalTokens7d = inpTokens7d + outTokens7d;
+
+            // Budget threshold check
+            const budgetPct = data.budget?.usage_percent || 0;
+            const needsRegen = budgetPct > 80;
+
+            container.innerHTML = `
+                <div style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.7rem; opacity: 0.7; font-family: 'JetBrains Mono';">
+                        ACCOUNT: ${accountLabel} | REGION: ${data.region || 'us-east-1'}
+                    </span>
+                    <span style="font-size: 0.65rem; opacity: 0.5;">
+                        ${data.timestamp ? new Date(data.timestamp).toLocaleString() : ''}
+                    </span>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric-card" style="${needsRegen ? 'border-color: var(--neon-magenta); background: rgba(255,0,255,0.05);' : ''}">
+                        <div class="metric-icon">📞</div>
+                        <div class="metric-value">${inv24h.toLocaleString()}</div>
+                        <div class="metric-label">Invocations (24h)</div>
+                    </div>
+                    <div class="metric-card" style="${needsRegen ? 'border-color: var(--neon-magenta); background: rgba(255,0,255,0.05);' : ''}">
+                        <div class="metric-icon">📞</div>
+                        <div class="metric-value">${inv7d.toLocaleString()}</div>
+                        <div class="metric-label">Invocations (7d)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">📝</div>
+                        <div class="metric-value">${inpTokens24h.toLocaleString()}</div>
+                        <div class="metric-label">Input Tokens (24h)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">📝</div>
+                        <div class="metric-value">${outTokens24h.toLocaleString()}</div>
+                        <div class="metric-label">Output Tokens (24h)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">🔤</div>
+                        <div class="metric-value">${totalTokens24h.toLocaleString()}</div>
+                        <div class="metric-label">Total Tokens (24h)</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" style="width: ${Math.min((totalTokens24h / (totalTokens7d || 1)) * 100, 100)}%; background: var(--neon-cyan);"></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">⏱️</div>
+                        <div class="metric-value">${lat24h.toFixed(1)}ms</div>
+                        <div class="metric-label">Avg Latency</div>
+                    </div>
+                    <div class="metric-card" style="${needsRegen ? 'border-color: var(--neon-magenta);' : 'border-color: var(--neon-green);'}">
+                        <div class="metric-icon">💰</div>
+                        <div class="metric-value" style="color: ${needsRegen ? 'var(--neon-magenta)' : 'var(--neon-green)'};">
+                            ${data.budget?.actual_spend !== undefined ? '$' + data.budget.actual_spend.toFixed(4) : 'N/A'}
+                        </div>
+                        <div class="metric-label">Estimated Spend</div>
+                    </div>
+                    <div class="metric-card" style="${needsRegen ? 'border-color: var(--neon-magenta); animation: pulse 1.5s infinite;' : ''}">
+                        <div class="metric-icon">🔄</div>
+                        <div class="metric-value" style="color: ${needsRegen ? 'var(--neon-magenta)' : 'var(--neon-green)'};">
+                            ${data.budget?.usage_percent !== undefined ? data.budget.usage_percent.toFixed(1) + '%' : 'N/A'}
+                        </div>
+                        <div class="metric-label">Budget Usage</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" style="width: ${Math.min(data.budget?.usage_percent || 0, 100)}%; background: ${needsRegen ? 'var(--neon-magenta)' : 'var(--neon-green)'};"></div>
+                        </div>
+                    </div>
+                    ${needsRegen ? `
+                    <div class="metric-card alert-critical" style="grid-column: span 2; animation: pulse 1.5s infinite;">
+                        <div class="metric-icon">🚨</div>
+                        <div class="metric-value" style="font-size: 1rem;">REGENERATE ACCOUNT</div>
+                        <div class="metric-label">Budget at ${budgetPct.toFixed(0)}% - Time to create a new AWS account</div>
+                    </div>
+                    ` : ''}
+                </div>
+                <div style="margin-top: 0.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <div style="font-size: 0.7rem; opacity: 0.5; font-family: 'JetBrains Mono';">
+                        7d: ${inv7d.toLocaleString()} invocations | ${totalTokens7d.toLocaleString()} total tokens
+                    </div>
+                </div>
+            `;
+
+            console.log('✅ Bedrock metrics loaded for account:', accountLabel);
+        } catch (error) {
+            console.error('Bedrock metrics error:', error);
+            container.innerHTML = `
+                <div style="padding: 1rem; background: rgba(255,0,0,0.05); border-radius: 4px; border-left: 3px solid var(--neon-magenta);">
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-secondary);">
+                        ⚠️ <strong>Bedrock Metrics Offline</strong> - Unable to fetch consumption data.<br>
+                        <span style="font-size: 0.7rem; opacity: 0.7;">${error.message}</span><br>
+                        <span style="font-size: 0.7rem; opacity: 0.5;">Configure AWS credentials or BEDROCK_MONITORING_ROLE_ARN for cross-account access.</span>
                     </p>
                 </div>
             `;
