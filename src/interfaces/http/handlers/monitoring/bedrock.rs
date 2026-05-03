@@ -1,6 +1,7 @@
 use axum::response::IntoResponse;
 use serde_json::json;
 use std::time::{SystemTime, UNIX_EPOCH};
+use aws_credential_types::Credentials;
 
 use crate::interfaces::http::response::{api_error, api_success};
 
@@ -32,10 +33,25 @@ pub async fn bedrock_metrics_handler() -> impl IntoResponse {
 }
 
 async fn build_aws_config(region: &str) -> aws_config::SdkConfig {
+    // Support dedicated Bedrock credentials separate from S3/MinIO credentials
+    // Priority: BEDROCK_AWS_* > BEDROCK_MONITORING_ROLE_ARN > default AWS chain
     let mut loader = aws_config::from_env()
         .region(aws_config::Region::new(region.to_string()));
 
-    if let Ok(role_arn) = std::env::var("BEDROCK_MONITORING_ROLE_ARN") {
+    if let (Ok(key_id), Ok(secret)) = (
+        std::env::var("BEDROCK_AWS_ACCESS_KEY_ID"),
+        std::env::var("BEDROCK_AWS_SECRET_ACCESS_KEY"),
+    ) {
+        tracing::info!("Using dedicated Bedrock AWS credentials (BEDROCK_AWS_*)");
+        let creds = Credentials::new(
+                key_id,
+                secret,
+                None,
+                None,
+                "bedrock-dedicated",
+            );
+        loader = loader.credentials_provider(creds);
+    } else if let Ok(role_arn) = std::env::var("BEDROCK_MONITORING_ROLE_ARN") {
         let mut builder = aws_config::sts::AssumeRoleProvider::builder(&role_arn)
             .session_name("kusanagi-bedrock-monitoring");
 
@@ -45,6 +61,8 @@ async fn build_aws_config(region: &str) -> aws_config::SdkConfig {
 
         loader = loader.credentials_provider(builder.build().await);
         tracing::info!("Using cross-account role: {}", role_arn);
+    } else {
+        tracing::warn!("No dedicated Bedrock credentials found, falling back to default AWS chain (may use MinIO keys)");
     }
 
     loader.load().await

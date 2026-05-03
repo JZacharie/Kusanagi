@@ -2504,6 +2504,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "aws-config",
+ "aws-credential-types",
  "aws-sdk-cloudwatch",
  "aws-sdk-costexplorer",
  "aws-sdk-s3",
