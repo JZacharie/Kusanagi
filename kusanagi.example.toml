@@ -1,0 +1,155 @@
+# Kusanagi Configuration Example
+# Copy this file to `kusanagi.toml` and customize for your environment
+
+# =============================================================================
+# Server Configuration
+# =============================================================================
+[server]
+host = "0.0.0.0"
+port = 8080
+# workers = 4              # Number of HTTP worker threads (None = auto)
+timeout_secs = 30         # Request timeout
+keep_alive_secs = 5       # Keep-alive timeout
+
+# =============================================================================
+# Kubernetes Configuration
+# =============================================================================
+[kubernetes]
+enabled = true
+# kubeconfig = "/path/to/kubeconfig"  # None = use in-cluster config
+namespace = "default"
+# argocd_url = "https://argocd.example.com"
+timeout_secs = 30
+
+# =============================================================================
+# Prometheus Configuration
+# =============================================================================
+[prometheus]
+url = "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090"
+# url_ha = "http://prometheus-ha:9090"  # Home Assistant Prometheus
+# username = "admin"
+# password = "secret"
+timeout_secs = 10
+cache_ttl_secs = 60
+
+# =============================================================================
+# Alertmanager Configuration
+# =============================================================================
+[alertmanager]
+url = "http://kube-prometheus-stack-alertmanager.kube-prometheus-stack.svc:9093"
+cache_ttl_secs = 60
+
+# =============================================================================
+# External Integrations
+# =============================================================================
+
+# MCP (Model Context Protocol) Servers
+[integrations.mcp]
+kubernetes_url = "http://localhost:3000/mcp/kubernetes"
+cilium_url = "http://localhost:3000/mcp/cilium"
+steampipe_url = "http://localhost:3000/mcp/steampipe"
+trivy_url = "http://localhost:3000/mcp/trivy"
+
+# OpenObserve Telemetry
+[integrations.openobserve]
+# endpoint = "https://openobserve.example.com"
+# auth = "your-auth-token"
+sample_rate = 1.0
+
+# Home Assistant
+[integrations.home_assistant]
+# url = "http://homeassistant.local:8123"
+# token = "your-long-lived-access-token"
+# username = "admin"      # Legacy auth
+# password = "secret"     # Legacy auth
+
+# Proxmox VE
+[integrations.proxmox]
+# urls = "https://proxmox1:8006,https://proxmox2:8006"
+# user = "root@pam"
+# password = "secret"
+# token_id = "kusanagi"
+# token_secret = "your-token-secret"
+
+# MQTT Broker
+[integrations.mqtt]
+# host = "mqtt.local:1883"
+client_id = "kusanagi"
+# username = "mqtt-user"
+# password = "mqtt-password"
+
+# Weather API (OpenWeatherMap)
+[integrations.weather]
+# api_key = "your-openweathermap-api-key"
+cities = "Lyon,Mexico City,New York"
+update_interval_mins = 30
+
+# Google Calendar
+[integrations.calendar]
+# google_api_key = "your-google-api-key"
+# google_client_secret = "your-client-secret"
+# google_redirect_url = "http://localhost:8080/auth/callback"
+
+# Slack Integration
+[integrations.slack]
+# bot_token = "xoxb-your-bot-token"
+# bot_user_id = "U1234567890"
+# channel_id = "C1234567890"
+# signing_secret = "your-signing-secret"
+
+# AWS Bedrock Monitoring
+[integrations.bedrock]
+# access_key_id = "your-bedrock-aws-key"       # Dedicated Bedrock AWS credentials
+# secret_access_key = "your-bedrock-aws-secret"
+# region = "us-east-1"
+# account_label = "AWS Account Name"
+# budget_limit = 1.0                            # Monthly budget in USD
+# monitoring_role_arn = "arn:aws:iam::123456789:role/BedrockMonitoring"
+# monitoring_external_id = "your-external-id"
+
+# Ollama AI
+[integrations.ollama]
+url = "http://192.168.0.52:11434/api/generate"
+model = "ministral-3:14b"
+
+# =============================================================================
+# Storage Configuration (S3/MinIO)
+# =============================================================================
+[storage]
+# endpoint = "https://minio.example.com"
+# bucket = "kusanagi"
+# access_key = "your-access-key"
+# secret_key = "your-secret-key"
+region = "us-east-1"
+
+# =============================================================================
+# Cache Configuration
+# =============================================================================
+[cache]
+default_ttl_secs = 300
+news_ttl_mins = 30
+prometheus_ttl_secs = 60
+cilium_ttl_secs = 60
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+[security]
+auth_enabled = false
+# jwt_secret = "your-super-secret-jwt-key"
+session_timeout_hours = 24
+cors_origins = "*"
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+[log]
+level = "info"        # trace, debug, info, warn, error
+format = "pretty"     # pretty, json
+opentelemetry = false
+
+# =============================================================================
+# Development Mode
+# =============================================================================
+# Set KUSANAGI_DEV_MODE=true to enable development mode
+# In dev mode, Kubernetes failures are non-fatal

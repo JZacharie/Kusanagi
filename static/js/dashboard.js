@@ -818,7 +818,8 @@ const MetricsManager = {
             const totalTokens7d = inpTokens7d + outTokens7d;
 
             // Budget threshold check
-            const budgetPct = data.budget?.usage_percent || 0;
+            const budget = bedrock.budget || {};
+            const budgetPct = budget?.usage_percent || 0;
             const needsRegen = budgetPct > 80;
 
             container.innerHTML = `
@@ -867,18 +868,18 @@ const MetricsManager = {
                     <div class="metric-card" style="${needsRegen ? 'border-color: var(--neon-magenta);' : 'border-color: var(--neon-green);'}">
                         <div class="metric-icon">💰</div>
                         <div class="metric-value" style="color: ${needsRegen ? 'var(--neon-magenta)' : 'var(--neon-green)'};">
-                            ${data.budget?.actual_spend !== undefined ? '$' + data.budget.actual_spend.toFixed(4) : 'N/A'}
+                            ${budget?.actual_spend !== undefined ? '$' + budget.actual_spend.toFixed(4) : 'N/A'}
                         </div>
                         <div class="metric-label">Estimated Spend</div>
                     </div>
                     <div class="metric-card" style="${needsRegen ? 'border-color: var(--neon-magenta); animation: pulse 1.5s infinite;' : ''}">
                         <div class="metric-icon">🔄</div>
                         <div class="metric-value" style="color: ${needsRegen ? 'var(--neon-magenta)' : 'var(--neon-green)'};">
-                            ${data.budget?.usage_percent !== undefined ? data.budget.usage_percent.toFixed(1) + '%' : 'N/A'}
+                            ${budget?.usage_percent !== undefined ? budget.usage_percent.toFixed(1) + '%' : 'N/A'}
                         </div>
                         <div class="metric-label">Budget Usage</div>
                         <div class="metric-bar">
-                            <div class="metric-bar-fill" style="width: ${Math.min(data.budget?.usage_percent || 0, 100)}%; background: ${needsRegen ? 'var(--neon-magenta)' : 'var(--neon-green)'};"></div>
+                            <div class="metric-bar-fill" style="width: ${Math.min(budget?.usage_percent || 0, 100)}%; background: ${needsRegen ? 'var(--neon-magenta)' : 'var(--neon-green)'};"></div>
                         </div>
                     </div>
                     ${needsRegen ? `
