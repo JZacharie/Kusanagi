@@ -1,11 +1,14 @@
-use axum::response::IntoResponse;
+use axum::{extract::State, response::IntoResponse};
 use serde_json::json;
 use std::time::{SystemTime, UNIX_EPOCH};
 use aws_credential_types::Credentials;
 
 use crate::interfaces::http::response::{api_error, api_success};
+use crate::state::AppState;
 
-pub async fn bedrock_metrics_handler() -> impl IntoResponse {
+pub async fn bedrock_metrics_handler(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
     let region = std::env::var("BEDROCK_AWS_REGION")
         .or_else(|_| std::env::var("AWS_REGION"))
         .unwrap_or_else(|_| "us-east-1".to_string());
@@ -18,7 +21,7 @@ pub async fn bedrock_metrics_handler() -> impl IntoResponse {
         .and_then(|v| v.parse().ok())
         .unwrap_or(1.0);
 
-    match fetch_bedrock_all_metrics(&region, budget_limit).await {
+    match fetch_bedrock_all_metrics(&state, &region, budget_limit).await {
         Ok(metrics) => api_success(json!({
             "account_label": account_label,
             "region": region,
@@ -35,7 +38,10 @@ pub async fn bedrock_metrics_handler() -> impl IntoResponse {
 async fn build_aws_config(region: &str) -> aws_config::SdkConfig {
     // Support dedicated Bedrock credentials separate from S3/MinIO credentials
     // Priority: BEDROCK_AWS_* > BEDROCK_MONITORING_ROLE_ARN > default AWS chain
-    let mut loader = aws_config::from_env()
+    //
+    // Use defaults(BehaviorVersion::latest()) instead of from_env() to ensure
+    // proper connector/runtime initialization (compatible with default-features = false)
+    let mut loader = aws_config::defaults(aws_config::BehaviorVersion::latest())
         .region(aws_config::Region::new(region.to_string()));
 
     if let (Ok(key_id), Ok(secret)) = (
@@ -69,6 +75,7 @@ async fn build_aws_config(region: &str) -> aws_config::SdkConfig {
 }
 
 async fn fetch_bedrock_all_metrics(
+    _state: &AppState,
     region: &str,
     budget_limit: f64,
 ) -> Result<serde_json::Value, String> {
@@ -89,7 +96,7 @@ async fn fetch_bedrock_all_metrics(
         ("last_7d", now - (7 * 86400), now, 86400),
     ];
 
-    use aws_sdk_cloudwatch::types::{Dimension, Statistic};
+    use aws_sdk_cloudwatch::types::Statistic;
 
     for (period_label, start, end, period) in &periods {
         let mut period_data = serde_json::Map::new();
@@ -101,23 +108,20 @@ async fn fetch_bedrock_all_metrics(
                 Statistic::Sum
             };
 
-            let dim = Dimension::builder()
-                .name("Region")
-                .value(region)
-                .build();
-
             let response = cloudwatch
                 .get_metric_statistics()
                 .namespace("AWS/Bedrock")
                 .metric_name(metric_name)
-                .dimensions(dim)
                 .start_time(aws_sdk_cloudwatch::primitives::DateTime::from_secs(*start))
                 .end_time(aws_sdk_cloudwatch::primitives::DateTime::from_secs(*end))
                 .period(*period)
                 .statistics(stat)
                 .send()
                 .await
-                .map_err(|e| format!("CloudWatch query error for {}: {}", metric_name, e))?;
+                .map_err(|e| {
+                    tracing::error!(?e, "CloudWatch query failed for {}", metric_name);
+                    format!("CloudWatch query error for {}: {e:?}", metric_name)
+                })?;
 
             let datapoints = response.datapoints();
             let total: f64 = if metric_name == "InvocationLatency" {
