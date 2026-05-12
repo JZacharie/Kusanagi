@@ -37,8 +37,7 @@ rustls = { version = "0.23", features = ["aws-lc-rs"] }
 toml = "0.8"
 aws-config = { version = "1.8", features = ["behavior-version-latest", "default-https-client", "rt-tokio", "sso", "credentials-process"], default-features = false }
 aws-sdk-s3 = { version = "1.127", features = ["default-https-client", "rt-tokio", "sigv4a", "http-1x"], default-features = false }
-aws-sdk-cloudwatch = { version = "1", features = ["default-https-client", "rt-tokio"], default-features = false }
-aws-sdk-costexplorer = { version = "1", features = ["default-https-client", "rt-tokio"], default-features = false }
+# aws-sdk-cloudwatch and aws-sdk-costexplorer removed (formerly for bedrock)
 aws-smithy-runtime = { version = "1.10", features = ["client", "default-https-client", "rt-tokio", "connector-hyper-0-14-x"], default-features = false }
 hyper-tls-05 = { package = "hyper-tls", version = "0.5" } # Specific version for S3/Legacy
 hyper-014 = { package = "hyper", version = "0.14" }
@@ -58,7 +57,7 @@ dotenvy = "0.15.7"
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
 native-tls = "0.2"
 postgres-native-tls = "0.5"
-aws-credential-types = { version = "1.2.14", default-features = false }
+# aws-credential-types removed (formerly for bedrock)
 
 [build-dependencies]
 chrono = "0.4"

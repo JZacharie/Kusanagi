@@ -1,13 +1,13 @@
 //! Monitoring handlers
 
-pub mod bedrock;
+pub mod deepseek;
 pub mod cilium;
 pub mod mqtt;
 
 use axum::response::IntoResponse;
 use serde_json::json;
 
-pub use bedrock::*;
+pub use deepseek::*;
 pub use cilium::*;
 pub use mqtt::*;
 
