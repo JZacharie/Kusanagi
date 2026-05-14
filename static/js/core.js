@@ -103,6 +103,10 @@ function handleWsMessage(data) {
             // Silent heartbeat
             break;
 
+        case 'mqtt':
+            // Handled by modules listening to kusanagi-ws-message
+            break;
+
         default:
             console.log('Unknown WebSocket message:', data);
     }

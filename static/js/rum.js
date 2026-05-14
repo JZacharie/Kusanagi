@@ -10,7 +10,7 @@
 (function () {
     // Configuration
     const options = {
-        clientToken: 'rumh1ycW8AuNCvCSMr4',
+        clientToken: 'rumJHwgt82ZCKIFNQk3',
         applicationId: 'kusanagi-dashboard',
         site: 'o2-openobserve.p.zacharie.org',
         service: 'kusanagi',

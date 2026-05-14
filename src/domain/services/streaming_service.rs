@@ -468,7 +468,11 @@ fn parse_justwatch_html(html: &str, content_type: &str) -> Vec<Value> {
         
         // Find the <a href="..." before this class
         // Search backwards for href="
-        let search_start = abs_link_pos.saturating_sub(200);
+        // Safely find search_start boundary
+        let mut search_start = abs_link_pos.saturating_sub(200);
+        while !html.is_char_boundary(search_start) && search_start < abs_link_pos {
+            search_start += 1;
+        }
         let before = &html[search_start..abs_link_pos];
         
         if let Some(href_pos) = before.rfind("href=\"") {
@@ -477,8 +481,15 @@ fn parse_justwatch_html(html: &str, content_type: &str) -> Vec<Value> {
                 let path = &html[href_start..href_start + href_end];
                 
         if path.starts_with(link_prefix) || path.contains(link_prefix) {
-                    // Find the next <img alt="..." for the title
-                    let search_end = std::cmp::min(abs_link_pos + 5000, html.len());
+                    // Safely find the search_end boundary
+                    let mut search_end = std::cmp::min(abs_link_pos + 5000, html.len());
+                    while !html.is_char_boundary(search_end) && search_end < html.len() {
+                        search_end += 1;
+                    }
+                    if !html.is_char_boundary(search_end) {
+                        search_end = html.len();
+                    }
+                    
                     let block = &html[abs_link_pos..search_end];
                     
                     if let Some(img_alt) = extract_img_alt(block) {
@@ -510,6 +521,9 @@ fn parse_justwatch_html(html: &str, content_type: &str) -> Vec<Value> {
         }
         
         current_pos = abs_link_pos + 30;
+        while current_pos < html.len() && !html.is_char_boundary(current_pos) {
+            current_pos += 1;
+        }
     }
     
     items
