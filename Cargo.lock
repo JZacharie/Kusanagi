@@ -2004,19 +2004,6 @@ dependencies = [
 
 [[package]]
 name = "hyper-tls"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
-dependencies = [
- "bytes",
- "hyper 0.14.32",
- "native-tls",
- "tokio",
- "tokio-native-tls",
-]
-
-[[package]]
-name = "hyper-tls"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70206fc6890eaca9fde8a0bf71caa2ddfc9fe045ac9e5c70df101a7dbde866e0"
@@ -2476,8 +2463,7 @@ dependencies = [
  "futures",
  "hyper 0.14.32",
  "hyper 1.9.0",
- "hyper-tls 0.5.0",
- "hyper-tls 0.6.0",
+ "hyper-tls",
  "irc",
  "k8s-openapi",
  "kube",
@@ -3380,7 +3366,7 @@ dependencies = [
  "http-body-util",
  "hyper 1.9.0",
  "hyper-rustls",
- "hyper-tls 0.6.0",
+ "hyper-tls",
  "hyper-util",
  "js-sys",
  "log",
