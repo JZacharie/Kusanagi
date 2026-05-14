@@ -51,7 +51,7 @@ utoipa-swagger-ui = { version = "9", features = ["axum"] }
 tower_governor = "0.8"
 
 # Sprint 6: Monitoring & Tracing
-metrics = "0.21"
+metrics = "0.24"
 metrics-exporter-prometheus = "0.12"
 dotenvy = "0.15.7"
 tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
