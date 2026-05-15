@@ -25,7 +25,7 @@ pub struct SystemService;
 impl SystemService {
     #[tracing::instrument(name = "system_get_status")]
     pub fn get_status() -> SystemStatus {
-        metrics::counter!("system_status_check_total", 1);
+        metrics::counter!("system_status_check_total").increment(1);
 
         // Use Instant-based calculation for process uptime (not system uptime)
         // This gives the actual time since Kusanagi process started
@@ -90,7 +90,7 @@ impl SystemService {
 
     #[tracing::instrument(name = "system_get_logs")]
     pub async fn get_logs() -> Result<String, String> {
-        metrics::counter!("system_logs_access_total", 1);
+        metrics::counter!("system_logs_access_total").increment(1);
         // Try to read from local log file first (for Docker/k8s support)
         let log_dir_env =
             std::env::var("KUSANAGI_LOG_DIR").unwrap_or_else(|_| "/tmp/kusanagi-logs".to_string());
