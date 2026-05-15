@@ -955,6 +955,35 @@ async fn fetch_gpu_from_hot_service(client: &reqwest::Client) -> GpuMetrics {
     metrics
 }
 
+/// Bedrock metrics handler
+pub async fn bedrock_metrics_handler() -> impl IntoResponse {
+    let region = std::env::var("AWS_REGION").unwrap_or_else(|_| "us-east-1".to_string());
+    let account_label = "jo3-homelab";
+    
+    // For now, return simulated/mock data that overview.js expects
+    // In a real scenario, this would fetch from CloudWatch or a tracking database
+    api_success(json!({
+        "region": region,
+        "account_label": account_label,
+        "bedrock": {
+            "last_24h": {
+                "InvocationCount": { "total": 142 },
+                "InputTokenCount": { "total": 45200 },
+                "OutputTokenCount": { "total": 12800 },
+                "InvocationLatency": { "total": 850 }
+            },
+            "cost": {
+                "total_cost": 0.4285
+            },
+            "budget": {
+                "limit": 50.0,
+                "usage_percent": 0.85,
+                "needs_regeneration": false
+            }
+        }
+    }))
+}
+
 pub async fn github_pipelines_handler() -> impl IntoResponse {
     use crate::domain::services::github_service;
 

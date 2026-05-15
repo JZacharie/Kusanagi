@@ -57,10 +57,10 @@ const BusinessDashboard = {
             if (el) el.textContent = val;
         };
 
-        setText('biz-total-requests', cf.requests.toLocaleString());
-        setText('biz-bandwidth', this.formatBytes(cf.bandwidth));
-        setText('biz-threats', cf.threats.toLocaleString());
-        setText('biz-page-views', cf.page_views.toLocaleString());
+        setText('biz-total-requests', cf.requests ? cf.requests.toLocaleString() : '0');
+        setText('biz-bandwidth', this.formatBytes(cf.bandwidth || 0));
+        setText('biz-threats', cf.threats ? cf.threats.toLocaleString() : '0');
+        setText('biz-page-views', cf.page_views ? cf.page_views.toLocaleString() : '0');
         
         // Since we don't have conversion/churn from CF easily, we can keep them mock or hide
     },
