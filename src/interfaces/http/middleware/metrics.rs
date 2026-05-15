@@ -1,5 +1,4 @@
 use axum::{extract::Request, middleware::Next, response::IntoResponse};
-use metrics::Label;
 use std::time::Instant;
 
 pub async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
