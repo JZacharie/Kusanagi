@@ -17,7 +17,7 @@ pub async fn get_pods_status(cache: &crate::AdvancedCache<String>, force_refresh
         }
     }
 
-    metrics::counter!("kubernetes_requests_total", 1, "operation" => "get_pods");
+    metrics::counter!("kubernetes_requests_total", "operation" => "get_pods").increment(1);
     let client = Client::try_default().await.map_err(|e| e.to_string())?;
     let pods: Api<Pod> = Api::all(client);
 
@@ -173,7 +173,7 @@ pub async fn get_nodes_status(
         }
     }
 
-    metrics::counter!("kubernetes_requests_total", 1, "operation" => "get_nodes");
+    metrics::counter!("kubernetes_requests_total", "operation" => "get_nodes").increment(1);
     let kube_client = Client::try_default().await.map_err(|e| e.to_string())?;
     let nodes_api: Api<Node> = Api::all(kube_client.clone());
     let list_params = ListParams::default();
@@ -403,7 +403,7 @@ pub async fn get_cluster_overview(
     cache: &crate::AdvancedCache<String>,
     force_refresh: bool,
 ) -> Result<Value, String> {
-    metrics::counter!("kubernetes_requests_total", 1, "operation" => "cluster_overview");
+    metrics::counter!("kubernetes_requests_total", "operation" => "cluster_overview").increment(1);
     let pods = get_pods_status(cache, force_refresh).await.unwrap_or_else(|_| {
         json!({
             "total_pods": 0,
