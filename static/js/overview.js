@@ -147,7 +147,7 @@ const OverviewDashboard = {
             this.renderAppHealth(podsData, argocdData);
             this.renderSecurityScore(metricsData);
             this.renderPipelines(pipelineData);
-            this.loadBedrockMetrics();
+
 
         } catch (error) {
             console.error('Error refreshing overview data:', error);
@@ -938,72 +938,6 @@ const OverviewDashboard = {
                            renderRepoLine('rust-s3-asr', 'rust-s3-asr');
     },
 
-    async loadBedrockMetrics() {
-        const loadingEl = document.getElementById('bedrock-loading');
-        const contentEl = document.getElementById('bedrock-content');
-        const errorEl   = document.getElementById('bedrock-error');
-        if (!loadingEl) return;
-
-        loadingEl.style.display = 'block';
-        if (contentEl) contentEl.style.display = 'none';
-        if (errorEl)   errorEl.style.display   = 'none';
-
-        try {
-            const resp = await fetch('/api/monitoring/bedrock/metrics');
-            const json = await resp.json();
-
-            if (!json.success) throw new Error(json.error || 'API error');
-
-            const d = json.data;
-            const bedrock = d.bedrock || {};
-            const h24     = bedrock.last_24h || {};
-            const cost     = bedrock.cost     || {};
-            const budget   = bedrock.budget   || {};
-
-            const fmt = v => v != null ? Math.round(v).toLocaleString() : '--';
-            const fmtMs = v => v != null ? Math.round(v) + ' ms' : '-- ms';
-            const fmtUsd = v => v != null ? '$' + Number(v).toFixed(4) : '$--.--';
-
-            const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-
-            set('bedrock-total-cost',    fmtUsd(cost.total_cost));
-            set('bedrock-invocations',   fmt(h24.InvocationCount?.total));
-            set('bedrock-input-tokens',  fmt(h24.InputTokenCount?.total));
-            set('bedrock-output-tokens', fmt(h24.OutputTokenCount?.total));
-            set('bedrock-latency',       fmtMs(h24.InvocationLatency?.total));
-            set('bedrock-region',        d.region || '--');
-            set('bedrock-account',       d.account_label || '--');
-
-            // Budget bar
-            const pct = budget.usage_percent != null ? Math.min(Math.round(budget.usage_percent), 100) : 0;
-            set('bedrock-budget-pct', pct + '%');
-            set('bedrock-budget-limit', budget.limit != null ? '$' + Number(budget.limit).toFixed(2) + ' limit' : '--');
-
-            const bar = document.getElementById('bedrock-budget-bar');
-            if (bar) {
-                bar.style.width = pct + '%';
-                bar.style.background = pct >= 80
-                    ? 'var(--status-critical, #f56565)'
-                    : pct >= 50
-                        ? 'var(--status-warning, #f6ad55)'
-                        : 'var(--neon-green, #00ff88)';
-            }
-
-            const alertEl = document.getElementById('bedrock-alert');
-            if (alertEl) alertEl.style.display = budget.needs_regeneration ? 'block' : 'none';
-
-            loadingEl.style.display = 'none';
-            if (contentEl) contentEl.style.display = 'block';
-
-        } catch (e) {
-            console.warn('Bedrock metrics unavailable:', e.message);
-            loadingEl.style.display = 'none';
-            if (errorEl) {
-                errorEl.textContent = 'Bedrock: ' + e.message;
-                errorEl.style.display = 'block';
-            }
-        }
-    }
 };
 
 window.OverviewDashboard = OverviewDashboard;

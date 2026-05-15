@@ -97,16 +97,6 @@ update_interval_mins = 30
 # channel_id = "C1234567890"
 # signing_secret = "your-signing-secret"
 
-# AWS Bedrock Monitoring
-[integrations.bedrock]
-# access_key_id = "your-bedrock-aws-key"       # Dedicated Bedrock AWS credentials
-# secret_access_key = "your-bedrock-aws-secret"
-# region = "us-east-1"
-# account_label = "AWS Account Name"
-# budget_limit = 1.0                            # Monthly budget in USD
-# monitoring_role_arn = "arn:aws:iam::123456789:role/BedrockMonitoring"
-# monitoring_external_id = "your-external-id"
-
 # Ollama AI
 [integrations.ollama]
 url = "http://192.168.0.52:11434/api/generate"

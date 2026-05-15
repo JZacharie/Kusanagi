@@ -200,7 +200,7 @@
     </h2>
     <div class="zone-content overview-grid">
         <!-- 2. Cost Analysis -->
-        <div class="overview-card cost-card panel">
+        <div class="overview-card cost-card panel" style="grid-column: span 2;">
             <h3>Cost Analysis</h3>
             <div class="cost-estimate-basis" style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 0.5rem;">
                 Estimated from pod & node sizes
@@ -218,57 +218,6 @@
             <div class="cost-chart-container">
                 <canvas id="overview-cost-pie-chart" height="150"></canvas>
             </div>
-        </div>
-
-        <!-- AWS Bedrock Cost -->
-        <div class="overview-card panel" id="bedrock-cost-card">
-            <h3><span class="mdi mdi-aws"></span> AWS Bedrock</h3>
-            <div id="bedrock-loading" style="opacity:0.6; font-size:0.85rem;">Loading...</div>
-            <div id="bedrock-content" style="display:none;">
-                <div class="cost-header" style="margin-bottom:0.75rem;">
-                    <div>
-                        <div class="cost-label">7-day spend</div>
-                        <div class="cost-value" id="bedrock-total-cost">$--.--</div>
-                    </div>
-                    <div>
-                        <div class="cost-label">Budget used</div>
-                        <div class="cost-value" id="bedrock-budget-pct">--%</div>
-                    </div>
-                </div>
-                <div class="security-details">
-                    <div class="security-detail-row">
-                        <span>Invocations (24h)</span>
-                        <span id="bedrock-invocations">--</span>
-                    </div>
-                    <div class="security-detail-row">
-                        <span>Input tokens (24h)</span>
-                        <span id="bedrock-input-tokens">--</span>
-                    </div>
-                    <div class="security-detail-row">
-                        <span>Output tokens (24h)</span>
-                        <span id="bedrock-output-tokens">--</span>
-                    </div>
-                    <div class="security-detail-row">
-                        <span>Avg latency (24h)</span>
-                        <span id="bedrock-latency">-- ms</span>
-                    </div>
-                </div>
-                <div id="bedrock-budget-bar-wrap" style="margin-top:0.75rem;">
-                    <div style="font-size:0.75rem; opacity:0.7; margin-bottom:0.25rem;">
-                        Budget: <span id="bedrock-budget-limit">--</span>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.1); border-radius:4px; height:8px; overflow:hidden;">
-                        <div id="bedrock-budget-bar" style="height:100%; width:0%; background:var(--neon-green,#00ff88); border-radius:4px; transition:width 0.5s;"></div>
-                    </div>
-                </div>
-                <div id="bedrock-alert" style="display:none; margin-top:0.5rem; font-size:0.8rem; color:var(--status-warning,#f6ad55);">
-                    <span class="mdi mdi-alert"></span> &gt;80% budget consumed
-                </div>
-                <div style="font-size:0.7rem; opacity:0.5; margin-top:0.5rem;">
-                    Region: <span id="bedrock-region">--</span> &bull; <span id="bedrock-account">--</span>
-                </div>
-            </div>
-            <div id="bedrock-error" style="display:none; font-size:0.8rem; color:var(--status-critical,#f56565);"></div>
         </div>
 
         <!-- 3. Cost by Namespace -->
