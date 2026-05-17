@@ -34,7 +34,7 @@ rustls-pki-types = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rustls = { version = "0.23", features = ["aws-lc-rs"] }
-toml = "0.8"
+toml = "0.9"
 aws-config = { version = "1.8", features = ["behavior-version-latest", "default-https-client", "rt-tokio", "sso", "credentials-process"], default-features = false }
 aws-sdk-s3 = { version = "1.127", features = ["default-https-client", "rt-tokio", "sigv4a", "http-1x"], default-features = false }
 # aws-sdk-cloudwatch and aws-sdk-costexplorer removed (formerly for bedrock)
