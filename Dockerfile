@@ -34,7 +34,7 @@ RUN ls -la /app/static/js/k8s/ && test -f /app/static/js/k8s/main.js \
 USER kusanagi
 
 # --- Full Build (optimized with cargo-chef) ---
-FROM lukemathwalker/cargo-chef:latest-rust-1.93.1-slim AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.95-slim AS chef
 WORKDIR /app
 RUN apt-get update && apt-get install -y pkg-config libssl-dev curl && rm -rf /var/lib/apt/lists/*
 
