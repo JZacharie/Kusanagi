@@ -48,4 +48,22 @@ mod tests {
         let result = kubernetes_service::format_bytes(0);
         assert_eq!(result, "0 B");
     }
+
+    #[tokio::test]
+    async fn test_get_ingress_real() {
+        kusanagi::init::setup_rustls();
+        if let Ok(client) = kube::Client::try_default().await {
+            let cache = kusanagi::AdvancedCache::new(std::time::Duration::from_secs(60));
+            let kube_client = Some(std::sync::Arc::new(client));
+            match kubernetes_service::get_ingress(&kube_client, &cache).await {
+                Ok(val) => {
+                    println!("SUCCESS: {}", val);
+                }
+                Err(err) => {
+                    println!("ERROR: {}", err);
+                    panic!("Failed to get ingress: {}", err);
+                }
+            }
+        }
+    }
 }
