@@ -1,5 +1,5 @@
-use aws_sdk_s3::Client as S3Client;
 use crate::infrastructure::s3_utils::configure_insecure_s3;
+use aws_sdk_s3::Client as S3Client;
 use chrono::Utc;
 use reqwest::Client;
 use serde_json::{json, Value};
@@ -15,7 +15,12 @@ pub async fn get_streaming_data() -> Result<Value, String> {
     tracing::debug!("🎬 Streaming service: Attempting to get data from cache");
 
     match get_aggregated_streaming().await {
-        Ok(data) if !data["items"].as_array().map(|a| a.is_empty()).unwrap_or(true) => {
+        Ok(data)
+            if !data["items"]
+                .as_array()
+                .map(|a| a.is_empty())
+                .unwrap_or(true) =>
+        {
             tracing::info!("✅ Streaming cache HIT");
             Ok(data)
         }
@@ -111,7 +116,8 @@ async fn fetch_fresh_streaming() -> Result<Value, String> {
                 return true;
             }
             // Duplicate by normalized title (cross-source dedup)
-            let existing_title_norm = normalize_title(existing["title"].as_str().unwrap_or_default());
+            let existing_title_norm =
+                normalize_title(existing["title"].as_str().unwrap_or_default());
             !item_title_norm.is_empty() && item_title_norm == existing_title_norm
         });
 
@@ -130,23 +136,29 @@ async fn fetch_fresh_streaming() -> Result<Value, String> {
                         let mut hasher = DefaultHasher::new();
                         url.hash(&mut hasher);
                         let url_hash = format!("{:x}", hasher.finish());
-                        
+
                         match cache_poster(s3, &bucket, &url_hash, poster_url, &client).await {
                             Ok(proxy_path) => {
                                 item["poster_url"] = json!(proxy_path);
                                 // Also store/update individual JSON metadata with proxied URL
                                 let _ = store_individual_movie(s3, &bucket, &url_hash, item).await;
                             }
-                            Err(e) => tracing::warn!("⚠️ Failed to cache poster for {}: {}", url, e),
+                            Err(e) => {
+                                tracing::warn!("⚠️ Failed to cache poster for {}: {}", url, e)
+                            }
                         }
                     }
                 }
             }
         }
     }
-    
+
     let added_count = all_items.len() - initial_count;
-    tracing::info!("✅ Added {} new items to the collection (Total: {})", added_count, all_items.len());
+    tracing::info!(
+        "✅ Added {} new items to the collection (Total: {})",
+        added_count,
+        all_items.len()
+    );
 
     // Limit collection size to 500 items
     if all_items.len() > 500 {
@@ -162,14 +174,15 @@ async fn fetch_fresh_streaming() -> Result<Value, String> {
     if let Some(s3) = s3_client {
         let key = format!("{}latest.json", CACHE_PREFIX);
         let json_bytes = serde_json::to_vec(&response_data).unwrap_or_default();
-        
-        match s3.put_object()
+
+        match s3
+            .put_object()
             .bucket(bucket)
             .key(key)
             .body(json_bytes.into())
             .content_type("application/json")
             .send()
-            .await 
+            .await
         {
             Ok(_) => tracing::info!("💾 Streaming collection updated in S3"),
             Err(e) => tracing::error!("❌ Failed to save streaming collection to S3: {}", e),
@@ -187,9 +200,16 @@ async fn cache_poster(
     http_client: &Client,
 ) -> Result<String, String> {
     let key = format!("{}posters/{}.jpg", CACHE_PREFIX, hash);
-    
+
     // Check if poster already exists
-    if s3.head_object().bucket(bucket).key(&key).send().await.is_ok() {
+    if s3
+        .head_object()
+        .bucket(bucket)
+        .key(&key)
+        .send()
+        .await
+        .is_ok()
+    {
         return Ok(format!("/api/streaming/poster/{}", hash));
     }
 
@@ -203,7 +223,11 @@ async fn cache_poster(
     };
 
     // Download poster
-    let response = http_client.get(absolute_url).send().await.map_err(|e| e.to_string())?;
+    let response = http_client
+        .get(absolute_url)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
     let bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
     // Store in S3
@@ -227,9 +251,9 @@ async fn store_individual_movie(
 ) -> Result<(), String> {
     let day = Utc::now().format("%Y-%m-%d").to_string();
     let key = format!("{}{}/{}.json", CACHE_PREFIX, day, hash);
-    
+
     let json_bytes = serde_json::to_vec(item).map_err(|e| e.to_string())?;
-    
+
     s3.put_object()
         .bucket(bucket)
         .key(key)
@@ -238,7 +262,7 @@ async fn store_individual_movie(
         .send()
         .await
         .map_err(|e| e.to_string())?;
-        
+
     Ok(())
 }
 
@@ -246,22 +270,23 @@ pub async fn get_poster_data(hash: &str) -> Result<(Vec<u8>, String), String> {
     let s3 = create_s3_client().await?;
     let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
     let key = format!("{}posters/{}.jpg", CACHE_PREFIX, hash);
-    
-    let result = s3.get_object()
+
+    let result = s3
+        .get_object()
         .bucket(bucket)
         .key(key)
         .send()
         .await
         .map_err(|e| e.to_string())?;
-        
+
     let body = result.body.collect().await.map_err(|e| e.to_string())?;
     Ok((body.into_bytes().to_vec(), "image/jpeg".to_string()))
 }
 
 fn parse_cinestream_html(html: &str) -> Vec<Value> {
     let mut movies = Vec::new();
-    
-    // Cinestream uses Next.js with flight data. 
+
+    // Cinestream uses Next.js with flight data.
     // We look for self.__next_f.push scripts which contain the movie data.
     let mut current_pos = 0;
     while let Some(script_start) = html[current_pos..].find("self.__next_f.push([1,\"") {
@@ -269,26 +294,26 @@ fn parse_cinestream_html(html: &str) -> Vec<Value> {
         if let Some(script_end) = html[absolute_start..].find("\"])") {
             let absolute_end = absolute_start + script_end;
             let content = &html[absolute_start..absolute_end];
-            
+
             // The content is escaped JSON-like data. We look for patterns like:
             // \"title\": \"...\", \"href\": \"...\", \"src\": \"...\"
-            
+
             // This is a naive but effective way to extract from Next.js flight data strings
             // A more robust way would be to properly unescape and parse, but flight data is complex.
-            
+
             // Try to find movie patterns in this chunk
             if content.contains("\\\"title\\\"") && content.contains("\\\"href\\\"") {
                 if let Some(movie) = parse_movie_from_json_chunk(content) {
                     movies.push(movie);
                 }
             }
-            
+
             current_pos = absolute_end;
         } else {
             break;
         }
     }
-    
+
     // Fallback to old article parsing if Next.js data wasn't found or parsed nothing
     if movies.is_empty() {
         let mut current_pos = 0;
@@ -297,18 +322,18 @@ fn parse_cinestream_html(html: &str) -> Vec<Value> {
             if let Some(article_end) = html[absolute_start..].find("</article>") {
                 let absolute_end = absolute_start + article_end + 10;
                 let article_content = &html[absolute_start..absolute_end];
-                
+
                 if let Some(movie) = parse_movie_article(article_content) {
                     movies.push(movie);
                 }
-                
+
                 current_pos = absolute_end;
             } else {
                 break;
             }
         }
     }
-    
+
     movies
 }
 
@@ -328,7 +353,7 @@ fn parse_movie_from_json_chunk(content: &str) -> Option<Value> {
     let title = extract("title")?;
     let path = extract("href")?;
     let poster_url = extract("src");
-    
+
     let url = if path.starts_with("http") {
         path
     } else {
@@ -338,12 +363,18 @@ fn parse_movie_from_json_chunk(content: &str) -> Option<Value> {
     // Try to find language and quality nearby
     let mut language = "Unknown".to_string();
     let mut quality = "HD".to_string();
-    
-    if content.contains("TrueFrench") { language = "TrueFrench".to_string(); }
-    else if content.contains("VOSTFR") { language = "VOSTFR".to_string(); }
-    
-    if content.contains("HDLight") { quality = "HDLight".to_string(); }
-    else if content.contains("WEB-DL") { quality = "WEB-DL".to_string(); }
+
+    if content.contains("TrueFrench") {
+        language = "TrueFrench".to_string();
+    } else if content.contains("VOSTFR") {
+        language = "VOSTFR".to_string();
+    }
+
+    if content.contains("HDLight") {
+        quality = "HDLight".to_string();
+    } else if content.contains("WEB-DL") {
+        quality = "WEB-DL".to_string();
+    }
 
     Some(json!({
         "title": title,
@@ -394,16 +425,16 @@ fn parse_movie_article(content: &str) -> Option<Value> {
         .unwrap_or_else(|| "N/A".to_string());
 
     // Extract Genres
-    let genres = extract_simple_content(content, "truncate-multiline\">", "</span>")
-        .unwrap_or_default();
+    let genres =
+        extract_simple_content(content, "truncate-multiline\">", "</span>").unwrap_or_default();
 
     // Extract Language and Quality (Top badges)
     // <div class="absolute top-1 left-1 ..."><span>TrueFrench</span></div>
     // <div class="absolute top-1 right-1 ..."><span>HDLight</span></div>
-    
+
     let mut language = "Unknown".to_string();
     let mut quality = "HD".to_string();
-    
+
     if let Some(lang_pos) = content.find("top-1 left-1") {
         if let Some(span_pos) = content[lang_pos..].find("<span>") {
             let start = lang_pos + span_pos + 6;
@@ -412,7 +443,7 @@ fn parse_movie_article(content: &str) -> Option<Value> {
             }
         }
     }
-    
+
     if let Some(quality_pos) = content.find("top-1 right-1") {
         if let Some(span_pos) = content[quality_pos..].find("<span>") {
             let start = quality_pos + span_pos + 6;
@@ -438,11 +469,11 @@ fn parse_movie_article(content: &str) -> Option<Value> {
 fn extract_simple_content(html: &str, class_marker: &str, end_tag: &str) -> Option<String> {
     if let Some(marker_pos) = html.find(class_marker) {
         let after_marker = marker_pos + class_marker.len();
-        
+
         // Find the closing '>' of the current tag
         if let Some(tag_end) = html[after_marker..].find('>') {
             let start = after_marker + tag_end + 1;
-            
+
             if let Some(end_pos) = html[start..].find(end_tag) {
                 let content = html[start..start + end_pos].trim();
                 // Sanitize: remove any leading '>' artifacts
@@ -459,13 +490,17 @@ fn extract_simple_content(html: &str, class_marker: &str, end_tag: &str) -> Opti
 /// Parse JustWatch listing HTML (films or series)
 fn parse_justwatch_html(html: &str, content_type: &str) -> Vec<Value> {
     let mut items = Vec::new();
-    let link_prefix = if content_type == "serie" { "/fr/serie/" } else { "/fr/film/" };
+    let link_prefix = if content_type == "serie" {
+        "/fr/serie/"
+    } else {
+        "/fr/film/"
+    };
 
     // Find all title-list-grid__item--link anchors
     let mut current_pos = 0;
     while let Some(link_pos) = html[current_pos..].find("title-list-grid__item--link") {
         let abs_link_pos = current_pos + link_pos;
-        
+
         // Find the <a href="..." before this class
         // Search backwards for href="
         // Safely find search_start boundary
@@ -474,13 +509,13 @@ fn parse_justwatch_html(html: &str, content_type: &str) -> Vec<Value> {
             search_start += 1;
         }
         let before = &html[search_start..abs_link_pos];
-        
+
         if let Some(href_pos) = before.rfind("href=\"") {
             let href_start = search_start + href_pos + 6;
             if let Some(href_end) = html[href_start..].find('"') {
                 let path = &html[href_start..href_start + href_end];
-                
-        if path.starts_with(link_prefix) || path.contains(link_prefix) {
+
+                if path.starts_with(link_prefix) || path.contains(link_prefix) {
                     // Safely find the search_end boundary
                     let mut search_end = std::cmp::min(abs_link_pos + 5000, html.len());
                     while !html.is_char_boundary(search_end) && search_end < html.len() {
@@ -489,21 +524,21 @@ fn parse_justwatch_html(html: &str, content_type: &str) -> Vec<Value> {
                     if !html.is_char_boundary(search_end) {
                         search_end = html.len();
                     }
-                    
+
                     let block = &html[abs_link_pos..search_end];
-                    
+
                     if let Some(img_alt) = extract_img_alt(block) {
                         let title = img_alt.trim().to_string();
                         if title.is_empty() {
                             current_pos = abs_link_pos + 30;
                             continue;
                         }
-                        
+
                         // Extract poster URL from <img ... src="...">
                         let poster_url = extract_img_src(block);
 
                         let url = format!("{}{}", JUSTWATCH_BASE, path);
-                        
+
                         items.push(json!({
                             "title": title,
                             "url": url,
@@ -519,13 +554,13 @@ fn parse_justwatch_html(html: &str, content_type: &str) -> Vec<Value> {
                 }
             }
         }
-        
+
         current_pos = abs_link_pos + 30;
         while current_pos < html.len() && !html.is_char_boundary(current_pos) {
             current_pos += 1;
         }
     }
-    
+
     items
 }
 
@@ -538,7 +573,8 @@ fn extract_img_alt(block: &str) -> Option<String> {
     let alt_end = after_img[alt_start..].find('"')?;
     let alt = &after_img[alt_start..alt_start + alt_end];
     // Decode HTML entities
-    let decoded = alt.replace("&amp;", "&")
+    let decoded = alt
+        .replace("&amp;", "&")
         .replace("&#x27;", "'")
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
@@ -601,12 +637,16 @@ async fn get_aggregated_streaming() -> Result<Value, String> {
 }
 
 async fn create_s3_client() -> Result<S3Client, String> {
-    let endpoint = std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170:9010".to_string());
+    let endpoint =
+        std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170:9010".to_string());
     let region = std::env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".to_string());
-    let access_key = std::env::var("S3_ACCESS_KEY").map_err(|_| "S3_ACCESS_KEY not set".to_string())?;
-    let secret_key = std::env::var("S3_SECRET_KEY").map_err(|_| "S3_SECRET_KEY not set".to_string())?;
+    let access_key =
+        std::env::var("S3_ACCESS_KEY").map_err(|_| "S3_ACCESS_KEY not set".to_string())?;
+    let secret_key =
+        std::env::var("S3_SECRET_KEY").map_err(|_| "S3_SECRET_KEY not set".to_string())?;
 
-    let credentials = aws_sdk_s3::config::Credentials::new(access_key, secret_key, None, None, "custom");
+    let credentials =
+        aws_sdk_s3::config::Credentials::new(access_key, secret_key, None, None, "custom");
     let mut s3_config_builder = aws_sdk_s3::config::Builder::new()
         .behavior_version(aws_sdk_s3::config::BehaviorVersion::latest())
         .region(aws_sdk_s3::config::Region::new(region))
@@ -614,12 +654,13 @@ async fn create_s3_client() -> Result<S3Client, String> {
         .credentials_provider(credentials)
         .force_path_style(true);
 
-    let ignore_ssl = std::env::var("S3_IGNORE_SSL").unwrap_or_default() == "true" || endpoint.starts_with("http://192.168.0.170");
-    
+    let ignore_ssl = std::env::var("S3_IGNORE_SSL").unwrap_or_default() == "true"
+        || endpoint.starts_with("http://192.168.0.170");
+
     if ignore_ssl {
         s3_config_builder = configure_insecure_s3(s3_config_builder);
     }
-    
+
     let s3_config = s3_config_builder.build();
 
     Ok(S3Client::from_conf(s3_config))

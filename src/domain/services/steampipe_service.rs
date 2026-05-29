@@ -1,8 +1,8 @@
+use native_tls::TlsConnector;
+use postgres_native_tls::MakeTlsConnector;
 use serde_json::{json, Value};
 use std::env;
 use tokio_postgres::Config;
-use native_tls::TlsConnector;
-use postgres_native_tls::MakeTlsConnector;
 
 pub struct SteampipeStats {
     pub passed: i64,
@@ -16,8 +16,10 @@ pub async fn get_compliance_stats() -> Result<SteampipeStats, String> {
     let database_url = env::var("STEAMPIPE_DATABASE_URL")
         .unwrap_or_else(|_| "postgres://steampipe:1pjVZE4bYBkIGWpNTOgl@steampipe.steampipe-powerpipe.svc:9193/steampipe".to_string());
 
-    let config: Config = database_url.parse().map_err(|e| format!("Invalid DB URL: {}", e))?;
-    
+    let config: Config = database_url
+        .parse()
+        .map_err(|e| format!("Invalid DB URL: {}", e))?;
+
     // Setup TLS
     let connector = TlsConnector::builder()
         .danger_accept_invalid_certs(true)
@@ -25,7 +27,9 @@ pub async fn get_compliance_stats() -> Result<SteampipeStats, String> {
         .map_err(|e| format!("TLS build error: {}", e))?;
     let connector = MakeTlsConnector::new(connector);
 
-    let (client, connection) = config.connect(connector).await
+    let (client, connection) = config
+        .connect(connector)
+        .await
         .map_err(|e| format!("Failed to connect to Steampipe DB: {}", e))?;
 
     // Spawn the connection worker
@@ -45,7 +49,9 @@ pub async fn get_compliance_stats() -> Result<SteampipeStats, String> {
             status;
     ";
 
-    let rows = client.query(query, &[]).await
+    let rows = client
+        .query(query, &[])
+        .await
         .map_err(|e| format!("Query failed: {}", e))?;
 
     let mut stats = SteampipeStats {
@@ -92,7 +98,7 @@ pub async fn get_security_score_metrics() -> Result<Value, String> {
                 "skip": stats.skip,
                 "total_checks": total
             }))
-        },
+        }
         Err(e) => {
             tracing::warn!("Steampipe query failed: {}. Using fallback score.", e);
             Ok(json!({

@@ -80,7 +80,7 @@ mod tests {
             bindings: None,
             actions: None,
         };
-        
+
         surface.update_components(vec![comp1.clone()]);
         assert_eq!(surface.components.len(), 1);
         assert_eq!(surface.components[0].id, "comp1");
@@ -92,7 +92,7 @@ mod tests {
             bindings: None,
             actions: None,
         };
-        
+
         surface.update_components(vec![comp1_upd]);
         assert_eq!(surface.components.len(), 1);
         assert_eq!(surface.components[0].properties, json!({"text": "Updated"}));
@@ -115,7 +115,11 @@ mod tests {
         });
 
         let msg: A2UIMessage = serde_json::from_value(json).unwrap();
-        if let A2UIMessage::SurfaceUpdate { surface_id, components } = msg {
+        if let A2UIMessage::SurfaceUpdate {
+            surface_id,
+            components,
+        } = msg
+        {
             assert_eq!(surface_id, "s1");
             assert_eq!(components.len(), 1);
             assert_eq!(components[0].component, "Button");

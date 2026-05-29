@@ -22,8 +22,9 @@ impl CloudflareRepositoryImpl {
     pub fn new() -> Self {
         let account_id = env::var("CLOUDFLARE_ACCOUNT_ID")
             .unwrap_or_else(|_| "f9c73ac5f7a1b7bcd0958aaf219779f0".to_string());
-        let api_token = env::var("CLOUDFLARE_API_TOKEN")
-            .unwrap_or_else(|_| "cfat_GVE8PTnT6dDAQdyJn4NKgc5J0bt6FIIwbjxdEcwVd3611488".to_string());
+        let api_token = env::var("CLOUDFLARE_API_TOKEN").unwrap_or_else(|_| {
+            "cfat_GVE8PTnT6dDAQdyJn4NKgc5J0bt6FIIwbjxdEcwVd3611488".to_string()
+        });
 
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
@@ -41,10 +42,13 @@ impl CloudflareRepositoryImpl {
 #[async_trait]
 impl CloudflareRepository for CloudflareRepositoryImpl {
     async fn get_analytics_overview(&self) -> Result<BusinessOverview> {
-        info!("Fetching Cloudflare analytics for account {}", self.account_id);
+        info!(
+            "Fetching Cloudflare analytics for account {}",
+            self.account_id
+        );
 
         let url = "https://api.cloudflare.com/client/v4/graphql";
-        
+
         // Query last 24 hours of data
         let now = chrono::Utc::now();
         let yesterday = now - chrono::Duration::hours(24);
@@ -81,7 +85,8 @@ impl CloudflareRepository for CloudflareRepositoryImpl {
             }
         });
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .post(url)
             .header("Authorization", format!("Bearer {}", self.api_token))
             .json(&query)
@@ -93,15 +98,20 @@ impl CloudflareRepository for CloudflareRepositoryImpl {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Cloudflare API error {}: {}", status, text);
-            return Err(KusanagiError::external_service(format!("Cloudflare API error {}: {}", status, text)));
+            return Err(KusanagiError::external_service(format!(
+                "Cloudflare API error {}: {}",
+                status, text
+            )));
         }
 
-        let resp_body: Value = response.json().await
+        let resp_body: Value = response
+            .json()
+            .await
             .map_err(|e| KusanagiError::serialization(e.to_string()))?;
 
         // Extract data
         let account_data = &resp_body["data"]["viewer"]["accounts"][0];
-        
+
         let http_sum = &account_data["httpRequestsAdaptiveGroups"];
         let mut total_requests = 0;
         let mut total_bytes = 0;
@@ -126,7 +136,7 @@ impl CloudflareRepository for CloudflareRepositoryImpl {
                 bandwidth: total_bytes,
                 threats: total_threats,
                 page_views: total_page_views,
-            }
+            },
         })
     }
 }

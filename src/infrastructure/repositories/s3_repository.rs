@@ -7,7 +7,7 @@ use crate::error::{KusanagiError, Result};
 use async_trait::async_trait;
 use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Client;
-use tracing::{info, error};
+use tracing::{error, info};
 
 pub struct S3TranscriptionRepository {
     client: Client,
@@ -24,7 +24,7 @@ impl S3TranscriptionRepository {
 impl TranscriptionRepository for S3TranscriptionRepository {
     async fn store_transcription(&self, filename: &str, text: &str) -> Result<String> {
         let key = format!("transcriptions/{}.txt", filename);
-        
+
         self.client
             .put_object()
             .bucket(&self.bucket)

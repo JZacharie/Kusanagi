@@ -17,13 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("📦 Bucket: {}", bucket);
     println!("🌍 Region: {}", region);
 
-    let credentials = Credentials::new(
-        access_key,
-        secret_key,
-        None,
-        None,
-        "custom",
-    );
+    let credentials = Credentials::new(access_key, secret_key, None, None, "custom");
 
     // Using the exact same builder pattern as the app
     let s3_config = aws_sdk_s3::config::Builder::new()
@@ -36,7 +30,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = S3Client::from_conf(s3_config);
 
     println!("🔍 Listing objects in bucket '{}'...", bucket);
-    match client.list_objects_v2().bucket(&bucket).max_keys(5).send().await {
+    match client
+        .list_objects_v2()
+        .bucket(&bucket)
+        .max_keys(5)
+        .send()
+        .await
+    {
         Ok(output) => {
             println!("✅ Successfully connected to S3!");
             println!("📄 Found {} objects (max 5 shown)", output.contents().len());
@@ -46,18 +46,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => {
             eprintln!("❌ Failed to connect to S3: {:?}", e);
-            
+
             // Additional check: can we even curl it?
             println!("\n🔍 Attempting more raw diagnostics...");
             let http_client = reqwest::Client::builder()
                 .danger_accept_invalid_certs(true) // Just to see if it's a cert name issue vs cert trust issue
                 .build()?;
-            
+
             match http_client.get(&endpoint).send().await {
-                Ok(resp) => println!("✅ Raw HTTP GET to endpoint worked (status: {})", resp.status()),
+                Ok(resp) => println!(
+                    "✅ Raw HTTP GET to endpoint worked (status: {})",
+                    resp.status()
+                ),
                 Err(err) => eprintln!("❌ Raw HTTP GET failed: {:?}", err),
             }
-            
+
             return Err(e.into());
         }
     }

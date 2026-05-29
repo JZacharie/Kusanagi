@@ -28,7 +28,9 @@ pub struct AppState {
     pub mqtt_state: crate::domain::services::mqtt_service::MqttState,
     pub prometheus_handle: metrics_exporter_prometheus::PrometheusHandle,
     pub kubernetes_repository: Arc<dyn crate::domain::ports::KubernetesRepository>,
-    pub ws_broadcast: tokio::sync::broadcast::Sender<crate::interfaces::http::handlers::core::websocket::NotificationMessage>,
+    pub ws_broadcast: tokio::sync::broadcast::Sender<
+        crate::interfaces::http::handlers::core::websocket::NotificationMessage,
+    >,
     pub namespace: String,
 }
 
@@ -41,8 +43,8 @@ impl AppState {
         };
         use crate::infrastructure::repositories::{
             A2UIRepositoryImpl, AlertRepositoryImpl, BackupRepositoryImpl,
-            HomeAssistantRepositoryImpl, NoOpBackupRepository, SecurityRepositoryImpl,
-            WeatherRepositoryImpl, CloudflareRepositoryImpl,
+            CloudflareRepositoryImpl, HomeAssistantRepositoryImpl, NoOpBackupRepository,
+            SecurityRepositoryImpl, WeatherRepositoryImpl,
         };
         use crate::init::{setup_caches, setup_http_client_arc, setup_kube_client_arc};
 
@@ -50,7 +52,8 @@ impl AppState {
         let (k8s_cache, argocd_cache, general_cache) = setup_caches();
         let http_client = setup_http_client_arc();
         let kube_client = setup_kube_client_arc().await;
-        let namespace = std::env::var("KUSANAGI_NAMESPACE").unwrap_or_else(|_| "unknown".to_string());
+        let namespace =
+            std::env::var("KUSANAGI_NAMESPACE").unwrap_or_else(|_| "unknown".to_string());
 
         // Initialize repositories
         let alert_repo: Arc<dyn AlertRepository> = Arc::new(AlertRepositoryImpl::new());
@@ -77,23 +80,31 @@ impl AppState {
         let ha_use_case = Arc::new(GetHomeAssistantUseCase::new(ha_repo));
         let backup_use_case = Arc::new(BackupUseCase::new(backup_repo, k8s_cache.clone()));
         let a2ui_use_case = Arc::new(A2UIUseCase::new(a2ui_repo));
-        
+
         let cf_repo = Arc::new(CloudflareRepositoryImpl::new());
-        let business_use_case = Arc::new(crate::application::use_cases::GetBusinessOverviewUseCase::new(cf_repo));
+        let business_use_case =
+            Arc::new(crate::application::use_cases::GetBusinessOverviewUseCase::new(cf_repo));
 
         // S3 & Transcription
-        let s3_config = aws_config::defaults(aws_config::BehaviorVersion::latest()).load().await;
+        let s3_config = aws_config::defaults(aws_config::BehaviorVersion::latest())
+            .load()
+            .await;
         let mut s3_builder = aws_sdk_s3::config::Builder::from(&s3_config);
-        
+
         // Use custom verifier if needed (Minio usually)
-        if std::env::var("S3_INSECURE").map(|v| v == "true").unwrap_or(false) {
+        if std::env::var("S3_INSECURE")
+            .map(|v| v == "true")
+            .unwrap_or(false)
+        {
             s3_builder = crate::infrastructure::s3_utils::configure_insecure_s3(s3_builder);
         }
-        
+
         let s3_client = aws_sdk_s3::Client::from_conf(s3_builder.build());
         let s3_bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi".to_string());
         let transcription_repo = Arc::new(
-            crate::infrastructure::repositories::S3TranscriptionRepository::new(s3_client, s3_bucket)
+            crate::infrastructure::repositories::S3TranscriptionRepository::new(
+                s3_client, s3_bucket,
+            ),
         );
 
         // External MQTT Notification
@@ -104,19 +115,19 @@ impl AppState {
                 Some("joseph".to_string()),
                 Some("2f21ZxB5JC6XfujK".to_string()),
                 namespace.clone(),
-            ).await
+            )
+            .await,
         );
 
         // Initialize services
         let llm_service = Arc::new(crate::domain::services::llm_service::LlmService::new());
-        
-        let process_audio_use_case = Arc::new(
-            crate::application::use_cases::ProcessAudioUseCase::new(
+
+        let process_audio_use_case =
+            Arc::new(crate::application::use_cases::ProcessAudioUseCase::new(
                 llm_service.clone(),
                 transcription_repo,
-                notification_repo
-            )
-        );
+                notification_repo,
+            ));
         let chat_service = Arc::new(crate::domain::services::chat_service::ChatService::new(
             llm_service.clone(),
             http_client.as_ref().clone(),
@@ -150,7 +161,6 @@ impl AppState {
                 k8s_cache.clone(),
             ),
         );
-
 
         Ok(Self {
             k8s_cache,

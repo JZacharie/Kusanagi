@@ -116,7 +116,7 @@ impl ArgoCdService {
         let mut failed = 0;
 
         for app in apps {
-            if let Err(_) = self.repository.sync_application(&app.name).await {
+            if self.repository.sync_application(&app.name).await.is_err() {
                 failed += 1;
             } else {
                 success += 1;

@@ -175,7 +175,9 @@ impl Default for McpConfig {
                 .unwrap_or_else(|_| "http://localhost:3000/mcp/openobserve".to_string()),
             netbox_url: std::env::var("KUSANAGI_INTEGRATIONS_MCP_NETBOX_URL")
                 .or_else(|_| std::env::var("MCP_NETBOX_URL"))
-                .unwrap_or_else(|_| "http://netbox-mcp-server.netbox.svc.cluster.local".to_string()),
+                .unwrap_or_else(|_| {
+                    "http://netbox-mcp-server.netbox.svc.cluster.local".to_string()
+                }),
             timeout_secs: std::env::var("KUSANAGI_INTEGRATIONS_MCP_TIMEOUT_SECS")
                 .or_else(|_| std::env::var("MCP_TIMEOUT_SECS"))
                 .ok()
@@ -201,7 +203,10 @@ mod tests {
 
     #[test]
     fn test_mcp_config_prefixed_priority() {
-        std::env::set_var("KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL", "http://prefixed:3000");
+        std::env::set_var(
+            "KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL",
+            "http://prefixed:3000",
+        );
         std::env::set_var("MCP_TRIVY_URL", "http://legacy:3000");
 
         let config = McpConfig::default();

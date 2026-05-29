@@ -59,7 +59,10 @@ struct SyncStatus {
     pub revision: Option<String>,
 }
 
-pub async fn get_argocd_status(cache: &AdvancedCache<String>, force_refresh: bool) -> Result<Value, String> {
+pub async fn get_argocd_status(
+    cache: &AdvancedCache<String>,
+    force_refresh: bool,
+) -> Result<Value, String> {
     let cache_key = "argocd_status";
 
     // Try cache first if not forcing refresh
@@ -250,7 +253,10 @@ fn parse_argocd_applications(items: &[ArgoCDApplication]) -> Result<Value, Strin
     }))
 }
 
-pub async fn sync_app(app_name: &str, cache: Option<&AdvancedCache<String>>) -> Result<String, String> {
+pub async fn sync_app(
+    app_name: &str,
+    cache: Option<&AdvancedCache<String>>,
+) -> Result<String, String> {
     tracing::info!("🔄 Triggering sync for ArgoCD app: {}", app_name);
 
     let client = Client::try_default().await.map_err(|e| e.to_string())?;
@@ -285,7 +291,10 @@ pub async fn sync_app(app_name: &str, cache: Option<&AdvancedCache<String>>) -> 
     }
 }
 
-pub async fn refresh_app(app_name: &str, cache: Option<&AdvancedCache<String>>) -> Result<String, String> {
+pub async fn refresh_app(
+    app_name: &str,
+    cache: Option<&AdvancedCache<String>>,
+) -> Result<String, String> {
     tracing::info!("🔄 Triggering refresh for ArgoCD app: {}", app_name);
 
     let client = Client::try_default().await.map_err(|e| e.to_string())?;

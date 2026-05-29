@@ -130,10 +130,18 @@ pub async fn get_vulnerabilities_handler(State(state): State<AppState>) -> impl 
                             let vulns = raw["report"]["vulnerabilities"]
                                 .as_array()
                                 .or_else(|| raw["Report"]["Vulnerabilities"].as_array());
-                            let mut c = 0u64; let mut h = 0u64; let mut m = 0u64; let mut l = 0u64;
+                            let mut c = 0u64;
+                            let mut h = 0u64;
+                            let mut m = 0u64;
+                            let mut l = 0u64;
                             if let Some(list) = vulns {
                                 for v in list {
-                                    match v["severity"].as_str().unwrap_or("").to_lowercase().as_str() {
+                                    match v["severity"]
+                                        .as_str()
+                                        .unwrap_or("")
+                                        .to_lowercase()
+                                        .as_str()
+                                    {
                                         "critical" => c += 1,
                                         "high" => h += 1,
                                         "medium" => m += 1,

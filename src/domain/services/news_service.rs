@@ -20,12 +20,19 @@ pub async fn get_news() -> Result<Value, String> {
     tracing::debug!("📰 News service: Attempting to get news from daily caches");
 
     match get_aggregated_news().await {
-        Ok(news) if !news["items"].as_array().map(|a| a.is_empty()).unwrap_or(true) => {
+        Ok(news)
+            if !news["items"]
+                .as_array()
+                .map(|a| a.is_empty())
+                .unwrap_or(true) =>
+        {
             tracing::info!("✅ News cache aggregate HIT - returning consolidated data");
             Ok(news)
         }
         _ => {
-            tracing::warn!("⚠️  News cache aggregate MISS/Empty - fetching fresh news in background");
+            tracing::warn!(
+                "⚠️  News cache aggregate MISS/Empty - fetching fresh news in background"
+            );
             // Spawn background refresh
             tokio::spawn(async {
                 if let Err(e) = fetch_fresh_news().await {
@@ -59,9 +66,18 @@ async fn fetch_fresh_news() -> Result<Value, String> {
     let mut all_news = Vec::new();
 
     // Fetch from all sources concurrently (Organized in batches to avoid overwhelming)
-    
+
     // Batch 1: Tech & Security (Original + New Tech)
-    let (hn_news, korben_news, github_news, cncf_news, stepsecurity_news, lemagit_news, usine_digitale_news, frandroid_news) = tokio::join!(
+    let (
+        hn_news,
+        korben_news,
+        github_news,
+        cncf_news,
+        stepsecurity_news,
+        lemagit_news,
+        usine_digitale_news,
+        frandroid_news,
+    ) = tokio::join!(
         fetch_hackernews(&client),
         fetch_korben(&client),
         fetch_github_trending(&client),
@@ -73,7 +89,16 @@ async fn fetch_fresh_news() -> Result<Value, String> {
     );
 
     // Batch 2: Tech (More) & General News
-    let (journal_du_geek_news, silicon_news, next_ink_news, zdnet_news, lemonde_news, franceinfo_news, figaro_news, liberation_news) = tokio::join!(
+    let (
+        journal_du_geek_news,
+        silicon_news,
+        next_ink_news,
+        zdnet_news,
+        lemonde_news,
+        franceinfo_news,
+        figaro_news,
+        liberation_news,
+    ) = tokio::join!(
         fetch_journal_du_geek(&client),
         fetch_silicon(&client),
         fetch_next_ink(&client),
@@ -94,7 +119,18 @@ async fn fetch_fresh_news() -> Result<Value, String> {
     );
 
     // Batch 4: Kubernetes, Rust & Lyon Local
-    let (k8s_news, fluxcd_news, rust_news, inside_rust_news, twir_news, progres_news, rue89lyon_news, influx_news, lyoncapitale_news, grandlyon_news) = tokio::join!(
+    let (
+        k8s_news,
+        fluxcd_news,
+        rust_news,
+        inside_rust_news,
+        twir_news,
+        progres_news,
+        rue89lyon_news,
+        influx_news,
+        lyoncapitale_news,
+        grandlyon_news,
+    ) = tokio::join!(
         fetch_kubernetes(&client),
         fetch_fluxcd(&client),
         fetch_rust_blog(&client),
@@ -174,13 +210,20 @@ async fn fetch_fresh_news() -> Result<Value, String> {
     // Translate news items to French and store them incrementally in S3
     let s3_client = create_s3_client().await.ok();
     let bucket = std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string());
-    
+
     if let Ok(endpoint) = std::env::var("S3_ENDPOINT") {
-        tracing::info!("📦 Using S3 bucket for news: '{}' (endpoint: {})", bucket, endpoint);
+        tracing::info!(
+            "📦 Using S3 bucket for news: '{}' (endpoint: {})",
+            bucket,
+            endpoint
+        );
     } else {
-        tracing::info!("📦 Using S3 bucket for news: '{}' (default endpoint)", bucket);
+        tracing::info!(
+            "📦 Using S3 bucket for news: '{}' (default endpoint)",
+            bucket
+        );
     }
-    
+
     let s3_info = s3_client.map(|c| (c, bucket));
     all_news = translate_news_items(all_news, s3_info).await;
 
@@ -247,7 +290,8 @@ async fn store_individual_news_item(
         "stored_at": Utc::now().to_rfc3339()
     });
 
-    let json_bytes = serde_json::to_vec(&data).map_err(|e| format!("JSON serialize error: {}", e))?;
+    let json_bytes =
+        serde_json::to_vec(&data).map_err(|e| format!("JSON serialize error: {}", e))?;
 
     s3_client
         .put_object()
@@ -260,12 +304,14 @@ async fn store_individual_news_item(
         .map_err(|e| {
             let endpoint = std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "unknown".to_string());
             let err_details = format!("{:?}", e);
-            format!("S3 put error for bucket '{}' key '{}' at {}: {}", bucket, key, endpoint, err_details)
+            format!(
+                "S3 put error for bucket '{}' key '{}' at {}: {}",
+                bucket, key, endpoint, err_details
+            )
         })?;
 
     Ok(())
 }
-
 
 async fn get_aggregated_news() -> Result<Value, String> {
     let now = Utc::now();
@@ -292,7 +338,12 @@ async fn get_aggregated_news() -> Result<Value, String> {
                         let client = s3_client.clone();
                         let b = bucket.clone();
                         tasks.push(tokio::spawn(async move {
-                            match tokio::time::timeout(std::time::Duration::from_secs(3), get_cached_file(&client, &b, &key)).await {
+                            match tokio::time::timeout(
+                                std::time::Duration::from_secs(3),
+                                get_cached_file(&client, &b, &key),
+                            )
+                            .await
+                            {
                                 Ok(res) => res,
                                 Err(_) => Err("S3 fetch timeout".to_string()),
                             }
@@ -355,11 +406,15 @@ async fn get_cached_file(s3_client: &S3Client, bucket: &str, key: &str) -> Resul
             err_msg
         })?;
 
-    let body = result.body.collect().await.map_err(|e| format!("S3 body error: {}", e))?;
-    let val: Value = serde_json::from_slice(&body.into_bytes()).map_err(|e| format!("JSON parse error: {}", e))?;
+    let body = result
+        .body
+        .collect()
+        .await
+        .map_err(|e| format!("S3 body error: {}", e))?;
+    let val: Value = serde_json::from_slice(&body.into_bytes())
+        .map_err(|e| format!("JSON parse error: {}", e))?;
     Ok(val)
 }
-
 
 // get_cached_news and store_cached_news removed in favor of daily file helpers
 
@@ -367,17 +422,20 @@ async fn create_s3_client() -> Result<S3Client, String> {
     let endpoint =
         std::env::var("S3_ENDPOINT").unwrap_or_else(|_| "http://192.168.0.170:9010".to_string());
     let region = std::env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".to_string());
-    
-    tracing::debug!("🛠️  Creating S3 client: endpoint={}, region={}", endpoint, region);
+
+    tracing::debug!(
+        "🛠️  Creating S3 client: endpoint={}, region={}",
+        endpoint,
+        region
+    );
 
     let access_key = std::env::var("S3_ACCESS_KEY")
         .map_err(|_| "S3_ACCESS_KEY environment variable not set".to_string())?;
     let secret_key = std::env::var("S3_SECRET_KEY")
         .map_err(|_| "S3_SECRET_KEY environment variable not set".to_string())?;
 
-    let credentials = aws_sdk_s3::config::Credentials::new(
-        access_key, secret_key, None, None, "custom",
-    );
+    let credentials =
+        aws_sdk_s3::config::Credentials::new(access_key, secret_key, None, None, "custom");
 
     let mut s3_config_builder = aws_sdk_s3::config::Builder::new()
         .behavior_version(aws_sdk_s3::config::BehaviorVersion::latest())
@@ -386,15 +444,21 @@ async fn create_s3_client() -> Result<S3Client, String> {
         .credentials_provider(credentials)
         .force_path_style(true);
 
-    let ignore_ssl = std::env::var("S3_IGNORE_SSL").unwrap_or_default() == "true" || endpoint.starts_with("http://192.168.0.170");
-    
+    let ignore_ssl = std::env::var("S3_IGNORE_SSL").unwrap_or_default() == "true"
+        || endpoint.starts_with("http://192.168.0.170");
+
     if ignore_ssl {
         s3_config_builder = configure_insecure_s3(s3_config_builder);
     }
-    
+
     let s3_config = s3_config_builder.build();
 
-    tracing::info!("✅ S3 Client initialized: endpoint={}, region={}, bucket={}", endpoint, region, std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string()));
+    tracing::info!(
+        "✅ S3 Client initialized: endpoint={}, region={}, bucket={}",
+        endpoint,
+        region,
+        std::env::var("S3_BUCKET").unwrap_or_else(|_| "kusanagi-news".to_string())
+    );
 
     Ok(S3Client::from_conf(s3_config))
 }
@@ -479,19 +543,43 @@ async fn fetch_stepsecurity(client: &Client) -> Result<Vec<Value>, String> {
 // --- General News ---
 
 async fn fetch_lemonde(client: &Client) -> Result<Vec<Value>, String> {
-    fetch_rss_feed(client, "https://www.lemonde.fr/rss/une.xml", "lemonde", "🗞️").await
+    fetch_rss_feed(
+        client,
+        "https://www.lemonde.fr/rss/une.xml",
+        "lemonde",
+        "🗞️",
+    )
+    .await
 }
 
 async fn fetch_franceinfo(client: &Client) -> Result<Vec<Value>, String> {
-    fetch_rss_feed(client, "https://www.francetvinfo.fr/titres.rss", "franceinfo", "📻").await
+    fetch_rss_feed(
+        client,
+        "https://www.francetvinfo.fr/titres.rss",
+        "franceinfo",
+        "📻",
+    )
+    .await
 }
 
 async fn fetch_lefigaro(client: &Client) -> Result<Vec<Value>, String> {
-    fetch_rss_feed(client, "https://www.lefigaro.fr/rss/figaro_actualites.xml", "lefigaro", "🗞️").await
+    fetch_rss_feed(
+        client,
+        "https://www.lefigaro.fr/rss/figaro_actualites.xml",
+        "lefigaro",
+        "🗞️",
+    )
+    .await
 }
 
 async fn fetch_liberation(client: &Client) -> Result<Vec<Value>, String> {
-    fetch_rss_feed(client, "https://www.liberation.fr/arc/outboundfeeds/rss-all/category/politique/?outputType=xml", "liberation", "🗳️").await
+    fetch_rss_feed(
+        client,
+        "https://www.liberation.fr/arc/outboundfeeds/rss-all/category/politique/?outputType=xml",
+        "liberation",
+        "🗳️",
+    )
+    .await
 }
 
 async fn fetch_onu(client: &Client) -> Result<Vec<Value>, String> {
@@ -505,7 +593,13 @@ async fn fetch_lemagit(client: &Client) -> Result<Vec<Value>, String> {
 }
 
 async fn fetch_usine_digitale(client: &Client) -> Result<Vec<Value>, String> {
-    fetch_rss_feed(client, "https://www.usine-digitale.fr/rss", "usine-digitale", "🤖").await
+    fetch_rss_feed(
+        client,
+        "https://www.usine-digitale.fr/rss",
+        "usine-digitale",
+        "🤖",
+    )
+    .await
 }
 
 async fn fetch_frandroid(client: &Client) -> Result<Vec<Value>, String> {
@@ -513,7 +607,13 @@ async fn fetch_frandroid(client: &Client) -> Result<Vec<Value>, String> {
 }
 
 async fn fetch_journal_du_geek(client: &Client) -> Result<Vec<Value>, String> {
-    fetch_rss_feed(client, "https://www.journaldugeek.com/feed", "journaldugeek", "🎮").await
+    fetch_rss_feed(
+        client,
+        "https://www.journaldugeek.com/feed",
+        "journaldugeek",
+        "🎮",
+    )
+    .await
 }
 
 async fn fetch_silicon(client: &Client) -> Result<Vec<Value>, String> {
@@ -539,15 +639,33 @@ async fn fetch_rue89lyon(client: &Client) -> Result<Vec<Value>, String> {
 }
 
 async fn fetch_linflux(client: &Client) -> Result<Vec<Value>, String> {
-    fetch_rss_feed(client, "http://www.linflux.com/category/lyon-et-region/feed/", "linflux", "📚").await
+    fetch_rss_feed(
+        client,
+        "http://www.linflux.com/category/lyon-et-region/feed/",
+        "linflux",
+        "📚",
+    )
+    .await
 }
 
 async fn fetch_lyoncapitale(client: &Client) -> Result<Vec<Value>, String> {
-    fetch_rss_feed(client, "https://www.lyoncapitale.fr/rss", "lyoncapitale", "🏙️").await
+    fetch_rss_feed(
+        client,
+        "https://www.lyoncapitale.fr/rss",
+        "lyoncapitale",
+        "🏙️",
+    )
+    .await
 }
 
 async fn fetch_grandlyon(client: &Client) -> Result<Vec<Value>, String> {
-    fetch_rss_feed(client, "https://www.grandlyon.com/flux-rss", "grandlyon", "🏢").await
+    fetch_rss_feed(
+        client,
+        "https://www.grandlyon.com/flux-rss",
+        "grandlyon",
+        "🏢",
+    )
+    .await
 }
 
 // Cloud Providers
@@ -871,8 +989,14 @@ fn strip_tags(text: &str) -> String {
     result
 }
 
-async fn translate_news_items(items: Vec<Value>, s3_info: Option<(S3Client, String)>) -> Vec<Value> {
-    tracing::info!("🌐 Translating {} news items to French via LiteLLM...", items.len());
+async fn translate_news_items(
+    items: Vec<Value>,
+    s3_info: Option<(S3Client, String)>,
+) -> Vec<Value> {
+    tracing::info!(
+        "🌐 Translating {} news items to French via LiteLLM...",
+        items.len()
+    );
 
     let config = LlmConfig {
         provider: LlmProvider::Litellm,
@@ -897,7 +1021,12 @@ async fn translate_news_items(items: Vec<Value>, s3_info: Option<(S3Client, Stri
         .and_then(|s| s.parse::<usize>().ok())
         .unwrap_or(1); // Reduced from 3 to 1 to avoid overwhelming Ollama
 
-    tracing::info!("🚀 Translation config: model={}, concurrency={}, debug={}", config.model, concurrency, debug_mode);
+    tracing::info!(
+        "🚀 Translation config: model={}, concurrency={}, debug={}",
+        config.model,
+        concurrency,
+        debug_mode
+    );
 
     let llm_service = Arc::new(LlmService::with_config(config));
     let semaphore = Arc::new(Semaphore::new(concurrency)); // Max concurrent requests
@@ -957,9 +1086,9 @@ async fn translate_news_items(items: Vec<Value>, s3_info: Option<(S3Client, Stri
                 let s3_client_inner = s3_client.clone();
                 let bucket_inner = bucket.clone();
                 let item_inner = item.clone(); // Use `item` after potential modifications
-                
+
                 let url_for_log = item_inner["url"].as_str().unwrap_or("unknown").to_string();
-                
+
                 tokio::spawn(async move {
                     if let Err(e) = store_individual_news_item(&s3_client_inner, &bucket_inner, item_inner).await {
                         tracing::error!("❌ Background S3 store failed: {}", e);

@@ -32,7 +32,10 @@ pub async fn get_poster(
         Ok((bytes, content_type)) => {
             axum::response::Response::builder()
                 .header(axum::http::header::CONTENT_TYPE, content_type)
-                .header(axum::http::header::CACHE_CONTROL, "public, max-age=31536000") // 1 year
+                .header(
+                    axum::http::header::CACHE_CONTROL,
+                    "public, max-age=31536000",
+                ) // 1 year
                 .body(axum::body::Body::from(bytes))
                 .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
         }

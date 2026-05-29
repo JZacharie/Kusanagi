@@ -55,6 +55,7 @@ fn test_node_info_creation() {
         name: "worker-1".to_string(),
         status: "Ready".to_string(),
         role: "worker".to_string(),
+        disk_usage: None,
     };
 
     assert_eq!(node.name, "worker-1");
@@ -64,21 +65,24 @@ fn test_node_info_creation() {
 
 #[test]
 fn test_node_info_variants() {
-    let nodes = vec![
+    let nodes = [
         NodeInfo {
             name: "master-1".to_string(),
             status: "Ready".to_string(),
             role: "master".to_string(),
+            disk_usage: None,
         },
         NodeInfo {
             name: "worker-1".to_string(),
             status: "NotReady".to_string(),
             role: "worker".to_string(),
+            disk_usage: None,
         },
         NodeInfo {
             name: "worker-2".to_string(),
             status: "Ready".to_string(),
             role: "worker".to_string(),
+            disk_usage: None,
         },
     ];
 
@@ -95,6 +99,7 @@ fn test_node_info_serialization() {
         name: "test-node".to_string(),
         status: "Ready".to_string(),
         role: "worker".to_string(),
+        disk_usage: None,
     };
 
     let json = serde_json::to_string(&node).expect("Failed to serialize");

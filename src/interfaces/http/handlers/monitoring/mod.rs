@@ -1,18 +1,18 @@
 //! Monitoring handlers
 
-pub mod deepseek;
 pub mod cilium;
+pub mod deepseek;
 pub mod mqtt;
 
 use axum::response::IntoResponse;
 use serde_json::json;
 
-pub use deepseek::*;
 pub use cilium::*;
+pub use deepseek::*;
 pub use mqtt::*;
 
-use crate::interfaces::http::response::{api_error, api_success};
 use super::RefreshQuery;
+use crate::interfaces::http::response::{api_error, api_success};
 
 /// Alerts endpoint
 pub async fn alerts() -> impl IntoResponse {
@@ -257,35 +257,40 @@ pub async fn metrics_handler(
     axum::extract::Query(query): axum::extract::Query<RefreshQuery>,
 ) -> impl IntoResponse {
     use crate::domain::services::kubernetes_service;
-    use crate::domain::services::trivy_service;
     use crate::domain::services::mcp_service::McpService;
+    use crate::domain::services::trivy_service;
 
     let force_refresh = query.refresh.unwrap_or(false);
 
     // 1. Get nodes status for resource usage
-    let (cpu_percent, mem_percent, node_count) =
-        match kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache, force_refresh).await {
-            Ok(data) => {
-                if let Some(nodes) = data["nodes"].as_array() {
-                    let mut cpu_sum = 0.0;
-                    let mut mem_sum = 0.0;
-                    let count = nodes.len() as f64;
+    let (cpu_percent, mem_percent, node_count) = match kubernetes_service::get_nodes_status(
+        &state.http_client,
+        &state.k8s_cache,
+        force_refresh,
+    )
+    .await
+    {
+        Ok(data) => {
+            if let Some(nodes) = data["nodes"].as_array() {
+                let mut cpu_sum = 0.0;
+                let mut mem_sum = 0.0;
+                let count = nodes.len() as f64;
 
-                    if count > 0.0 {
-                        for node in nodes {
-                            cpu_sum += node["cpu_usage_percent"].as_f64().unwrap_or(0.0);
-                            mem_sum += node["memory_usage_percent"].as_f64().unwrap_or(0.0);
-                        }
-                        (cpu_sum / count, mem_sum / count, nodes.len())
-                    } else {
-                        (0.0, 0.0, 0)
+                if count > 0.0 {
+                    for node in nodes {
+                        cpu_sum += node["cpu_usage_percent"].as_f64().unwrap_or(0.0);
+                        mem_sum += node["memory_usage_percent"].as_f64().unwrap_or(0.0);
                     }
+                    (cpu_sum / count, mem_sum / count, nodes.len())
                 } else {
                     (0.0, 0.0, 0)
                 }
+            } else {
+                (0.0, 0.0, 0)
             }
-            Err(_) => (0.0, 0.0, 0),
-        };
+        }
+        Err(_) => (0.0, 0.0, 0),
+    };
 
     // 2. Get cluster overview for pod count
     let pod_count = match kubernetes_service::get_cluster_overview(
@@ -325,7 +330,7 @@ pub async fn metrics_handler(
                     "cert-manager",
                     "kube-system",
                     "traefik",
-                    "linkerd"
+                    "linkerd",
                 ];
 
                 if let Some(images) = data["images"].as_array() {
@@ -356,24 +361,32 @@ pub async fn metrics_handler(
         Err(_) => json!({"total": 0, "failed_jobs": []}),
     };
     let failed_jobs_count = failed_jobs_data["total"].as_i64().unwrap_or(0);
-    let failed_jobs_list = failed_jobs_data["failed_jobs"].as_array().cloned().unwrap_or_default();
+    let failed_jobs_list = failed_jobs_data["failed_jobs"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
 
     // 8. Calculate Security Score (Trivy + Steampipe)
-    let steampipe_data = crate::domain::services::steampipe_service::get_security_score_metrics().await.unwrap_or_else(|_| json!({"score": 100.0}));
+    let steampipe_data = crate::domain::services::steampipe_service::get_security_score_metrics()
+        .await
+        .unwrap_or_else(|_| json!({"score": 100.0}));
     let steampipe_score = steampipe_data["score"].as_f64().unwrap_or(100.0);
-    
+
     // Trivy Score Calculation: Start at 100, deduct points
-    let trivy_deduction = (trivy_critical as f64 * 10.0) + (trivy_high as f64 * 5.0) + (trivy_medium as f64 * 2.0);
+    let trivy_deduction =
+        (trivy_critical as f64 * 10.0) + (trivy_high as f64 * 5.0) + (trivy_medium as f64 * 2.0);
     let trivy_score = (100.0 - trivy_deduction).max(0.0);
-    
+
     // Global Score: 40% Trivy, 60% Steampipe
     let security_score = (trivy_score * 0.4) + (steampipe_score * 0.6);
-    
+
     // Additional penalty for failed jobs on the global health perception
     let final_security_score = (security_score - (failed_jobs_count as f64 * 2.0)).max(0.0);
 
     // 9. Get detailed cluster resource metrics
-    let cluster_resources = kubernetes_service::get_cluster_resource_metrics(&state.http_client).await.unwrap_or(json!({}));
+    let cluster_resources = kubernetes_service::get_cluster_resource_metrics(&state.http_client)
+        .await
+        .unwrap_or(json!({}));
 
     // 10. Get Netbox Inventory via MCP
     let mcp_service = McpService::new(
@@ -663,10 +676,8 @@ pub async fn litellm_metrics_handler(
 
                 // Try to calculate totals if data is a list of logs
                 if let Some(logs) = data.as_array() {
-                    let total_spend: f64 = logs
-                        .iter()
-                        .filter_map(|log| log["spend"].as_f64())
-                        .sum();
+                    let total_spend: f64 =
+                        logs.iter().filter_map(|log| log["spend"].as_f64()).sum();
                     response_data.insert("total_spend".to_string(), json!(total_spend));
                     response_data.insert("request_count".to_string(), json!(logs.len()));
                 }

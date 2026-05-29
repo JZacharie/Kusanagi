@@ -81,9 +81,7 @@ impl LlmConfig {
             .or_else(|_| std::env::var("LITELLM_URL"))
             .or_else(|_| std::env::var("OLLAMA_HOST"))
             .unwrap_or_else(|_| match provider {
-                LlmProvider::Litellm => {
-                    "http://litellm.litellm.svc.cluster.local:4000".to_string()
-                }
+                LlmProvider::Litellm => "http://litellm.litellm.svc.cluster.local:4000".to_string(),
                 LlmProvider::Ollama => "http://localhost:11434".to_string(),
                 LlmProvider::Openai => "https://api.openai.com/v1".to_string(),
                 LlmProvider::Anthropic => "https://api.anthropic.com/v1".to_string(),

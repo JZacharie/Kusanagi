@@ -1,9 +1,4 @@
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::info;
@@ -47,8 +42,14 @@ pub async fn deploy_compose_handler(
     Json(input): Json<DeployComposeInput>,
 ) -> impl IntoResponse {
     info!("🚀 Deploying compose stack to Proxmox...");
-    
-    match proxmox_service::deploy_docker_compose_to_proxmox(&state.http_client, &input.yaml, input.target_node.as_deref()).await {
+
+    match proxmox_service::deploy_docker_compose_to_proxmox(
+        &state.http_client,
+        &input.yaml,
+        input.target_node.as_deref(),
+    )
+    .await
+    {
         Ok(results) => api_success(json!({ "results": results })),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }

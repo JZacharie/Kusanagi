@@ -39,7 +39,7 @@ aws-config = { version = "1.8", features = ["behavior-version-latest", "default-
 aws-sdk-s3 = { version = "1.127", features = ["default-https-client", "rt-tokio", "sigv4a", "http-1x"], default-features = false }
 # aws-sdk-cloudwatch and aws-sdk-costexplorer removed (formerly for bedrock)
 aws-smithy-runtime = { version = "1.10", features = ["client", "default-https-client", "rt-tokio", "connector-hyper-0-14-x"], default-features = false }
-hyper-tls-05 = { package = "hyper-tls", version = "0.6" } # Specific version for S3/Legacy
+hyper-tls-05 = { package = "hyper-tls", version = "0.5" } # Specific version for S3/Legacy
 hyper-014 = { package = "hyper", version = "0.14" }
 hyper = "1.0" # And the modern hyper.
 tracing-appender = "0.2.4"

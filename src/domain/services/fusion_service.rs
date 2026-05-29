@@ -49,10 +49,11 @@ pub async fn get_fusion_events() -> Result<Vec<UnifiedEvent>, String> {
 
                     // Rewrite internal Prometheus URLs to public ones
                     if let Some(ref url) = external_url {
-                        if url.contains("kube-prometheus-stack-prometheus") || url.contains(".svc") {
+                        if url.contains("kube-prometheus-stack-prometheus") || url.contains(".svc")
+                        {
                             // Option 1: Deep link (keep query params)
                             // external_url = Some(url.replace("http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090", "https://prometheus.p.zacharie.org"));
-                            
+
                             // Option 2: Use the specific URL requested by the user
                             external_url = Some("https://prometheus.p.zacharie.org/alerts?page=1&state=firing&state=pending".to_string());
                         }

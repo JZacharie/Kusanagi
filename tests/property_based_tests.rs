@@ -182,7 +182,7 @@ fn test_average_properties() {
     // Property: Average is between min and max
     let values = vec![1.0, 2.0, 3.0, 4.0, 5.0];
     let avg = calculate_average(&values).unwrap();
-    assert!(avg >= 1.0 && avg <= 5.0);
+    assert!((1.0..=5.0).contains(&avg));
 
     // Property: Average of empty is None
     let empty: Vec<f64> = vec![];

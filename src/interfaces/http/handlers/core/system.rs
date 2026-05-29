@@ -63,11 +63,13 @@ pub async fn news_refresh() -> impl IntoResponse {
             "items": news["items"],
             "cached_at": news["cached_at"],
             "sources": news["sources"]
-        })).into_response(),
+        }))
+        .into_response(),
         Err(e) => Json(json!({
             "status": "error",
             "message": e
-        })).into_response(),
+        }))
+        .into_response(),
     }
 }
 

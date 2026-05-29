@@ -134,7 +134,15 @@ pub async fn delete_volume_handler(
     State(state): State<AppState>,
     Path((server, node, storage, volume)): Path<(String, String, String, String)>,
 ) -> impl IntoResponse {
-    match proxmox_service::delete_proxmox_volume(&state.http_client, &server, &node, &storage, &volume).await {
+    match proxmox_service::delete_proxmox_volume(
+        &state.http_client,
+        &server,
+        &node,
+        &storage,
+        &volume,
+    )
+    .await
+    {
         Ok(result) => api_success(json!({"message": result})),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }

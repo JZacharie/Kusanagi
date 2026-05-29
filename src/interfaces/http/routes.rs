@@ -3,7 +3,7 @@
 
 use axum::{
     middleware,
-    routing::{get, post, delete},
+    routing::{delete, get, post},
     Router,
 };
 use tower_http::{
@@ -13,8 +13,8 @@ use tower_http::{
 use crate::state::AppState;
 
 // Import handlers from the new structure
-use crate::interfaces::http::handlers::{business::*, core::*, k8s::*, monitoring::*};
 use crate::interfaces::http::handlers::business::proxmox_handlers::delete_volume_handler;
+use crate::interfaces::http::handlers::{business::*, core::*, k8s::*, monitoring::*};
 
 // Import helpers
 use super::helpers::{api_info, index_handler, log_request};
@@ -29,8 +29,8 @@ use tower_governor::{
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use std::sync::Arc;
 use crate::interfaces::http::a2ui_handlers::*;
+use std::sync::Arc;
 
 /// Configure all application routes
 pub fn configure_routes(state: AppState) -> Router {
@@ -106,9 +106,11 @@ pub fn configure_routes(state: AppState) -> Router {
             get(get_security_report_handler),
         )
         .route("/api/weather/current", get(get_weather_handler))
-        .route("/api/business/cloudflare", get(get_cloudflare_analytics_handler))
+        .route(
+            "/api/business/cloudflare",
+            get(get_cloudflare_analytics_handler),
+        )
         // System routes
-
         .route("/api/system/status", get(system_status))
         .route("/api/system/logs", get(system_logs))
         // Kubernetes routes
@@ -116,7 +118,10 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/k8s/nodes", get(nodes_status))
         .route("/api/debug/nodes", get(nodes_debug))
         .route("/api/k8s/pods", get(pods_status))
-        .route("/api/k8s/namespaces/metrics", get(get_namespace_metrics_handler))
+        .route(
+            "/api/k8s/namespaces/metrics",
+            get(get_namespace_metrics_handler),
+        )
         .route("/api/k8s/pods/{namespace}/{name}/logs", get(pod_logs))
         .route(
             "/api/pods/delete-error-pods",
@@ -150,7 +155,10 @@ pub fn configure_routes(state: AppState) -> Router {
             "/api/monitoring/litellm/metrics",
             get(litellm_metrics_handler),
         )
-        .route("/api/monitoring/deepseek/metrics", get(deepseek_metrics_handler))
+        .route(
+            "/api/monitoring/deepseek/metrics",
+            get(deepseek_metrics_handler),
+        )
         .route("/api/dashboard/metrics", get(metrics_handler)) // Dashboard metrics
         .route("/api/github/pipelines", get(github_pipelines_handler))
         .route("/api/chat", post(post_chat_handler))
@@ -161,7 +169,10 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/proxmox/vms", get(get_vms_handler))
         .route("/api/proxmox/containers", get(get_containers_handler))
         .route("/api/proxmox/nodes", get(get_nodes_handler))
-        .route("/api/proxmox/volume/{server}/{node}/{storage}/{volume}", delete(delete_volume_handler))
+        .route(
+            "/api/proxmox/volume/{server}/{node}/{storage}/{volume}",
+            delete(delete_volume_handler),
+        )
         .route("/api/proxmox/deploy-compose", post(deploy_compose_handler))
         // MQTT routes
         .route("/api/mqtt/devices", get(get_mqtt_devices_handler))

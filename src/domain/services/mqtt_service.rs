@@ -35,7 +35,11 @@ struct InnerState {
 pub struct MqttState {
     inner: Arc<Mutex<InnerState>>,
     pub process_audio_use_case: Option<Arc<crate::application::use_cases::ProcessAudioUseCase>>,
-    pub broadcast_sender: Option<tokio::sync::broadcast::Sender<crate::interfaces::http::handlers::core::websocket::NotificationMessage>>,
+    pub broadcast_sender: Option<
+        tokio::sync::broadcast::Sender<
+            crate::interfaces::http::handlers::core::websocket::NotificationMessage,
+        >,
+    >,
     pub namespace: String,
 }
 
@@ -58,12 +62,20 @@ impl MqttState {
         }
     }
 
-    pub fn with_process_audio(mut self, use_case: Arc<crate::application::use_cases::ProcessAudioUseCase>) -> Self {
+    pub fn with_process_audio(
+        mut self,
+        use_case: Arc<crate::application::use_cases::ProcessAudioUseCase>,
+    ) -> Self {
         self.process_audio_use_case = Some(use_case);
         self
     }
 
-    pub fn with_broadcast(mut self, sender: tokio::sync::broadcast::Sender<crate::interfaces::http::handlers::core::websocket::NotificationMessage>) -> Self {
+    pub fn with_broadcast(
+        mut self,
+        sender: tokio::sync::broadcast::Sender<
+            crate::interfaces::http::handlers::core::websocket::NotificationMessage,
+        >,
+    ) -> Self {
         self.broadcast_sender = Some(sender);
         self
     }
@@ -95,11 +107,12 @@ impl MqttState {
 
         // Broadcast to WebSockets
         if let Some(sender) = &self.broadcast_sender {
-            let msg = crate::interfaces::http::handlers::core::websocket::NotificationMessage::Mqtt {
-                topic: topic.clone(),
-                payload: payload.clone(),
-                timestamp: now,
-            };
+            let msg =
+                crate::interfaces::http::handlers::core::websocket::NotificationMessage::Mqtt {
+                    topic: topic.clone(),
+                    payload: payload.clone(),
+                    timestamp: now,
+                };
             let _ = sender.send(msg);
         }
 
@@ -138,17 +151,21 @@ impl MqttState {
 
     pub async fn handle_publish(&self, topic: String, payload_bytes: Vec<u8>) {
         let payload_str = String::from_utf8_lossy(&payload_bytes).to_string();
-        
+
         // Standard message handling
         self.handle_message(topic.clone(), payload_str);
 
         // Special handling for "kitt" topic (Audio ASR)
         if topic == "kitt" {
             if let Some(use_case) = &self.process_audio_use_case {
-                let filename = format!("mqtt_audio_{}", 
-                    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
+                let filename = format!(
+                    "mqtt_audio_{}",
+                    SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs()
                 );
-                
+
                 let state_clone = self.clone();
                 let use_case = use_case.clone();
                 tokio::spawn(async move {
@@ -217,7 +234,9 @@ pub fn start_mqtt_client(
             match eventloop.poll().await {
                 Ok(notification) => {
                     if let Event::Incoming(Packet::Publish(publish)) = notification {
-                        state.handle_publish(publish.topic, publish.payload.to_vec()).await;
+                        state
+                            .handle_publish(publish.topic, publish.payload.to_vec())
+                            .await;
                     }
                 }
                 Err(e) => {

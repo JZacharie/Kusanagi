@@ -48,7 +48,8 @@ impl ChatService {
 
         match self.llm_service.complete(&full_prompt).await {
             Ok(response) => {
-                metrics::counter!("chat_llm_success_total", "language" => language.to_string()).increment(1);
+                metrics::counter!("chat_llm_success_total", "language" => language.to_string())
+                    .increment(1);
                 ChatResponse {
                     response,
                     response_type: "ai".to_string(),

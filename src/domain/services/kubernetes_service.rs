@@ -1,12 +1,15 @@
 use k8s_openapi::api::core::v1::{Event, Node, PersistentVolumeClaim, Pod, Service};
-use k8s_openapi::api::storage::v1::VolumeAttachment;
 use k8s_openapi::api::networking::v1::Ingress;
+use k8s_openapi::api::storage::v1::VolumeAttachment;
 use kube::{api::ListParams, Api, Client};
 use serde_json::{json, Value};
 use tracing::error;
 
 #[tracing::instrument(name = "k8s_get_pods", skip(cache))]
-pub async fn get_pods_status(cache: &crate::AdvancedCache<String>, force_refresh: bool) -> Result<Value, String> {
+pub async fn get_pods_status(
+    cache: &crate::AdvancedCache<String>,
+    force_refresh: bool,
+) -> Result<Value, String> {
     const CACHE_KEY: &str = "kusanagi_pods_status";
 
     if force_refresh {
@@ -323,7 +326,8 @@ pub async fn get_nodes_status(
         }
 
         // Metrics logic - try to find metrics with flexible name matching
-        let (cpu_usage_core, memory_usage_bytes, disk_usage_percent) = find_node_metrics(name, &node_ips, &metrics_map);
+        let (cpu_usage_core, memory_usage_bytes, disk_usage_percent) =
+            find_node_metrics(name, &node_ips, &metrics_map);
 
         let cpu_usage_percent = if cpu_capacity > 0.0 {
             (cpu_usage_core / cpu_capacity) * 100.0
@@ -404,22 +408,26 @@ pub async fn get_cluster_overview(
     force_refresh: bool,
 ) -> Result<Value, String> {
     metrics::counter!("kubernetes_requests_total", "operation" => "cluster_overview").increment(1);
-    let pods = get_pods_status(cache, force_refresh).await.unwrap_or_else(|_| {
-        json!({
-            "total_pods": 0,
-            "running_pods": 0,
-            "pending_pods": 0,
-            "error_pods": 0
-        })
-    });
+    let pods = get_pods_status(cache, force_refresh)
+        .await
+        .unwrap_or_else(|_| {
+            json!({
+                "total_pods": 0,
+                "running_pods": 0,
+                "pending_pods": 0,
+                "error_pods": 0
+            })
+        });
 
-    let nodes = get_nodes_status(client, cache, force_refresh).await.unwrap_or_else(|_| {
-        json!({
-            "total_nodes": 0,
-            "ready_nodes": 0,
-            "not_ready_nodes": 0
-        })
-    });
+    let nodes = get_nodes_status(client, cache, force_refresh)
+        .await
+        .unwrap_or_else(|_| {
+            json!({
+                "total_nodes": 0,
+                "ready_nodes": 0,
+                "not_ready_nodes": 0
+            })
+        });
 
     let services_count = match get_services(kube_client, cache).await {
         Ok(json) => json.as_array().map(|v| v.len()).unwrap_or(0),
@@ -686,12 +694,17 @@ pub async fn get_storage_analysis(client: &reqwest::Client) -> Result<Value, Str
     // 2. Fetch VolumeAttachments
     let va_api: Api<VolumeAttachment> = Api::all(kube_client);
     let va_list = va_api.list(&ListParams::default()).await.map_err(|e| {
-        error!("❌ Storage Analysis: Failed to list VolumeAttachments: {}", e);
+        error!(
+            "❌ Storage Analysis: Failed to list VolumeAttachments: {}",
+            e
+        );
         e.to_string()
     })?;
 
     // 3. Fetch Proxmox volumes
-    let proxmox_volumes = crate::domain::services::proxmox_service::get_all_proxmox_volumes(client).await.unwrap_or(json!([]));
+    let proxmox_volumes = crate::domain::services::proxmox_service::get_all_proxmox_volumes(client)
+        .await
+        .unwrap_or(json!([]));
 
     let mut attached_pvcs = std::collections::HashSet::new();
 
@@ -709,9 +722,17 @@ pub async fn get_storage_analysis(client: &reqwest::Client) -> Result<Value, Str
     for pvc in &pvc_list.items {
         let name = pvc.metadata.name.clone().unwrap_or_default();
         let namespace = pvc.metadata.namespace.clone().unwrap_or_default();
-        let status = pvc.status.as_ref().and_then(|s| s.phase.clone()).unwrap_or("Unknown".to_string());
-        
-        let volume_name = pvc.spec.as_ref().and_then(|s| s.volume_name.clone()).unwrap_or(name.clone());
+        let status = pvc
+            .status
+            .as_ref()
+            .and_then(|s| s.phase.clone())
+            .unwrap_or("Unknown".to_string());
+
+        let volume_name = pvc
+            .spec
+            .as_ref()
+            .and_then(|s| s.volume_name.clone())
+            .unwrap_or(name.clone());
         all_k8s_pv_names.insert(volume_name.clone());
 
         if !attached_pvcs.contains(&volume_name) && status == "Bound" {
@@ -731,10 +752,13 @@ pub async fn get_storage_analysis(client: &reqwest::Client) -> Result<Value, Str
             if let Some(volid) = vol["volid"].as_str() {
                 // E.g. "bpool:vm-9999-pvc-a76a..."
                 let mut found_k8s_match = false;
-                
+
                 // Usually the 'pvc-xxxxx' part is the PV name in K8s
                 if let Some(pos) = volid.find("pvc-") {
-                    let pvc_id = format!("pvc-{}", &volid[pos+4..].trim_end_matches(".raw").trim_matches('\''));
+                    let pvc_id = format!(
+                        "pvc-{}",
+                        &volid[pos + 4..].trim_end_matches(".raw").trim_matches('\'')
+                    );
                     if all_k8s_pv_names.contains(&pvc_id) {
                         found_k8s_match = true;
                     }
@@ -1000,52 +1024,6 @@ pub fn calculate_age_from_timestamp(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_k8s_quantity() {
-        assert_eq!(parse_k8s_quantity("1024"), 1024);
-        assert_eq!(parse_k8s_quantity("1Ki"), 1024);
-        assert_eq!(parse_k8s_quantity("1Mi"), 1048576);
-        assert_eq!(parse_k8s_quantity("1Gi"), 1073741824);
-        assert_eq!(parse_k8s_quantity("1.5Gi"), 1610612736);
-        assert_eq!(parse_k8s_quantity("1.5G"), 1500000000);
-        assert_eq!(parse_k8s_quantity("100M"), 100000000);
-        assert_eq!(parse_k8s_quantity("100Mi"), 104857600);
-        assert_eq!(parse_k8s_quantity(""), 0);
-    }
-
-    #[test]
-    fn test_format_bytes() {
-        assert_eq!(format_bytes(0), "0 B");
-        assert_eq!(format_bytes(1024), "1.00 KiB");
-        assert_eq!(format_bytes(1048576), "1.00 MiB");
-        assert_eq!(format_bytes(1073741824), "1.00 GiB");
-    }
-
-    #[test]
-    fn test_find_node_metrics() {
-        let mut metrics_map = std::collections::HashMap::new();
-        metrics_map.insert("node1".to_string(), (1.0, 1024.0));
-        metrics_map.insert("192.168.1.10:9100".to_string(), (2.0, 2048.0));
-        metrics_map.insert("node3.cluster.local".to_string(), (3.0, 4096.0));
-
-        // Exact match
-        assert_eq!(find_node_metrics("node1", &[], &metrics_map), (1.0, 1024.0));
-
-        // IP match (via node_ips)
-        assert_eq!(find_node_metrics("node-x", &["192.168.1.10".to_string()], &metrics_map), (2.0, 2048.0));
-
-        // Short name match
-        assert_eq!(find_node_metrics("node3", &[], &metrics_map), (3.0, 4096.0));
-
-        // No match
-        assert_eq!(find_node_metrics("unknown", &[], &metrics_map), (0.0, 0.0));
-    }
-}
-
 // End of file
 
 pub async fn delete_pod(
@@ -1258,7 +1236,13 @@ pub async fn fetch_node_metrics(
 
     tracing::info!("Fetched metrics for {} nodes", metrics_map.len());
     for (node, (cpu, mem, disk)) in &metrics_map {
-        tracing::debug!("Node {}: CPU={:.2} cores, MEM={:.2} bytes, DISK={:.1}%", node, cpu, mem, disk);
+        tracing::debug!(
+            "Node {}: CPU={:.2} cores, MEM={:.2} bytes, DISK={:.1}%",
+            node,
+            cpu,
+            mem,
+            disk
+        );
     }
 
     Ok(metrics_map)
@@ -1361,7 +1345,7 @@ fn find_node_metrics(
         for (metric_node, metrics) in metrics_map {
             // metric_node might be "192.168.1.1:9100" or just "192.168.1.1"
             let metric_ip = metric_node.split(':').next().unwrap_or(metric_node);
-            
+
             if ip == metric_ip {
                 tracing::info!("Matched node {} to metrics via IP {}", k8s_node_name, ip);
                 return *metrics;
@@ -1374,7 +1358,12 @@ fn find_node_metrics(
         let metric_ip = metric_node.split(':').next().unwrap_or(metric_node);
         for ip in node_ips {
             if ip.contains(metric_ip) || metric_ip.contains(ip) {
-                tracing::info!("Partial IP match: {} ~ {} for node {}", ip, metric_ip, k8s_node_name);
+                tracing::info!(
+                    "Partial IP match: {} ~ {} for node {}",
+                    ip,
+                    metric_ip,
+                    k8s_node_name
+                );
                 return *metrics;
             }
         }
@@ -1394,14 +1383,14 @@ pub async fn get_namespace_metrics(
     });
 
     let url = format!("{}/api/v1/query", prometheus_url);
-    
+
     let window_val = window.unwrap_or_else(|| "5m".to_string());
-    
+
     // CPU Query:
     // For short windows like 5m, we use rate(...[5m])
     // For longer windows like 1d or 30d, we use rate over that period to get average usage
     let cpu_query = format!("sum(rate(container_cpu_usage_seconds_total{{container!=\"\"}}[{window_val}])) by (namespace)");
-    
+
     // Memory Query:
     // For short windows, current value
     // For longer windows, average over time
@@ -1411,7 +1400,8 @@ pub async fn get_namespace_metrics(
         format!("sum(avg_over_time(container_memory_working_set_bytes{{container!=\"\"}}[{window_val}])) by (namespace)")
     };
 
-    let mut namespace_data: std::collections::HashMap<String, (f64, f64)> = std::collections::HashMap::new();
+    let mut namespace_data: std::collections::HashMap<String, (f64, f64)> =
+        std::collections::HashMap::new();
 
     // Fetch CPU
     if let Ok(results) = query_prometheus_by_namespace(client, &url, &cpu_query).await {
@@ -1492,17 +1482,20 @@ pub async fn get_cluster_resource_metrics(client: &reqwest::Client) -> Result<Va
     });
 
     let url = format!("{}/api/v1/query", prometheus_url);
-    
+
     // 1. Fetch Capacity and Allocatable from K8s API
     let kube_client = Client::try_default().await.map_err(|e| e.to_string())?;
     let nodes_api: Api<Node> = Api::all(kube_client);
-    let nodes = nodes_api.list(&ListParams::default()).await.map_err(|e| e.to_string())?;
-    
+    let nodes = nodes_api
+        .list(&ListParams::default())
+        .await
+        .map_err(|e| e.to_string())?;
+
     let mut cpu_capacity = 0.0;
     let mut cpu_allocatable = 0.0;
     let mut mem_capacity_bytes = 0.0;
     let mut mem_allocatable_bytes = 0.0;
-    
+
     for node in nodes {
         if let Some(status) = &node.status {
             if let Some(cap) = &status.capacity {
@@ -1526,17 +1519,37 @@ pub async fn get_cluster_resource_metrics(client: &reqwest::Client) -> Result<Va
 
     // 2. Fetch Usage, Requests, Limits from Prometheus
     let queries = [
-        ("cpu_usage", "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m]))"),
-        ("cpu_requests", "sum(kube_pod_container_resource_requests{resource=\"cpu\"})"),
-        ("cpu_limits", "sum(kube_pod_container_resource_limits{resource=\"cpu\"})"),
-        ("mem_usage", "sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)"),
-        ("mem_requests", "sum(kube_pod_container_resource_requests{resource=\"memory\"})"),
-        ("mem_limits", "sum(kube_pod_container_resource_limits{resource=\"memory\"})"),
+        (
+            "cpu_usage",
+            "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m]))",
+        ),
+        (
+            "cpu_requests",
+            "sum(kube_pod_container_resource_requests{resource=\"cpu\"})",
+        ),
+        (
+            "cpu_limits",
+            "sum(kube_pod_container_resource_limits{resource=\"cpu\"})",
+        ),
+        (
+            "mem_usage",
+            "sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)",
+        ),
+        (
+            "mem_requests",
+            "sum(kube_pod_container_resource_requests{resource=\"memory\"})",
+        ),
+        (
+            "mem_limits",
+            "sum(kube_pod_container_resource_limits{resource=\"memory\"})",
+        ),
     ];
 
     let mut prometheus_metrics = std::collections::HashMap::new();
     for (name, query) in &queries {
-        let val = query_prometheus_scalar(client, &url, query).await.unwrap_or(0.0);
+        let val = query_prometheus_scalar(client, &url, query)
+            .await
+            .unwrap_or(0.0);
         prometheus_metrics.insert(name.to_string(), val);
     }
 
@@ -1610,11 +1623,18 @@ pub async fn get_failed_jobs(client: &reqwest::Client) -> Result<Value, String> 
     let body: Value = response.json().await.map_err(|e| e.to_string())?;
     let mut failed_jobs = Vec::new();
 
-    if let Some(results) = body.get("data").and_then(|d| d.get("result")).and_then(|r| r.as_array()) {
+    if let Some(results) = body
+        .get("data")
+        .and_then(|d| d.get("result"))
+        .and_then(|r| r.as_array())
+    {
         for result in results {
             if let Some(metric) = result.get("metric") {
-                let job_name = metric.get("job_name").and_then(|v| v.as_str()).unwrap_or("unknown");
-                
+                let job_name = metric
+                    .get("job_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
+
                 // Filter out scan-vulnerabilityreport jobs as requested by user
                 if job_name.starts_with("scan-vulnerabilityreport-") {
                     continue;
@@ -1632,4 +1652,62 @@ pub async fn get_failed_jobs(client: &reqwest::Client) -> Result<Value, String> 
         "total": failed_jobs.len(),
         "failed_jobs": failed_jobs
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_k8s_quantity() {
+        assert_eq!(parse_k8s_quantity("1024"), 1024);
+        assert_eq!(parse_k8s_quantity("1Ki"), 1024);
+        assert_eq!(parse_k8s_quantity("1Mi"), 1048576);
+        assert_eq!(parse_k8s_quantity("1Gi"), 1073741824);
+        assert_eq!(parse_k8s_quantity("1.5Gi"), 1610612736);
+        assert_eq!(parse_k8s_quantity("1.5G"), 1500000000);
+        assert_eq!(parse_k8s_quantity("100M"), 100000000);
+        assert_eq!(parse_k8s_quantity("100Mi"), 104857600);
+        assert_eq!(parse_k8s_quantity(""), 0);
+    }
+
+    #[test]
+    fn test_format_bytes() {
+        assert_eq!(format_bytes(0), "0 B");
+        assert_eq!(format_bytes(1024), "1.00 KiB");
+        assert_eq!(format_bytes(1048576), "1.00 MiB");
+        assert_eq!(format_bytes(1073741824), "1.00 GiB");
+    }
+
+    #[test]
+    fn test_find_node_metrics() {
+        let mut metrics_map = std::collections::HashMap::new();
+        metrics_map.insert("node1".to_string(), (1.0, 1024.0, 0.0));
+        metrics_map.insert("192.168.1.10:9100".to_string(), (2.0, 2048.0, 0.0));
+        metrics_map.insert("node3.cluster.local".to_string(), (3.0, 4096.0, 0.0));
+
+        // Exact match
+        assert_eq!(
+            find_node_metrics("node1", &[], &metrics_map),
+            (1.0, 1024.0, 0.0)
+        );
+
+        // IP match (via node_ips)
+        assert_eq!(
+            find_node_metrics("node-x", &["192.168.1.10".to_string()], &metrics_map),
+            (2.0, 2048.0, 0.0)
+        );
+
+        // Short name match
+        assert_eq!(
+            find_node_metrics("node3", &[], &metrics_map),
+            (3.0, 4096.0, 0.0)
+        );
+
+        // No match
+        assert_eq!(
+            find_node_metrics("unknown", &[], &metrics_map),
+            (0.0, 0.0, 0.0)
+        );
+    }
 }

@@ -5,10 +5,10 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde_json::json;
 
+use super::RefreshQuery;
 use crate::domain::services::kubernetes_service;
 use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
-use super::RefreshQuery;
 
 /// Cluster overview endpoint
 #[utoipa::path(
@@ -64,9 +64,10 @@ pub async fn nodes_status(State(state): State<AppState>) -> Response {
 pub async fn nodes_debug(State(state): State<AppState>) -> Response {
     use crate::domain::services::kubernetes_service::fetch_node_metrics;
 
-    let k8s_nodes_ok = kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache, false)
-        .await
-        .is_ok();
+    let k8s_nodes_ok =
+        kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache, false)
+            .await
+            .is_ok();
     let k8s_pods_ok = kubernetes_service::get_pods_status(&state.k8s_cache, false)
         .await
         .is_ok();
@@ -272,7 +273,6 @@ pub async fn delete_error_pods_handler(State(state): State<AppState>) -> Respons
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
-
 
 #[derive(serde::Deserialize, utoipa::ToSchema)]
 pub struct SyncAppRequest {

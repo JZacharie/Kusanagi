@@ -284,7 +284,11 @@ impl CiliumService {
                     let mut restart_count = 0;
                     let mut latest_error = None;
 
-                    if let Some(container_statuses) = pod.status.as_ref().and_then(|s| s.container_statuses.as_ref()) {
+                    if let Some(container_statuses) = pod
+                        .status
+                        .as_ref()
+                        .and_then(|s| s.container_statuses.as_ref())
+                    {
                         for cs in container_statuses {
                             restart_count += cs.restart_count;
                             if let Some(state) = &cs.state {

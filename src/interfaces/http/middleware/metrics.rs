@@ -16,14 +16,16 @@ pub async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
         "path" => path.clone(),
         "method" => method.to_string(),
         "status" => status.clone()
-    ).record(latency);
-    
+    )
+    .record(latency);
+
     metrics::counter!(
         "http_requests_total",
         "path" => path,
         "method" => method.to_string(),
         "status" => status
-    ).increment(1);
+    )
+    .increment(1);
 
     response
 }

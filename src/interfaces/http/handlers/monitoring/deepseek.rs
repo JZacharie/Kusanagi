@@ -1,13 +1,10 @@
-use axum::{extract::State, response::IntoResponse};
-use serde_json::json;
 use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
+use axum::{extract::State, response::IntoResponse};
+use serde_json::json;
 
-pub async fn deepseek_metrics_handler(
-    State(state): State<AppState>,
-) -> impl IntoResponse {
-    let api_key = std::env::var("DEEPSEEK_API_KEY")
-        .unwrap_or_default();
+pub async fn deepseek_metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let api_key = std::env::var("DEEPSEEK_API_KEY").unwrap_or_default();
 
     if api_key.is_empty() {
         return api_error(
@@ -46,27 +43,34 @@ async fn fetch_deepseek_all_metrics(
     result.insert("balance".to_string(), balance_data.clone());
 
     // 2. Fetch Models (health check)
-    let models = fetch_deepseek_models(state, api_key).await.unwrap_or(json!([]));
+    let models = fetch_deepseek_models(state, api_key)
+        .await
+        .unwrap_or(json!([]));
     result.insert("models".to_string(), models);
 
     // 3. Process Balance and Alerts
     if let Some(balance_infos) = balance_data.get("balance_infos").and_then(|b| b.as_array()) {
         if let Some(first_balance) = balance_infos.first() {
-            let total_balance: f64 = first_balance.get("total_balance")
+            let total_balance: f64 = first_balance
+                .get("total_balance")
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0.0);
-            
-            let currency = first_balance.get("currency")
+
+            let currency = first_balance
+                .get("currency")
                 .and_then(|v| v.as_str())
                 .unwrap_or("CNY");
 
-            result.insert("summary".to_string(), json!({
-                "total_balance": total_balance,
-                "currency": currency,
-                "is_low": total_balance < threshold,
-                "threshold": threshold,
-            }));
+            result.insert(
+                "summary".to_string(),
+                json!({
+                    "total_balance": total_balance,
+                    "currency": currency,
+                    "is_low": total_balance < threshold,
+                    "threshold": threshold,
+                }),
+            );
         }
     }
 
@@ -78,8 +82,9 @@ async fn fetch_deepseek_balance(
     api_key: &str,
 ) -> Result<serde_json::Value, String> {
     let url = "https://api.deepseek.com/user/balance";
-    
-    let response = state.http_client
+
+    let response = state
+        .http_client
         .get(url)
         .header("Authorization", format!("Bearer {}", api_key))
         .send()
@@ -87,10 +92,14 @@ async fn fetch_deepseek_balance(
         .map_err(|e| format!("Request failed: {}", e))?;
 
     if !response.status().is_success() {
-        return Err(format!("DeepSeek API returned status: {}", response.status()));
+        return Err(format!(
+            "DeepSeek API returned status: {}",
+            response.status()
+        ));
     }
 
-    let data = response.json::<serde_json::Value>()
+    let data = response
+        .json::<serde_json::Value>()
         .await
         .map_err(|e| format!("Failed to parse JSON: {}", e))?;
 
@@ -102,8 +111,9 @@ async fn fetch_deepseek_models(
     api_key: &str,
 ) -> Result<serde_json::Value, String> {
     let url = "https://api.deepseek.com/models";
-    
-    let response = state.http_client
+
+    let response = state
+        .http_client
         .get(url)
         .header("Authorization", format!("Bearer {}", api_key))
         .send()
@@ -111,10 +121,14 @@ async fn fetch_deepseek_models(
         .map_err(|e| format!("Request failed: {}", e))?;
 
     if !response.status().is_success() {
-        return Err(format!("DeepSeek API returned status: {}", response.status()));
+        return Err(format!(
+            "DeepSeek API returned status: {}",
+            response.status()
+        ));
     }
 
-    let data = response.json::<serde_json::Value>()
+    let data = response
+        .json::<serde_json::Value>()
         .await
         .map_err(|e| format!("Failed to parse JSON: {}", e))?;
 

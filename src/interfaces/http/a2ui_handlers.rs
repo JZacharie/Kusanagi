@@ -1,10 +1,10 @@
+use crate::domain::entities::A2UIMessage;
+use crate::state::AppState;
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
     Json,
 };
-use crate::domain::entities::A2UIMessage;
-use crate::state::AppState;
 use serde_json::json;
 
 pub async fn post_a2ui_message_handler(

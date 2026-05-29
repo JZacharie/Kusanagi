@@ -289,7 +289,12 @@ pub async fn get_all_proxmox_volumes(client: &reqwest::Client) -> Result<Value, 
         let nodes_api_url = format!("{}/api2/json/nodes", url);
         let mut node_names = Vec::new();
 
-        if let Ok(res) = client.get(&nodes_api_url).header("Cookie", format!("PVEAuthCookie={}", ticket)).send().await {
+        if let Ok(res) = client
+            .get(&nodes_api_url)
+            .header("Cookie", format!("PVEAuthCookie={}", ticket))
+            .send()
+            .await
+        {
             if let Ok(data) = res.json::<Value>().await {
                 if let Some(nodes) = data["data"].as_array() {
                     for node in nodes {
@@ -306,7 +311,12 @@ pub async fn get_all_proxmox_volumes(client: &reqwest::Client) -> Result<Value, 
             let storages_api_url = format!("{}/api2/json/nodes/{}/storage", url, node);
             let mut storage_names = Vec::new();
 
-            if let Ok(res) = client.get(&storages_api_url).header("Cookie", format!("PVEAuthCookie={}", ticket)).send().await {
+            if let Ok(res) = client
+                .get(&storages_api_url)
+                .header("Cookie", format!("PVEAuthCookie={}", ticket))
+                .send()
+                .await
+            {
                 if let Ok(data) = res.json::<Value>().await {
                     if let Some(storages) = data["data"].as_array() {
                         for storage in storages {
@@ -319,8 +329,16 @@ pub async fn get_all_proxmox_volumes(client: &reqwest::Client) -> Result<Value, 
             }
 
             for storage in storage_names {
-                let content_api_url = format!("{}/api2/json/nodes/{}/storage/{}/content", url, node, storage);
-                if let Ok(res) = client.get(&content_api_url).header("Cookie", format!("PVEAuthCookie={}", ticket)).send().await {
+                let content_api_url = format!(
+                    "{}/api2/json/nodes/{}/storage/{}/content",
+                    url, node, storage
+                );
+                if let Ok(res) = client
+                    .get(&content_api_url)
+                    .header("Cookie", format!("PVEAuthCookie={}", ticket))
+                    .send()
+                    .await
+                {
                     if let Ok(data) = res.json::<Value>().await {
                         if let Some(contents) = data["data"].as_array() {
                             for item in contents {
@@ -370,7 +388,10 @@ pub async fn delete_proxmox_volume(
     {
         Ok(response) => {
             if response.status().is_success() {
-                Ok(format!("Volume {} deleted from {} on {}", volume, storage, node))
+                Ok(format!(
+                    "Volume {} deleted from {} on {}",
+                    volume, storage, node
+                ))
             } else {
                 let status = response.status();
                 let body = response.text().await.unwrap_or_default();
@@ -512,23 +533,27 @@ pub async fn deploy_docker_compose_to_proxmox(
     client: &reqwest::Client,
     yaml_content: &str,
     target_node: Option<&str>,
-) -> Result<Vec<crate::interfaces::http::handlers::business::proxmox_compose_handlers::ServiceDeployResult>, String> {
+) -> Result<
+    Vec<crate::interfaces::http::handlers::business::proxmox_compose_handlers::ServiceDeployResult>,
+    String,
+> {
     use crate::interfaces::http::handlers::business::proxmox_compose_handlers::ServiceDeployResult;
-    
+
     // Parse Compose YAML
-    let compose: serde_yaml::Value = serde_yaml::from_str(yaml_content)
-        .map_err(|e| format!("Invalid YAML: {}", e))?;
-    
-    let services = compose.get("services")
+    let compose: serde_yaml::Value =
+        serde_yaml::from_str(yaml_content).map_err(|e| format!("Invalid YAML: {}", e))?;
+
+    let services = compose
+        .get("services")
         .and_then(|v| v.as_mapping())
         .ok_or("Missing or invalid 'services' in compose file")?;
-    
+
     let mut results = Vec::new();
     let node = target_node.unwrap_or("aquabot");
-    
+
     let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
     let server = proxmox_urls.split(',').next().unwrap_or_default().trim();
-    
+
     if server.is_empty() {
         return Err("PROXMOX_URLS not set".to_string());
     }
@@ -536,7 +561,7 @@ pub async fn deploy_docker_compose_to_proxmox(
     for (name_val, config) in services {
         let service_name = name_val.as_str().unwrap_or("unknown").to_string();
         let image = config.get("image").and_then(|v| v.as_str()).unwrap_or("");
-        
+
         if image.is_empty() {
             results.push(ServiceDeployResult {
                 service_name: service_name.clone(),
@@ -564,7 +589,7 @@ pub async fn deploy_docker_compose_to_proxmox(
             }
         }
     }
-    
+
     Ok(results)
 }
 
@@ -586,7 +611,12 @@ async fn create_lxc_from_image(
 
     // Find next available VMID
     let nextid_url = format!("{}/api2/json/cluster/nextid", server);
-    let vmid_str = match client.get(&nextid_url).header("Cookie", format!("PVEAuthCookie={}", ticket)).send().await {
+    let vmid_str = match client
+        .get(&nextid_url)
+        .header("Cookie", format!("PVEAuthCookie={}", ticket))
+        .send()
+        .await
+    {
         Ok(res) if res.status().is_success() => {
             let data = res.json::<Value>().await.map_err(|e| e.to_string())?;
             let vmid_val = &data["data"];
@@ -602,7 +632,7 @@ async fn create_lxc_from_image(
     };
 
     let api_url = format!("{}/api2/json/nodes/{}/lxc", server, node);
-    
+
     // Convert image to Proxmox OCI format if it's just a docker image name
     let ostemplate = if image.starts_with("docker://") {
         image.to_string()

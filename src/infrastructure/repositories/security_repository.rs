@@ -509,7 +509,10 @@ impl SecurityRepository for SecurityRepositoryImpl {
 
         // Get the CronJob
         let cronjob = cronjobs_api.get(cronjob_name).await.map_err(|e| {
-            KusanagiError::external_service(format!("Failed to get CronJob {}: {}", cronjob_name, e))
+            KusanagiError::external_service(format!(
+                "Failed to get CronJob {}: {}",
+                cronjob_name, e
+            ))
         })?;
 
         // Create a Job from the CronJob template

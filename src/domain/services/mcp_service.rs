@@ -5,8 +5,8 @@
 
 use crate::domain::entities::mcp::{
     CiliumPolicySummary, K8sResourceSummary, McpConfig, McpRequest, McpResponse,
-    OpenObserveQueryResult, PolicyReportOverview, PolicySummary, PolicyViolation,
-    SteampipeResult, TrivyVulnerabilitySummary,
+    OpenObserveQueryResult, PolicyReportOverview, PolicySummary, PolicyViolation, SteampipeResult,
+    TrivyVulnerabilitySummary,
 };
 use tracing::{info, warn};
 

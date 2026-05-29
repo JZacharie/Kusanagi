@@ -13,8 +13,7 @@ fn extract_json_value<'a>(json: &'a str, key: &str) -> Option<&'a str> {
         // Skip whitespace, colon, and whitespace
         let after_colon = after_key.trim_start().trim_start_matches(':').trim_start();
         // Find the quoted value
-        if after_colon.starts_with('"') {
-            let after_quote = &after_colon[1..];
+        if let Some(after_quote) = after_colon.strip_prefix('"') {
             if let Some(end_quote) = after_quote.find('"') {
                 return Some(&after_quote[..end_quote]);
             }

@@ -1,8 +1,8 @@
 //! Mock and No-Op repository implementations for testing and offline modes
-use async_trait::async_trait;
 use crate::domain::entities::{BackupsResponse, ClusterInfo, NodeInfo};
 use crate::domain::ports::{BackupRepository, ClusterRepository};
 use crate::error::{KusanagiError, Result};
+use async_trait::async_trait;
 
 pub struct NoOpBackupRepository;
 

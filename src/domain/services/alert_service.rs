@@ -99,9 +99,9 @@ impl AlertDomainService {
         }
 
         // Sort by started_at (most recent first)
-        critical.sort_by(|a, b| b.started_at.cmp(&a.started_at));
-        warning.sort_by(|a, b| b.started_at.cmp(&a.started_at));
-        info.sort_by(|a, b| b.started_at.cmp(&a.started_at));
+        critical.sort_by_key(|b| std::cmp::Reverse(b.started_at));
+        warning.sort_by_key(|b| std::cmp::Reverse(b.started_at));
+        info.sort_by_key(|b| std::cmp::Reverse(b.started_at));
 
         let total = (critical.len() + warning.len() + info.len()) as i32;
 

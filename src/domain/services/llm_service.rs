@@ -58,11 +58,13 @@ impl LlmService {
     /// Perform ASR (Speech-to-Text) using LiteLLM
     pub async fn asr(&self, audio_data: Vec<u8>, filename: &str) -> Result<AsrResult, LlmError> {
         if self.config.provider != LlmProvider::Litellm {
-            return Err(LlmError::ConfigError("ASR only supported with LiteLLM provider".to_string()));
+            return Err(LlmError::ConfigError(
+                "ASR only supported with LiteLLM provider".to_string(),
+            ));
         }
 
         let url = format!("{}/audio/transcriptions", self.config.base_url);
-        
+
         let part = multipart::Part::bytes(audio_data)
             .file_name(filename.to_string())
             .mime_str("video/mp4")
