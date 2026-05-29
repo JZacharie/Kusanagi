@@ -106,7 +106,16 @@ const MqttManager = {
     handleWsMessage: function (data) {
         if (data.type !== 'mqtt') return;
 
-        console.log('📡 Real-time MQTT message:', data.topic);
+        console.log(
+            '%c📡 [MQTT Message Received] %cTopic: %c%s %cPayload: %c%s',
+            'color: #a855f7; font-weight: bold; background: rgba(168, 85, 247, 0.15); padding: 2px 4px; border-radius: 3px;',
+            'color: #aaa; font-weight: normal;',
+            'color: #00fff9; font-weight: bold;',
+            data.topic,
+            'color: #aaa; font-weight: normal;',
+            'color: #ecc94b;',
+            data.payload
+        );
 
         // Add to buffer
         const newMsg = {
