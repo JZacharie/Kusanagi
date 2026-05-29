@@ -1403,7 +1403,27 @@ const LogsManager = {
                 throw new Error(errorData.error || response.statusText);
             }
             const logs = await response.text();
-            container.textContent = logs || 'No logs found.';
+            if (!logs) {
+                container.textContent = 'No logs found.';
+            } else {
+                const escapeHtml = (unsafe) => {
+                    return unsafe
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+                };
+
+                const processedLines = logs.split('\n').map(line => {
+                    const escaped = escapeHtml(line);
+                    if (line.toLowerCase().includes('mqtt')) {
+                        return `<span class="mqtt-log-line" style="background: rgba(168, 85, 247, 0.18); color: #f5f3ff; border-left: 3px solid #a855f7; padding-left: 6px; display: block; text-shadow: 0 0 2px rgba(168, 85, 247, 0.5);">${escaped}</span>`;
+                    }
+                    return escaped;
+                });
+                container.innerHTML = processedLines.join('\n');
+            }
             // Scroll to bottom
             container.scrollTop = container.scrollHeight;
         } catch (error) {
