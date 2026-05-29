@@ -63,8 +63,10 @@ async fn main() -> anyhow::Result<()> {
         let mqtt_pass = std::env::var("MQTT_PASSWORD").ok(); // was MQTT_PASS — mismatch with .env
 
         info!(
-            "📡 Starting MQTT client: {}:{} (user: {:?})",
-            mqtt_host, mqtt_port, mqtt_user
+            "📡 Starting MQTT client: {}:{} (user: {})",
+            mqtt_host,
+            mqtt_port,
+            if mqtt_user.is_some() { "[CONFIGURED]" } else { "[NONE]" }
         );
 
         kusanagi::domain::services::mqtt_service::start_mqtt_client(

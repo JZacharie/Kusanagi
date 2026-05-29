@@ -407,6 +407,16 @@ pub async fn get_cluster_overview(
     cache: &crate::AdvancedCache<String>,
     force_refresh: bool,
 ) -> Result<Value, String> {
+    const CACHE_KEY: &str = "kusanagi_cluster_overview";
+
+    if force_refresh {
+        cache.delete(CACHE_KEY).await;
+    } else if let Some(cached) = cache.get(CACHE_KEY).await {
+        if let Ok(value) = serde_json::from_str::<Value>(&cached) {
+            return Ok(value);
+        }
+    }
+
     metrics::counter!("kubernetes_requests_total", "operation" => "cluster_overview").increment(1);
     let pods = get_pods_status(cache, force_refresh)
         .await
@@ -434,13 +444,25 @@ pub async fn get_cluster_overview(
         Err(_) => 0,
     };
 
-    Ok(json!({
+    let result = json!({
         "nodes": nodes["total_nodes"],
         "pods": pods["total_pods"],
         "services": services_count,
         "pods_running": pods["running_pods"],
         "nodes_ready": nodes["ready_nodes"]
-    }))
+    });
+
+    if let Ok(json_str) = serde_json::to_string(&result) {
+        cache
+            .set(
+                CACHE_KEY.to_string(),
+                json_str,
+                Some(std::time::Duration::from_secs(30)),
+            )
+            .await;
+    }
+
+    Ok(result)
 }
 
 // Imports are at top

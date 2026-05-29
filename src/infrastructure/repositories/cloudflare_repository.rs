@@ -44,7 +44,11 @@ impl CloudflareRepository for CloudflareRepositoryImpl {
     async fn get_analytics_overview(&self) -> Result<BusinessOverview> {
         info!(
             "Fetching Cloudflare analytics for account {}",
-            self.account_id
+            if self.account_id.len() > 8 {
+                format!("{}***{}", &self.account_id[..4], &self.account_id[self.account_id.len()-4..])
+            } else {
+                "***".to_string()
+            }
         );
 
         let url = "https://api.cloudflare.com/client/v4/graphql";

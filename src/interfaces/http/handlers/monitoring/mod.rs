@@ -263,6 +263,15 @@ pub async fn metrics_handler(
     use crate::domain::services::trivy_service;
 
     let force_refresh = query.refresh.unwrap_or(false);
+    const CACHE_KEY: &str = "kusanagi_dashboard_metrics";
+
+    if !force_refresh {
+        if let Some(cached) = state.general_cache.get(CACHE_KEY).await {
+            if let Ok(value) = serde_json::from_str::<serde_json::Value>(&cached) {
+                return crate::interfaces::http::response::api_success(value);
+            }
+        }
+    }
 
     // 1. Get nodes status for resource usage
     let (cpu_percent, mem_percent, node_count) = match kubernetes_service::get_nodes_status(
@@ -402,7 +411,7 @@ pub async fn metrics_handler(
         "status": "error"
     }));
 
-    api_success(serde_json::json!({
+    let response_data = serde_json::json!({
         "cpu_usage_percent": cpu_percent,
         "memory_usage_percent": mem_percent,
         "pod_count": pod_count,
@@ -437,7 +446,17 @@ pub async fn metrics_handler(
         },
         "cluster_resources": cluster_resources,
         "netbox_inventory": netbox_inventory
-    }))
+    });
+
+    if let Ok(json_str) = serde_json::to_string(&response_data) {
+        state.general_cache.set(
+            CACHE_KEY.to_string(),
+            json_str,
+            Some(std::time::Duration::from_secs(30)),
+        ).await;
+    }
+
+    crate::interfaces::http::response::api_success(response_data)
 }
 
 /// Fetch VPS metrics from Prometheus (node_exporter on the VPS)

@@ -219,12 +219,19 @@ pub fn start_mqtt_client(
 
         let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
 
-        // Subscribe to everything
-        match client.subscribe("#", QoS::AtMostOnce).await {
-            Ok(_) => info!("📡 MQTT: Subscribed to '#' on {}", host),
+        // Subscribe to namespace topic and kitt
+        let ns_topic = format!("{}/#", namespace);
+        match client.subscribe(&ns_topic, QoS::AtMostOnce).await {
+            Ok(_) => info!("📡 MQTT: Subscribed to '{}' on {}", ns_topic, host),
             Err(e) => {
-                error!("❌ MQTT: Error subscribing to '#': {:?}", e);
-                return;
+                error!("❌ MQTT: Error subscribing to '{}': {:?}", ns_topic, e);
+            }
+        }
+
+        match client.subscribe("kitt", QoS::AtMostOnce).await {
+            Ok(_) => info!("📡 MQTT: Subscribed to 'kitt' on {}", host),
+            Err(e) => {
+                error!("❌ MQTT: Error subscribing to 'kitt': {:?}", e);
             }
         }
 
