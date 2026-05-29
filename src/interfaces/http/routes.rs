@@ -159,6 +159,7 @@ pub fn configure_routes(state: AppState) -> Router {
             "/api/monitoring/deepseek/metrics",
             get(deepseek_metrics_handler),
         )
+        .route("/api/monitoring/pylos/metrics", get(pylos_metrics_handler))
         .route("/api/dashboard/metrics", get(metrics_handler)) // Dashboard metrics
         .route("/api/github/pipelines", get(github_pipelines_handler))
         .route("/api/chat", post(post_chat_handler))
