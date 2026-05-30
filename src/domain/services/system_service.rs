@@ -92,6 +92,37 @@ impl SystemService {
     #[tracing::instrument(name = "system_get_logs")]
     pub async fn get_logs() -> Result<String, String> {
         metrics::counter!("system_logs_access_total").increment(1);
+
+        // 1. If running in Kubernetes, try to fetch current pod logs using Kubernetes API
+        if let Ok(namespace) = std::env::var("KUSANAGI_NAMESPACE") {
+            if let Ok(pod_name) = std::env::var("HOSTNAME") {
+                tracing::info!(
+                    "Running in Kubernetes, attempting to fetch pod logs for {}/{}",
+                    namespace,
+                    pod_name
+                );
+                match crate::domain::services::kubernetes_service::get_pod_logs(
+                    &namespace, &pod_name,
+                )
+                .await
+                {
+                    Ok(pod_logs) => {
+                        if !pod_logs.is_empty() {
+                            return Ok(pod_logs);
+                        }
+                    }
+                    Err(err) => {
+                        tracing::warn!(
+                            "Failed to fetch Kubernetes pod logs for {}/{}: {}",
+                            namespace,
+                            pod_name,
+                            err
+                        );
+                    }
+                }
+            }
+        }
+
         // Try to read from local log file first (for Docker/k8s support)
         let log_dir_env =
             std::env::var("KUSANAGI_LOG_DIR").unwrap_or_else(|_| "/tmp/kusanagi-logs".to_string());
@@ -159,7 +190,7 @@ impl SystemService {
                 }
             }
             Err(e) => {
-                tracing::warn!("journalctl not available: {}", e);
+                tracing::debug!("journalctl not available: {}", e);
                 // Return informative message rather than error 500
                 Ok(format!(
                     "No local logs available ({}). Log collection requires file logging to be configured or journalctl access.",

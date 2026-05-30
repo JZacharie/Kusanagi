@@ -66,7 +66,11 @@ async fn main() -> anyhow::Result<()> {
             "📡 Starting MQTT client: {}:{} (user: {})",
             mqtt_host,
             mqtt_port,
-            if mqtt_user.is_some() { "[CONFIGURED]" } else { "[NONE]" }
+            if mqtt_user.is_some() {
+                "[CONFIGURED]"
+            } else {
+                "[NONE]"
+            }
         );
 
         kusanagi::domain::services::mqtt_service::start_mqtt_client(

@@ -449,11 +449,14 @@ pub async fn metrics_handler(
     });
 
     if let Ok(json_str) = serde_json::to_string(&response_data) {
-        state.general_cache.set(
-            CACHE_KEY.to_string(),
-            json_str,
-            Some(std::time::Duration::from_secs(30)),
-        ).await;
+        state
+            .general_cache
+            .set(
+                CACHE_KEY.to_string(),
+                json_str,
+                Some(std::time::Duration::from_secs(30)),
+            )
+            .await;
     }
 
     crate::interfaces::http::response::api_success(response_data)
@@ -757,7 +760,7 @@ async fn fetch_enphase_from_ha(client: &reqwest::Client) -> (f64, f64) {
 
     // Try specific entity endpoints first
     let prod_entity = "sensor.envoy_122304017410_current_power_production";
-    let cons_entity = "sensor.envoy_122304017410_current_power_consumption";
+    let cons_entity = "sensor.envoy_122304017410_current_net_power_consumption";
 
     // Helper function to fetch a specific entity
     async fn fetch_entity_value(

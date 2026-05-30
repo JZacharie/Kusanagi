@@ -654,6 +654,11 @@ const MetricsManager = {
                 <div class="loading-mini" style="text-align: center; padding: 2rem; opacity: 0.5;">SCANNING_AI_NEURAL_NET...</div>
             </div>
 
+            <h3 style="${sectionHeaderStyle}">📬 Pylos AI Gateway</h3>
+            <div id="pylos-metrics-container">
+                <div class="loading-mini" style="text-align: center; padding: 2rem; opacity: 0.5;">SCANNING_PYLOS_NEURAL_NET...</div>
+            </div>
+
         `;
 
         // Render Netbox if available
@@ -666,6 +671,9 @@ const MetricsManager = {
 
         // Load LiteLLM metrics asynchronously
         this.loadLitellmMetrics();
+
+        // Load Pylos metrics asynchronously
+        this.loadPylosMetrics();
 
         // Load Bedrock metrics asynchronously
 
@@ -776,6 +784,77 @@ const MetricsManager = {
                 <div style="padding: 1rem; background: rgba(255,0,0,0.05); border-radius: 4px; border-left: 3px solid var(--neon-magenta);">
                     <p style="margin: 0; font-size: 0.8rem; color: var(--text-secondary);">
                         ⚠️ <strong>LiteLLM Metrics Offline</strong> - Unable to fetch gateway data.<br>
+                        <span style="font-size: 0.7rem; opacity: 0.7;">${error.message}</span>
+                    </p>
+                </div>
+            `;
+        }
+    },
+
+    /**
+     * Load Pylos metrics asynchronously
+     */
+    async loadPylosMetrics() {
+        const container = document.getElementById('pylos-metrics-container');
+        if (!container) return;
+
+        try {
+            const data = await api.get('/api/monitoring/pylos/metrics');
+
+            if (!data) throw new Error('No data received');
+
+            let modelsHtml = '';
+            if (data.models && (data.models.data || Array.isArray(data.models))) {
+                const modelsList = Array.isArray(data.models) ? data.models : data.models.data;
+                if (modelsList && modelsList.length > 0) {
+                    const models = modelsList.slice(0, 5);
+                    modelsHtml = `
+                        <div style="margin-top: 1rem; font-size: 0.8rem; border-top: 1px solid rgba(0,255,249,0.1); padding-top: 0.5rem;">
+                            <div style="color: var(--neon-cyan); margin-bottom: 0.5rem; font-family: 'Orbitron'; font-size: 0.7rem;">ACTIVE_MODELS</div>
+                            ${models.map(m => `
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-family: 'JetBrains Mono';">
+                                    <span style="opacity: 0.7;">${m.model_name || m.id}</span>
+                                    <span style="color: var(--neon-green);">${m.name || 'active'}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+            }
+
+            const stats = data.stats || {};
+
+            container.innerHTML = `
+                <div class="metrics-grid">
+                    <div class="metric-card ${data.healthy ? '' : 'alert-critical'}">
+                        <div class="metric-icon">🛡️</div>
+                        <div class="metric-value">${data.healthy ? 'HEALTHY' : 'OFFLINE'}</div>
+                        <div class="metric-label">Gateway Status</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">🧠</div>
+                        <div class="metric-value">${data.model_count || 0}</div>
+                        <div class="metric-label">Active Models</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">💳</div>
+                        <div class="metric-value">$${stats.total_cost_usd?.toFixed(4) || '0.000'}</div>
+                        <div class="metric-label">Recent Cost</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">📈</div>
+                        <div class="metric-value">${stats.total_requests || 0}</div>
+                        <div class="metric-label">Requests (24h)</div>
+                    </div>
+                </div>
+                ${modelsHtml}
+            `;
+        } catch (error) {
+            console.error('Pylos metrics error:', error);
+            container.innerHTML = `
+                <div style="padding: 1rem; background: rgba(255,0,0,0.05); border-radius: 4px; border-left: 3px solid var(--neon-magenta);">
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-secondary);">
+                        ⚠️ <strong>Pylos Metrics Offline</strong> - Unable to fetch gateway data.<br>
                         <span style="font-size: 0.7rem; opacity: 0.7;">${error.message}</span>
                     </p>
                 </div>

@@ -45,7 +45,11 @@ impl CloudflareRepository for CloudflareRepositoryImpl {
         info!(
             "Fetching Cloudflare analytics for account {}",
             if self.account_id.len() > 8 {
-                format!("{}***{}", &self.account_id[..4], &self.account_id[self.account_id.len()-4..])
+                format!(
+                    "{}***{}",
+                    &self.account_id[..4],
+                    &self.account_id[self.account_id.len() - 4..]
+                )
             } else {
                 "***".to_string()
             }
