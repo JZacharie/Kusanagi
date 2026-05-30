@@ -192,38 +192,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_mcp_config_defaults() {
-        // Clear env vars to test defaults
+    fn test_mcp_config_env_vars() {
+        // 1. Test defaults
         std::env::remove_var("KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL");
         std::env::remove_var("MCP_TRIVY_URL");
 
         let config = McpConfig::default();
         assert_eq!(config.trivy_url, "http://localhost:3000/mcp/trivy");
-    }
 
-    #[test]
-    fn test_mcp_config_prefixed_priority() {
-        std::env::set_var(
-            "KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL",
-            "http://prefixed:3000",
-        );
-        std::env::set_var("MCP_TRIVY_URL", "http://legacy:3000");
-
-        let config = McpConfig::default();
-        assert_eq!(config.trivy_url, "http://prefixed:3000");
-
-        std::env::remove_var("KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL");
-        std::env::remove_var("MCP_TRIVY_URL");
-    }
-
-    #[test]
-    fn test_mcp_config_legacy_fallback() {
-        std::env::remove_var("KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL");
+        // 2. Test legacy fallback
         std::env::set_var("MCP_TRIVY_URL", "http://legacy:3000");
 
         let config = McpConfig::default();
         assert_eq!(config.trivy_url, "http://legacy:3000");
 
+        // 3. Test prefixed priority
+        std::env::set_var(
+            "KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL",
+            "http://prefixed:3000",
+        );
+
+        let config = McpConfig::default();
+        assert_eq!(config.trivy_url, "http://prefixed:3000");
+
+        // Cleanup
+        std::env::remove_var("KUSANAGI_INTEGRATIONS_MCP_TRIVY_URL");
         std::env::remove_var("MCP_TRIVY_URL");
     }
 }
