@@ -110,7 +110,7 @@ jobs:
 
       # Sauvegarde le binaire compilé pour qu'il soit utilisé par le job Docker
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kusanagi-binary
           path: target/release/kusanagi
