@@ -58,5 +58,8 @@ native-tls = "0.2"
 postgres-native-tls = "0.5"
 # aws-credential-types removed (formerly for bedrock)
 
+[dev-dependencies]
+async-trait = "0.1"
+
 [build-dependencies]
 chrono = "0.4"

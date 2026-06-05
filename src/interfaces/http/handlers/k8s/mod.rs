@@ -21,16 +21,9 @@ use crate::state::AppState;
     tag = "kubernetes"
 )]
 pub async fn cluster_overview(State(state): State<AppState>) -> Response {
-    match kubernetes_service::get_cluster_overview(
-        &state.http_client,
-        &state.kube_client,
-        &state.k8s_cache,
-        false,
-    )
-    .await
-    {
+    match state.kubernetes_repository.get_cluster_overview(false).await {
         Ok(data) => api_success(json!(data)),
-        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }
 }
 
@@ -45,9 +38,9 @@ pub async fn cluster_overview(State(state): State<AppState>) -> Response {
     tag = "kubernetes"
 )]
 pub async fn nodes_status(State(state): State<AppState>) -> Response {
-    match kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache, false).await {
+    match state.kubernetes_repository.get_nodes_status(false).await {
         Ok(data) => api_success(json!(data)),
-        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }
 }
 
@@ -62,15 +55,8 @@ pub async fn nodes_status(State(state): State<AppState>) -> Response {
     tag = "kubernetes"
 )]
 pub async fn nodes_debug(State(state): State<AppState>) -> Response {
-    use crate::domain::services::kubernetes_service::fetch_node_metrics;
-
-    let k8s_nodes_ok =
-        kubernetes_service::get_nodes_status(&state.http_client, &state.k8s_cache, false)
-            .await
-            .is_ok();
-    let k8s_pods_ok = kubernetes_service::get_pods_status(&state.k8s_cache, false)
-        .await
-        .is_ok();
+    let k8s_nodes_ok = state.kubernetes_repository.get_nodes_status(false).await.is_ok();
+    let k8s_pods_ok = state.kubernetes_repository.get_pods_status(false).await.is_ok();
 
     // Check prometheus connectivity
     let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
@@ -86,7 +72,7 @@ pub async fn nodes_debug(State(state): State<AppState>) -> Response {
         .unwrap_or(false);
 
     // Fetch raw metrics for debugging
-    let metrics_debug = fetch_node_metrics(&state.http_client)
+    let metrics_debug = kubernetes_service::fetch_node_metrics(&state.http_client)
         .await
         .unwrap_or_default();
     let metrics_info: serde_json::Map<String, serde_json::Value> = metrics_debug
@@ -123,9 +109,9 @@ pub async fn nodes_debug(State(state): State<AppState>) -> Response {
     tag = "kubernetes"
 )]
 pub async fn pods_status(State(state): State<AppState>) -> Response {
-    match kubernetes_service::get_pods_status(&state.k8s_cache, false).await {
+    match state.kubernetes_repository.get_pods_status(false).await {
         Ok(data) => api_success(json!(data)),
-        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }
 }
 
@@ -140,9 +126,9 @@ pub async fn pods_status(State(state): State<AppState>) -> Response {
     tag = "kubernetes"
 )]
 pub async fn storage(State(state): State<AppState>) -> Response {
-    match kubernetes_service::get_storage(&state.http_client).await {
+    match state.kubernetes_repository.get_storage().await {
         Ok(data) => api_success(json!(data)),
-        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }
 }
 
@@ -174,9 +160,7 @@ pub async fn storage_analysis(State(state): State<AppState>) -> Response {
     tag = "kubernetes"
 )]
 pub async fn ingress(State(state): State<AppState>) -> Response {
-    use crate::domain::services::kubernetes_service::get_ingress;
-
-    match get_ingress(&state.kube_client, &state.k8s_cache).await {
+    match state.kubernetes_repository.get_ingress().await {
         Ok(ingresses) => api_success(json!(ingresses)),
         Err(_e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch ingress"),
     }
@@ -193,9 +177,7 @@ pub async fn ingress(State(state): State<AppState>) -> Response {
     tag = "kubernetes"
 )]
 pub async fn services(State(state): State<AppState>) -> Response {
-    use crate::domain::services::kubernetes_service::get_services;
-
-    match get_services(&state.kube_client, &state.k8s_cache).await {
+    match state.kubernetes_repository.get_services().await {
         Ok(services) => api_success(json!(services)),
         Err(_e) => api_error(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -242,11 +224,12 @@ pub async fn argocd_status(
     ),
     tag = "kubernetes"
 )]
-pub async fn pod_logs(Path((namespace, name)): Path<(String, String)>) -> impl IntoResponse {
-    use crate::domain::services::kubernetes_service::get_pod_logs;
-
-    match get_pod_logs(&namespace, &name).await {
-        Ok(logs) => logs.into_response(),
+pub async fn pod_logs(
+    State(state): State<AppState>,
+    Path((namespace, name)): Path<(String, String)>,
+) -> Response {
+    match state.kubernetes_repository.get_pod_logs(&namespace, &name).await {
+        Ok(logs) => (StatusCode::OK, logs).into_response(),
         Err(e) => (
             StatusCode::NOT_FOUND,
             format!("Failed to fetch logs: {}", e),
@@ -266,11 +249,9 @@ pub async fn pod_logs(Path((namespace, name)): Path<(String, String)>) -> impl I
     tag = "kubernetes"
 )]
 pub async fn delete_error_pods_handler(State(state): State<AppState>) -> Response {
-    use crate::domain::services::kubernetes_service::delete_error_pods;
-
-    match delete_error_pods(&state.kube_client).await {
+    match state.kubernetes_repository.delete_error_pods().await {
         Ok(result) => api_success(json!(result)),
-        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }
 }
 
@@ -331,11 +312,9 @@ pub async fn force_delete_pod_handler(
     State(state): State<AppState>,
     axum::Json(payload): axum::Json<DeletePodRequest>,
 ) -> Response {
-    use crate::domain::services::kubernetes_service::force_delete_pod;
-
-    match force_delete_pod(&state.kube_client, &payload.namespace, &payload.pod_name).await {
+    match state.kubernetes_repository.force_delete_pod(&payload.namespace, &payload.pod_name).await {
         Ok(result) => api_success(result),
-        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }
 }
 
@@ -358,10 +337,8 @@ pub async fn get_namespace_metrics_handler(
     State(state): State<AppState>,
     axum::extract::Query(query): axum::extract::Query<NamespaceMetricsQuery>,
 ) -> Response {
-    use crate::domain::services::kubernetes_service::get_namespace_metrics;
-
-    match get_namespace_metrics(&state.http_client, query.window).await {
+    match state.kubernetes_repository.get_namespace_metrics(query.window).await {
         Ok(result) => api_success(result),
-        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }
 }

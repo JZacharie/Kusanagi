@@ -258,7 +258,6 @@ pub async fn metrics_handler(
     axum::extract::State(state): axum::extract::State<crate::state::AppState>,
     axum::extract::Query(query): axum::extract::Query<RefreshQuery>,
 ) -> impl IntoResponse {
-    use crate::domain::services::kubernetes_service;
     use crate::domain::services::mcp_service::McpService;
     use crate::domain::services::trivy_service;
 
@@ -274,12 +273,7 @@ pub async fn metrics_handler(
     }
 
     // 1. Get nodes status for resource usage
-    let (cpu_percent, mem_percent, node_count) = match kubernetes_service::get_nodes_status(
-        &state.http_client,
-        &state.k8s_cache,
-        force_refresh,
-    )
-    .await
+    let (cpu_percent, mem_percent, node_count) = match state.kubernetes_repository.get_nodes_status(force_refresh).await
     {
         Ok(data) => {
             if let Some(nodes) = data["nodes"].as_array() {
@@ -304,13 +298,7 @@ pub async fn metrics_handler(
     };
 
     // 2. Get cluster overview for pod count
-    let pod_count = match kubernetes_service::get_cluster_overview(
-        &state.http_client,
-        &state.kube_client,
-        &state.k8s_cache,
-        force_refresh,
-    )
-    .await
+    let pod_count = match state.kubernetes_repository.get_cluster_overview(force_refresh).await
     {
         Ok(data) => data["pods"].as_i64().unwrap_or(0),
         Err(_) => 0,
@@ -367,7 +355,7 @@ pub async fn metrics_handler(
     let gpu_metrics = fetch_gpu_and_energy_metrics(&state.http_client).await;
 
     // 7. Get Failed Jobs
-    let failed_jobs_data = match kubernetes_service::get_failed_jobs(&state.http_client).await {
+    let failed_jobs_data = match state.kubernetes_repository.get_failed_jobs().await {
         Ok(data) => data,
         Err(_) => json!({"total": 0, "failed_jobs": []}),
     };
@@ -395,7 +383,7 @@ pub async fn metrics_handler(
     let final_security_score = (security_score - (failed_jobs_count as f64 * 2.0)).max(0.0);
 
     // 9. Get detailed cluster resource metrics
-    let cluster_resources = kubernetes_service::get_cluster_resource_metrics(&state.http_client)
+    let cluster_resources = state.kubernetes_repository.get_cluster_resource_metrics()
         .await
         .unwrap_or(json!({}));
 
