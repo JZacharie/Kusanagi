@@ -35,7 +35,7 @@ jobs:
           docker push ghcr.io/${{ env.IMAGE_NAME }}:production
 
       - name: Install kubectl
-        uses: azure/setup-kubectl@v4
+        uses: azure/setup-kubectl@v5
 
       - name: Configure kubectl
         run: |
