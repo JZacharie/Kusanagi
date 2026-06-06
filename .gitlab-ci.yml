@@ -11,7 +11,7 @@ stages:
 # Build Rust binary
 build:rust:
   stage: build
-  image: rust:1.95-slim
+  image: rust:1.96-slim
   before_script:
     - apt-get update && apt-get install -y pkg-config libssl-dev
   script:
