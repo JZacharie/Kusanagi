@@ -7,9 +7,9 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use kusanagi::domain::ports::KubernetesRepository;
 use kusanagi::error::Result;
-use async_trait::async_trait;
 use serde_json::{json, Value};
 
 // ── Mock adapter ──────────────────────────────────────────────
@@ -158,8 +158,14 @@ mod tests {
     #[tokio::test]
     async fn test_mock_returns_configured_responses() {
         let repo = MockKubernetesRepository::new()
-            .with("get_pods_status", Ok(json!({"pods": [{"name": "pod-1"}], "total": 1})))
-            .with("get_nodes_status", Ok(json!({"nodes": [{"name": "node-1"}], "total_nodes": 1})));
+            .with(
+                "get_pods_status",
+                Ok(json!({"pods": [{"name": "pod-1"}], "total": 1})),
+            )
+            .with(
+                "get_nodes_status",
+                Ok(json!({"nodes": [{"name": "node-1"}], "total_nodes": 1})),
+            );
 
         let pods = repo.get_pods_status(false).await.unwrap();
         assert_eq!(pods["total"], 1);
@@ -171,8 +177,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_mock_can_return_errors() {
-        let repo = MockKubernetesRepository::new()
-            .with("get_pods_status", Err(KusanagiError::ExternalService("cluster down".into())));
+        let repo = MockKubernetesRepository::new().with(
+            "get_pods_status",
+            Err(KusanagiError::ExternalService("cluster down".into())),
+        );
 
         let result = repo.get_pods_status(false).await;
         assert!(result.is_err());
@@ -181,8 +189,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_mock_returns_string_for_pod_logs() {
-        let repo = MockKubernetesRepository::new()
-            .with_pod_logs(Ok("custom log output".to_string()));
+        let repo =
+            MockKubernetesRepository::new().with_pod_logs(Ok("custom log output".to_string()));
 
         let logs = repo.get_pod_logs("default", "my-pod").await.unwrap();
         assert_eq!(logs, "custom log output");
@@ -190,8 +198,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_mock_force_refresh_parameter_accepted() {
-        let repo = MockKubernetesRepository::new()
-            .with("get_cluster_overview", Ok(json!({"pods": 5, "nodes_ready": 3})));
+        let repo = MockKubernetesRepository::new().with(
+            "get_cluster_overview",
+            Ok(json!({"pods": 5, "nodes_ready": 3})),
+        );
 
         let overview = repo.get_cluster_overview(true).await.unwrap();
         assert_eq!(overview["pods"], 5);
@@ -201,8 +211,14 @@ mod tests {
     #[tokio::test]
     async fn test_mock_delete_operations() {
         let repo = MockKubernetesRepository::new()
-            .with("force_delete_pod", Ok(json!({"success": true, "message": "deleted"})))
-            .with("delete_error_pods", Ok(json!({"success": true, "deleted": 2})));
+            .with(
+                "force_delete_pod",
+                Ok(json!({"success": true, "message": "deleted"})),
+            )
+            .with(
+                "delete_error_pods",
+                Ok(json!({"success": true, "deleted": 2})),
+            );
 
         let force = repo.force_delete_pod("ns", "pod-1").await.unwrap();
         assert_eq!(force["success"], true);
@@ -215,9 +231,18 @@ mod tests {
     #[tokio::test]
     async fn test_mock_storage_and_metrics() {
         let repo = MockKubernetesRepository::new()
-            .with("get_storage", Ok(json!({"pvc_count": 3, "pvcs": [{ "name": "data-pvc" }]})))
-            .with("get_failed_jobs", Ok(json!({"total": 1, "failed_jobs": [{ "name": "job-1" }]})))
-            .with("get_namespace_metrics", Ok(json!({"namespaces": [{ "name": "default", "cpu": 0.5 }]})));
+            .with(
+                "get_storage",
+                Ok(json!({"pvc_count": 3, "pvcs": [{ "name": "data-pvc" }]})),
+            )
+            .with(
+                "get_failed_jobs",
+                Ok(json!({"total": 1, "failed_jobs": [{ "name": "job-1" }]})),
+            )
+            .with(
+                "get_namespace_metrics",
+                Ok(json!({"namespaces": [{ "name": "default", "cpu": 0.5 }]})),
+            );
 
         let storage = repo.get_storage().await.unwrap();
         assert_eq!(storage["pvc_count"], 3);

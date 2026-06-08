@@ -273,7 +273,10 @@ pub async fn metrics_handler(
     }
 
     // 1. Get nodes status for resource usage
-    let (cpu_percent, mem_percent, node_count) = match state.kubernetes_repository.get_nodes_status(force_refresh).await
+    let (cpu_percent, mem_percent, node_count) = match state
+        .kubernetes_repository
+        .get_nodes_status(force_refresh)
+        .await
     {
         Ok(data) => {
             if let Some(nodes) = data["nodes"].as_array() {
@@ -298,7 +301,10 @@ pub async fn metrics_handler(
     };
 
     // 2. Get cluster overview for pod count
-    let pod_count = match state.kubernetes_repository.get_cluster_overview(force_refresh).await
+    let pod_count = match state
+        .kubernetes_repository
+        .get_cluster_overview(force_refresh)
+        .await
     {
         Ok(data) => data["pods"].as_i64().unwrap_or(0),
         Err(_) => 0,
@@ -383,7 +389,9 @@ pub async fn metrics_handler(
     let final_security_score = (security_score - (failed_jobs_count as f64 * 2.0)).max(0.0);
 
     // 9. Get detailed cluster resource metrics
-    let cluster_resources = state.kubernetes_repository.get_cluster_resource_metrics()
+    let cluster_resources = state
+        .kubernetes_repository
+        .get_cluster_resource_metrics()
         .await
         .unwrap_or(json!({}));
 

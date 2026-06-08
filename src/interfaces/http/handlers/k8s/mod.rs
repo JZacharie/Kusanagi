@@ -21,7 +21,11 @@ use crate::state::AppState;
     tag = "kubernetes"
 )]
 pub async fn cluster_overview(State(state): State<AppState>) -> Response {
-    match state.kubernetes_repository.get_cluster_overview(false).await {
+    match state
+        .kubernetes_repository
+        .get_cluster_overview(false)
+        .await
+    {
         Ok(data) => api_success(json!(data)),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }
@@ -55,8 +59,16 @@ pub async fn nodes_status(State(state): State<AppState>) -> Response {
     tag = "kubernetes"
 )]
 pub async fn nodes_debug(State(state): State<AppState>) -> Response {
-    let k8s_nodes_ok = state.kubernetes_repository.get_nodes_status(false).await.is_ok();
-    let k8s_pods_ok = state.kubernetes_repository.get_pods_status(false).await.is_ok();
+    let k8s_nodes_ok = state
+        .kubernetes_repository
+        .get_nodes_status(false)
+        .await
+        .is_ok();
+    let k8s_pods_ok = state
+        .kubernetes_repository
+        .get_pods_status(false)
+        .await
+        .is_ok();
 
     // Check prometheus connectivity
     let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
@@ -228,7 +240,11 @@ pub async fn pod_logs(
     State(state): State<AppState>,
     Path((namespace, name)): Path<(String, String)>,
 ) -> Response {
-    match state.kubernetes_repository.get_pod_logs(&namespace, &name).await {
+    match state
+        .kubernetes_repository
+        .get_pod_logs(&namespace, &name)
+        .await
+    {
         Ok(logs) => (StatusCode::OK, logs).into_response(),
         Err(e) => (
             StatusCode::NOT_FOUND,
@@ -312,7 +328,11 @@ pub async fn force_delete_pod_handler(
     State(state): State<AppState>,
     axum::Json(payload): axum::Json<DeletePodRequest>,
 ) -> Response {
-    match state.kubernetes_repository.force_delete_pod(&payload.namespace, &payload.pod_name).await {
+    match state
+        .kubernetes_repository
+        .force_delete_pod(&payload.namespace, &payload.pod_name)
+        .await
+    {
         Ok(result) => api_success(result),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }
@@ -337,7 +357,11 @@ pub async fn get_namespace_metrics_handler(
     State(state): State<AppState>,
     axum::extract::Query(query): axum::extract::Query<NamespaceMetricsQuery>,
 ) -> Response {
-    match state.kubernetes_repository.get_namespace_metrics(query.window).await {
+    match state
+        .kubernetes_repository
+        .get_namespace_metrics(query.window)
+        .await
+    {
         Ok(result) => api_success(result),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }

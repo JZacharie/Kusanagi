@@ -12,7 +12,7 @@ tower-http = { version = "0.6.11", features = ["fs", "cors", "compression-gzip",
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4.45", features = ["serde"] }
 env_logger = "0.11"
 log = "0.4"
 async-trait = "0.1"
@@ -39,7 +39,7 @@ aws-config = { version = "1.8", features = ["behavior-version-latest", "default-
 aws-sdk-s3 = { version = "1.127", features = ["default-https-client", "rt-tokio", "sigv4a", "http-1x"], default-features = false }
 # aws-sdk-cloudwatch and aws-sdk-costexplorer removed (formerly for bedrock)
 aws-smithy-runtime = { version = "1.10", features = ["client", "default-https-client", "rt-tokio", "connector-hyper-0-14-x"], default-features = false }
-hyper-tls-05 = { package = "hyper-tls", version = "0.5" } # Specific version for S3/Legacy
+hyper-tls-05 = { package = "hyper-tls", version = "0.5" } # Specific version for S3/Legacy (hyper 0.14)
 hyper-014 = { package = "hyper", version = "0.14" }
 hyper = "1.0" # And the modern hyper.
 tracing-appender = "0.2.4"
@@ -62,4 +62,4 @@ postgres-native-tls = "0.5"
 async-trait = "0.1"
 
 [build-dependencies]
-chrono = "0.4"
+chrono = "0.4.45"
