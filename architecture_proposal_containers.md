@@ -60,7 +60,7 @@ graph TD
 
     %% Live updates
     Core_Tasks -->|Broadcast event| Redis_PubSub
-    Redis_PubSub -.->|WebSockets (Reverb / Soketi)| Clients
+    Redis_PubSub -.->|"WebSockets (Reverb / Soketi)"| Clients
     
     %% Storage links
     ECS_Cluster -->|Cache & Session| ElastiCache_Redis
