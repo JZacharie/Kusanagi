@@ -1,3 +1,13 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json"
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "packageRules": [
+    {
+      "matchDepNames": ["hyper-tls-05"],
+      "allowedVersions": "<0.6"
+    },
+    {
+      "matchDepNames": ["hyper-014"],
+      "allowedVersions": "<1.0"
+    }
+  ]
 }
