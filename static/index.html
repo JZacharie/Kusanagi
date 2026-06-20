@@ -58,6 +58,7 @@
     <link rel="stylesheet" href="/static/css/white.css">
     <link rel="stylesheet" href="/static/css/apple.css">
     <link rel="stylesheet" href="/static/css/notebook.css">
+    <link rel="stylesheet" href="/static/css/argocd.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
     <link
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&family=Rajdhani:wght@500;700&display=swap"
@@ -510,6 +511,24 @@
                     <div id="upgrades-content">
                         <div class="no-issues">No upgrades available</div>
                     </div>
+                </div>
+
+                <!-- Custom Dashboard Layout & Placement Grid (Added at the bottom) -->
+                <h3 class="section-subtitle" style="margin-top: 3rem; margin-bottom: 1.5rem; color: var(--neon-cyan); font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px;">🌐 Applications Grid Layout</h3>
+                
+                <div class="argocd-controls-bar">
+                    <input type="text" id="argocd-search" class="argocd-search-input" placeholder="🔍 Search applications by name, namespace, repo..." oninput="K8sArgo.handleSearchFilter()">
+                    <div class="filter-btn-group">
+                        <button class="filter-btn active" data-filter="all" onclick="K8sArgo.setFilter(this, 'all')">ALL</button>
+                        <button class="filter-btn" data-filter="Healthy" onclick="K8sArgo.setFilter(this, 'Healthy')">Healthy</button>
+                        <button class="filter-btn" data-filter="OutOfSync" onclick="K8sArgo.setFilter(this, 'OutOfSync')">Out of Sync</button>
+                        <button class="filter-btn" data-filter="Degraded" onclick="K8sArgo.setFilter(this, 'Degraded')">Degraded</button>
+                        <button class="filter-btn" onclick="K8sArgo.resetPositions()" title="Reset Drag & Drop Layout Positions">🔄 Reset Grid</button>
+                    </div>
+                </div>
+
+                <div class="argocd-grid" id="argocd-grid" style="margin-bottom: 3rem;">
+                    <div class="loading">Loading applications layout...</div>
                 </div>
             </section>
 

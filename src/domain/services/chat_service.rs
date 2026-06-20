@@ -105,7 +105,9 @@ impl ChatService {
         }
 
         // ArgoCD
-        if let Ok(argocd) = argocd_service::get_argocd_status(&self.k8s_cache, false).await {
+        if let Ok(argocd) =
+            argocd_service::get_argocd_status(&self.http_client, &self.k8s_cache, false).await
+        {
             parts.push(format!(
                 "ArgoCD: {} healthy, {} total",
                 argocd.get("healthy").and_then(|v| v.as_u64()).unwrap_or(0),

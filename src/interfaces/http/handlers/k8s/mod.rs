@@ -216,7 +216,7 @@ pub async fn argocd_status(
 
     let force_refresh = query.refresh.unwrap_or(false);
 
-    match get_argocd_status(&state.argocd_cache, force_refresh).await {
+    match get_argocd_status(&state.http_client, &state.argocd_cache, force_refresh).await {
         Ok(status) => api_success(json!(status)),
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
