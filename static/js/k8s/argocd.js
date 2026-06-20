@@ -263,15 +263,38 @@ const K8sArgo = {
                 type: 'doughnut',
                 data: {
                     datasets: [
-                        { data: [0, 0, limits, remLim], backgroundColor: ['transparent', 'transparent', '#319795', '#1a202c'], borderWidth: 0, circumference: 360, weight: 1 },
-                        { data: [0, requests, 0, remReqs], backgroundColor: ['transparent', '#48bb78', 'transparent', '#1a202c'], borderWidth: 0, circumference: 360, weight: 1 },
-                        { data: [usage, 0, 0, remUsage], backgroundColor: ['#d53f8c', 'transparent', 'transparent', '#1a202c'], borderWidth: 0, circumference: 360, weight: 1 },
+                        {
+                            // Outer ring: Limits
+                            data: [0, 0, limits, remLim],
+                            backgroundColor: ['transparent', 'transparent', '#319795', '#1a202c'],
+                            borderWidth: 0,
+                            circumference: 360,
+                            radius: '100%',
+                            cutout: '82%'
+                        },
+                        {
+                            // Middle ring: Requests
+                            data: [0, requests, 0, remReqs],
+                            backgroundColor: ['transparent', '#48bb78', 'transparent', '#1a202c'],
+                            borderWidth: 0,
+                            circumference: 360,
+                            radius: '78%',
+                            cutout: '60%'
+                        },
+                        {
+                            // Inner ring: Usage
+                            data: [usage, 0, 0, remUsage],
+                            backgroundColor: ['#d53f8c', 'transparent', 'transparent', '#1a202c'],
+                            borderWidth: 0,
+                            circumference: 360,
+                            radius: '56%',
+                            cutout: '38%'
+                        },
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '55%',
                     plugins: { legend: { display: false }, tooltip: { enabled: false } }
                 }
             });
