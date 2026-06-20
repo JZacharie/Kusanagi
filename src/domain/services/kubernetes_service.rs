@@ -1703,30 +1703,30 @@ async fn fetch_gpu_metrics_by_node(
 
     // Queries to try for GPU utilization (index 0)
     let util_queries = [
-        "avg(DCGM_FI_DEV_GPU_UTIL) by (kubernetes_node)",
-        "avg(nvidia_gpu_utilization_gpu_utilization) by (node)",
-        "avg(nvidia_gpu_utilization_percentage) by (node)",
-        "avg(gpu_utilization_percent) by (node)",
+        "avg(DCGM_FI_DEV_GPU_UTIL) by (kubernetes_node, Hostname, node, hostname, instance)",
+        "avg(nvidia_gpu_utilization_gpu_utilization) by (kubernetes_node, Hostname, node, hostname, instance)",
+        "avg(nvidia_gpu_utilization_percentage) by (kubernetes_node, Hostname, node, hostname, instance)",
+        "avg(gpu_utilization_percent) by (kubernetes_node, Hostname, node, hostname, instance)",
     ];
 
     // Queries to try for GPU temperature (index 1)
     let temp_queries = [
-        "avg(DCGM_FI_DEV_GPU_TEMP) by (kubernetes_node)",
-        "avg(nvidia_gpu_temperature_gpu_temperature) by (node)",
-        "avg(nvidia_gpu_temperature_celsius) by (node)",
+        "avg(DCGM_FI_DEV_GPU_TEMP) by (kubernetes_node, Hostname, node, hostname, instance)",
+        "avg(nvidia_gpu_temperature_gpu_temperature) by (kubernetes_node, Hostname, node, hostname, instance)",
+        "avg(nvidia_gpu_temperature_celsius) by (kubernetes_node, Hostname, node, hostname, instance)",
     ];
 
     // Queries to try for GPU power draw (index 2)
     let power_queries = [
-        "avg(DCGM_FI_DEV_POWER_USAGE) by (kubernetes_node)",
-        "avg(nvidia_gpu_power_usage_gpu_power_usage) by (node)",
-        "avg(nvidia_gpu_power_draw_watts) by (node)",
+        "avg(DCGM_FI_DEV_POWER_USAGE) by (kubernetes_node, Hostname, node, hostname, instance)",
+        "avg(nvidia_gpu_power_usage_gpu_power_usage) by (kubernetes_node, Hostname, node, hostname, instance)",
+        "avg(nvidia_gpu_power_draw_watts) by (kubernetes_node, Hostname, node, hostname, instance)",
     ];
 
     // Queries to try for GPU memory usage (index 3)
     let mem_queries = [
-        "avg(DCGM_FI_DEV_FB_USED) by (kubernetes_node)",
-        "avg(nvidia_gpu_memory_used_bytes) by (node)",
+        "avg(DCGM_FI_DEV_FB_USED) by (kubernetes_node, Hostname, node, hostname, instance)",
+        "avg(nvidia_gpu_memory_used_bytes) by (kubernetes_node, Hostname, node, hostname, instance)",
     ];
 
     // Helper to query and populate
@@ -1761,6 +1761,8 @@ async fn fetch_gpu_metrics_by_node(
                                 {
                                     let node_name = metric
                                         .get("kubernetes_node")
+                                        .or_else(|| metric.get("Hostname"))
+                                        .or_else(|| metric.get("hostname"))
                                         .or_else(|| metric.get("node"))
                                         .or_else(|| metric.get("instance"))
                                         .and_then(|s| s.as_str());

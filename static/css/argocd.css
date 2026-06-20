@@ -75,6 +75,43 @@
   box-shadow: 0 0 10px rgba(0, 255, 249, 0.4);
 }
 
+/* Sort Controls */
+.sort-btn-group {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.sort-btn {
+  background: rgba(0, 255, 128, 0.05);
+  border: 1px solid rgba(0, 255, 128, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.sort-btn:hover {
+  background: rgba(0, 255, 128, 0.15);
+  border-color: #00ff80;
+  color: #fff;
+}
+
+.sort-btn.active {
+  background: #00ff80;
+  border-color: #00ff80;
+  color: #000;
+  box-shadow: 0 0 10px rgba(0, 255, 128, 0.4);
+}
+
 /* Application Grid */
 .argocd-grid {
   display: grid;

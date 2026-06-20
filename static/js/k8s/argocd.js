@@ -7,6 +7,7 @@ const K8sArgo = {
     applications: [],
     currentFilter: 'all',
     searchQuery: '',
+    sortBy: 'name',
 
     init() {
         console.log('🚀 K8s ArgoCD Dashboard Module Initialized (Features added at the bottom)');
@@ -124,17 +125,24 @@ const K8sArgo = {
             return;
         }
 
-        // Sort applications based on saved layout positions
-        const savedOrder = JSON.parse(localStorage.getItem('kusanagi-argocd-card-order') || '[]');
-        if (savedOrder.length > 0) {
-            filteredApps.sort((a, b) => {
-                const posA = savedOrder.indexOf(a.name);
-                const posB = savedOrder.indexOf(b.name);
-                if (posA === -1 && posB === -1) return 0;
-                if (posA === -1) return 1;
-                if (posB === -1) return -1;
-                return posA - posB;
-            });
+        // Apply sort order
+        if (this.sortBy === 'cpu') {
+            filteredApps.sort((a, b) => (b.cpu_usage || 0) - (a.cpu_usage || 0));
+        } else if (this.sortBy === 'ram') {
+            filteredApps.sort((a, b) => (b.memory_usage_mb || 0) - (a.memory_usage_mb || 0));
+        } else {
+            // Default: saved layout positions or alphabetical
+            const savedOrder = JSON.parse(localStorage.getItem('kusanagi-argocd-card-order') || '[]');
+            if (savedOrder.length > 0) {
+                filteredApps.sort((a, b) => {
+                    const posA = savedOrder.indexOf(a.name);
+                    const posB = savedOrder.indexOf(b.name);
+                    if (posA === -1 && posB === -1) return 0;
+                    if (posA === -1) return 1;
+                    if (posB === -1) return -1;
+                    return posA - posB;
+                });
+            }
         }
 
         grid.innerHTML = filteredApps.map(app => {
@@ -221,6 +229,13 @@ const K8sArgo = {
         if (btnElement) btnElement.classList.add('active');
         
         this.currentFilter = status;
+        this.renderApplicationsGrid();
+    },
+
+    setSortBy(btnElement, sortMode) {
+        document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+        if (btnElement) btnElement.classList.add('active');
+        this.sortBy = sortMode;
         this.renderApplicationsGrid();
     },
 
