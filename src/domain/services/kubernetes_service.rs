@@ -208,7 +208,11 @@ pub async fn get_nodes_status(
     let mut nodes_data = Vec::new();
 
     // Fetch real metrics from Prometheus
-    let metrics_map = fetch_node_metrics(client).await.unwrap_or_default();
+    let (metrics_map, gpu_metrics_map) = tokio::join!(
+        fetch_node_metrics(client),
+        fetch_gpu_metrics_by_node(client)
+    );
+    let metrics_map = metrics_map.unwrap_or_default();
 
     for node in list {
         total += 1;
@@ -358,6 +362,11 @@ pub async fn get_nodes_status(
         // Get actual pod count for this node
         let actual_pod_count = pod_count_by_node.get(name).copied().unwrap_or(0);
 
+        let (gpu_util, gpu_temp, gpu_power, gpu_mem_used) = gpu_metrics_map
+            .get(name)
+            .cloned()
+            .unwrap_or((0.0, 0.0, 0.0, 0.0));
+
         nodes_data.push(json!({
             "name": name,
             "status": if is_ready { "Ready" } else { "NotReady" },
@@ -373,7 +382,11 @@ pub async fn get_nodes_status(
             "pod_capacity": pod_capacity,
             "pod_count": actual_pod_count,
             "age": age,
-            "conditions": conditions_map
+            "conditions": conditions_map,
+            "gpu_utilization": gpu_util,
+            "gpu_temperature": gpu_temp,
+            "gpu_power_usage": gpu_power,
+            "gpu_memory_used": gpu_mem_used
         }));
     }
 
@@ -1674,6 +1687,146 @@ pub async fn get_failed_jobs(client: &reqwest::Client) -> Result<Value, String> 
         "total": failed_jobs.len(),
         "failed_jobs": failed_jobs
     }))
+}
+
+/// Helper to fetch GPU metrics by node
+async fn fetch_gpu_metrics_by_node(
+    client: &reqwest::Client,
+) -> std::collections::HashMap<String, (f64, f64, f64, f64)> {
+    let prometheus_url = std::env::var("PROMETHEUS_URL").unwrap_or_else(|_| {
+        "http://kube-prometheus-stack-prometheus.kube-prometheus-stack.svc:9090".to_string()
+    });
+    let url = format!("{}/api/v1/query", prometheus_url);
+
+    let mut gpu_map: std::collections::HashMap<String, (f64, f64, f64, f64)> =
+        std::collections::HashMap::new();
+
+    // Queries to try for GPU utilization (index 0)
+    let util_queries = [
+        "avg(DCGM_FI_DEV_GPU_UTIL) by (kubernetes_node)",
+        "avg(nvidia_gpu_utilization_gpu_utilization) by (node)",
+        "avg(nvidia_gpu_utilization_percentage) by (node)",
+        "avg(gpu_utilization_percent) by (node)",
+    ];
+
+    // Queries to try for GPU temperature (index 1)
+    let temp_queries = [
+        "avg(DCGM_FI_DEV_GPU_TEMP) by (kubernetes_node)",
+        "avg(nvidia_gpu_temperature_gpu_temperature) by (node)",
+        "avg(nvidia_gpu_temperature_celsius) by (node)",
+    ];
+
+    // Queries to try for GPU power draw (index 2)
+    let power_queries = [
+        "avg(DCGM_FI_DEV_POWER_USAGE) by (kubernetes_node)",
+        "avg(nvidia_gpu_power_usage_gpu_power_usage) by (node)",
+        "avg(nvidia_gpu_power_draw_watts) by (node)",
+    ];
+
+    // Queries to try for GPU memory usage (index 3)
+    let mem_queries = [
+        "avg(DCGM_FI_DEV_FB_USED) by (kubernetes_node)",
+        "avg(nvidia_gpu_memory_used_bytes) by (node)",
+    ];
+
+    // Helper to query and populate
+    async fn populate_gpu_metric(
+        client: &reqwest::Client,
+        url: &str,
+        queries: &[&str],
+        gpu_map: &mut std::collections::HashMap<String, (f64, f64, f64, f64)>,
+        index: usize,
+    ) {
+        for query in queries {
+            if let Ok(response) = client
+                .get(url)
+                .query(&[("query", *query)])
+                .timeout(std::time::Duration::from_secs(3))
+                .send()
+                .await
+            {
+                if !response.status().is_success() {
+                    continue;
+                }
+                if let Ok(body) = response.json::<serde_json::Value>().await {
+                    if let Some(results) = body
+                        .get("data")
+                        .and_then(|d| d.get("result"))
+                        .and_then(|r| r.as_array())
+                    {
+                        if !results.is_empty() {
+                            for result in results {
+                                if let (Some(metric), Some(value)) =
+                                    (result.get("metric"), result.get("value"))
+                                {
+                                    let node_name = metric
+                                        .get("kubernetes_node")
+                                        .or_else(|| metric.get("node"))
+                                        .or_else(|| metric.get("instance"))
+                                        .and_then(|s| s.as_str());
+
+                                    if let Some(node) = node_name {
+                                        let clean_node =
+                                            node.split(':').next().unwrap_or(node).to_string();
+                                        if let Some(val_str) = value.get(1).and_then(|v| v.as_str())
+                                        {
+                                            if let Ok(val) = val_str.parse::<f64>() {
+                                                let entry = gpu_map
+                                                    .entry(clean_node)
+                                                    .or_insert((0.0, 0.0, 0.0, 0.0));
+                                                match index {
+                                                    0 => entry.0 = val,
+                                                    1 => entry.1 = val,
+                                                    2 => entry.2 = val,
+                                                    3 => entry.3 = val,
+                                                    _ => {}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    populate_gpu_metric(client, &url, &util_queries, &mut gpu_map, 0).await;
+    populate_gpu_metric(client, &url, &temp_queries, &mut gpu_map, 1).await;
+    populate_gpu_metric(client, &url, &power_queries, &mut gpu_map, 2).await;
+    populate_gpu_metric(client, &url, &mem_queries, &mut gpu_map, 3).await;
+
+    // Fallback: If empty, fetch from external gpu-hot service and assign to pi204 (GPU node)
+    if gpu_map.is_empty() {
+        let hot_url = std::env::var("GPU_HOT_URL")
+            .unwrap_or_else(|_| "https://gpu-hot.p.zacharie.org".to_string());
+        let api_url = format!("{}/api/gpu-data", hot_url);
+        if let Ok(resp) = client
+            .get(&api_url)
+            .timeout(std::time::Duration::from_secs(3))
+            .send()
+            .await
+        {
+            if resp.status().is_success() {
+                if let Ok(data) = resp.json::<serde_json::Value>().await {
+                    if let Some(gpus) = data.get("gpus").and_then(|g| g.as_object()) {
+                        if let Some(first_gpu) = gpus.values().next() {
+                            let util = first_gpu["utilization"].as_f64().unwrap_or(0.0);
+                            let temp = first_gpu["temperature"].as_f64().unwrap_or(0.0);
+                            let power = first_gpu["power_draw"].as_f64().unwrap_or(0.0);
+                            let mem_used = first_gpu["memory_used"].as_f64().unwrap_or(0.0);
+                            gpu_map.insert("pi204".to_string(), (util, temp, power, mem_used));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    gpu_map
 }
 
 #[cfg(test)]

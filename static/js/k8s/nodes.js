@@ -83,6 +83,12 @@ const K8sNodes = {
             const diskPercent = parseFloat(node.disk_usage_percent) || 0;
             const diskColorClass = getColorClass(diskPercent);
 
+            const gpuPercent = parseFloat(node.gpu_utilization) || 0;
+            const gpuTemp = parseFloat(node.gpu_temperature) || 0;
+            const gpuPower = parseFloat(node.gpu_power_usage) || 0;
+            const gpuMemUsed = parseFloat(node.gpu_memory_used) || 0;
+            const gpuColorClass = getColorClass(gpuPercent);
+
             // Rendu des conditions avec icônes
             const renderConditions = () => {
                 if (!node.conditions) return '';
@@ -162,6 +168,15 @@ const K8sNodes = {
                                 <div class="gauge-mini-fill ${podColorClass}" style="width: ${Math.min(podPercent, 100)}%"></div>
                             </div>
                         </div>
+                        ${gpuPercent > 0 || gpuTemp > 0 || gpuPower > 0 ? `
+                        <div class="gauge-mini" title="Temp: ${gpuTemp.toFixed(0)}°C | Power: ${gpuPower.toFixed(0)}W | Mem Used: ${gpuMemUsed.toFixed(0)} MB">
+                            <div class="gauge-mini-label">GPU</div>
+                            <div class="gauge-mini-value" style="color: ${getColorValue(gpuPercent)}">${gpuPercent.toFixed(0)}%</div>
+                            <div class="gauge-mini-bar">
+                                <div class="gauge-mini-fill ${gpuColorClass}" style="width: ${Math.min(gpuPercent, 100)}%"></div>
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
 
                     <!-- Age et capacité -->
