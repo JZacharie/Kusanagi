@@ -265,8 +265,8 @@ const K8sArgo = {
                     datasets: [
                         {
                             // Outer ring: Limits
-                            data: [0, 0, limits, remLim],
-                            backgroundColor: ['transparent', 'transparent', '#319795', '#1a202c'],
+                            data: [limits, remLim],
+                            backgroundColor: ['#319795', '#1a202c'],
                             borderWidth: 0,
                             circumference: 360,
                             radius: '100%',
@@ -274,8 +274,8 @@ const K8sArgo = {
                         },
                         {
                             // Middle ring: Requests
-                            data: [0, requests, 0, remReqs],
-                            backgroundColor: ['transparent', '#48bb78', 'transparent', '#1a202c'],
+                            data: [requests, remReqs],
+                            backgroundColor: ['#48bb78', '#1a202c'],
                             borderWidth: 0,
                             circumference: 360,
                             radius: '78%',
@@ -283,8 +283,8 @@ const K8sArgo = {
                         },
                         {
                             // Inner ring: Usage
-                            data: [usage, 0, 0, remUsage],
-                            backgroundColor: ['#d53f8c', 'transparent', 'transparent', '#1a202c'],
+                            data: [usage, remUsage],
+                            backgroundColor: ['#d53f8c', '#1a202c'],
                             borderWidth: 0,
                             circumference: 360,
                             radius: '56%',
