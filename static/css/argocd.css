@@ -257,60 +257,85 @@
   flex-grow: 1;
 }
 
-/* Resource Consumption Jauges */
+/* Resource Consumption Gauges (Overview-style) */
 .argocd-resources {
   background: rgba(0, 0, 0, 0.25);
   border-radius: 8px;
-  padding: 0.8rem;
+  padding: 0.6rem;
   margin-bottom: 1.2rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.resource-row {
-  margin-bottom: 0.6rem;
+.resource-gauges {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 0.5rem;
 }
 
-.resource-row:last-child {
+.mini-gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 72px;
+  height: 90px;
+}
+
+.mini-gauge canvas {
+  width: 72px !important;
+  height: 72px !important;
+}
+
+.mini-gauge-label {
+  font-size: 0.65rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+}
+
+/* Compact Legend */
+.mini-gauge-legend {
+  font-size: 0.6rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 2px;
+  color: rgba(255, 255, 255, 0.6);
+  flex-wrap: wrap;
+}
+
+.legend-row:last-child {
   margin-bottom: 0;
 }
 
-.resource-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  font-family: 'JetBrains Mono', monospace;
-  margin-bottom: 0.3rem;
-  color: rgba(255, 255, 255, 0.6);
+.legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
-.resource-value {
+.legend-dot.usage { background-color: #d53f8c; }
+.legend-dot.req { background-color: #48bb78; }
+.legend-dot.lim { background-color: #319795; }
+
+.legend-label {
+  color: rgba(255, 255, 255, 0.4);
+  margin-right: 2px;
+}
+
+.legend-val {
   color: #fff;
   font-weight: bold;
-}
-
-.resource-bar-bg {
-  height: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.resource-bar-fill {
-  height: 100%;
-  background: var(--neon-cyan);
-  border-radius: 3px;
-  box-shadow: 0 0 8px var(--neon-cyan);
-  transition: width 0.5s ease-out;
-}
-
-.resource-bar-fill.warning {
-  background: #ffaa00;
-  box-shadow: 0 0 8px #ffaa00;
-}
-
-.resource-bar-fill.critical {
-  background: #ff4646;
-  box-shadow: 0 0 8px #ff4646;
+  margin-right: 4px;
 }
 
 /* Card Actions */

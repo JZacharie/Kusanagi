@@ -194,14 +194,51 @@ async fn fetch_argocd_status_from_cluster(client: &reqwest::Client) -> Result<Va
         client,
         "sum(container_memory_working_set_bytes{container!=\"\"}) by (namespace)",
     );
+    let cpu_req_fut = query_prometheus_metrics(
+        client,
+        "sum(kube_pod_container_resource_requests{resource=\"cpu\"}) by (label_app_kubernetes_io_instance)",
+    );
+    let cpu_lim_fut = query_prometheus_metrics(
+        client,
+        "sum(kube_pod_container_resource_limits{resource=\"cpu\"}) by (label_app_kubernetes_io_instance)",
+    );
+    let mem_req_fut = query_prometheus_metrics(
+        client,
+        "sum(kube_pod_container_resource_requests{resource=\"memory\"}) by (label_app_kubernetes_io_instance)",
+    );
+    let mem_lim_fut = query_prometheus_metrics(
+        client,
+        "sum(kube_pod_container_resource_limits{resource=\"memory\"}) by (label_app_kubernetes_io_instance)",
+    );
 
-    let (cpu_res, mem_res, cpu_ns_res, mem_ns_res) =
-        tokio::join!(cpu_metrics_fut, mem_metrics_fut, cpu_ns_fut, mem_ns_fut);
+    let (
+        cpu_res,
+        mem_res,
+        cpu_ns_res,
+        mem_ns_res,
+        cpu_req_res,
+        cpu_lim_res,
+        mem_req_res,
+        mem_lim_res,
+    ) = tokio::join!(
+        cpu_metrics_fut,
+        mem_metrics_fut,
+        cpu_ns_fut,
+        mem_ns_fut,
+        cpu_req_fut,
+        cpu_lim_fut,
+        mem_req_fut,
+        mem_lim_fut
+    );
 
     let cpu_metrics = cpu_res.unwrap_or_default();
     let mem_metrics = mem_res.unwrap_or_default();
     let cpu_ns = cpu_ns_res.unwrap_or_default();
     let mem_ns = mem_ns_res.unwrap_or_default();
+    let cpu_req_metrics = cpu_req_res.unwrap_or_default();
+    let cpu_lim_metrics = cpu_lim_res.unwrap_or_default();
+    let mem_req_metrics = mem_req_res.unwrap_or_default();
+    let mem_lim_metrics = mem_lim_res.unwrap_or_default();
 
     match tokio::time::timeout(
         std::time::Duration::from_secs(20),
@@ -217,6 +254,10 @@ async fn fetch_argocd_status_from_cluster(client: &reqwest::Client) -> Result<Va
                 &mem_metrics,
                 &cpu_ns,
                 &mem_ns,
+                &cpu_req_metrics,
+                &cpu_lim_metrics,
+                &mem_req_metrics,
+                &mem_lim_metrics,
             );
         }
         Ok(Err(e)) => {
@@ -269,12 +310,17 @@ async fn fetch_argocd_status_from_cluster(client: &reqwest::Client) -> Result<Va
     Err("ArgoCD not detected or not accessible".to_string())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn parse_argocd_applications(
     items: &[ArgoCDApplication],
     cpu_metrics: &std::collections::HashMap<String, f64>,
     mem_metrics: &std::collections::HashMap<String, f64>,
     cpu_ns: &std::collections::HashMap<String, f64>,
     mem_ns: &std::collections::HashMap<String, f64>,
+    cpu_req_metrics: &std::collections::HashMap<String, f64>,
+    cpu_lim_metrics: &std::collections::HashMap<String, f64>,
+    mem_req_metrics: &std::collections::HashMap<String, f64>,
+    mem_lim_metrics: &std::collections::HashMap<String, f64>,
 ) -> Result<Value, String> {
     let mut healthy = 0;
     let mut degraded = 0;
@@ -440,6 +486,30 @@ fn parse_argocd_applications(
             mem = (50 + (hash % 450)) as f64 * 1024.0 * 1024.0; // 50MB to 500MB
         }
 
+        // Resource requests and limits (from kube-state-metrics)
+        let cpu_requests = cpu_req_metrics.get(name).cloned().unwrap_or(0.0);
+        let cpu_limits = cpu_lim_metrics.get(name).cloned().unwrap_or(0.0);
+        let mem_requests = mem_req_metrics.get(name).cloned().unwrap_or(0.0);
+        let mem_limits = mem_lim_metrics.get(name).cloned().unwrap_or(0.0);
+
+        // Calculate percentages relative to limits (or requests if limits unavailable)
+        let cpu_limits_base = if cpu_limits > 0.0 {
+            cpu_limits
+        } else {
+            cpu_requests.max(1.0)
+        };
+        let cpu_req_percent = (cpu_requests / cpu_limits_base * 100.0).min(100.0);
+        let cpu_lim_percent = (cpu_limits / cpu_limits_base * 100.0).min(100.0);
+        let mem_req_mb = mem_requests / 1024.0 / 1024.0;
+        let mem_lim_mb = mem_limits / 1024.0 / 1024.0;
+        let mem_limits_base_mb = if mem_lim_mb > 0.0 {
+            mem_lim_mb
+        } else {
+            mem_req_mb.max(1.0)
+        };
+        let mem_req_percent = (mem_req_mb / mem_limits_base_mb * 100.0).min(100.0);
+        let mem_lim_percent = (mem_lim_mb / mem_limits_base_mb * 100.0).min(100.0);
+
         // Calculate combined/separate cluster percentages (assuming standard node sizing e.g. 8 cores, 32GB ram total as default cluster sizing if total is unknown)
         // Or we can just present them as percentages of a standard 100% cap (e.g. CPU core usage as a percentage where 1 core = 100%, and Memory as percent of 2GB per app pod)
         let cpu_percent = (cpu * 100.0).min(100.0);
@@ -459,8 +529,16 @@ fn parse_argocd_applications(
             "description": description,
             "cpu_usage": cpu,
             "cpu_percent": cpu_percent,
+            "cpu_requests": cpu_requests,
+            "cpu_limits": cpu_limits,
+            "cpu_requests_percent": cpu_req_percent,
+            "cpu_limits_percent": cpu_lim_percent,
             "memory_usage_mb": mem_mb,
             "memory_percent": mem_percent,
+            "memory_requests_mb": mem_req_mb,
+            "memory_limits_mb": mem_lim_mb,
+            "memory_requests_percent": mem_req_percent,
+            "memory_limits_percent": mem_lim_percent,
             "argocd_url": format!("https://argocd.p.zacharie.org/applications/{}", name),
             "message": "",
             "can_sync": true
@@ -630,9 +708,12 @@ mod tests {
         let mem = std::collections::HashMap::new();
         let cpu_ns = std::collections::HashMap::new();
         let mem_ns = std::collections::HashMap::new();
+        let empty = std::collections::HashMap::new();
 
-        let result = parse_argocd_applications(&items, &cpu, &mem, &cpu_ns, &mem_ns)
-            .expect("Failed to parse");
+        let result = parse_argocd_applications(
+            &items, &cpu, &mem, &cpu_ns, &mem_ns, &empty, &empty, &empty, &empty,
+        )
+        .expect("Failed to parse");
 
         assert_eq!(result["total"], 2);
         assert_eq!(result["healthy"], 1);
@@ -649,8 +730,11 @@ mod tests {
         let mem = std::collections::HashMap::new();
         let cpu_ns = std::collections::HashMap::new();
         let mem_ns = std::collections::HashMap::new();
-        let result = parse_argocd_applications(&items, &cpu, &mem, &cpu_ns, &mem_ns)
-            .expect("Failed to parse");
+        let empty = std::collections::HashMap::new();
+        let result = parse_argocd_applications(
+            &items, &cpu, &mem, &cpu_ns, &mem_ns, &empty, &empty, &empty, &empty,
+        )
+        .expect("Failed to parse");
         assert_eq!(result["total"], 0);
     }
 }

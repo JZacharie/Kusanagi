@@ -8,6 +8,7 @@ const K8sArgo = {
     currentFilter: 'all',
     searchQuery: '',
     sortBy: 'name',
+    charts: {},
 
     init() {
         console.log('🚀 K8s ArgoCD Dashboard Module Initialized (Features added at the bottom)');
@@ -150,10 +151,6 @@ const K8sArgo = {
             const statusClass = app.health_status.toLowerCase();
             const syncClass = app.sync_status.toLowerCase().replace(' ', '');
 
-            // Resource warning status thresholds
-            const cpuWarnClass = app.cpu_percent > 80 ? 'critical' : (app.cpu_percent > 50 ? 'warning' : '');
-            const memWarnClass = app.memory_percent > 80 ? 'critical' : (app.memory_percent > 50 ? 'warning' : '');
-
             return `
                 <div class="argocd-card ${statusClass}" draggable="true" data-name="${app.name}">
                     <div class="argocd-card-header">
@@ -177,22 +174,38 @@ const K8sArgo = {
                     </div>
 
                     <div class="argocd-resources">
-                        <div class="resource-row">
-                            <div class="resource-label">
-                                <span>CPU Usage</span>
-                                <span class="resource-value">${app.cpu_usage.toFixed(3)} Cores</span>
+                        <div class="resource-gauges">
+                            <div class="mini-gauge">
+                                <canvas id="gauge-${app.name.replace(/[^a-zA-Z0-9-]/g, '_')}-cpu" width="72" height="72"></canvas>
+                                <div class="mini-gauge-label">CPU</div>
                             </div>
-                            <div class="resource-bar-bg">
-                                <div class="resource-bar-fill ${cpuWarnClass}" style="width: ${app.cpu_percent}%"></div>
+                            <div class="mini-gauge">
+                                <canvas id="gauge-${app.name.replace(/[^a-zA-Z0-9-]/g, '_')}-mem" width="72" height="72"></canvas>
+                                <div class="mini-gauge-label">MEM</div>
                             </div>
                         </div>
-                        <div class="resource-row" style="margin-top: 0.8rem;">
-                            <div class="resource-label">
-                                <span>Memory</span>
-                                <span class="resource-value">${app.memory_usage_mb.toFixed(0)} MB</span>
+                        <div class="mini-gauge-legend">
+                            <div class="legend-row">
+                                <span class="legend-dot usage"></span>
+                                <span class="legend-label">Usage</span>
+                                <span class="legend-val">${app.cpu_usage.toFixed(3)}</span>
+                                <span class="legend-dot req"></span>
+                                <span class="legend-label">Req</span>
+                                <span class="legend-val">${(app.cpu_requests || 0).toFixed(3)}</span>
+                                <span class="legend-dot lim"></span>
+                                <span class="legend-label">Lim</span>
+                                <span class="legend-val">${(app.cpu_limits || app.cpu_requests || 1).toFixed(3)}</span>
                             </div>
-                            <div class="resource-bar-bg">
-                                <div class="resource-bar-fill ${memWarnClass}" style="width: ${app.memory_percent}%"></div>
+                            <div class="legend-row">
+                                <span class="legend-dot usage"></span>
+                                <span class="legend-label">Usage</span>
+                                <span class="legend-val">${app.memory_usage_mb.toFixed(0)} MB</span>
+                                <span class="legend-dot req"></span>
+                                <span class="legend-label">Req</span>
+                                <span class="legend-val">${(app.memory_requests_mb || 0).toFixed(0)} MB</span>
+                                <span class="legend-dot lim"></span>
+                                <span class="legend-label">Lim</span>
+                                <span class="legend-val">${(app.memory_limits_mb || app.memory_requests_mb || 4096).toFixed(0)} MB</span>
                             </div>
                         </div>
                     </div>
@@ -212,6 +225,59 @@ const K8sArgo = {
         }).join('');
 
         this.initDragAndDrop();
+        this.initGauges();
+    },
+
+    // Chart.js doughnut gauges (matching Overview style)
+    initGauges() {
+        Object.values(this.charts).forEach(c => { try { c.destroy(); } catch(e) {} });
+        this.charts = {};
+
+        document.querySelectorAll('.argocd-card').forEach(card => {
+            const name = card.dataset.name;
+            const app = this.applications.find(a => a.name === name);
+            if (!app) return;
+
+            const safeId = name.replace(/[^a-zA-Z0-9-]/g, '_');
+
+            const cpuCapacity = Math.max(app.cpu_limits || app.cpu_requests || 0, app.cpu_usage, 1);
+            this.createGauge(`gauge-${safeId}-cpu`, app.cpu_usage, app.cpu_requests || 0, app.cpu_limits || 0, cpuCapacity);
+
+            const memCapacityGb = Math.max(app.memory_limits_mb || app.memory_requests_mb || 0, app.memory_usage_mb, 1) / 1024;
+            this.createGauge(`gauge-${safeId}-mem`, app.memory_usage_mb / 1024, (app.memory_requests_mb || 0) / 1024, (app.memory_limits_mb || 0) / 1024, memCapacityGb);
+        });
+    },
+
+    createGauge(canvasId, usage, requests, limits, capacity) {
+        if (typeof Chart === 'undefined') return;
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        const safeCap = capacity > 0 ? capacity : 1;
+        const remUsage = Math.max(0, safeCap - usage);
+        const remReqs = Math.max(0, safeCap - requests);
+        const remLim = Math.max(0, safeCap - limits);
+
+        try {
+            this.charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [
+                        { data: [0, 0, limits, remLim], backgroundColor: ['transparent', 'transparent', '#319795', '#1a202c'], borderWidth: 0, circumference: 360, weight: 1 },
+                        { data: [0, requests, 0, remReqs], backgroundColor: ['transparent', '#48bb78', 'transparent', '#1a202c'], borderWidth: 0, circumference: 360, weight: 1 },
+                        { data: [usage, 0, 0, remUsage], backgroundColor: ['#d53f8c', 'transparent', 'transparent', '#1a202c'], borderWidth: 0, circumference: 360, weight: 1 },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '55%',
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                }
+            });
+        } catch(e) {
+            console.warn('Failed to create gauge:', canvasId, e);
+        }
     },
 
     // Search and Status Filters
