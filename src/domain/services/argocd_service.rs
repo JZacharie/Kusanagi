@@ -117,16 +117,20 @@ async fn query_prometheus_metrics(
     {
         for result in results {
             if let (Some(metric), Some(value)) = (result.get("metric"), result.get("value")) {
-                let app_name = metric
-                    .get("label_app_kubernetes_io_instance")
-                    .or_else(|| metric.get("container_label_app_kubernetes_io_instance"))
-                    .or_else(|| metric.get("namespace"))
-                    .and_then(|s| s.as_str());
+                let key = if let (Some(ns), Some(pod)) = (metric.get("namespace"), metric.get("pod")) {
+                    format!("{}/{}", ns.as_str().unwrap_or(""), pod.as_str().unwrap_or(""))
+                } else if let Some(ns) = metric.get("namespace") {
+                    ns.as_str().unwrap_or("").to_string()
+                } else if let Some(app) = metric.get("label_app_kubernetes_io_instance") {
+                    app.as_str().unwrap_or("").to_string()
+                } else {
+                    "".to_string()
+                };
 
-                if let Some(app) = app_name {
+                if !key.is_empty() {
                     if let Some(val_str) = value.get(1).and_then(|v| v.as_str()) {
                         if let Ok(val) = val_str.parse::<f64>() {
-                            results_map.insert(app.to_string(), val);
+                            results_map.insert(key, val);
                         }
                     }
                 }
@@ -184,8 +188,8 @@ async fn fetch_argocd_status_from_cluster(client: &reqwest::Client) -> Result<Va
     let apps_api: Api<ArgoCDApplication> = Api::namespaced(k8s_client.clone(), "argocd");
 
     // Fetch prometheus metrics in parallel
-    let cpu_metrics_fut = query_prometheus_metrics(client, "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) by (label_app_kubernetes_io_instance)");
-    let mem_metrics_fut = query_prometheus_metrics(client, "sum(container_memory_working_set_bytes{container!=\"\"}) by (label_app_kubernetes_io_instance)");
+    let cpu_metrics_fut = query_prometheus_metrics(client, "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) by (pod, namespace)");
+    let mem_metrics_fut = query_prometheus_metrics(client, "sum(container_memory_working_set_bytes{container!=\"\"}) by (pod, namespace)");
     let cpu_ns_fut = query_prometheus_metrics(
         client,
         "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) by (namespace)",
@@ -196,19 +200,19 @@ async fn fetch_argocd_status_from_cluster(client: &reqwest::Client) -> Result<Va
     );
     let cpu_req_fut = query_prometheus_metrics(
         client,
-        "sum(kube_pod_container_resource_requests{resource=\"cpu\"}) by (label_app_kubernetes_io_instance)",
+        "sum(kube_pod_container_resource_requests{resource=\"cpu\"}) by (pod, namespace)",
     );
     let cpu_lim_fut = query_prometheus_metrics(
         client,
-        "sum(kube_pod_container_resource_limits{resource=\"cpu\"}) by (label_app_kubernetes_io_instance)",
+        "sum(kube_pod_container_resource_limits{resource=\"cpu\"}) by (pod, namespace)",
     );
     let mem_req_fut = query_prometheus_metrics(
         client,
-        "sum(kube_pod_container_resource_requests{resource=\"memory\"}) by (label_app_kubernetes_io_instance)",
+        "sum(kube_pod_container_resource_requests{resource=\"memory\"}) by (pod, namespace)",
     );
     let mem_lim_fut = query_prometheus_metrics(
         client,
-        "sum(kube_pod_container_resource_limits{resource=\"memory\"}) by (label_app_kubernetes_io_instance)",
+        "sum(kube_pod_container_resource_limits{resource=\"memory\"}) by (pod, namespace)",
     );
 
     let (
@@ -431,10 +435,42 @@ fn parse_argocd_applications(
             _ => {}
         }
 
-        // Get resource metrics:
-        // Try exact match on application instance label first
-        let mut cpu = cpu_metrics.get(name).cloned().unwrap_or(0.0);
-        let mut mem = mem_metrics.get(name).cloned().unwrap_or(0.0);
+        // Get resource metrics by matching pod name prefix and namespace
+        let mut app_pod_keys = std::collections::HashSet::new();
+        let prefix = format!("{}-", name);
+
+        let mut collect_keys = |map: &std::collections::HashMap<String, f64>| {
+            for key in map.keys() {
+                if let Some((ns, pod)) = key.split_once('/') {
+                    if ns == dest_namespace && (pod == name || pod.starts_with(&prefix)) {
+                        app_pod_keys.insert(key.clone());
+                    }
+                }
+            }
+        };
+
+        collect_keys(cpu_metrics);
+        collect_keys(mem_metrics);
+        collect_keys(cpu_req_metrics);
+        collect_keys(cpu_lim_metrics);
+        collect_keys(mem_req_metrics);
+        collect_keys(mem_lim_metrics);
+
+        let mut cpu = 0.0;
+        let mut mem = 0.0;
+        let mut cpu_requests = 0.0;
+        let mut cpu_limits = 0.0;
+        let mut mem_requests = 0.0;
+        let mut mem_limits = 0.0;
+
+        for key in &app_pod_keys {
+            cpu += cpu_metrics.get(key).cloned().unwrap_or(0.0);
+            mem += mem_metrics.get(key).cloned().unwrap_or(0.0);
+            cpu_requests += cpu_req_metrics.get(key).cloned().unwrap_or(0.0);
+            cpu_limits += cpu_lim_metrics.get(key).cloned().unwrap_or(0.0);
+            mem_requests += mem_req_metrics.get(key).cloned().unwrap_or(0.0);
+            mem_limits += mem_lim_metrics.get(key).cloned().unwrap_or(0.0);
+        }
 
         // If exact metric is 0, check if we can query by namespace and share the metrics (fallback)
         if cpu == 0.0 && mem == 0.0 {
@@ -485,12 +521,6 @@ fn parse_argocd_applications(
             cpu = 0.005 + (hash % 120) as f64 / 1000.0; // 0.005 to 0.125 cores
             mem = (50 + (hash % 450)) as f64 * 1024.0 * 1024.0; // 50MB to 500MB
         }
-
-        // Resource requests and limits (from kube-state-metrics)
-        let cpu_requests = cpu_req_metrics.get(name).cloned().unwrap_or(0.0);
-        let cpu_limits = cpu_lim_metrics.get(name).cloned().unwrap_or(0.0);
-        let mem_requests = mem_req_metrics.get(name).cloned().unwrap_or(0.0);
-        let mem_limits = mem_lim_metrics.get(name).cloned().unwrap_or(0.0);
 
         // Calculate percentages relative to limits (or requests if limits unavailable)
         let cpu_limits_base = if cpu_limits > 0.0 {
