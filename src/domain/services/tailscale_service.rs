@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct TailscaleDevice {
     pub addresses: Vec<String>,
     pub id: String,
@@ -9,22 +10,22 @@ pub struct TailscaleDevice {
     pub name: String,
     #[serde(default)]
     pub hostname: String,
-    #[serde(default)]
+    #[serde(rename = "nodeKey", default)]
     pub nodekey: String,
     pub os: Option<String>,
     pub version: Option<String>,
     #[serde(default)]
     pub last_seen: String,
-    #[serde(default)]
+    #[serde(rename = "connectedToControl", default)]
     pub online: bool,
     #[serde(default)]
     pub tags: Vec<String>,
-    #[serde(rename = "is_exit_node", default)]
+    #[serde(skip, default)]
     pub is_exit_node: bool,
     pub user: Option<String>,
     pub tailscale_ips: Option<Vec<String>>,
     pub machine_key: Option<String>,
-    #[serde(default)]
+    #[serde(rename = "expires", default)]
     pub expiry: String,
     pub blocked: Option<bool>,
     pub client_version: Option<String>,
@@ -97,6 +98,8 @@ pub async fn get_tailscale_devices_json(
                         &d.name
                     };
 
+                    let is_exit = machine_name.contains("exit-node") || d.hostname.contains("exit-node");
+
                     json!({
                         "id": d.id,
                         "name": machine_name,
@@ -108,7 +111,7 @@ pub async fn get_tailscale_devices_json(
                         "last_seen": d.last_seen,
                         "online": d.online,
                         "tags": d.tags,
-                        "is_exit_node": d.is_exit_node,
+                        "is_exit_node": is_exit,
                         "user": d.user.unwrap_or_default(),
                         "expiry": d.expiry,
                         "blocked": d.blocked.unwrap_or(false),
