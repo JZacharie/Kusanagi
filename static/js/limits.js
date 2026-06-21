@@ -158,8 +158,8 @@ const LimitsDashboard = {
 
             const cpuPct = cpu.usage_percent || 0;
             const memPct = mem.usage_percent || 0;
-            const cpuColor = cpuPct > 80 ? 'var(--neon-red)' : cpuPct > 50 ? 'var(--neon-orange)' : 'var(--neon-green)';
-            const memColor = memPct > 80 ? 'var(--neon-red)' : memPct > 50 ? 'var(--neon-orange)' : 'var(--neon-green)';
+            const cpuColor = cpuPct > 80 ? 'var(--neon-red, #ff3333)' : cpuPct > 50 ? 'var(--neon-orange, #ff9900)' : 'var(--neon-green)';
+            const memColor = memPct > 80 ? 'var(--neon-red, #ff3333)' : memPct > 50 ? 'var(--neon-orange, #ff9900)' : 'var(--neon-green)';
 
             const gpuDisplay = gpu.available
                 ? `<span style="color: var(--neon-magenta);">${(gpu.usage_percent || 0).toFixed(0)}%</span>`
