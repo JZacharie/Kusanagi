@@ -112,6 +112,8 @@
     <script src="/static/js/monitors.js?v={{VERSION}}"></script>
     <script src="/static/js/security.js?v={{VERSION}}"></script>
     <script src="/static/js/cilium-network.js?v={{VERSION}}"></script>
+    <script src="/static/js/tailscale.js?v={{VERSION}}"></script>
+    <script src="/static/js/limits.js?v={{VERSION}}"></script>
     <script src="/static/js/mqtt.js?v={{VERSION}}"></script>
     <script system src="/static/js/system.js?v={{VERSION}}"></script>
     <script streaming src="/static/js/streaming.js?v={{VERSION}}"></script>
@@ -230,6 +232,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" data-page="limits" href="#limits">
+                            <i class="mdi mdi-chart-bell-curve"></i>
+                            <span class="nav-link-text">Limits</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" data-page="network" href="#network">
                             <i class="mdi mdi-lan"></i>
                             <span class="nav-link-text">Network</span>
@@ -277,6 +285,12 @@
                         <a class="nav-link" data-page="weather" href="#weather">
                             <i class="mdi mdi-weather-partly-cloudy"></i>
                             <span class="nav-link-text">Weather</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="tailscale" href="#tailscale">
+                            <i class="mdi mdi-lan-connect"></i>
+                            <span class="nav-link-text">Tailscale</span>
                         </a>
                     </li>
                 </ul>
@@ -763,6 +777,16 @@
 
             <!-- Weather Section -->
             <section class="argocd-section tab-content" data-tab="weather" style="display: none;">
+                <div class="loading">Loading...</div>
+            </section>
+
+            <!-- Tailscale Section -->
+            <section class="argocd-section tab-content" data-tab="tailscale" style="display: none;">
+                <div class="loading">Loading...</div>
+            </section>
+
+            <!-- Limits Section -->
+            <section class="argocd-section tab-content" data-tab="limits" style="display: none;">
                 <div class="loading">Loading...</div>
             </section>
 

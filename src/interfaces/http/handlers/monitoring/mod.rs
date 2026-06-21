@@ -4,6 +4,7 @@ pub mod cilium;
 pub mod deepseek;
 pub mod mqtt;
 pub mod pylos;
+pub mod tailscale_handlers;
 
 use axum::response::IntoResponse;
 use serde_json::json;
@@ -12,6 +13,7 @@ pub use cilium::*;
 pub use deepseek::*;
 pub use mqtt::*;
 pub use pylos::*;
+pub use tailscale_handlers::*;
 
 use super::RefreshQuery;
 use crate::interfaces::http::response::{api_error, api_success};

@@ -122,6 +122,7 @@ pub fn configure_routes(state: AppState) -> Router {
             "/api/k8s/namespaces/metrics",
             get(get_namespace_metrics_handler),
         )
+        .route("/api/k8s/limits", get(get_limits_handler))
         .route("/api/k8s/pods/{namespace}/{name}/logs", get(pod_logs))
         .route(
             "/api/pods/delete-error-pods",
@@ -160,6 +161,7 @@ pub fn configure_routes(state: AppState) -> Router {
             get(deepseek_metrics_handler),
         )
         .route("/api/monitoring/pylos/metrics", get(pylos_metrics_handler))
+        .route("/api/tailscale/devices", get(get_tailscale_devices_handler))
         .route("/api/dashboard/metrics", get(metrics_handler)) // Dashboard metrics
         .route("/api/github/pipelines", get(github_pipelines_handler))
         .route("/api/chat", post(post_chat_handler))

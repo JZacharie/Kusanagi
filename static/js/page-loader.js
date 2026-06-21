@@ -35,7 +35,9 @@ const PageLoader = {
         'monitors': 'monitors.html',
         'streaming': 'streaming.html',
         'docs': 'docs.html',
-        'lab': 'lab.html'
+        'lab': 'lab.html',
+        'tailscale': 'tailscale.html',
+        'limits': 'limits.html'
     },
 
     /**
@@ -212,6 +214,16 @@ const PageLoader = {
                 if (window.MqttManager) {
                     MqttManager.init();
                     MqttManager.loadData();
+                }
+                break;
+            case 'tailscale':
+                if (window.TailscaleDashboard) {
+                    TailscaleDashboard.init();
+                }
+                break;
+            case 'limits':
+                if (window.LimitsDashboard) {
+                    LimitsDashboard.init();
                 }
                 break;
         }

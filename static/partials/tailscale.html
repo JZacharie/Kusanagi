@@ -1,0 +1,42 @@
+<h2 class="section-title">Tailscale Network</h2>
+
+<div class="tailscale-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div class="stat-box info">
+        <div class="stat-value" id="tailscale-total">0</div>
+        <div class="stat-label">Total Devices</div>
+    </div>
+    <div class="stat-box healthy">
+        <div class="stat-value" id="tailscale-online">0</div>
+        <div class="stat-label">Online</div>
+    </div>
+    <div class="stat-box unhealthy">
+        <div class="stat-value" id="tailscale-offline">0</div>
+        <div class="stat-label">Offline</div>
+    </div>
+    <div class="stat-box warning">
+        <div class="stat-value" id="tailscale-exit-nodes">0</div>
+        <div class="stat-label">Exit Nodes</div>
+    </div>
+</div>
+
+<div class="table-container" style="overflow-x: auto;">
+    <table class="monitor-table" id="tailscale-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>Machine</th>
+                <th>IP Addresses</th>
+                <th>OS / Version</th>
+                <th>Last Seen</th>
+                <th>Status</th>
+                <th>Tags</th>
+            </tr>
+        </thead>
+        <tbody id="tailscale-tbody">
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <div class="loading">Loading Tailscale devices...</div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>

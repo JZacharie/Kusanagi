@@ -1,0 +1,63 @@
+<h2 class="section-title">Resource Consumption & Limits</h2>
+
+<div class="limits-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div class="stat-box info">
+        <div class="stat-value" id="limits-ns-count">0</div>
+        <div class="stat-label">Namespaces</div>
+    </div>
+    <div class="stat-box cpu">
+        <div class="stat-value" id="limits-cpu-usage">0</div>
+        <div class="stat-label">CPU Cores Usage</div>
+        <div class="stat-bar-container" style="margin-top: 0.5rem; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
+            <div id="limits-cpu-bar" style="height: 100%; background: var(--neon-cyan); border-radius: 2px; width: 0%; transition: width 0.5s ease;"></div>
+        </div>
+        <div style="font-size: 0.65rem; opacity: 0.6; margin-top: 0.25rem; display: flex; justify-content: space-between;">
+            <span id="limits-cpu-limit">0 cores limit</span>
+            <span id="limits-cpu-pct">0%</span>
+        </div>
+    </div>
+    <div class="stat-box memory">
+        <div class="stat-value" id="limits-mem-usage">0 GB</div>
+        <div class="stat-label">Memory Usage</div>
+        <div class="stat-bar-container" style="margin-top: 0.5rem; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
+            <div id="limits-mem-bar" style="height: 100%; background: var(--neon-magenta); border-radius: 2px; width: 0%; transition: width 0.5s ease;"></div>
+        </div>
+        <div style="font-size: 0.65rem; opacity: 0.6; margin-top: 0.25rem; display: flex; justify-content: space-between;">
+            <span id="limits-mem-limit">0 GB limit</span>
+            <span id="limits-mem-pct">0%</span>
+        </div>
+    </div>
+    <div class="stat-box healthy">
+        <div class="stat-value" id="limits-gpu-ns">0</div>
+        <div class="stat-label">Namespaces with GPU</div>
+    </div>
+</div>
+
+<div class="table-container" style="overflow-x: auto;">
+    <table class="monitor-table" id="limits-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>Namespace</th>
+                <th>CPU Usage</th>
+                <th>CPU Requests</th>
+                <th>CPU Limits</th>
+                <th>CPU %</th>
+                <th>Memory Usage</th>
+                <th>Memory Requests</th>
+                <th>Memory Limits</th>
+                <th>Memory %</th>
+                <th>GPU</th>
+                <th>Network RX</th>
+                <th>Network TX</th>
+                <th>Pods</th>
+            </tr>
+        </thead>
+        <tbody id="limits-tbody">
+            <tr>
+                <td colspan="13" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <div class="loading">Loading resource limits...</div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
