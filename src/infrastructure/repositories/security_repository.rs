@@ -372,7 +372,22 @@ impl SecurityRepository for SecurityRepositoryImpl {
         }
 
         // Fallback: fetch from Trivy server — only process vulnerability_reports
-        let report_list = self.fetch_report_list().await?;
+        let report_list = match self.fetch_report_list().await {
+            Ok(list) => list,
+            Err(e) => {
+                warn!("Trivy server unavailable: {}, returning empty summary", e);
+                return Ok(SecuritySummary {
+                    total_reports: 0,
+                    total_vulnerabilities: 0,
+                    critical_count: 0,
+                    high_count: 0,
+                    medium_count: 0,
+                    low_count: 0,
+                    reports: vec![],
+                    last_updated: chrono::Utc::now().to_rfc3339(),
+                });
+            }
+        };
 
         // Only vulnerability_reports have CVE data; other types (sbom, config_audit, rbac…) are skipped
         let vuln_reports: Vec<(String, Vec<String>)> = report_list
@@ -457,14 +472,20 @@ impl SecurityRepository for SecurityRepositoryImpl {
         }
 
         // Fallback to Trivy server — only vulnerability_reports have CVE data
-        let report_list = self.fetch_report_list().await?;
-        let keys: Vec<String> = report_list
-            .into_iter()
-            .filter(|(cat, _)| cat == "vulnerability_reports")
-            .flat_map(|(cat, files)| files.into_iter().map(move |f| format!("{}/{}", cat, f)))
-            .collect();
-
-        Ok(keys)
+        match self.fetch_report_list().await {
+            Ok(report_list) => {
+                let keys: Vec<String> = report_list
+                    .into_iter()
+                    .filter(|(cat, _)| cat == "vulnerability_reports")
+                    .flat_map(|(cat, files)| files.into_iter().map(move |f| format!("{}/{}", cat, f)))
+                    .collect();
+                Ok(keys)
+            }
+            Err(e) => {
+                warn!("Trivy server unavailable: {}, returning empty report list", e);
+                Ok(vec![])
+            }
+        }
     }
 
     async fn get_security_report(&self, category: &str, name: &str) -> Result<SecurityReport> {
@@ -481,7 +502,13 @@ impl SecurityRepository for SecurityRepositoryImpl {
         }
 
         // Fallback: fetch from Trivy server
-        let raw_report = self.fetch_raw_report(category, name).await?;
+        let raw_report = match self.fetch_raw_report(category, name).await {
+            Ok(report) => report,
+            Err(e) => {
+                warn!("Failed to fetch report {}/{}: {}, returning empty", category, name, e);
+                serde_json::json!({})
+            }
+        };
 
         Ok(SecurityReport {
             name: name.to_string(),
@@ -502,18 +529,20 @@ impl SecurityRepository for SecurityRepositoryImpl {
             .as_ref()
             .ok_or_else(|| KusanagiError::configuration("Kubernetes client not available"))?;
 
-        let namespace = "trivy-system";
-        let cronjob_name = "trivy-rescan-all";
+        let namespace = env::var("TRIVY_NAMESPACE").unwrap_or_else(|_| "trivy-system".to_string());
+        let cronjob_name = env::var("TRIVY_RESCAN_CRONJOB").unwrap_or_else(|_| "trivy-rescan-all".to_string());
 
-        let cronjobs_api: Api<CronJob> = Api::namespaced(client.as_ref().clone(), namespace);
+        let cronjobs_api: Api<CronJob> = Api::namespaced(client.as_ref().clone(), &namespace);
 
         // Get the CronJob
-        let cronjob = cronjobs_api.get(cronjob_name).await.map_err(|e| {
-            KusanagiError::external_service(format!(
-                "Failed to get CronJob {}: {}",
-                cronjob_name, e
-            ))
-        })?;
+        let cronjob = match cronjobs_api.get(&cronjob_name).await {
+            Ok(cj) => cj,
+            Err(e) => {
+                let msg = format!("CronJob '{}' not found in namespace '{}': {}. Set TRIVY_NAMESPACE and TRIVY_RESCAN_CRONJOB env vars if deployed elsewhere.", cronjob_name, namespace, e);
+                warn!("{}", msg);
+                return Err(KusanagiError::external_service(msg));
+            }
+        };
 
         // Create a Job from the CronJob template
         let job_spec = cronjob
@@ -536,7 +565,7 @@ impl SecurityRepository for SecurityRepositoryImpl {
             status: None,
         };
 
-        let jobs_api: Api<Job> = Api::namespaced(client.as_ref().clone(), namespace);
+        let jobs_api: Api<Job> = Api::namespaced(client.as_ref().clone(), &namespace);
         jobs_api
             .create(&PostParams::default(), &job)
             .await

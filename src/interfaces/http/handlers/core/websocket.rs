@@ -77,9 +77,21 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                 }
             }
             // Listen for broadcasted notifications
-            Ok(notif) = rx.recv() => {
-                if let Ok(json) = serde_json::to_string(&notif) {
-                    if socket.send(Message::Text(json.into())).await.is_err() {
+            result = rx.recv() => {
+                match result {
+                    Ok(notif) => {
+                        if let Ok(json) = serde_json::to_string(&notif) {
+                            if socket.send(Message::Text(json.into())).await.is_err() {
+                                break;
+                            }
+                        }
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                        debug!("WebSocket broadcast lagged by {} messages", n);
+                        continue;
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                        debug!("WebSocket broadcast channel closed");
                         break;
                     }
                 }

@@ -187,32 +187,52 @@ impl HomeAssistantRepositoryImpl {
 impl HomeAssistantRepository for HomeAssistantRepositoryImpl {
     async fn get_sensors(&self) -> Result<HomeAssistantSensorsResponse> {
         if !self.is_configured() {
-            return Err(AppError::configuration(
-                "Home Assistant not configured: HOME_ASSISTANT_TOKEN not set",
-            ));
+            warn!("Home Assistant not configured: HOME_ASSISTANT_TOKEN not set, returning empty sensors");
+            return Ok(HomeAssistantSensorsResponse {
+                sensors: vec![],
+                count: 0,
+            });
         }
 
-        let sensors = self.get_sensors_internal().await?;
-        let count = sensors.len();
-
-        info!("Retrieved {} sensors from Home Assistant", count);
-
-        Ok(HomeAssistantSensorsResponse { sensors, count })
+        match self.get_sensors_internal().await {
+            Ok(sensors) => {
+                let count = sensors.len();
+                info!("Retrieved {} sensors from Home Assistant", count);
+                Ok(HomeAssistantSensorsResponse { sensors, count })
+            }
+            Err(e) => {
+                warn!("Failed to fetch sensors from Home Assistant: {}, returning empty", e);
+                Ok(HomeAssistantSensorsResponse {
+                    sensors: vec![],
+                    count: 0,
+                })
+            }
+        }
     }
 
     async fn get_devices(&self) -> Result<HomeAssistantDevicesResponse> {
         if !self.is_configured() {
-            return Err(AppError::configuration(
-                "Home Assistant not configured: HOME_ASSISTANT_TOKEN not set",
-            ));
+            warn!("Home Assistant not configured: HOME_ASSISTANT_TOKEN not set, returning empty devices");
+            return Ok(HomeAssistantDevicesResponse {
+                devices: vec![],
+                count: 0,
+            });
         }
 
-        let devices = self.get_devices_internal().await?;
-        let count = devices.len();
-
-        info!("Retrieved {} devices from Home Assistant", count);
-
-        Ok(HomeAssistantDevicesResponse { devices, count })
+        match self.get_devices_internal().await {
+            Ok(devices) => {
+                let count = devices.len();
+                info!("Retrieved {} devices from Home Assistant", count);
+                Ok(HomeAssistantDevicesResponse { devices, count })
+            }
+            Err(e) => {
+                warn!("Failed to fetch devices from Home Assistant: {}, returning empty", e);
+                Ok(HomeAssistantDevicesResponse {
+                    devices: vec![],
+                    count: 0,
+                })
+            }
+        }
     }
 }
 
