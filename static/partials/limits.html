@@ -33,23 +33,35 @@
     </div>
 </div>
 
+<div class="limits-controls" style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 200px;">
+        <input type="text" id="limits-search" placeholder="Filter by namespace..." 
+               oninput="LimitsDashboard.setFilter(this.value)"
+               style="width: 100%; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--neon-cyan); border-radius: 4px; padding: 0.5rem 0.75rem; font-family: 'Inter', sans-serif; font-size: 0.85rem;">
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <span style="font-size: 0.75rem; opacity: 0.6;">Sort:</span>
+        <span id="limits-sort-indicator" style="font-size: 0.8rem; color: var(--neon-cyan); font-family: 'JetBrains Mono', monospace;">CPU Usage ▼</span>
+    </div>
+</div>
+
 <div class="table-container" style="overflow-x: auto;">
     <table class="monitor-table" id="limits-table" style="width: 100%; border-collapse: collapse;">
         <thead>
             <tr>
-                <th>Namespace</th>
-                <th>CPU Usage</th>
-                <th>CPU Requests</th>
-                <th>CPU Limits</th>
-                <th>CPU %</th>
-                <th>Memory Usage</th>
-                <th>Memory Requests</th>
-                <th>Memory Limits</th>
-                <th>Memory %</th>
-                <th>GPU</th>
-                <th>Network RX</th>
-                <th>Network TX</th>
-                <th>Pods</th>
+                <th data-sort="namespace" onclick="LimitsDashboard.sortBy('namespace')" class="sortable">Namespace</th>
+                <th data-sort="cpu_usage" onclick="LimitsDashboard.sortBy('cpu_usage')" class="sortable active">CPU Usage</th>
+                <th data-sort="cpu_requests" onclick="LimitsDashboard.sortBy('cpu_requests')" class="sortable">CPU Requests</th>
+                <th data-sort="cpu_limits" onclick="LimitsDashboard.sortBy('cpu_limits')" class="sortable">CPU Limits</th>
+                <th data-sort="cpu_pct" onclick="LimitsDashboard.sortBy('cpu_pct')" class="sortable">CPU %</th>
+                <th data-sort="mem_usage" onclick="LimitsDashboard.sortBy('mem_usage')" class="sortable">Memory Usage</th>
+                <th data-sort="mem_requests" onclick="LimitsDashboard.sortBy('mem_requests')" class="sortable">Memory Requests</th>
+                <th data-sort="mem_limits" onclick="LimitsDashboard.sortBy('mem_limits')" class="sortable">Memory Limits</th>
+                <th data-sort="mem_pct" onclick="LimitsDashboard.sortBy('mem_pct')" class="sortable">Memory %</th>
+                <th data-sort="gpu" onclick="LimitsDashboard.sortBy('gpu')" class="sortable">GPU</th>
+                <th data-sort="net_rx" onclick="LimitsDashboard.sortBy('net_rx')" class="sortable">Network RX</th>
+                <th data-sort="net_tx" onclick="LimitsDashboard.sortBy('net_tx')" class="sortable">Network TX</th>
+                <th data-sort="pods" onclick="LimitsDashboard.sortBy('pods')" class="sortable">Pods</th>
             </tr>
         </thead>
         <tbody id="limits-tbody">

@@ -1,6 +1,9 @@
 const LimitsDashboard = {
     data: null,
     refreshInterval: null,
+    sortKey: 'cpu_usage',
+    sortAsc: false,
+    filterText: '',
 
     init() {
         if (this.refreshInterval) {
@@ -27,6 +30,66 @@ const LimitsDashboard = {
         }
     },
 
+    setFilter(value) {
+        this.filterText = value.toLowerCase();
+        this.render();
+    },
+
+    sortBy(key) {
+        if (this.sortKey === key) {
+            this.sortAsc = !this.sortAsc;
+        } else {
+            this.sortKey = key;
+            this.sortAsc = key === 'namespace';
+        }
+        document.querySelectorAll('#limits-table thead th.sortable').forEach(th => {
+            th.classList.toggle('active', th.dataset.sort === key);
+        });
+        this.updateSortIndicator();
+        this.render();
+    },
+
+    updateSortIndicator() {
+        const el = document.getElementById('limits-sort-indicator');
+        if (el) {
+            const labels = {
+                namespace: 'Namespace',
+                cpu_usage: 'CPU Usage',
+                cpu_requests: 'CPU Requests',
+                cpu_limits: 'CPU Limits',
+                cpu_pct: 'CPU %',
+                mem_usage: 'Memory Usage',
+                mem_requests: 'Memory Requests',
+                mem_limits: 'Memory Limits',
+                mem_pct: 'Memory %',
+                gpu: 'GPU',
+                net_rx: 'Network RX',
+                net_tx: 'Network TX',
+                pods: 'Pods',
+            };
+            el.textContent = `${labels[this.sortKey] || this.sortKey} ${this.sortAsc ? '▲' : '▼'}`;
+        }
+    },
+
+    getSortValue(app, key) {
+        switch (key) {
+            case 'namespace': return (app.namespace || '').toLowerCase();
+            case 'cpu_usage': return app.cpu?.usage ?? 0;
+            case 'cpu_requests': return app.cpu?.requests ?? 0;
+            case 'cpu_limits': return app.cpu?.limits ?? 0;
+            case 'cpu_pct': return app.cpu?.usage_percent ?? 0;
+            case 'mem_usage': return app.memory?.usage_mb ?? 0;
+            case 'mem_requests': return app.memory?.requests_mb ?? 0;
+            case 'mem_limits': return app.memory?.limits_mb ?? 0;
+            case 'mem_pct': return app.memory?.usage_percent ?? 0;
+            case 'gpu': return app.gpu?.usage_percent ?? -1;
+            case 'net_rx': return app.network?.rx_mbps ?? 0;
+            case 'net_tx': return app.network?.tx_mbps ?? 0;
+            case 'pods': return app.pod_count ?? 0;
+            default: return 0;
+        }
+    },
+
     render() {
         if (!this.data) return;
 
@@ -48,14 +111,27 @@ const LimitsDashboard = {
         document.getElementById('limits-gpu-ns').textContent = gpuNs;
 
         const tbody = document.getElementById('limits-tbody');
-        if (apps.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No applications found</td></tr>`;
+
+        let filtered = apps;
+        if (this.filterText) {
+            filtered = apps.filter(a => (a.namespace || '').toLowerCase().includes(this.filterText));
+        }
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 2rem; color: var(--text-secondary);">${this.filterText ? 'No namespaces match filter' : 'No applications found'}</td></tr>`;
             return;
         }
 
-        apps.sort((a, b) => (b.cpu.usage || 0) - (a.cpu.usage || 0));
+        const sorted = [...filtered].sort((a, b) => {
+            const va = this.getSortValue(a, this.sortKey);
+            const vb = this.getSortValue(b, this.sortKey);
+            if (typeof va === 'string') {
+                return this.sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+            }
+            return this.sortAsc ? va - vb : vb - va;
+        });
 
-        tbody.innerHTML = apps.map(app => {
+        tbody.innerHTML = sorted.map(app => {
             const cpu = app.cpu || {};
             const mem = app.memory || {};
             const gpu = app.gpu || {};
@@ -72,11 +148,11 @@ const LimitsDashboard = {
 
             return `
                 <tr class="monitor-row" style="animation: fadeInRow 0.3s ease-out;">
-                    <td style="font-weight: 600;">${this.escapeHtml(app.namespace || 'default')}</td>
-                    <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">${(cpu.usage || 0).toFixed(3)}</td>
-                    <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">${(cpu.requests || 0).toFixed(3)}</td>
-                    <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">${(cpu.limits || 0).toFixed(3)}</td>
-                    <td>
+                    <td style="font-weight: 600; text-align: left;">${this.escapeHtml(app.namespace || 'default')}</td>
+                    <td class="td-num">${(cpu.usage || 0).toFixed(3)}</td>
+                    <td class="td-num">${(cpu.requests || 0).toFixed(3)}</td>
+                    <td class="td-num">${(cpu.limits || 0).toFixed(3)}</td>
+                    <td class="td-center">
                         <div class="mini-bar" style="display: flex; align-items: center; gap: 0.5rem;">
                             <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px;">
                                 <div style="height: 100%; background: ${cpuColor}; border-radius: 3px; width: ${Math.min(cpuPct, 100)}%; transition: width 0.5s;"></div>
@@ -84,10 +160,10 @@ const LimitsDashboard = {
                             <span style="font-size: 0.75rem; color: ${cpuColor};">${cpuPct.toFixed(0)}%</span>
                         </div>
                     </td>
-                    <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">${(mem.usage_mb || 0).toFixed(0)} MB</td>
-                    <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">${(mem.requests_mb || 0).toFixed(0)} MB</td>
-                    <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">${(mem.limits_mb || 0).toFixed(0)} MB</td>
-                    <td>
+                    <td class="td-num">${(mem.usage_mb || 0).toFixed(0)} MB</td>
+                    <td class="td-num">${(mem.requests_mb || 0).toFixed(0)} MB</td>
+                    <td class="td-num">${(mem.limits_mb || 0).toFixed(0)} MB</td>
+                    <td class="td-center">
                         <div class="mini-bar" style="display: flex; align-items: center; gap: 0.5rem;">
                             <div style="flex: 1; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px;">
                                 <div style="height: 100%; background: ${memColor}; border-radius: 3px; width: ${Math.min(memPct, 100)}%; transition: width 0.5s;"></div>
@@ -95,10 +171,10 @@ const LimitsDashboard = {
                             <span style="font-size: 0.75rem; color: ${memColor};">${memPct.toFixed(0)}%</span>
                         </div>
                     </td>
-                    <td>${gpuDisplay}</td>
-                    <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">${this.formatBits(net.rx_mbps || 0)}</td>
-                    <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">${this.formatBits(net.tx_mbps || 0)}</td>
-                    <td style="text-align: center;">${app.pod_count || 0}</td>
+                    <td class="td-center">${gpuDisplay}</td>
+                    <td class="td-num">${this.formatBits(net.rx_mbps || 0)}</td>
+                    <td class="td-num">${this.formatBits(net.tx_mbps || 0)}</td>
+                    <td class="td-center">${app.pod_count || 0}</td>
                 </tr>
             `;
         }).join('');

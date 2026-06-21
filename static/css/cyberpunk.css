@@ -1782,6 +1782,22 @@ body {
   opacity: 1;
 }
 
+.sortable.active {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.td-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  text-align: right;
+  padding-right: 1rem;
+}
+
+.td-center {
+  text-align: center;
+}
+
 /* ============================================
    METRICS SECTION
    ============================================ */
