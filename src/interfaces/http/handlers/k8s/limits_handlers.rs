@@ -1,18 +1,27 @@
-use axum::extract::State;
+use axum::extract::{State, Query};
 use axum::response::IntoResponse;
 use serde_json::json;
 
 use crate::interfaces::http::response::{api_error, api_success};
 use crate::state::AppState;
 
+#[derive(serde::Deserialize)]
+pub struct LimitsQuery {
+    refresh: Option<bool>,
+}
+
+
 pub async fn get_limits_handler(
     State(state): State<AppState>,
+    Query(query): Query<LimitsQuery>,
 ) -> impl IntoResponse {
     const CACHE_KEY: &str = "kusanagi_limits_data";
 
-    if let Some(cached) = state.general_cache.get(CACHE_KEY).await {
-        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&cached) {
-            return api_success(value);
+    if !query.refresh.unwrap_or(false) {
+        if let Some(cached) = state.general_cache.get(CACHE_KEY).await {
+            if let Ok(value) = serde_json::from_str::<serde_json::Value>(&cached) {
+                return api_success(value);
+            }
         }
     }
 
@@ -114,7 +123,7 @@ pub async fn get_limits_handler(
             &state.http_client,
             &prometheus_url,
             &format!(
-                r#"sum(rate(container_network_receive_bytes_total{{namespace="{}"}}[5m])))"#,
+                r#"sum(rate(container_network_receive_bytes_total{{namespace="{}"}}[5m]))"#,
                 ns
             ),
         )
@@ -125,7 +134,7 @@ pub async fn get_limits_handler(
             &state.http_client,
             &prometheus_url,
             &format!(
-                r#"sum(rate(container_network_transmit_bytes_total{{namespace="{}"}}[5m])))"#,
+                r#"sum(rate(container_network_transmit_bytes_total{{namespace="{}"}}[5m]))"#,
                 ns
             ),
         )

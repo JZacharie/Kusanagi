@@ -34,10 +34,14 @@
 </div>
 
 <div class="limits-controls" style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center; flex-wrap: wrap;">
-    <div style="flex: 1; min-width: 200px;">
+    <div style="flex: 1; min-width: 200px; display: flex; gap: 0.5rem;">
         <input type="text" id="limits-search" placeholder="Filter by namespace..." 
                oninput="LimitsDashboard.setFilter(this.value)"
                style="width: 100%; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--neon-cyan); border-radius: 4px; padding: 0.5rem 0.75rem; font-family: 'Inter', sans-serif; font-size: 0.85rem;">
+        <button id="btn-limits-refresh" onclick="LimitsDashboard.refreshData()" style="background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan); padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; white-space: nowrap;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            Refresh
+        </button>
     </div>
     <div style="display: flex; gap: 0.5rem; align-items: center;">
         <span style="font-size: 0.75rem; opacity: 0.6;">Sort:</span>

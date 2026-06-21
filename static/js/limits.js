@@ -13,28 +13,47 @@ const LimitsDashboard = {
         this.refreshInterval = setInterval(() => this.loadLimits(), 30000);
     },
 
-    async loadLimits() {
+    async loadLimits(forceRefresh = false) {
         try {
-            const response = await fetch('/api/k8s/limits');
+            const url = forceRefresh ? '/api/k8s/limits?refresh=true' : '/api/k8s/limits';
+            const response = await fetch(url);
             const result = await response.json();
-
+ 
             if (!result.success) {
                 this.showError(result.error || 'Failed to load limits data');
                 return;
             }
-
+ 
             this.data = result.data;
-            this.render();
+            setTimeout(() => this.render(), 10);
         } catch (error) {
             this.showError(`Network error: ${error.message}`);
+        }
+    },
+ 
+    async refreshData() {
+        const btn = document.getElementById('btn-limits-refresh');
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = 0.5;
+            btn.innerHTML = 'Refreshing...';
+        }
+        await this.loadLimits(true);
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = 1;
+            btn.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                Refresh
+            `;
         }
     },
 
     setFilter(value) {
         this.filterText = value.toLowerCase();
-        this.render();
+        setTimeout(() => this.render(), 10);
     },
-
+ 
     sortBy(key) {
         if (this.sortKey === key) {
             this.sortAsc = !this.sortAsc;
@@ -46,7 +65,7 @@ const LimitsDashboard = {
             th.classList.toggle('active', th.dataset.sort === key);
         });
         this.updateSortIndicator();
-        this.render();
+        setTimeout(() => this.render(), 10);
     },
 
     updateSortIndicator() {
