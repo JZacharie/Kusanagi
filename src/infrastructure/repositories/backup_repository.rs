@@ -202,10 +202,7 @@ impl BackupRepository for BackupRepositoryImpl {
                 .clone()
                 .unwrap_or_else(|| "default".to_string());
 
-            let spec = cj.spec.as_ref();
-            let schedule = spec
-                .map(|s| s.schedule.clone())
-                .unwrap_or_else(|| "Unknown".to_string());
+            let schedule = cj.spec.schedule.clone();
 
             let status = cj.status.as_ref();
             let last_schedule = status
@@ -227,7 +224,7 @@ impl BackupRepository for BackupRepositoryImpl {
             let active_jobs = status
                 .map(|s| s.active.as_ref().map(|a| a.len()).unwrap_or(0) as i32)
                 .unwrap_or(0);
-            let suspend = spec.map(|s| s.suspend.unwrap_or(false)).unwrap_or(false);
+            let suspend = cj.spec.suspend.unwrap_or(false);
 
             // Find recent jobs for this CronJob
             let recent_jobs = self.get_jobs_for_cronjob(&name, &namespace, &jobs.items, &now);
@@ -283,8 +280,8 @@ impl BackupRepository for BackupRepositoryImpl {
         // Create a Job from the CronJob template
         let job_spec = cronjob
             .spec
-            .as_ref()
-            .and_then(|s| s.job_template.spec.clone())
+            .job_template
+            .spec
             .ok_or_else(|| KusanagiError::configuration("CronJob has no job template"))?;
 
         let job = Job {

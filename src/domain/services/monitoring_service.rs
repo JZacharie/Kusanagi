@@ -162,8 +162,8 @@ pub async fn get_backups() -> Result<Value, String> {
             let name = job.metadata.name.as_deref().unwrap_or("");
             let namespace = job.metadata.namespace.as_deref().unwrap_or("");
             let uid = job.metadata.uid.as_deref().unwrap_or("");
-            let schedule = job.spec.as_ref().map(|s| s.schedule.as_str()).unwrap_or("");
-            let suspend = job.spec.as_ref().map(|s| s.suspend.unwrap_or(false)).unwrap_or(false);
+            let schedule = job.spec.schedule.as_str();
+            let suspend = job.spec.suspend.unwrap_or(false);
 
             // Calculate last schedule age
             let last_schedule_age = if let Some(status) = &job.status {
@@ -267,8 +267,8 @@ pub async fn trigger_cronjob(namespace: &str, cronjob_name: &str) -> Result<Stri
 
     let job_template = cronjob
         .spec
-        .as_ref()
-        .and_then(|s| s.job_template.spec.as_ref())
+        .job_template
+        .spec
         .ok_or("CronJob has no job template spec")?;
 
     let job_name = format!("{}-manual-{}", cronjob_name, chrono::Utc::now().timestamp());

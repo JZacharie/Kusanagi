@@ -547,8 +547,8 @@ impl SecurityRepository for SecurityRepositoryImpl {
         // Create a Job from the CronJob template
         let job_spec = cronjob
             .spec
-            .as_ref()
-            .and_then(|s| s.job_template.spec.clone())
+            .job_template
+            .spec
             .ok_or_else(|| KusanagiError::configuration("CronJob has no job template"))?;
 
         let job = Job {
