@@ -261,6 +261,75 @@ pub async fn get_proxmox_nodes(client: &reqwest::Client) -> Result<Value, String
     Ok(json!(all_nodes))
 }
 
+pub async fn get_proxmox_zfs(client: &reqwest::Client) -> Result<Value, String> {
+    let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
+    let proxmox_user = std::env::var("PROXMOX_USER").unwrap_or_default();
+    let proxmox_password = std::env::var("PROXMOX_PASSWORD").unwrap_or_default();
+
+    if proxmox_urls.is_empty() || proxmox_user.is_empty() {
+        return Ok(json!([]));
+    }
+
+    let urls: Vec<&str> = proxmox_urls.split(',').collect();
+    let mut all_zfs = Vec::new();
+
+    for url in urls {
+        let url = url.trim();
+        if url.is_empty() {
+            continue;
+        }
+
+        let Some((ticket, _csrf)) =
+            get_proxmox_ticket(client, url, &proxmox_user, &proxmox_password).await
+        else {
+            continue;
+        };
+
+        let nodes_api_url = format!("{}/api2/json/nodes", url);
+        let mut node_names = Vec::new();
+
+        if let Ok(res) = client
+            .get(&nodes_api_url)
+            .header("Cookie", format!("PVEAuthCookie={}", ticket))
+            .send()
+            .await
+        {
+            if let Ok(data) = res.json::<Value>().await {
+                if let Some(nodes) = data["data"].as_array() {
+                    for node in nodes {
+                        if let Some(n) = node["node"].as_str() {
+                            node_names.push(n.to_string());
+                        }
+                    }
+                }
+            }
+        }
+
+        for node in node_names {
+            let zfs_api_url = format!("{}/api2/json/nodes/{}/disks/zfs", url, node);
+            if let Ok(res) = client
+                .get(&zfs_api_url)
+                .header("Cookie", format!("PVEAuthCookie={}", ticket))
+                .send()
+                .await
+            {
+                if let Ok(data) = res.json::<Value>().await {
+                    if let Some(pools) = data["data"].as_array() {
+                        for pool in pools {
+                            let mut pool_info = pool.clone();
+                            pool_info["proxmox_node"] = json!(node);
+                            pool_info["proxmox_url"] = json!(url);
+                            all_zfs.push(pool_info);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(json!(all_zfs))
+}
+
 pub async fn get_all_proxmox_volumes(client: &reqwest::Client) -> Result<Value, String> {
     let proxmox_urls = std::env::var("PROXMOX_URLS").unwrap_or_default();
     let proxmox_user = std::env::var("PROXMOX_USER").unwrap_or_default();

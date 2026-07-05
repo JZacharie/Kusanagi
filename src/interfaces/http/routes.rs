@@ -172,6 +172,7 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/proxmox/vms", get(get_vms_handler))
         .route("/api/proxmox/containers", get(get_containers_handler))
         .route("/api/proxmox/nodes", get(get_nodes_handler))
+        .route("/api/proxmox/zfs", get(get_zfs_handler))
         .route(
             "/api/proxmox/volume/{server}/{node}/{storage}/{volume}",
             delete(delete_volume_handler),

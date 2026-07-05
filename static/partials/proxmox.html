@@ -36,12 +36,23 @@
 </div>
 
 <!-- Containers Table -->
-<div class="issues-table-container" style="border-color: var(--neon-magenta);">
+<div class="issues-table-container" style="border-color: var(--neon-magenta); margin-bottom: 1.5rem;">
     <div class="issues-table-header" style="background: rgba(255, 0, 128, 0.1); border-color: var(--neon-magenta);">
         <span class="issues-table-title" style="color: var(--neon-magenta);">📦 LXC Containers</span>
         <span class="issues-count" id="proxmox-containers-count" style="background: var(--neon-magenta);">0</span>
     </div>
     <div id="proxmox-containers-content">
         <div class="loading">🔄 Loading containers from Proxmox servers...</div>
+    </div>
+</div>
+
+<!-- ZFS Storage Pools Table -->
+<div class="issues-table-container" style="border-color: var(--neon-pink);">
+    <div class="issues-table-header" style="background: rgba(244, 63, 94, 0.1); border-color: var(--neon-pink);">
+        <span class="issues-table-title" style="color: var(--neon-pink);">💽 ZFS Storage Pools (Fragmentation)</span>
+        <span class="issues-count" id="proxmox-zfs-count" style="background: var(--neon-pink);">0</span>
+    </div>
+    <div id="proxmox-zfs-content">
+        <div class="loading">🔄 Loading ZFS pools from Proxmox servers...</div>
     </div>
 </div>

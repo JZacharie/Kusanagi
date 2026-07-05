@@ -58,6 +58,7 @@ use utoipa::OpenApi;
         proxmox_handlers::get_vms_handler,
         proxmox_handlers::get_containers_handler,
         proxmox_handlers::get_nodes_handler,
+        proxmox_handlers::get_zfs_handler,
         proxmox_handlers::control_vm_handler,
         proxmox_handlers::control_ct_handler,
         proxmox_compose_handlers::deploy_compose_handler,

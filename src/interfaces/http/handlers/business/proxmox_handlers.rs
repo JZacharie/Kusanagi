@@ -147,3 +147,20 @@ pub async fn delete_volume_handler(
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
     }
 }
+
+/// Get Proxmox ZFS pools (including fragmentation)
+#[utoipa::path(
+    get,
+    path = "/api/proxmox/zfs",
+    responses(
+        (status = 200, description = "ZFS pools retrieved successfully"),
+        (status = 500, description = "Failed to retrieve ZFS pools")
+    ),
+    tag = "proxmox"
+)]
+pub async fn get_zfs_handler(State(state): State<AppState>) -> impl IntoResponse {
+    match proxmox_service::get_proxmox_zfs(&state.http_client).await {
+        Ok(zfs) => api_success(json!(zfs)),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e),
+    }
+}

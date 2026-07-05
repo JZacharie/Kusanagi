@@ -47,16 +47,16 @@ const ProxmoxDashboard = {
     async fetchProxmoxData() {
         this.log('Fetching Proxmox data...');
 
-        // Use apiFetch to get unwrapped data from the standard envelope
-        const [vms, containers, nodes] = await Promise.all([
+        const [vms, containers, nodes, zfs] = await Promise.all([
             api.get('/api/proxmox/vms').catch(() => []),
             api.get('/api/proxmox/containers').catch(() => []),
-            api.get('/api/proxmox/nodes').catch(() => [])
+            api.get('/api/proxmox/nodes').catch(() => []),
+            api.get('/api/proxmox/zfs').catch(() => [])
         ]);
 
-        this.log('Fetched data:', { vms: vms.length, containers: containers.length, nodes: nodes.length });
+        this.log('Fetched data:', { vms: vms.length, containers: containers.length, nodes: nodes.length, zfs: zfs.length });
 
-        return { vms, containers, nodes };
+        return { vms, containers, nodes, zfs };
     },
 
     async activate() {
@@ -91,6 +91,7 @@ const ProxmoxDashboard = {
         this.renderStats(data.vms, data.containers, data.nodes);
         this.renderVMs(data.vms);
         this.renderContainers(data.containers);
+        this.renderZFS(data.zfs);
     },
 
     renderStats(vms, containers, nodes) {
@@ -317,6 +318,90 @@ const ProxmoxDashboard = {
         if (days > 0) return `${days}j ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
         if (hours > 0) return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
         return `${minutes}m ${secs.toString().padStart(2, '0')}s`;
+    },
+
+    renderZFS(zfs) {
+        const container = document.getElementById('proxmox-zfs-content');
+        const countEl = document.getElementById('proxmox-zfs-count');
+
+        if (!Array.isArray(zfs)) {
+            this.log('ZFS data is not an array:', zfs);
+            if (container) container.innerHTML = '<div class="error">Invalid ZFS data received</div>';
+            if (countEl) countEl.textContent = '0';
+            return;
+        }
+
+        if (countEl) countEl.textContent = zfs.length;
+        this.log('Rendering ZFS pools:', zfs.length);
+
+        if (!container) {
+            this.log('ZFS container element not found');
+            return;
+        }
+
+        if (zfs.length === 0) {
+            container.innerHTML = '<div class="no-issues">No ZFS pools found</div>';
+            return;
+        }
+
+        const groupedZFS = zfs.reduce((acc, pool) => {
+            const server = pool.proxmox_url || 'Unknown';
+            if (!acc[server]) acc[server] = [];
+            acc[server].push(pool);
+            return acc;
+        }, {});
+
+        let html = '';
+        for (const [server, serverPools] of Object.entries(groupedZFS)) {
+            const serverHost = server.split('://')[1] || server;
+            html += `
+                <h4 class="server-group-title" style="margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--neon-pink); border-left: 3px solid var(--neon-pink); padding-left: 0.5rem;">
+                    Server: ${serverHost}
+                </h4>
+                <table class="issues-table">
+                    <thead>
+                        <tr>
+                            <th>Pool Name</th>
+                            <th>Node</th>
+                            <th>Status</th>
+                            <th>Size</th>
+                            <th>Free</th>
+                            <th>Allocated</th>
+                            <th>Fragmentation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${serverPools.map(pool => {
+                            const frag = parseInt(pool.fragmentation) || 0;
+                            let fragClass = 'healthy';
+                            if (frag > 70) fragClass = 'unhealthy';
+                            else if (frag > 40) fragClass = 'warning';
+                            
+                            return `
+                                <tr>
+                                    <td><strong>${pool.name || 'N/A'}</strong></td>
+                                    <td>${pool.proxmox_node || 'N/A'}</td>
+                                    <td><span class="status-badge ${pool.health === 'ONLINE' ? 'healthy' : 'unhealthy'}">${pool.health || 'unknown'}</span></td>
+                                    <td>${pool.size ? this.formatBytes(pool.size) : 'N/A'}</td>
+                                    <td>${pool.free ? this.formatBytes(pool.free) : 'N/A'}</td>
+                                    <td>${pool.alloc ? this.formatBytes(pool.alloc) : 'N/A'}</td>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div style="flex-grow: 1; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; min-width: 80px;">
+                                                <div style="height: 100%; width: ${frag}%; background: ${frag > 70 ? 'var(--status-unhealthy, #ff3b30)' : frag > 40 ? '#ffcc00' : 'var(--status-healthy, #34c759)'};"></div>
+                                            </div>
+                                            <span class="status-badge ${fragClass}" style="min-width: 45px; text-align: center;">${frag}%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        container.innerHTML = html;
     }
 };
 
