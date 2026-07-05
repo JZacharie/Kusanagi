@@ -117,15 +117,20 @@ async fn query_prometheus_metrics(
     {
         for result in results {
             if let (Some(metric), Some(value)) = (result.get("metric"), result.get("value")) {
-                let key = if let (Some(ns), Some(pod)) = (metric.get("namespace"), metric.get("pod")) {
-                    format!("{}/{}", ns.as_str().unwrap_or(""), pod.as_str().unwrap_or(""))
-                } else if let Some(ns) = metric.get("namespace") {
-                    ns.as_str().unwrap_or("").to_string()
-                } else if let Some(app) = metric.get("label_app_kubernetes_io_instance") {
-                    app.as_str().unwrap_or("").to_string()
-                } else {
-                    "".to_string()
-                };
+                let key =
+                    if let (Some(ns), Some(pod)) = (metric.get("namespace"), metric.get("pod")) {
+                        format!(
+                            "{}/{}",
+                            ns.as_str().unwrap_or(""),
+                            pod.as_str().unwrap_or("")
+                        )
+                    } else if let Some(ns) = metric.get("namespace") {
+                        ns.as_str().unwrap_or("").to_string()
+                    } else if let Some(app) = metric.get("label_app_kubernetes_io_instance") {
+                        app.as_str().unwrap_or("").to_string()
+                    } else {
+                        "".to_string()
+                    };
 
                 if !key.is_empty() {
                     if let Some(val_str) = value.get(1).and_then(|v| v.as_str()) {
@@ -188,8 +193,14 @@ async fn fetch_argocd_status_from_cluster(client: &reqwest::Client) -> Result<Va
     let apps_api: Api<ArgoCDApplication> = Api::namespaced(k8s_client.clone(), "argocd");
 
     // Fetch prometheus metrics in parallel
-    let cpu_metrics_fut = query_prometheus_metrics(client, "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) by (pod, namespace)");
-    let mem_metrics_fut = query_prometheus_metrics(client, "sum(container_memory_working_set_bytes{container!=\"\"}) by (pod, namespace)");
+    let cpu_metrics_fut = query_prometheus_metrics(
+        client,
+        "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) by (pod, namespace)",
+    );
+    let mem_metrics_fut = query_prometheus_metrics(
+        client,
+        "sum(container_memory_working_set_bytes{container!=\"\"}) by (pod, namespace)",
+    );
     let cpu_ns_fut = query_prometheus_metrics(
         client,
         "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) by (namespace)",

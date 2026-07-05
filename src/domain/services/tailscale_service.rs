@@ -42,10 +42,10 @@ pub struct TailscaleDevicesResponse {
 pub async fn fetch_tailscale_devices(
     client: &reqwest::Client,
 ) -> Result<TailscaleDevicesResponse, String> {
-    let api_key = std::env::var("TAILSCALE_API_KEY")
-        .unwrap_or_else(|_| "tskey-api-kWTqDi8bTp11CNTRL-9VWrtw1aZSEbNRphMu2zREw6dBX3UNyQ1".to_string());
-    let tailnet = std::env::var("TAILSCALE_TAILNET")
-        .unwrap_or_else(|_| "zacharie.org".to_string());
+    let api_key = std::env::var("TAILSCALE_API_KEY").unwrap_or_else(|_| {
+        "tskey-api-kWTqDi8bTp11CNTRL-9VWrtw1aZSEbNRphMu2zREw6dBX3UNyQ1".to_string()
+    });
+    let tailnet = std::env::var("TAILSCALE_TAILNET").unwrap_or_else(|_| "zacharie.org".to_string());
 
     let url = format!(
         "https://api.tailscale.com/api/v2/tailnet/{}/devices",
@@ -98,7 +98,8 @@ pub async fn get_tailscale_devices_json(
                         &d.name
                     };
 
-                    let is_exit = machine_name.contains("exit-node") || d.hostname.contains("exit-node");
+                    let is_exit =
+                        machine_name.contains("exit-node") || d.hostname.contains("exit-node");
 
                     json!({
                         "id": d.id,

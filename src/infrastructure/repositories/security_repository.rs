@@ -477,12 +477,17 @@ impl SecurityRepository for SecurityRepositoryImpl {
                 let keys: Vec<String> = report_list
                     .into_iter()
                     .filter(|(cat, _)| cat == "vulnerability_reports")
-                    .flat_map(|(cat, files)| files.into_iter().map(move |f| format!("{}/{}", cat, f)))
+                    .flat_map(|(cat, files)| {
+                        files.into_iter().map(move |f| format!("{}/{}", cat, f))
+                    })
                     .collect();
                 Ok(keys)
             }
             Err(e) => {
-                warn!("Trivy server unavailable: {}, returning empty report list", e);
+                warn!(
+                    "Trivy server unavailable: {}, returning empty report list",
+                    e
+                );
                 Ok(vec![])
             }
         }
@@ -505,7 +510,10 @@ impl SecurityRepository for SecurityRepositoryImpl {
         let raw_report = match self.fetch_raw_report(category, name).await {
             Ok(report) => report,
             Err(e) => {
-                warn!("Failed to fetch report {}/{}: {}, returning empty", category, name, e);
+                warn!(
+                    "Failed to fetch report {}/{}: {}, returning empty",
+                    category, name, e
+                );
                 serde_json::json!({})
             }
         };
@@ -530,7 +538,8 @@ impl SecurityRepository for SecurityRepositoryImpl {
             .ok_or_else(|| KusanagiError::configuration("Kubernetes client not available"))?;
 
         let namespace = env::var("TRIVY_NAMESPACE").unwrap_or_else(|_| "trivy-system".to_string());
-        let cronjob_name = env::var("TRIVY_RESCAN_CRONJOB").unwrap_or_else(|_| "trivy-rescan-all".to_string());
+        let cronjob_name =
+            env::var("TRIVY_RESCAN_CRONJOB").unwrap_or_else(|_| "trivy-rescan-all".to_string());
 
         let cronjobs_api: Api<CronJob> = Api::namespaced(client.as_ref().clone(), &namespace);
 

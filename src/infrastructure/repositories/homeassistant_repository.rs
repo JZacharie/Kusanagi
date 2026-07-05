@@ -201,7 +201,10 @@ impl HomeAssistantRepository for HomeAssistantRepositoryImpl {
                 Ok(HomeAssistantSensorsResponse { sensors, count })
             }
             Err(e) => {
-                warn!("Failed to fetch sensors from Home Assistant: {}, returning empty", e);
+                warn!(
+                    "Failed to fetch sensors from Home Assistant: {}, returning empty",
+                    e
+                );
                 Ok(HomeAssistantSensorsResponse {
                     sensors: vec![],
                     count: 0,
@@ -226,7 +229,10 @@ impl HomeAssistantRepository for HomeAssistantRepositoryImpl {
                 Ok(HomeAssistantDevicesResponse { devices, count })
             }
             Err(e) => {
-                warn!("Failed to fetch devices from Home Assistant: {}, returning empty", e);
+                warn!(
+                    "Failed to fetch devices from Home Assistant: {}, returning empty",
+                    e
+                );
                 Ok(HomeAssistantDevicesResponse {
                     devices: vec![],
                     count: 0,

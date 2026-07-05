@@ -1,4 +1,4 @@
-use axum::extract::{State, Query};
+use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use serde_json::json;
 
@@ -9,7 +9,6 @@ use crate::state::AppState;
 pub struct LimitsQuery {
     refresh: Option<bool>,
 }
-
 
 pub async fn get_limits_handler(
     State(state): State<AppState>,
@@ -78,10 +77,7 @@ pub async fn get_limits_handler(
         let memory_usage = query_prometheus_sum(
             &state.http_client,
             &prometheus_url,
-            &format!(
-                r#"sum(container_memory_usage_bytes{{namespace="{}"}})"#,
-                ns
-            ),
+            &format!(r#"sum(container_memory_usage_bytes{{namespace="{}"}})"#, ns),
         )
         .await
         .unwrap_or(0.0);
@@ -181,10 +177,22 @@ pub async fn get_limits_handler(
         }));
     }
 
-    let total_cpu_limits: f64 = applications.iter().filter_map(|a| a["cpu"]["limits"].as_f64()).sum();
-    let total_cpu_usage: f64 = applications.iter().filter_map(|a| a["cpu"]["usage"].as_f64()).sum();
-    let total_mem_limits: f64 = applications.iter().filter_map(|a| a["memory"]["limits_mb"].as_f64()).sum();
-    let total_mem_usage: f64 = applications.iter().filter_map(|a| a["memory"]["usage_mb"].as_f64()).sum();
+    let total_cpu_limits: f64 = applications
+        .iter()
+        .filter_map(|a| a["cpu"]["limits"].as_f64())
+        .sum();
+    let total_cpu_usage: f64 = applications
+        .iter()
+        .filter_map(|a| a["cpu"]["usage"].as_f64())
+        .sum();
+    let total_mem_limits: f64 = applications
+        .iter()
+        .filter_map(|a| a["memory"]["limits_mb"].as_f64())
+        .sum();
+    let total_mem_usage: f64 = applications
+        .iter()
+        .filter_map(|a| a["memory"]["usage_mb"].as_f64())
+        .sum();
 
     let result = json!({
         "applications": applications,
