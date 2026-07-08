@@ -1002,7 +1002,8 @@ async fn translate_news_items(
         provider: LlmProvider::Litellm,
         base_url: std::env::var("NEWS_LLM_URL")
             .or_else(|_| std::env::var("LLM_BASE_URL"))
-            .unwrap_or_else(|_| "http://ip.zacharie.org:4000".to_string()),
+            .or_else(|_| std::env::var("LITELLM_URL"))
+            .unwrap_or_else(|_| "http://litellm.litellm.svc.cluster.local:4000".to_string()),
         api_key: std::env::var("NEWS_LLM_API_KEY")
             .ok()
             .or_else(|| std::env::var("LLM_API_KEY").ok())

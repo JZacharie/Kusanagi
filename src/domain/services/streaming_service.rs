@@ -501,22 +501,14 @@ fn parse_justwatch_html(html: &str, content_type: &str) -> Vec<Value> {
     while let Some(link_pos) = html[current_pos..].find("title-list-grid__item--link") {
         let abs_link_pos = current_pos + link_pos;
 
-        // Find the <a href="..." before this class
-        // Search backwards for href="
-        // Safely find search_start boundary
-        let mut search_start = abs_link_pos.saturating_sub(200);
-        while !html.is_char_boundary(search_start) && search_start < abs_link_pos {
-            search_start += 1;
-        }
-        let before = &html[search_start..abs_link_pos];
-
-        if let Some(href_pos) = before.rfind("href=\"") {
-            let href_start = search_start + href_pos + 6;
+        // On the same <a> tag, href appears AFTER the class attribute
+        if let Some(href_relative) = html[abs_link_pos..].find("href=\"") {
+            let href_start = abs_link_pos + href_relative + 6;
             if let Some(href_end) = html[href_start..].find('"') {
                 let path = &html[href_start..href_start + href_end];
 
                 if path.starts_with(link_prefix) || path.contains(link_prefix) {
-                    // Safely find the search_end boundary
+                    // Compute block once for img extraction
                     let mut search_end = std::cmp::min(abs_link_pos + 5000, html.len());
                     while !html.is_char_boundary(search_end) && search_end < html.len() {
                         search_end += 1;
@@ -524,19 +516,15 @@ fn parse_justwatch_html(html: &str, content_type: &str) -> Vec<Value> {
                     if !html.is_char_boundary(search_end) {
                         search_end = html.len();
                     }
-
                     let block = &html[abs_link_pos..search_end];
 
-                    if let Some(img_alt) = extract_img_alt(block) {
-                        let title = img_alt.trim().to_string();
-                        if title.is_empty() {
-                            current_pos = abs_link_pos + 30;
-                            continue;
-                        }
+                    // Try data-title from parent div, fallback to img alt
+                    let title = extract_data_title(html, abs_link_pos)
+                        .or_else(|| extract_img_alt(block).map(|t| t.trim().to_string()))
+                        .filter(|t| !t.is_empty());
 
-                        // Extract poster URL from <img ... src="...">
+                    if let Some(title) = title {
                         let poster_url = extract_img_src(block);
-
                         let url = format!("{}{}", JUSTWATCH_BASE, path);
 
                         items.push(json!({
@@ -592,6 +580,27 @@ fn extract_img_src(block: &str) -> Option<String> {
     let src_end = after_img[src_start..].find('"')?;
     let src = &after_img[src_start..src_start + src_end];
     Some(src.replace("&amp;", "&"))
+}
+
+/// Extract the title from the parent div's data-title attribute
+fn extract_data_title(html: &str, abs_link_pos: usize) -> Option<String> {
+    // Search backward from the link to find parent div with data-title="..."
+    let search_start = abs_link_pos.saturating_sub(1000);
+    let before = &html[search_start..abs_link_pos];
+    if let Some(last_div) = before.rfind("title-list-grid__item\"") {
+        let div_start = search_start + last_div;
+        let after_class = &html[div_start..abs_link_pos];
+        if let Some(data_title_pos) = after_class.find("data-title=\"") {
+            let title_start = div_start + data_title_pos + 12;
+            if let Some(title_end) = html[title_start..].find('"') {
+                let title = &html[title_start..title_start + title_end];
+                if !title.is_empty() {
+                    return Some(title.to_string());
+                }
+            }
+        }
+    }
+    None
 }
 
 /// Normalize a title for deduplication (lowercase, strip accents, remove special chars)
