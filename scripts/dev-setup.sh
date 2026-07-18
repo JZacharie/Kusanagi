@@ -82,7 +82,7 @@ for tool_info in "${TOOLS[@]}"; do
         echo -e "${GREEN}✓ $tool already installed${NC}"
     else
         echo -e "${BLUE}  Installing $tool ($desc)...${NC}"
-        cargo install $tool 2>&1 | grep -E "(Installing|Updated|Finished)" || true
+        cargo install --locked $tool 2>&1 | grep -E "(Installing|Updated|Finished)" || true
     fi
 done
 
