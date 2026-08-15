@@ -119,9 +119,14 @@ const ApplicationsDashboard = {
             projects.map(p => `<option value="${p}">${p}</option>`).join('');
     },
 
-    cleanVer(v) {
-        if (!v) return "latest";
-        return v.toString().replace(/^v+/i, "");
+    formatVersion(ver) {
+        if (!ver) return "latest";
+        const str = ver.toString().trim();
+        if (str.toLowerCase() === "latest" || str.toLowerCase() === "-" || str === "") {
+            return "latest";
+        }
+        const clean = str.replace(/^[vV]+/, '');
+        return "v" + clean;
     },
 
     handleIconError(img, appName) {
@@ -177,8 +182,8 @@ const ApplicationsDashboard = {
                 `<a href="${app.ingress_url}" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.65rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(79, 70, 229, 0.3) 100%); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 8px; color: #a5b4fc; font-weight: 600; font-size: 0.85rem; text-decoration: none;">🌐 Ouvrir (${app.ingress_url.replace("https://", "")})</a>` : 
                 `<div style="display: flex; align-items: center; justify-content: center; width: 100%; padding: 0.65rem; background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 8px; color: #9ca3af; font-size: 0.82rem;">Aucune route Ingress publique</div>`;
 
-            const updateBadge = app.probe && app.probe.status === "UPDATE_AVAILABLE" ?
-                `<span style="padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">🚀 Upgrade v${this.cleanVer(app.probe.latest)}</span>` : '';
+            const updateBadge = (app.probe && app.probe.status === "UPDATE_AVAILABLE") ?
+                `<span style="padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">🚀 Upgrade ${this.formatVersion(app.probe.latest)}</span>` : '';
 
             const statusClass = app.status === "Active" ? 
                 `background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4);` :
@@ -186,9 +191,9 @@ const ApplicationsDashboard = {
 
             const gitleakColor = app.gitleaks_count > 0 ? '#ef4444' : '#10b981';
 
-            const probeText = app.probe && app.probe.status === "UPDATE_AVAILABLE" ?
-                `🚀 v${this.cleanVer(app.probe.current)} ➔ v${this.cleanVer(app.probe.latest)}` :
-                `✅ v${this.cleanVer(app.probe ? app.probe.current : 'latest')}`;
+            const probeText = (app.probe && app.probe.status === "UPDATE_AVAILABLE") ?
+                `🚀 ${this.formatVersion(app.probe.current)} ➔ ${this.formatVersion(app.probe.latest)}` :
+                `✅ ${this.formatVersion(app.probe ? app.probe.current : 'latest')}`;
 
             card.innerHTML = `
                 <div>
