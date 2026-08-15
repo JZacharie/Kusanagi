@@ -326,6 +326,9 @@ async function switchTab(tabName) {
         // init is handled by PageLoader.initScripts
     } else if (tabName === "system" && window.KusanagiSystem) {
         // activate is handled by PageLoader.initScripts
+    } else if (tabName === "applications" && window.ApplicationsDashboard) {
+        console.log("🔄 Switched to Applications tab, initializing...");
+        ApplicationsDashboard.init();
     } else if (tabName === "argocd" && window.K8sManager) {
         console.log("🔄 Switched to ArgoCD tab, fetching status...");
         K8sManager.fetchArgoStatus();

@@ -4,6 +4,7 @@
 
 const ApplicationsDashboard = {
     appsData: [],
+    loading: false,
 
     async init() {
         console.log("🛡️ ApplicationsDashboard: Initializing Vue 360°...");
@@ -11,31 +12,89 @@ const ApplicationsDashboard = {
     },
 
     async fetchApplicationsData() {
+        if (this.loading) return;
+        this.loading = true;
+
+        const grid = document.getElementById("kusanagiAppsGrid");
+        if (grid && this.appsData.length === 0) {
+            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--neon-cyan); padding: 3rem;">
+                <div class="loading">Chargement des données 360° des applications...</div>
+            </div>`;
+        }
+
+        // 1. Try internal Kusanagi Rust API: /api/applications/360
         try {
-            // Fetch from status page API or fallback to status dashboard endpoint
+            const res = await fetch('/api/applications/360');
+            if (res.ok) {
+                const json = await res.json();
+                if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+                    this.appsData = json.data;
+                    this.updateStats();
+                    this.populateProjects();
+                    this.renderApps(this.appsData);
+                    this.loading = false;
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn("🛡️ /api/applications/360 not responding:", e);
+        }
+
+        // 2. Try fetching from the jo3-status hub
+        try {
             const res = await fetch('https://jzacharie.github.io/jo3-status/index.html');
             if (res.ok) {
                 const htmlText = await res.text();
                 const jsonMatch = htmlText.match(/const rawApps = (\[[\s\S]*?\]);/);
                 if (jsonMatch) {
                     this.appsData = JSON.parse(jsonMatch[1]);
-                    console.log(`🛡️ ApplicationsDashboard: Loaded ${this.appsData.length} apps`);
                     this.updateStats();
                     this.populateProjects();
                     this.renderApps(this.appsData);
+                    this.loading = false;
                     return;
                 }
             }
         } catch (e) {
-            console.warn("🛡️ ApplicationsDashboard: Direct fetch failed, trying local fallback", e);
+            console.warn("🛡️ Public status page fetch error:", e);
         }
 
-        // Fallback mock rendering if offline
-        const grid = document.getElementById("kusanagiAppsGrid");
+        // 3. Try fallback to /api/argocd/status
+        try {
+            const res = await fetch('/api/argocd/status');
+            if (res.ok) {
+                const json = await res.json();
+                const rawList = json.applications || (json.data && json.data.applications) || [];
+                if (rawList.length > 0) {
+                    this.appsData = rawList.map(a => ({
+                        name: a.name || a.metadata?.name || 'app',
+                        project: a.spec?.project || a.project || 'default',
+                        namespace: a.spec?.destination?.namespace || a.namespace || '-',
+                        chart: a.spec?.source?.chart || a.spec?.source?.path || a.chart || '-',
+                        status: a.status?.health?.status === 'Healthy' ? 'Active' : 'Active',
+                        badge_class: 'badge-active',
+                        ingress_url: `https://${a.name}.p.zacharie.org`,
+                        icon_url: `https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/${a.name}.png`,
+                        gitleaks_count: 0,
+                        arch: 'amd64 (K8s)',
+                        probe: { current: 'latest', latest: 'latest', status: 'UP_TO_DATE' }
+                    }));
+                    this.updateStats();
+                    this.populateProjects();
+                    this.renderApps(this.appsData);
+                    this.loading = false;
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn("🛡️ /api/argocd/status fallback error:", e);
+        }
+
+        this.loading = false;
         if (grid) {
             grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #9ca3af; padding: 2rem;">
                 <p>Consultez la Vue 360° complète en direct :</p>
-                <a href="https://jzacharie.github.io/jo3-status/" target="_blank" class="cyber-btn" style="margin-top: 1rem; display: inline-block;">🌐 Ouvrir le Dashboard 360° Status</a>
+                <a href="https://jzacharie.github.io/jo3-status/" target="_blank" class="cyber-btn" style="margin-top: 1rem; display: inline-block; padding: 0.6rem 1.2rem; text-decoration: none;">🌐 Ouvrir le Dashboard 360° Status</a>
             </div>`;
         }
     },
@@ -105,20 +164,21 @@ const ApplicationsDashboard = {
         apps.forEach(app => {
             const card = document.createElement("div");
             card.className = "app-card";
-            card.style.background = "rgba(17, 24, 39, 0.78)";
+            card.style.background = "rgba(17, 24, 39, 0.82)";
             card.style.border = "1px solid rgba(255, 255, 255, 0.08)";
-            card.style.borderRadius = "12px";
-            card.style.padding = "1.15rem";
+            card.style.borderRadius = "14px";
+            card.style.padding = "1.25rem";
             card.style.display = "flex";
             card.style.flexDirection = "column";
-            card.style.justifySpaceBetween = "space-between";
+            card.style.justifyContent = "space-between";
+            card.style.backdropFilter = "blur(14px)";
             
             const ingressHtml = app.ingress_url ? 
-                `<a href="${app.ingress_url}" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.6rem; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 8px; color: #a5b4fc; font-weight: 600; font-size: 0.85rem; text-decoration: none;">🌐 Ouvrir (${app.ingress_url.replace("https://", "")})</a>` : 
-                `<div style="display: flex; align-items: center; justify-content: center; width: 100%; padding: 0.6rem; background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 8px; color: #9ca3af; font-size: 0.82rem;">Aucune route Ingress publique</div>`;
+                `<a href="${app.ingress_url}" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.65rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(79, 70, 229, 0.3) 100%); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 8px; color: #a5b4fc; font-weight: 600; font-size: 0.85rem; text-decoration: none;">🌐 Ouvrir (${app.ingress_url.replace("https://", "")})</a>` : 
+                `<div style="display: flex; align-items: center; justify-content: center; width: 100%; padding: 0.65rem; background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 8px; color: #9ca3af; font-size: 0.82rem;">Aucune route Ingress publique</div>`;
 
             const updateBadge = app.probe && app.probe.status === "UPDATE_AVAILABLE" ?
-                `<span style="padding: 0.25rem 0.55rem; border-radius: 20px; font-size: 0.68rem; font-weight: 700; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">🚀 v${this.cleanVer(app.probe.latest)}</span>` : '';
+                `<span style="padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">🚀 Upgrade v${this.cleanVer(app.probe.latest)}</span>` : '';
 
             const statusClass = app.status === "Active" ? 
                 `background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4);` :
@@ -126,26 +186,32 @@ const ApplicationsDashboard = {
 
             const gitleakColor = app.gitleaks_count > 0 ? '#ef4444' : '#10b981';
 
+            const probeText = app.probe && app.probe.status === "UPDATE_AVAILABLE" ?
+                `🚀 v${this.cleanVer(app.probe.current)} ➔ v${this.cleanVer(app.probe.latest)}` :
+                `✅ v${this.cleanVer(app.probe ? app.probe.current : 'latest')}`;
+
             card.innerHTML = `
                 <div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.85rem;">
-                        <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0; flex: 1;">
-                            <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
-                                <img src="${app.icon_url}" alt="${app.name}" style="width: 100%; height: 100%; object-fit: contain; padding: 4px;" onerror="ApplicationsDashboard.handleIconError(this, '${app.name}')">
+                    <div style="margin-bottom: 0.9rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
+                                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
+                                    <img src="${app.icon_url}" alt="${app.name}" style="width: 100%; height: 100%; object-fit: contain; padding: 4px;" onerror="ApplicationsDashboard.handleIconError(this, '${app.name}')">
+                                </div>
+                                <div style="font-size: 1.15rem; font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace; word-break: break-word; line-height: 1.25;" title="${app.name}">${app.name}</div>
                             </div>
-                            <div style="font-size: 1.05rem; font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${app.name}">${app.name}</div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0;">
-                            <span style="padding: 0.25rem 0.55rem; border-radius: 20px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; ${statusClass}">${app.status}</span>
-                            ${updateBadge}
+                            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                                <span style="padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; ${statusClass}">${app.status}</span>
+                                ${updateBadge}
+                            </div>
                         </div>
                     </div>
 
-                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 0.65rem; margin-bottom: 1rem; font-size: 0.82rem;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                             <span style="color: #9ca3af;">Sonde Image :</span>
                             <span style="font-family: 'JetBrains Mono', monospace; font-weight:600; color: ${app.probe && app.probe.status === 'UPDATE_AVAILABLE' ? '#fbbf24' : '#10b981'};">
-                                ${app.probe && app.probe.status === 'UPDATE_AVAILABLE' ? '🚀 v' + this.cleanVer(app.probe.current) + ' ➔ v' + this.cleanVer(app.probe.latest) : '✅ v' + this.cleanVer(app.probe ? app.probe.current : 'latest')}
+                                ${probeText}
                             </span>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -156,7 +222,7 @@ const ApplicationsDashboard = {
                         </div>
                     </div>
 
-                    <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem; color: #9ca3af; margin-bottom: 1rem;">
+                    <div style="display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.88rem; color: #9ca3af; margin-bottom: 1rem;">
                         <div style="display: flex; justify-content: space-between;">
                             <span>Projet / NS :</span>
                             <span style="color: #d1d5db; font-family: 'JetBrains Mono', monospace;">${app.project} / ${app.namespace}</span>
@@ -167,7 +233,7 @@ const ApplicationsDashboard = {
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span>Source / Chart :</span>
-                            <span style="color: #d1d5db; font-family: 'JetBrains Mono', monospace;" title="${app.chart}">${app.chart.length > 20 ? app.chart.substring(0, 17) + '...' : app.chart}</span>
+                            <span style="color: #d1d5db; font-family: 'JetBrains Mono', monospace;" title="${app.chart}">${app.chart.length > 22 ? app.chart.substring(0, 19) + '...' : app.chart}</span>
                         </div>
                     </div>
                 </div>

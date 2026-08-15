@@ -8,6 +8,7 @@ const TabManager = {
     // null = pas de polling automatique
     TABS: {
         // K8s tabs
+        applications: { interval: 60000, module: 'ApplicationsDashboard', fetch: 'init' },
         argocd: { interval: 30000, module: 'K8sArgo', fetch: 'fetchArgoStatus' },
         nodes: { interval: 60000, module: 'K8sNodes', fetch: 'fetchNodesStatus' },
         pods: { interval: 30000, module: 'K8sPods', fetch: 'fetchPodsStatus' },
