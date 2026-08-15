@@ -12,6 +12,7 @@ const PageLoader = {
 
     // Mapping of tab names to partial files
     partials: {
+        'applications': 'applications.html',
         'overview': 'overview.html',
         'business': 'business.html',
         'nodes': 'nodes.html',
@@ -126,6 +127,9 @@ const PageLoader = {
     initScripts(tabName) {
         // Trigger initialization based on tab
         switch (tabName) {
+            case 'applications':
+                if (window.ApplicationsDashboard) ApplicationsDashboard.init();
+                break;
             case 'overview':
                 if (window.OverviewDashboard) OverviewDashboard.init();
                 break;

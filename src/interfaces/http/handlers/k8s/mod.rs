@@ -370,3 +370,25 @@ pub async fn get_namespace_metrics_handler(
         Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }
 }
+
+/// Applications 360 status endpoint
+#[utoipa::path(
+    get,
+    path = "/api/applications/360",
+    responses(
+        (status = 200, description = "Applications 360 status retrieved successfully"),
+        (status = 500, description = "Failed to retrieve applications status")
+    ),
+    tag = "kubernetes"
+)]
+pub async fn applications_360_status(State(state): State<AppState>) -> Response {
+    use crate::domain::services::argocd_service::get_argocd_status;
+    match get_argocd_status(&state.http_client, &state.argocd_cache, false).await {
+        Ok(data) => api_success(json!({
+            "status": "success",
+            "dashboard_url": "https://jzacharie.github.io/jo3-status/",
+            "data": data
+        })),
+        Err(e) => api_error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+    }
+}

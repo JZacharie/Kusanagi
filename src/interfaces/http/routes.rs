@@ -134,6 +134,7 @@ pub fn configure_routes(state: AppState) -> Router {
         .route("/api/ingress", get(ingress))
         .route("/api/services", get(services))
         .route("/api/pods/{namespace}/{name}/logs", get(pod_logs))
+        .route("/api/applications/360", get(applications_360_status))
         .route("/api/argocd/status", get(argocd_status))
         .route("/api/argocd/sync", post(argocd_sync))
         .route("/api/news", get(news))

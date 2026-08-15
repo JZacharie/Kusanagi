@@ -1,0 +1,50 @@
+<!-- Applications Vue 360° Partial -->
+<div class="applications-container" style="padding: 1rem 0;">
+    <div class="cyber-header-banner" style="margin-bottom: 1.5rem;">
+        <div class="logo-title" style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 2rem;">🛡️</span>
+            <h2 style="color: #fff; font-weight: 800; font-family: 'Orbitron', sans-serif;">Kusanagi Vue 360° — Status Applications jo3</h2>
+        </div>
+        <p class="subtitle" style="color: #9ca3af; font-size: 0.9rem; margin-top: 0.25rem;">Vue 360° interactive des applications Kubernetes (Gitleaks, Architecture, Ingress, Sonde de Mise à Jour)</p>
+    </div>
+
+    <div class="stats-grid" id="apps-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="stat-card" onclick="ApplicationsDashboard.quickFilter('ALL')" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; cursor: pointer;">
+            <div class="label" style="font-size: 0.8rem; color: #9ca3af; text-transform: uppercase;">Total Applications</div>
+            <div class="value" style="font-size: 1.8rem; font-weight: 700; color: #6366f1;" id="stat-total-apps">0</div>
+        </div>
+        <div class="stat-card" onclick="ApplicationsDashboard.quickFilter('Active')" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; cursor: pointer;">
+            <div class="label" style="font-size: 0.8rem; color: #9ca3af; text-transform: uppercase;">Actives (ArgoCD)</div>
+            <div class="value" style="font-size: 1.8rem; font-weight: 700; color: #10b981;" id="stat-active-apps">0</div>
+        </div>
+        <div class="stat-card" onclick="ApplicationsDashboard.quickFilter('Updates')" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; cursor: pointer;">
+            <div class="label" style="font-size: 0.8rem; color: #9ca3af; text-transform: uppercase;">Sonde Mises à Jour</div>
+            <div class="value" style="font-size: 1.8rem; font-weight: 700; color: #f59e0b;" id="stat-updates-apps">0</div>
+        </div>
+        <div class="stat-card" onclick="ApplicationsDashboard.quickFilter('Gitleaks')" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; cursor: pointer;">
+            <div class="label" style="font-size: 0.8rem; color: #9ca3af; text-transform: uppercase;">Alerte Gitleaks / Passwords</div>
+            <div class="value" style="font-size: 1.8rem; font-weight: 700; color: #ef4444;" id="stat-gitleaks-apps">0</div>
+        </div>
+    </div>
+
+    <div class="controls" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+        <div class="search-box" style="flex: 1; min-width: 260px; position: relative;">
+            <input type="text" id="appSearchInput" placeholder="Rechercher une application, namespace, chart, version..." oninput="ApplicationsDashboard.filterApps()" style="width: 100%; padding: 0.65rem 1rem; background: rgba(17, 24, 39, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff; outline: none;">
+        </div>
+        <select id="appProjectFilter" class="filter-select" onchange="ApplicationsDashboard.filterApps()" style="padding: 0.65rem 1rem; background: rgba(17, 24, 39, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff; outline: none;">
+            <option value="ALL">Tous les projets</option>
+        </select>
+        <select id="appStatusFilter" class="filter-select" onchange="ApplicationsDashboard.filterApps()" style="padding: 0.65rem 1rem; background: rgba(17, 24, 39, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff; outline: none;">
+            <option value="ALL">Tous les statuts</option>
+            <option value="Active">Actives</option>
+            <option value="Disabled">Désactivées</option>
+            <option value="Update">Mise à jour disponible</option>
+        </select>
+    </div>
+
+    <div class="apps-grid" id="kusanagiAppsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1.25rem;">
+        <div style="grid-column: 1/-1; text-align: center; color: #9ca3af; padding: 3rem;">
+            Chargement de la Vue 360° des Applications...
+        </div>
+    </div>
+</div>

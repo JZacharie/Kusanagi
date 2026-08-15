@@ -94,6 +94,7 @@
     <script src="/static/js/k8s/services.js?v={{VERSION}}"></script>
     <script src="/static/js/k8s/storage.js?v={{VERSION}}"></script>
     <script src="/static/js/k8s/argocd.js?v={{VERSION}}"></script>
+    <script src="/static/js/k8s/applications.js?v={{VERSION}}"></script>
     <script src="/static/js/k8s/main.js?v={{VERSION}}"></script>
 
     <!-- Tab Manager (must be before modules) -->
@@ -182,7 +183,13 @@
                 <div class="nav-section-title">Platform</div>
                 <ul class="nav-menu">
                     <li class="nav-item">
-                        <a class="nav-link" data-page="argocd" href="#argocd">
+                        <li class="nav-item">
+                        <a class="nav-link" data-page="applications" href="#applications">
+                            <i class="mdi mdi-apps-box"></i>
+                            <span class="nav-link-text">Applications 360°</span>
+                        </a>
+                    </li>
+                    <a class="nav-link" data-page="argocd" href="#argocd">
                             <i class="mdi mdi-rocket-launch"></i>
                             <span class="nav-link-text">ArgoCD</span>
                         </a>
