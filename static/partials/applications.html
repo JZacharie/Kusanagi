@@ -9,20 +9,20 @@
     </div>
 
     <div class="stats-grid" id="apps-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-        <div class="stat-card" onclick="ApplicationsDashboard.quickFilter('ALL')" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; cursor: pointer;">
+        <div class="stat-card" onclick="ApplicationsDashboard.quickFilter('ALL')" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; cursor: pointer; transition: transform 0.2s, border-color 0.2s;">
             <div class="label" style="font-size: 0.8rem; color: #9ca3af; text-transform: uppercase;">Total Applications</div>
             <div class="value" style="font-size: 1.8rem; font-weight: 700; color: #6366f1;" id="stat-total-apps">0</div>
         </div>
-        <div class="stat-card" onclick="ApplicationsDashboard.quickFilter('Active')" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; cursor: pointer;">
+        <div class="stat-card" onclick="ApplicationsDashboard.quickFilter('Active')" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; cursor: pointer; transition: transform 0.2s, border-color 0.2s;">
             <div class="label" style="font-size: 0.8rem; color: #9ca3af; text-transform: uppercase;">Actives (ArgoCD)</div>
             <div class="value" style="font-size: 1.8rem; font-weight: 700; color: #10b981;" id="stat-active-apps">0</div>
         </div>
-        <div class="stat-card" onclick="ApplicationsDashboard.quickFilter('Updates')" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; cursor: pointer;">
+        <div class="stat-card" onclick="ApplicationsDashboard.quickFilter('Updates')" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; cursor: pointer; transition: transform 0.2s, border-color 0.2s;">
             <div class="label" style="font-size: 0.8rem; color: #9ca3af; text-transform: uppercase;">Sonde Mises à Jour</div>
             <div class="value" style="font-size: 1.8rem; font-weight: 700; color: #f59e0b;" id="stat-updates-apps">0</div>
         </div>
-        <div class="stat-card" onclick="ApplicationsDashboard.quickFilter('Gitleaks')" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; cursor: pointer;">
-            <div class="label" style="font-size: 0.8rem; color: #9ca3af; text-transform: uppercase;">Alerte Gitleaks / Passwords</div>
+        <div class="stat-card" onclick="ApplicationsDashboard.quickFilter('Gitleaks')" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 1rem; cursor: pointer; transition: transform 0.2s, border-color 0.2s;">
+            <div class="label" style="font-size: 0.8rem; color: #f87171; text-transform: uppercase; font-weight: 600;">⚠️ Alerte Gitleaks / Passwords</div>
             <div class="value" style="font-size: 1.8rem; font-weight: 700; color: #ef4444;" id="stat-gitleaks-apps">0</div>
         </div>
     </div>
@@ -36,9 +36,11 @@
         </select>
         <select id="appStatusFilter" class="filter-select" onchange="ApplicationsDashboard.filterApps()" style="padding: 0.65rem 1rem; background: rgba(17, 24, 39, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff; outline: none;">
             <option value="ALL">Tous les statuts</option>
-            <option value="Active">Actives</option>
+            <option value="Active">Actives uniquement</option>
             <option value="Disabled">Désactivées</option>
             <option value="Update">Mise à jour disponible</option>
+            <option value="Gitleaks">⚠️ Fuites Gitleaks / Passwords</option>
+            <option value="Vault">🛡️ Sécurisées (0 leak / Vault)</option>
         </select>
     </div>
 

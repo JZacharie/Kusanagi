@@ -251,11 +251,11 @@ const ApplicationsDashboard = {
     quickFilter(type) {
         const statusFilter = document.getElementById("appStatusFilter");
         const searchInput = document.getElementById("appSearchInput");
-        if (!statusFilter || !searchInput) return;
+        if (!statusFilter) return;
 
         if (type === "ALL") {
             statusFilter.value = "ALL";
-            searchInput.value = "";
+            if (searchInput) searchInput.value = "";
         } else if (type === "Active") {
             statusFilter.value = "Active";
         } else if (type === "Disabled") {
@@ -263,29 +263,36 @@ const ApplicationsDashboard = {
         } else if (type === "Updates") {
             statusFilter.value = "Update";
         } else if (type === "Gitleaks") {
-            statusFilter.value = "ALL";
-            searchInput.value = "secrets bruts";
+            statusFilter.value = "Gitleaks";
+            if (searchInput) searchInput.value = "";
+        } else if (type === "Vault") {
+            statusFilter.value = "Vault";
+            if (searchInput) searchInput.value = "";
         }
         this.filterApps();
     },
 
     filterApps() {
-        const search = (document.getElementById("appSearchInput")?.value || "").toLowerCase();
+        const search = (document.getElementById("appSearchInput")?.value || "").toLowerCase().trim();
         const project = document.getElementById("appProjectFilter")?.value || "ALL";
         const status = document.getElementById("appStatusFilter")?.value || "ALL";
 
         const filtered = this.appsData.filter(app => {
-            const matchSearch = app.name.toLowerCase().includes(search) || 
+            const matchSearch = !search || 
+                                app.name.toLowerCase().includes(search) || 
                                 app.project.toLowerCase().includes(search) || 
                                 app.namespace.toLowerCase().includes(search) ||
                                 (app.ingress_url && app.ingress_url.toLowerCase().includes(search)) ||
-                                app.chart.toLowerCase().includes(search) ||
-                                (search.includes("secret") && app.gitleaks_count > 0);
+                                (app.chart && app.chart.toLowerCase().includes(search));
+
             const matchProject = (project === "ALL" || app.project === project);
+
             let matchStatus = true;
             if (status === "Active") matchStatus = app.status === "Active";
             else if (status === "Disabled") matchStatus = app.status === "Disabled";
             else if (status === "Update") matchStatus = app.probe && app.probe.status === "UPDATE_AVAILABLE";
+            else if (status === "Gitleaks") matchStatus = (app.gitleaks_count || 0) > 0;
+            else if (status === "Vault") matchStatus = (app.gitleaks_count || 0) === 0;
 
             return matchSearch && matchProject && matchStatus;
         });
