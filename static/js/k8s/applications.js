@@ -183,7 +183,7 @@ const ApplicationsDashboard = {
                 `<div style="display: flex; align-items: center; justify-content: center; width: 100%; padding: 0.65rem; background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 8px; color: #9ca3af; font-size: 0.82rem;">Aucune route Ingress publique</div>`;
 
             const updateBadge = (app.probe && app.probe.status === "UPDATE_AVAILABLE") ?
-                `<span style="padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">🚀 Upgrade ${this.formatVersion(app.probe.latest)}</span>` : '';
+                `<span style="padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); white-space: nowrap;">🚀 Upgrade ${this.formatVersion(app.probe.latest)}</span>` : '';
 
             const statusClass = app.status === "Active" ? 
                 `background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4);` :
@@ -197,19 +197,17 @@ const ApplicationsDashboard = {
 
             card.innerHTML = `
                 <div>
-                    <div style="margin-bottom: 0.9rem;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <div style="display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 0.85rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;">
                             <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
-                                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
+                                <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
                                     <img src="${app.icon_url}" alt="${app.name}" style="width: 100%; height: 100%; object-fit: contain; padding: 4px;" onerror="ApplicationsDashboard.handleIconError(this, '${app.name}')">
                                 </div>
-                                <div style="font-size: 1.15rem; font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace; word-break: break-word; line-height: 1.25;" title="${app.name}">${app.name}</div>
+                                <div style="font-size: 1.15rem; font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${app.name}">${app.name}</div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                                <span style="padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; ${statusClass}">${app.status}</span>
-                                ${updateBadge}
-                            </div>
+                            <span style="padding: 0.25rem 0.55rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; flex-shrink: 0; ${statusClass}">${app.status}</span>
                         </div>
+                        ${updateBadge ? `<div style="display: flex; justify-content: flex-end;">${updateBadge}</div>` : ''}
                     </div>
 
                     <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem;">
