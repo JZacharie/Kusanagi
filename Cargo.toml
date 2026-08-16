@@ -26,7 +26,7 @@ anyhow = "1.0"
 kube = { version = "4.0", features = ["runtime", "derive"] }
 k8s-openapi = { version = "0.28", features = ["latest"] }
 reqwest = { version = "0.13", features = ["json", "multipart", "query", "form"] }
-base64 = "0.22"
+base64 = "0.23"
 sysinfo = "0.39"
 rumqttc = { version = "0.25", features = ["use-native-tls"], default-features = false }
 irc = "1.1"
