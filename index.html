@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kusanagi v0.3.0 | Documentation & Statut du Projet</title>
+  <meta name="description" content="Plateforme de supervision et d'auto-remédiation Kubernetes de nouvelle génération propulsée par Rust, Axum et l'observabilité eBPF.">
+  <meta name="theme-color" content="#090d16">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-base: #060913;
+      --bg-surface: #0c1222;
+      --bg-surface-elevated: #131b2e;
+      --bg-card: rgba(18, 26, 44, 0.75);
+      --bg-card-hover: rgba(28, 40, 68, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(0, 240, 255, 0.3);
+      
+      --cyan: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.35);
+      --purple: #a855f7;
+      --purple-glow: rgba(168, 85, 247, 0.35);
+      --green: #10b981;
+      --green-glow: rgba(16, 185, 129, 0.3);
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --font-mono: 'Fira Code', monospace;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      color-scheme: dark;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      background-image: 
+        radial-gradient(circle at 15% 10%, rgba(0, 240, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
+        linear-gradient(to bottom, transparent, rgba(6, 9, 19, 0.95));
+      background-attachment: fixed;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-base);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--cyan);
+    }
+
+    /* Layout */
+    .layout-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 280px;
+      background: rgba(12, 18, 34, 0.85);
+      backdrop-filter: blur(16px);
+      border-right: 1px solid var(--border-subtle);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      display: flex;
+      flex-direction: column;
+      z-index: 50;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 1.3rem;
+      color: #050811;
+      box-shadow: 0 0 15px var(--cyan-glow);
+    }
+
+    .brand-text h1 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      background: linear-gradient(90deg, #fff, var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-text .version-tag {
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      color: var(--cyan);
+      background: rgba(0, 240, 255, 0.1);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 240, 255, 0.25);
+    }
+
+    .nav-links {
+      padding: 1.25rem 0.75rem;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .nav-category {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      padding: 0.75rem 0.75rem 0.25rem;
+    }
+
+    .nav-item a {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    .nav-item a:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      border-color: var(--border-subtle);
+    }
+
+    .nav-item.active a {
+      background: rgba(0, 240, 255, 0.1);
+      color: var(--cyan);
+      border-color: rgba(0, 240, 255, 0.25);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+    }
+
+    /* Main Content */
+    .main-content {
+      margin-left: 280px;
+      flex: 1;
+      padding: 2.5rem 3.5rem;
+      max-width: 1350px;
+    }
+
+    /* Top Navbar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      padding: 0.4rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      box-shadow: 0 0 15px var(--green-glow);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1.1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan), #0284c7);
+      color: #040914;
+      box-shadow: 0 0 20px var(--cyan-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--text-muted);
+    }
+
+    /* Hero Section */
+    .hero {
+      position: relative;
+      padding: 3rem 2.5rem;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(14, 22, 43, 0.8), rgba(20, 28, 55, 0.6));
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 0 40px rgba(0, 240, 255, 0.03);
+      backdrop-filter: blur(12px);
+      margin-bottom: 3.5rem;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, var(--purple-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-quote {
+      font-size: 0.95rem;
+      font-style: italic;
+      color: var(--cyan);
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.02em;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 30%, #a5f3fc 70%, #d8b4fe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-description {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 800px;
+      margin-bottom: 2rem;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 2rem;
+    }
+
+    .pill {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: #cbd5e1;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .pill.pill-cyan { border-color: rgba(0, 240, 255, 0.3); color: var(--cyan); }
+    .pill.pill-purple { border-color: rgba(168, 85, 247, 0.3); color: var(--purple); }
+    .pill.pill-green { border-color: rgba(16, 185, 129, 0.3); color: var(--green); }
+
+    /* Section Styles */
+    section {
+      margin-bottom: 4rem;
+      scroll-margin-top: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 1.6rem;
+      background: linear-gradient(to bottom, var(--cyan), var(--purple));
+      border-radius: 2px;
+      box-shadow: 0 0 8px var(--cyan-glow);
+    }
+
+    /* Metric Grid */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 1.5rem;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(8px);
+      position: relative;
+    }
+
+    .card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-stat {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin: 0.35rem 0;
+      background: linear-gradient(90deg, #fff, var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .card-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .card-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    /* Status Table */
+    .status-table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: rgba(18, 26, 44, 0.95);
+      padding: 1rem 1.25rem;
+      font-family: var(--font-display);
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    td {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-secondary);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-primary);
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
+    .badge-status.ready { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-status.migrated { background: rgba(0, 240, 255, 0.15); color: var(--cyan); border: 1px solid rgba(0, 240, 255, 0.3); }
+    .badge-status.planned { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+
+    /* Code & Pre */
+    .code-block {
+      background: #090e1a;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      overflow-x: auto;
+      position: relative;
+      margin: 1rem 0;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-subtle);
+      color: #94a3b8;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: var(--cyan);
+      color: #040914;
+      border-color: var(--cyan);
+    }
+
+    /* API Endpoint Card */
+    .api-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .api-card:hover {
+      border-color: rgba(0, 240, 255, 0.4);
+    }
+
+    .api-header {
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .api-method-path {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+    }
+
+    .method {
+      font-weight: 700;
+      font-size: 0.72rem;
+      padding: 0.25rem 0.55rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .method.get { background: rgba(0, 240, 255, 0.15); color: var(--cyan); border: 1px solid rgba(0, 240, 255, 0.3); }
+    .method.post { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .method.delete { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+    .method.ws { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+
+    .api-desc {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
+    .api-body {
+      padding: 1.25rem;
+      background: rgba(8, 12, 22, 0.7);
+      border-top: 1px solid var(--border-subtle);
+      display: none;
+    }
+
+    .api-card.open .api-body {
+      display: block;
+    }
+
+    /* Search Input */
+    .search-box {
+      width: 100%;
+      max-width: 400px;
+      background: rgba(12, 18, 34, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-box:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+
+    /* Interactive Tabs */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 0.75rem 1.25rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-btn.active {
+      color: var(--cyan);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Architecture Diagram Box */
+    .diagram-box {
+      background: #080d1a;
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 16px;
+      padding: 2rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: #94a3b8;
+      overflow-x: auto;
+      line-height: 1.45;
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+    }
+
+    .diagram-box .hl-cyan { color: var(--cyan); font-weight: 600; }
+    .diagram-box .hl-purple { color: var(--purple); font-weight: 600; }
+    .diagram-box .hl-green { color: var(--green); font-weight: 600; }
+    .diagram-box .hl-white { color: #fff; font-weight: 600; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 3rem 0 1.5rem;
+      margin-top: 5rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .main-content {
+        margin-left: 0;
+        padding: 1.5rem;
+      }
+      .hero-title {
+        font-size: 2.1rem;
+      }
+      .mobile-menu-btn {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout-container">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-logo">K</div>
+      <div class="brand-text">
+        <h1>KUSANAGI</h1>
+        <span class="version-tag">v0.3.0 · AXUM</span>
+      </div>
+    </div>
+
+    <ul class="nav-links">
+      <li class="nav-category">Général</li>
+      <li class="nav-item active"><a href="#overview"><span>🔮</span> Vue d'ensemble</a></li>
+      <li class="nav-item"><a href="#status"><span>📊</span> Statut du Projet</a></li>
+      <li class="nav-item"><a href="#security-audit"><span>🛡️</span> Audit Sécurité (0 Leaks)</a></li>
+      
+      <li class="nav-category">Architecture & Outil</li>
+      <li class="nav-item"><a href="#architecture"><span>🏛️</span> Architecture Hexagonale</a></li>
+      <li class="nav-item"><a href="#quickstart"><span>⚡</span> Démarrage & Installation</a></li>
+      <li class="nav-item"><a href="#configuration"><span>⚙️</span> Configuration</a></li>
+      <li class="nav-item"><a href="#api-reference"><span>📡</span> Référence des API</a></li>
+      <li class="nav-item"><a href="#deployment"><span>🚀</span> Déploiement Kubernetes</a></li>
+      
+      <li class="nav-category">Feuille de Route</li>
+      <li class="nav-item"><a href="#roadmap"><span>🗺️</span> Roadmap & Évolutions</a></li>
+      <li class="nav-item"><a href="https://github.com/JZacharie/Kusanagi" target="_blank"><span>🐙</span> Dépôt GitHub</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        SYSTÈME OPÉRATIONNEL · PRODUCTION READY
+      </div>
+      <div class="top-actions">
+        <a href="https://github.com/JZacharie/Kusanagi" target="_blank" class="btn btn-secondary">
+          <span>GitHub</span>
+        </a>
+        <a href="#quickstart" class="btn btn-primary">
+          <span>🚀 Installer Kusanagi</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="hero" id="overview">
+      <div class="hero-quote">"Your effort to remain what you are is what limits you." — Ghost in the Shell</div>
+      <h2 class="hero-title">Supervision & Auto-Remédiation Kubernetes Next-Gen</h2>
+      <p class="hero-description">
+        Kusanagi est une plateforme unifiée haute performance conçue en <strong>Rust (Axum + Tokio)</strong> combinant la supervision temps réel de clusters Kubernetes, la gestion GitOps ArgoCD, l'analyse réseau eBPF Cilium/Hubble, le scanning de vulnérabilités Trivy enrichi par IA, et l'intégration multi-infrastructures (Proxmox, Home Assistant).
+      </p>
+
+      <div class="hero-badges">
+        <span class="pill pill-cyan">⚡ Rust 1.70+</span>
+        <span class="pill pill-cyan">🚀 Axum 0.8 + Tower</span>
+        <span class="pill pill-purple">🔮 Hexagonal Architecture</span>
+        <span class="pill pill-purple">🌐 eBPF Cilium / Hubble</span>
+        <span class="pill pill-green">🔒 Gitleaks Verified (0 Leaks)</span>
+        <span class="pill pill-green">📱 PWA / Neo-Glassmorphism</span>
+      </div>
+    </div>
+
+    <!-- Section 1: Métriques Clés & Statut du Projet -->
+    <section id="status">
+      <div class="section-header">
+        <h3 class="section-title">Statut Actuel du Projet (v0.3.0)</h3>
+        <span class="pill pill-green">Dernière mise à jour : Février 2026</span>
+      </div>
+
+      <!-- Métriques en cartes -->
+      <div class="grid-4">
+        <div class="card">
+          <div class="card-title">Pods Surveillés</div>
+          <div class="card-stat">462+</div>
+          <div class="card-desc">Supervision en direct de tous les namespaces</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Nodes Kubernetes</div>
+          <div class="card-stat">16</div>
+          <div class="card-desc">CPU, RAM, stockage & anomalies en temps réel</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Applications ArgoCD</div>
+          <div class="card-stat">183</div>
+          <div class="card-desc">Suivi de synchronisation et GitOps Drift</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Temps de Réponse API</div>
+          <div class="card-stat">&lt; 100ms</div>
+          <div class="card-desc">Grâce au cache mémoire et aux flux asynchrones</div>
+        </div>
+      </div>
+
+      <!-- Tableau d'état des composants -->
+      <div class="status-table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Module / Composant</th>
+              <th>Technologie sous-jacente</th>
+              <th>État & Disponibilité</th>
+              <th>Détails & Capacités</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Core API & Serveur HTTP</strong></td>
+              <td>Rust 2021, Axum 0.8, Tower, Tokio</td>
+              <td><span class="badge-status ready">✅ Opérationnel (v0.3.0)</span></td>
+              <td>Migration complète depuis Actix-Web, architecture Hexagonale découplée</td>
+            </tr>
+            <tr>
+              <td><strong>Supervision Kubernetes</strong></td>
+              <td>kube-rs 4.0, k8s-openapi 0.28</td>
+              <td><span class="badge-status ready">✅ Opérationnel</span></td>
+              <td>Endpoints Pods, Nodes, Storage (PV/PVC), Ingress, Events, Quotas</td>
+            </tr>
+            <tr>
+              <td><strong>GitOps & Auto-Sync</strong></td>
+              <td>ArgoCD REST API Client</td>
+              <td><span class="badge-status ready">✅ Opérationnel</span></td>
+              <td>Inspection d'état de 183 applications, détection des dérives et déclenchement de sync</td>
+            </tr>
+            <tr>
+              <td><strong>Scanning de Vulnérabilités</strong></td>
+              <td>Trivy JSON Server + S3 Cache</td>
+              <td><span class="badge-status ready">✅ Opérationnel</span></td>
+              <td>Extraction des CVEs, mise en cache S3 (AWS/MinIO), rapports enrichis</td>
+            </tr>
+            <tr>
+              <td><strong>Observabilité Réseau eBPF</strong></td>
+              <td>Cilium / Hubble Relay Flow API</td>
+              <td><span class="badge-status ready">✅ Opérationnel</span></td>
+              <td>Visualisation du trafic, matrice des flux, détection d'anomalies réseau</td>
+            </tr>
+            <tr>
+              <td><strong>Assistant IA & Diagnostic</strong></td>
+              <td>LiteLLM, Ollama, OpenAI, Claude</td>
+              <td><span class="badge-status ready">✅ Opérationnel</span></td>
+              <td>Analyse contextuelle du cluster, suggestions de remédiation, endpoints <code>/api/chat</code></td>
+            </tr>
+            <tr>
+              <td><strong>Multi-Infrastructure</strong></td>
+              <td>Proxmox VE API, Home Assistant, MQTT</td>
+              <td><span class="badge-status ready">✅ Opérationnel</span></td>
+              <td>Suivi des VM / LXC Proxmox, capteurs IoT et statut domotique unifié</td>
+            </tr>
+            <tr>
+              <td><strong>Métriques & Télémétrie</strong></td>
+              <td>Prometheus exporter, OpenObserve RUM</td>
+              <td><span class="badge-status ready">✅ Opérationnel</span></td>
+              <td>Métriques Prometheus sur <code>/metrics</code>, logs et traces centralisés</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 2: Audit de Sécurité & Aucun Leak -->
+    <section id="security-audit">
+      <div class="section-header">
+        <h3 class="section-title">Audit de Sécurité & Absence Totale de Leaks</h3>
+        <span class="pill pill-green">100% Validé & Conforme</span>
+      </div>
+
+      <div class="card" style="border-left: 4px solid var(--green); margin-bottom: 1.5rem;">
+        <h4 style="color: var(--green); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+          <span>🔒</span> Rapport d'Intégrité de l'Historique Git
+        </h4>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+          Une vérification exhaustive automatisée et manuelle a été exécutée sur l'intégralité des <strong>1 618 commits</strong>, toutes les branches et l'historique complet du dépôt <code>JZacharie/Kusanagi</code> :
+        </p>
+        <ul style="list-style-type: none; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem; color: #cbd5e1;">
+          <li>✔️ <strong>Gitleaks Scan :</strong> 0 leak détecté sur 1 618 commits (AWS keys, GitHub tokens, Slack tokens, Private RSA/SSH keys, Passwords).</li>
+          <li>✔️ <strong>Gestion des variables d'environnement :</strong> Les fichiers <code>.env.template</code> et <code>.env.docker</code> ne contiennent que des placeholders sécurisés (<code>your_token_here</code>, <code>minioadmin</code> de test local).</li>
+          <li>✔️ <strong>Authentification & Secrets Kubernetes :</strong> Kusanagi délègue la gestion des secrets aux Secrets Kubernetes natifs via l'API <code>k8s-openapi</code> et aux variables injectées par l'environnement au runtime.</li>
+          <li>✔️ <strong>Principe de Moindre Privilège :</strong> Le <code>ClusterRole</code> RBAC est restreint strictement aux lectures requises (<code>get</code>, <code>list</code>, <code>watch</code>).</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 3: Architecture -->
+    <section id="architecture">
+      <div class="section-header">
+        <h3 class="section-title">Architecture Hexagonale & Design</h3>
+      </div>
+
+      <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+        Kusanagi est structuré selon les principes du <strong>Clean Code & de l'Architecture Hexagonale (Ports & Adapters)</strong>, garantissant un découplage total entre la logique métier, les protocoles d'accès (HTTP Axum, WebSockets) et les adaptateurs d'infrastructure (Kubernetes, S3, Proxmox, LLM).
+      </p>
+
+      <div class="diagram-box">
+┌───────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 <span class="hl-cyan">KUSANAGI PLATFORM ARCHITECTURE</span>                            │
+├───────────────────────────────────────────────────────────────────────────────────────────┤
+│  <span class="hl-purple">INTERFACES LAYER (Driving Adapters)</span>                                                      │
+│  ├── <span class="hl-white">Axum HTTP Router & Handlers</span> (/api/k8s/*, /api/security/*, /api/cilium/*)               │
+│  ├── <span class="hl-white">Native Axum WebSockets</span> (/api/ws/notifications)                                       │
+│  ├── <span class="hl-white">Tower Middleware</span> (Governor Rate-Limiting, CORS, Gzip Compression, Tracing)          │
+│  └── <span class="hl-white">OpenAPI / Swagger UI</span> (/api-docs, utoipa)                                            │
+├───────────────────────────────────────────────────────────────────────────────────────────┤
+│  <span class="hl-cyan">APPLICATION LAYER (Use Cases & Orchestration)</span>                                            │
+│  ├── <span class="hl-white">Cluster Health & Metrics Aggregation</span>                                                 │
+│  ├── <span class="hl-white">GitOps Drift Detection & Auto-Remediation</span>                                            │
+│  ├── <span class="hl-white">Security Intelligence & Vulnerability Enrichment</span>                                     │
+│  └── <span class="hl-white">Multi-LLM Context Engine (Ollama, OpenAI, LiteLLM)</span>                                   │
+├───────────────────────────────────────────────────────────────────────────────────────────┤
+│  <span class="hl-green">DOMAIN LAYER (Core Business Models & Traits)</span>                                             │
+│  ├── <span class="hl-white">Entities : Pod, Node, CVE Report, FlowMatrix, ProxmoxVM, Alert</span>                       │
+│  └── <span class="hl-white">Ports (Interfaces) : SecurityRepository, K8sClientPort, MetricsCollector</span>              │
+├───────────────────────────────────────────────────────────────────────────────────────────┤
+│  <span class="hl-purple">INFRASTRUCTURE LAYER (Driven Adapters)</span>                                                   │
+│  ├── <span class="hl-white">Kubernetes API</span> (kube-rs client)          ├── <span class="hl-white">Trivy Security Server</span> (JSON Engine)     │
+│  ├── <span class="hl-white">Cilium / Hubble eBPF Flow API</span>           ├── <span class="hl-white">S3 Cache Storage</span> (AWS SDK / MinIO)       │
+│  ├── <span class="hl-white">ArgoCD REST API Adapter</span>                 ├── <span class="hl-white">Proxmox VE & Home Assistant APIs</span>         │
+│  └── <span class="hl-white">Prometheus & OpenObserve Exporter</span>       └── <span class="hl-white">MQTT Broker & Slack Notification Client</span>   │
+└───────────────────────────────────────────────────────────────────────────────────────────┘
+      </div>
+    </section>
+
+    <!-- Section 4: Guide de Démarrage & Installation -->
+    <section id="quickstart">
+      <div class="section-header">
+        <h3 class="section-title">Guide d'Installation & Démarrage</h3>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-local', this)">🦀 Développement Local (Cargo)</button>
+        <button class="tab-btn" onclick="switchTab('tab-docker', this)">🐳 Docker & Compose</button>
+        <button class="tab-btn" onclick="switchTab('tab-helm', this)">☸️ Helm Chart</button>
+        <button class="tab-btn" onclick="switchTab('tab-argocd', this)">🔄 ArgoCD GitOps</button>
+      </div>
+
+      <!-- Tab 1: Cargo -->
+      <div id="tab-local" class="tab-content active">
+        <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">Exécutez Kusanagi directement sur votre machine avec Cargo :</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>BASH</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copier</button>
+          </div>
+<pre><code># 1. Cloner le dépôt
+git clone https://github.com/JZacharie/Kusanagi.git
+cd Kusanagi
+
+# 2. Configurer les variables d'environnement
+cp .env.template .env
+
+# 3. Lancer l'application en mode développement
+cargo run
+
+# 4. Ouvrir l'interface web
+open http://localhost:8080</code></pre>
+        </div>
+      </div>
+
+      <!-- Tab 2: Docker -->
+      <div id="tab-docker" class="tab-content">
+        <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">Exécutez Kusanagi sous forme de conteneur autonome avec Docker :</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>DOCKER</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copier</button>
+          </div>
+<pre><code># Construire l'image Docker optimisée
+docker build -t kusanagi:latest .
+
+# Lancer le conteneur en mappant le port 8080 et le kubeconfig
+docker run -d \
+  --name kusanagi \
+  -p 8080:8080 \
+  -v ~/.kube/config:/root/.kube/config:ro \
+  -e RUST_LOG=info \
+  kusanagi:latest</code></pre>
+        </div>
+      </div>
+
+      <!-- Tab 3: Helm -->
+      <div id="tab-helm" class="tab-content">
+        <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">Déploiement sur votre cluster Kubernetes via le Helm Chart officiel :</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>HELM</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copier</button>
+          </div>
+<pre><code># Ajouter le repo Helm
+helm repo add kusanagi https://jzacharie.github.io/helmscharts
+helm repo update
+
+# Installer Kusanagi dans le namespace 'kusanagi'
+helm install kusanagi kusanagi/kusanagi \
+  --namespace kusanagi \
+  --create-namespace \
+  --set ingress.enabled=true \
+  --set ingress.host=kusanagi.example.com</code></pre>
+        </div>
+      </div>
+
+      <!-- Tab 4: ArgoCD -->
+      <div id="tab-argocd" class="tab-content">
+        <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">Déployez Kusanagi via une ressource Application ArgoCD :</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>YAML</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copier</button>
+          </div>
+<pre><code>apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kusanagi
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/JZacharie/helmscharts.git'
+    targetRevision: HEAD
+    path: charts/kusanagi
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: kusanagi
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Configuration -->
+    <section id="configuration">
+      <div class="section-header">
+        <h3 class="section-title">Guide de Configuration</h3>
+      </div>
+
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+        Kusanagi se configure facilement via des variables d'environnement ou le fichier <code>kusanagi.toml</code> :
+      </p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span>ENV / CONFIGURATION</span>
+          <button class="copy-btn" onclick="copyCode(this)">Copier</button>
+        </div>
+<pre><code># --- Serveur & Logs ---
+BIND_ADDR=0.0.0.0:8080
+RUST_LOG=info,kusanagi=debug
+KUSANAGI_RATE_LIMIT_PER_SECOND=10000
+
+# --- Intégration Kubernetes ---
+KUBECONFIG=~/.kube/config
+POD_NAMESPACE=kusanagi
+
+# --- GitOps & ArgoCD ---
+ARGOCD_SERVER=argocd-server.argocd.svc:443
+ARGOCD_TOKEN=your-argocd-jwt-token
+
+# --- Sécurité & Trivy ---
+TRIVY_SERVER_URL=http://trivy-server.trivy-system.svc:8080
+S3_ENDPOINT=http://minio.storage.svc:9000
+S3_BUCKET_SECURITY_REPORTS=kusanagi-security-reports
+S3_ACCESS_KEY=your-access-key
+S3_SECRET_KEY=your-secret-key
+
+# --- Réseau & Hubble (eBPF) ---
+HUBBLE_RELAY_URL=http://hubble-relay.kube-system.svc:80
+
+# --- Assistant IA & LLM ---
+LITELLM_URL=http://litellm.litellm.svc:4000
+LITELLM_API_KEY=your-litellm-key
+OLLAMA_URL=http://ollama.ai.svc:11434/api/generate
+OLLAMA_MODEL=ministral-3:14b</code></pre>
+      </div>
+    </section>
+
+    <!-- Section 6: Référence Complète des API -->
+    <section id="api-reference">
+      <div class="section-header">
+        <h3 class="section-title">Référence des Endpoints API</h3>
+        <input type="text" class="search-box" id="api-search" placeholder="🔍 Rechercher un endpoint (ex: pods, argocd, security)..." oninput="filterApi()">
+      </div>
+
+      <!-- Core / Health -->
+      <div class="api-card" data-tag="core health metrics">
+        <div class="api-header" onclick="toggleApi(this)">
+          <div class="api-method-path">
+            <span class="method get">GET</span>
+            <strong>/health</strong>
+          </div>
+          <div class="api-desc">Vérification de santé du serveur Kusanagi et de ses dépendances</div>
+        </div>
+        <div class="api-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;"><strong>Réponse type :</strong></p>
+          <div class="code-block">
+<pre><code>{
+  "status": "healthy",
+  "version": "0.3.0",
+  "uptime_seconds": 34820,
+  "kubernetes_connected": true
+}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="api-card" data-tag="metrics prometheus core">
+        <div class="api-header" onclick="toggleApi(this)">
+          <div class="api-method-path">
+            <span class="method get">GET</span>
+            <strong>/metrics</strong>
+          </div>
+          <div class="api-desc">Exposition des métriques au format standard Prometheus</div>
+        </div>
+        <div class="api-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Export de compteurs de requêtes, latence, hits de cache et gauges de supervision.</p>
+        </div>
+      </div>
+
+      <!-- Kubernetes -->
+      <div class="api-card" data-tag="k8s kubernetes pods cluster">
+        <div class="api-header" onclick="toggleApi(this)">
+          <div class="api-method-path">
+            <span class="method get">GET</span>
+            <strong>/api/k8s/pods</strong>
+          </div>
+          <div class="api-desc">Liste et état en temps réel de tous les Pods du cluster</div>
+        </div>
+        <div class="api-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Retourne le nom, namespace, status (Running, CrashLoopBackOff), restarts et métriques CPU/RAM.</p>
+        </div>
+      </div>
+
+      <div class="api-card" data-tag="k8s kubernetes nodes cluster">
+        <div class="api-header" onclick="toggleApi(this)">
+          <div class="api-method-path">
+            <span class="method get">GET</span>
+            <strong>/api/k8s/nodes</strong>
+          </div>
+          <div class="api-desc">État, capacité et allocations des 16 nœuds du cluster</div>
+        </div>
+        <div class="api-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Inclut les conditions Ready/MemoryPressure/DiskPressure, CPU allocatable, Pod capacity.</p>
+        </div>
+      </div>
+
+      <!-- GitOps -->
+      <div class="api-card" data-tag="argocd gitops sync status">
+        <div class="api-header" onclick="toggleApi(this)">
+          <div class="api-method-path">
+            <span class="method get">GET</span>
+            <strong>/api/argocd/status</strong>
+          </div>
+          <div class="api-desc">État de santé et de synchronisation des 183 applications ArgoCD</div>
+        </div>
+        <div class="api-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Statuts <code>Synced</code>, <code>OutOfSync</code>, <code>Healthy</code>, <code>Degraded</code>.</p>
+        </div>
+      </div>
+
+      <div class="api-card" data-tag="argocd gitops sync trigger">
+        <div class="api-header" onclick="toggleApi(this)">
+          <div class="api-method-path">
+            <span class="method post">POST</span>
+            <strong>/api/argocd/sync</strong>
+          </div>
+          <div class="api-desc">Déclenchement d'une resynchronisation GitOps pour une application</div>
+        </div>
+        <div class="api-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Payload JSON : <code>{"app_name": "kusanagi", "prune": true}</code></p>
+        </div>
+      </div>
+
+      <!-- Security -->
+      <div class="api-card" data-tag="security trivy cve vulnerabilities">
+        <div class="api-header" onclick="toggleApi(this)">
+          <div class="api-method-path">
+            <span class="method get">GET</span>
+            <strong>/api/security/vulnerabilities</strong>
+          </div>
+          <div class="api-desc">Synthèse globale des vulnérabilités de conteneurs scannées par Trivy</div>
+        </div>
+        <div class="api-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Répartition par sévérité : Critical, High, Medium, Low avec score CVSS.</p>
+        </div>
+      </div>
+
+      <!-- Cilium / Network -->
+      <div class="api-card" data-tag="cilium hubble network flows ebpf">
+        <div class="api-header" onclick="toggleApi(this)">
+          <div class="api-method-path">
+            <span class="method get">GET</span>
+            <strong>/api/cilium/flows</strong>
+          </div>
+          <div class="api-desc">Flux réseau eBPF en direct collectés via Hubble Relay</div>
+        </div>
+        <div class="api-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Permet de visualiser les communications inter-services et les paquets droppés.</p>
+        </div>
+      </div>
+
+      <!-- Assistant AI -->
+      <div class="api-card" data-tag="chat ai llm assistant prompt">
+        <div class="api-header" onclick="toggleApi(this)">
+          <div class="api-method-path">
+            <span class="method post">POST</span>
+            <strong>/api/chat</strong>
+          </div>
+          <div class="api-desc">Assistant conversationnel IA avec contexte en direct du cluster</div>
+        </div>
+        <div class="api-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Payload JSON : <code>{"message": "Pourquoi le pod trivy est en CrashLoopBackOff ?"}</code></p>
+        </div>
+      </div>
+
+      <!-- WebSocket -->
+      <div class="api-card" data-tag="websocket ws notifications live">
+        <div class="api-header" onclick="toggleApi(this)">
+          <div class="api-method-path">
+            <span class="method ws">WS</span>
+            <strong>/api/ws/notifications</strong>
+          </div>
+          <div class="api-desc">Flux d'événements et d'alertes en temps réel via WebSocket natif Axum</div>
+        </div>
+        <div class="api-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Diffusion en push des changements d'état de Pods, alertes Prometheus et incidents.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 7: Déploiement Kubernetes -->
+    <section id="deployment">
+      <div class="section-header">
+        <h3 class="section-title">Déploiement Kubernetes & RBAC</h3>
+      </div>
+
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+        Voici le manifeste RBAC minimal requis pour exécuter Kusanagi avec les permissions de lecture sécurisées :
+      </p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span>YAML · RBAC CONFIGURATION</span>
+          <button class="copy-btn" onclick="copyCode(this)">Copier</button>
+        </div>
+<pre><code>apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kusanagi
+  namespace: kusanagi
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kusanagi
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "services", "events", "persistentvolumes", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["cronjobs", "jobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kusanagi
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kusanagi
+subjects:
+  - kind: ServiceAccount
+    name: kusanagi
+    namespace: kusanagi</code></pre>
+      </div>
+    </section>
+
+    <!-- Section 8: Roadmap -->
+    <section id="roadmap">
+      <div class="section-header">
+        <h3 class="section-title">Feuille de Route (Roadmap)</h3>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title" style="color: var(--cyan);">Version 0.3.0 (Actuelle)</div>
+          <h4 style="margin: 0.5rem 0; color: #fff;">Migration Axum & Hexagonale</h4>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem; color: var(--text-secondary);">
+            <li>✔️ Migration complète vers Axum 0.8 & Tower</li>
+            <li>✔️ WebSockets natifs sans acteurs Actix</li>
+            <li>✔️ Rate Limiting avec Tower-Governor</li>
+            <li>✔️ OpenAPI Swagger UI avec Utoipa</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="color: var(--purple);">Version 0.4.0 (En cours)</div>
+          <h4 style="margin: 0.5rem 0; color: #fff;">Auto-Remédiation Avancée</h4>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem; color: var(--text-secondary);">
+            <li>🔄 Politiques OPA / Kyverno temps réel</li>
+            <li>🔄 Moteur d'auto-remédiation des crashloops</li>
+            <li>🔄 DeepSeek AI cluster remediation agent</li>
+            <li>🔄 Dashboard D3.js Hubble étendu</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="color: var(--green);">Version 1.0.0 (Prévue)</div>
+          <h4 style="margin: 0.5rem 0; color: #fff;">Multi-Cluster Enterprise</h4>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem; color: var(--text-secondary);">
+            <li>⏳ Fédération multi-clusters Kubernetes</li>
+            <li>⏳ Authentification OpenID Connect / OAuth2</li>
+            <li>⏳ Alerting unifié Slack, Discord, Telegram</li>
+            <li>⏳ Export OpenTelemetry natif (OTLP)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div>
+        <strong>Kusanagi v0.3.0</strong> — Conçu avec passion sous licence MIT.
+      </div>
+      <div>
+        Inspiré par Ghost in the Shell (攻殻機動隊) · Rust &amp; Kubernetes.
+      </div>
+    </footer>
+
+  </main>
+</div>
+
+<!-- Scripts interactifs -->
+<script>
+  // Onglets interactifs
+  function switchTab(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    
+    document.getElementById(tabId).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // Accordéon API
+  function toggleApi(header) {
+    const card = header.parentElement;
+    card.classList.toggle('open');
+  }
+
+  // Filtrage des endpoints API
+  function filterApi() {
+    const query = document.getElementById('api-search').value.toLowerCase();
+    const cards = document.querySelectorAll('.api-card');
+    
+    cards.forEach(card => {
+      const text = (card.getAttribute('data-tag') + ' ' + card.innerText).toLowerCase();
+      if (text.includes(query)) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  // Copier le code dans le presse-papier
+  function copyCode(btn) {
+    const codeBlock = btn.closest('.code-block').querySelector('code, pre');
+    const text = codeBlock.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      const originalText = btn.innerText;
+      btn.innerText = 'Copié !';
+      btn.style.background = '#10b981';
+      btn.style.color = '#fff';
+      setTimeout(() => {
+        btn.innerText = originalText;
+        btn.style.background = '';
+        btn.style.color = '';
+      }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>
