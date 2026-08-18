@@ -88,7 +88,13 @@ const SecurityDashboard = {
     },
 
     loadSecurityData() {
-        return this.fetchAndRender();
+        try {
+            this.setDefaultValues();
+            this.initChart();
+            return this.fetchAndRender();
+        } catch (e) {
+            console.warn("SecurityDashboard load error:", e);
+        }
     },
 
     async fetchAndRender() {
@@ -106,7 +112,7 @@ const SecurityDashboard = {
             // Process Vulnerabilities
             const vulnsResult = results[0];
             if (vulnsResult.status === 'fulfilled' && vulnsResult.value && !vulnsResult.value.error) {
-                const vulns = vulnsResult.value;
+                const vulns = vulnsResult.value || {};
                 this.data = vulns;
                 this.filteredData = { ...vulns };
 
@@ -127,9 +133,10 @@ const SecurityDashboard = {
             // Process Reports
             const reportsResult = results[1];
             if (reportsResult.status === 'fulfilled' && reportsResult.value && !reportsResult.value.error) {
-                this.renderReportSelector(reportsResult.value || []);
+                this.renderReportSelector(Array.isArray(reportsResult.value) ? reportsResult.value : []);
             } else {
                 console.warn('Failed to fetch reports list:', reportsResult.value?.error || reportsResult.reason);
+                this.renderReportSelector([]);
             }
 
             this.updateLastUpdated();
@@ -299,11 +306,8 @@ const SecurityDashboard = {
         if (!container) return;
 
         // Store all reports for filtering
-        if (reports) {
-            this.allReports = reports;
-        }
-
-        const safeReports = this.allReports || [];
+        this.allReports = Array.isArray(reports) ? reports : [];
+        const safeReports = this.allReports;
 
         // Setup container with filters if not already set up or if it's empty
         if (!document.getElementById('report-filters') || container.innerHTML === '') {
@@ -329,7 +333,7 @@ const SecurityDashboard = {
             // Populate Types dynamically
             const types = new Set();
             safeReports.forEach(r => {
-                const category = (typeof r === 'string' ? r.split('/')[0] : (r.category || 'general'));
+                const category = (typeof r === 'string' ? r.split('/')[0] : (r?.category || 'general'));
                 if (category) types.add(category);
             });
             const typeSelect = document.getElementById('report-filter-type');
@@ -348,12 +352,12 @@ const SecurityDashboard = {
         const nsFilter = document.getElementById('report-filter-namespace')?.value?.toLowerCase() || '';
         const nameFilter = document.getElementById('report-filter-name')?.value?.toLowerCase() || '';
 
-        const filtered = (this.allReports || []).filter(r => {
+        const list = Array.isArray(this.allReports) ? this.allReports : [];
+        const filtered = list.filter(r => {
             const isString = typeof r === 'string';
-            const category = isString ? r.split('/')[0] : (r.category || 'general');
-            const name = isString ? r.split('/').pop() : (r.name || r.report_id);
-            // Namespace heuristic: search in name for the namespace string since we don't have explicit field in list
-            const searchCtx = name.toLowerCase();
+            const category = isString ? r.split('/')[0] : (r?.category || 'general');
+            const name = isString ? r.split('/').pop() : (r?.name || r?.report_id || '');
+            const searchCtx = String(name).toLowerCase();
 
             if (typeFilter !== 'all' && category !== typeFilter) return false;
             if (nsFilter && !searchCtx.includes(nsFilter)) return false;
@@ -370,23 +374,25 @@ const SecurityDashboard = {
         const countEl = document.getElementById('report-count');
         if (!container) return;
 
-        if (countEl) countEl.textContent = `(${reports.length})`;
+        const list = Array.isArray(reports) ? reports : [];
+        if (countEl) countEl.textContent = `(${list.length})`;
 
-        if (reports.length === 0) {
+        if (list.length === 0) {
             container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #666; padding: 1rem;">No reports match filters</div>';
             return;
         }
 
-        const isStringArray = reports.length > 0 && typeof reports[0] === 'string';
+        const isStringArray = list.length > 0 && typeof list[0] === 'string';
 
-        container.innerHTML = reports.map((r, index) => {
-            const reportId = isStringArray ? r : (r.report_id || r.name);
-            const reportName = isStringArray ? r.split('/').pop() : (r.name || r.report_id);
-            const category = isStringArray ? r.split('/')[0] : (r.category || 'general');
-            const date = !isStringArray && r.timestamp ? new Date(r.timestamp).toLocaleString() : '';
+        container.innerHTML = list.map((r, index) => {
+            const reportId = isStringArray ? r : (r?.report_id || r?.name || `report-${index}`);
+            const reportName = isStringArray ? String(r).split('/').pop() : (r?.name || r?.report_id || `report-${index}`);
+            const category = isStringArray ? String(r).split('/')[0] : (r?.category || 'general');
+            const date = !isStringArray && r?.timestamp ? new Date(r.timestamp).toLocaleString() : '';
+            const safeReportId = String(reportId).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
             return `
-                <div onclick="SecurityDashboard.viewReportDetail('${reportId}')" 
+                <div onclick="SecurityDashboard.viewReportDetail('${safeReportId}')" 
                      class="report-card" 
                      style="cursor: pointer; padding: 0.5rem; background: rgba(0,255,255,0.05); border: 1px solid rgba(0,255,255,0.2); border-radius: 4px; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem;"
                      onmouseover="this.style.background='rgba(0,255,255,0.1)'; this.style.borderColor='var(--neon-cyan)'" 
@@ -671,7 +677,7 @@ const SecurityDashboard = {
 
         if (!container) return;
 
-        const images = vulns.images || [];
+        const images = (vulns && Array.isArray(vulns.images)) ? vulns.images : [];
         if (countEl) countEl.textContent = images.length;
 
         if (images.length === 0) {
@@ -686,8 +692,8 @@ const SecurityDashboard = {
 
         // Sort by risk score (critical * 10 + high * 5 + medium * 2 + low)
         const sortedImages = [...images].sort((a, b) => {
-            const scoreA = a.critical_count * 10 + a.high_count * 5 + a.medium_count * 2 + a.low_count;
-            const scoreB = b.critical_count * 10 + b.high_count * 5 + b.medium_count * 2 + b.low_count;
+            const scoreA = (a.critical_count || 0) * 10 + (a.high_count || 0) * 5 + (a.medium_count || 0) * 2 + (a.low_count || 0);
+            const scoreB = (b.critical_count || 0) * 10 + (b.high_count || 0) * 5 + (b.medium_count || 0) * 2 + (b.low_count || 0);
             return scoreB - scoreA;
         });
 
@@ -707,38 +713,42 @@ const SecurityDashboard = {
                 </thead>
                 <tbody>
                     ${sortedImages.map(img => {
-            const riskScore = img.critical_count * 10 + img.high_count * 5 + img.medium_count * 2 + img.low_count;
+            const riskScore = (img.critical_count || 0) * 10 + (img.high_count || 0) * 5 + (img.medium_count || 0) * 2 + (img.low_count || 0);
             let riskClass = 'healthy';
-            if (img.critical_count > 0) riskClass = 'unhealthy';
-            else if (img.high_count > 0) riskClass = 'warning';
-            else if (img.medium_count > 0) riskClass = 'info';
+            if ((img.critical_count || 0) > 0) riskClass = 'unhealthy';
+            else if ((img.high_count || 0) > 0) riskClass = 'warning';
+            else if ((img.medium_count || 0) > 0) riskClass = 'info';
+
+            const imageName = img.image || 'unknown';
+            const escapedId = this.escapeId(imageName);
+            const reportId = String(img.report_id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
             return `
-                            <tr class="vuln-row" data-image="${img.image}" style="cursor: pointer;" onclick="SecurityDashboard.toggleDetails('${this.escapeId(img.image)}')">
+                            <tr class="vuln-row" data-image="${imageName}" style="cursor: pointer;" onclick="SecurityDashboard.toggleDetails('${escapedId}')">
                                 <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
-                                    <code title="${img.image}" 
+                                    <code title="${imageName}" 
                                           style="font-size: 0.8rem; cursor: pointer; color: var(--neon-cyan); text-decoration: underline;" 
-                                          onclick="event.stopPropagation(); SecurityDashboard.viewReportDetail('${img.report_id}')">
-                                        ${this.truncate(img.image, 45)}
+                                          onclick="event.stopPropagation(); SecurityDashboard.viewReportDetail('${reportId}')">
+                                        ${this.truncate(imageName, 45)}
                                     </code>
                                     <div style="font-size: 0.7rem; color: #888; margin-top: 2px;">${this.formatTime(img.last_scan)}</div>
                                 </td>
-                                <td><span class="status-badge info">${img.namespace}</span></td>
-                                <td style="text-align: center;">${img.critical_count > 0 ? `<span class="status-badge unhealthy">${img.critical_count}</span>` : '-'}</td>
-                                <td style="text-align: center;">${img.high_count > 0 ? `<span class="status-badge warning">${img.high_count}</span>` : '-'}</td>
-                                <td style="text-align: center;">${img.medium_count > 0 ? `<span class="status-badge info">${img.medium_count}</span>` : '-'}</td>
-                                <td style="text-align: center;">${img.low_count > 0 ? `<span class="status-badge healthy">${img.low_count}</span>` : '-'}</td>
+                                <td><span class="status-badge info">${img.namespace || '-'}</span></td>
+                                <td style="text-align: center;">${(img.critical_count || 0) > 0 ? `<span class="status-badge unhealthy">${img.critical_count}</span>` : '-'}</td>
+                                <td style="text-align: center;">${(img.high_count || 0) > 0 ? `<span class="status-badge warning">${img.high_count}</span>` : '-'}</td>
+                                <td style="text-align: center;">${(img.medium_count || 0) > 0 ? `<span class="status-badge info">${img.medium_count}</span>` : '-'}</td>
+                                <td style="text-align: center;">${(img.low_count || 0) > 0 ? `<span class="status-badge healthy">${img.low_count}</span>` : '-'}</td>
                                 <td><span class="status-badge ${riskClass}">${riskScore}</span></td>
                                 <td>
-                                    <button class="cyber-btn small" onclick="event.stopPropagation(); SecurityDashboard.scanImage('${img.image}')" title="Rescan">
+                                    <button class="cyber-btn small" onclick="event.stopPropagation(); SecurityDashboard.scanImage('${imageName.replace(/'/g, "\\'")}')" title="Rescan">
                                         🔄
                                     </button>
                                 </td>
                             </tr>
-                            <tr id="details-${this.escapeId(img.image)}" style="display: none; background: rgba(0,0,0,0.3);">
+                            <tr id="details-${escapedId}" style="display: none; background: rgba(0,0,0,0.3);">
                                 <td colspan="8" style="padding: 1rem;">
                                     <div style="font-size: 0.85rem;">
-                                        <strong>Full Image:</strong> <code>${img.image}</code><br>
+                                        <strong>Full Image:</strong> <code>${imageName}</code><br>
                                         <strong>Digest:</strong> <code style="color: #888;">${img.digest || 'N/A'}</code><br>
                                         ${img.os ? `<strong>OS:</strong> ${img.os}<br>` : ''}
                                         ${img.scanner_version ? `<strong>Scanner:</strong> ${img.scanner_version}<br>` : ''}
@@ -758,7 +768,7 @@ const SecurityDashboard = {
         const container = document.getElementById('security-by-namespace');
         if (!container) return;
 
-        const images = vulns.images || [];
+        const images = (vulns && Array.isArray(vulns.images)) ? vulns.images : [];
         if (images.length === 0) {
             container.innerHTML = '<div class="no-issues">No data</div>';
             return;
@@ -767,15 +777,15 @@ const SecurityDashboard = {
         // Group by namespace
         const byNs = {};
         images.forEach(img => {
-            const ns = img.namespace || 'unknown';
+            const ns = (img && img.namespace) ? img.namespace : 'unknown';
             if (!byNs[ns]) {
                 byNs[ns] = { count: 0, critical: 0, high: 0, medium: 0, low: 0, score: 0 };
             }
             byNs[ns].count++;
-            byNs[ns].critical += img.critical_count || 0;
-            byNs[ns].high += img.high_count || 0;
-            byNs[ns].medium += img.medium_count || 0;
-            byNs[ns].low += img.low_count || 0;
+            byNs[ns].critical += (img.critical_count || 0);
+            byNs[ns].high += (img.high_count || 0);
+            byNs[ns].medium += (img.medium_count || 0);
+            byNs[ns].low += (img.low_count || 0);
 
             // Calculate score addition
             byNs[ns].score += (img.critical_count || 0) * 10
@@ -823,7 +833,7 @@ const SecurityDashboard = {
         const container = document.getElementById('security-top-risk');
         if (!container) return;
 
-        const images = vulns.images || [];
+        const images = (vulns && Array.isArray(vulns.images)) ? vulns.images : [];
         if (images.length === 0) {
             container.innerHTML = '<div class="no-issues">No data</div>';
             return;
@@ -831,28 +841,31 @@ const SecurityDashboard = {
 
         // Sort by risk and take top 5
         const topRisk = [...images]
-            .sort((a, b) => (b.critical_count * 10 + b.high_count * 5) - (a.critical_count * 10 + a.high_count * 5))
+            .sort((a, b) => ((b.critical_count || 0) * 10 + (b.high_count || 0) * 5) - ((a.critical_count || 0) * 10 + (a.high_count || 0) * 5))
             .slice(0, 5);
 
         container.innerHTML = `
             <div style="padding: 0.5rem;">
                 ${topRisk.map((img, i) => {
-            const riskScore = img.critical_count * 10 + img.high_count * 5;
+            const riskScore = (img.critical_count || 0) * 10 + (img.high_count || 0) * 5;
             let riskColor = '#44ff44';
-            if (img.critical_count > 0) riskColor = '#ff4444';
-            else if (img.high_count > 0) riskColor = '#ff8800';
-            else if (img.medium_count > 0) riskColor = '#ffdd00';
+            if ((img.critical_count || 0) > 0) riskColor = '#ff4444';
+            else if ((img.high_count || 0) > 0) riskColor = '#ff8800';
+            else if ((img.medium_count || 0) > 0) riskColor = '#ffdd00';
+
+            const imageName = img.image || 'unknown';
+            const reportId = String(img.report_id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
             return `
                         <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); ${i === 0 ? 'background: rgba(255,0,0,0.1);' : ''}">
                             <span style="font-size: 1.2rem;">${i === 0 ? '🔥' : i < 3 ? '⚠️' : '⚡'}</span>
                             <div style="flex: 1; min-width: 0;">
                                 <div style="font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; color: var(--neon-cyan); text-decoration: underline;" 
-                                     title="${img.image}"
-                                     onclick="SecurityDashboard.viewReportDetail('${img.report_id}')">
-                                    ${this.truncate(img.image, 35)}
+                                     title="${imageName}" 
+                                     onclick="SecurityDashboard.viewReportDetail('${reportId}')">
+                                    ${this.truncate(imageName, 35)}
                                 </div>
-                                <div style="font-size: 0.7rem; color: #888;">${img.namespace}</div>
+                                <div style="font-size: 0.7rem; color: #888;">${img.namespace || '-'}</div>
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-size: 1rem; font-weight: bold; color: ${riskColor};">${riskScore}</div>
@@ -873,7 +886,8 @@ const SecurityDashboard = {
     },
 
     escapeId(str) {
-        return str.replace(/[^a-zA-Z0-9]/g, '_');
+        if (!str) return 'unknown';
+        return String(str).replace(/[^a-zA-Z0-9]/g, '_');
     },
 
     async shadowScan(imageName) {
@@ -956,14 +970,16 @@ const SecurityDashboard = {
 
     truncate(text, length) {
         if (!text) return 'N/A';
-        if (text.length <= length) return text;
-        return text.substring(0, length) + '...';
+        const str = String(text);
+        if (str.length <= length) return str;
+        return str.substring(0, length) + '...';
     },
 
     formatTime(timestamp) {
         if (!timestamp) return 'N/A';
         try {
             const date = new Date(timestamp);
+            if (isNaN(date.getTime())) return String(timestamp);
             const now = new Date();
             const diff = now - date;
             const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -973,7 +989,7 @@ const SecurityDashboard = {
             if (hours < 168) return `${Math.floor(hours / 24)}d ago`;
             return date.toLocaleDateString();
         } catch (e) {
-            return timestamp;
+            return String(timestamp);
         }
     },
 
