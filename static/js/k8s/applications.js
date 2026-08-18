@@ -96,6 +96,10 @@ const ApplicationsDashboard = {
         }
 
         if (rawApps.length > 0) {
+            rawApps = rawApps.map(a => ({
+                ...a,
+                icon_url: this.resolveIconUrl(a)
+            }));
             this.appsData = this.enrichWithTrivy(rawApps, trivyReport);
             this.updateStats();
             this.populateProjects();
