@@ -176,6 +176,62 @@ impl SecurityRepositoryImpl {
         Ok(report)
     }
 
+    /// Fetch all live VulnerabilityReport CRDs directly from Kubernetes
+    async fn fetch_vulnerability_reports_from_k8s(&self) -> Result<Vec<serde_json::Value>> {
+        let client = self
+            .kube_client
+            .as_ref()
+            .ok_or_else(|| KusanagiError::external_service("Kubernetes client not available"))?;
+
+        let gvk = kube::api::GroupVersionKind::gvk("aquasecurity.github.io", "v1alpha1", "VulnerabilityReport");
+        let ar = kube::discovery::ApiResource::from_gvk(&gvk);
+        let api: Api<kube::api::DynamicObject> = Api::all_with(client.as_ref().clone(), &ar);
+
+        let list = api
+            .list(&kube::api::ListParams::default())
+            .await
+            .map_err(|e| KusanagiError::external_service(format!("Failed to list VulnerabilityReports: {}", e)))?;
+
+        let values: Vec<serde_json::Value> = list
+            .items
+            .into_iter()
+            .map(|item| serde_json::to_value(item).unwrap_or_default())
+            .collect();
+
+        Ok(values)
+    }
+
+    /// Fetch a single VulnerabilityReport CRD from Kubernetes
+    async fn fetch_vulnerability_report_from_k8s(&self, category: &str, name: &str) -> Option<serde_json::Value> {
+        let client = self.kube_client.as_ref()?;
+        let gvk = kube::api::GroupVersionKind::gvk("aquasecurity.github.io", "v1alpha1", "VulnerabilityReport");
+        let ar = kube::discovery::ApiResource::from_gvk(&gvk);
+
+        let (ns, report_name) = if name.contains('/') {
+            let parts: Vec<&str> = name.splitn(2, '/').collect();
+            (parts[0], parts[1])
+        } else if category != "vulnerability_reports" && !category.is_empty() {
+            (category, name)
+        } else {
+            let api: Api<kube::api::DynamicObject> = Api::all_with(client.as_ref().clone(), &ar);
+            if let Ok(list) = api.list(&kube::api::ListParams::default()).await {
+                if let Some(item) = list.items.into_iter().find(|i| i.metadata.name.as_deref() == Some(name)) {
+                    return serde_json::to_value(item).ok();
+                }
+            }
+            return None;
+        };
+
+        let api: Api<kube::api::DynamicObject> = Api::namespaced_with(client.as_ref().clone(), ns, &ar);
+        match api.get(report_name).await {
+            Ok(item) => serde_json::to_value(item).ok(),
+            Err(e) => {
+                debug!("Failed to get VulnerabilityReport {}/{}: {}", ns, report_name, e);
+                None
+            }
+        }
+    }
+
     /// Count vulnerabilities in a report — handles both real Trivy JSON (lowercase)
     /// and the legacy PascalCase format.
     fn count_vulnerabilities(
@@ -360,7 +416,6 @@ impl SecurityRepository for SecurityRepositoryImpl {
                             last_updated: chrono::Utc::now().to_rfc3339(),
                         });
                     }
-                    // else: S3 empty, fall through to Trivy
                 }
                 Err(e) => {
                     warn!(
@@ -371,67 +426,108 @@ impl SecurityRepository for SecurityRepositoryImpl {
             }
         }
 
-        // Fallback: fetch from Trivy server — only process vulnerability_reports
-        let report_list = match self.fetch_report_list().await {
-            Ok(list) => list,
-            Err(e) => {
-                warn!("Trivy server unavailable: {}, returning empty summary", e);
+        // Fallback 1: fetch from Trivy server — only process vulnerability_reports
+        if let Ok(report_list) = self.fetch_report_list().await {
+            let vuln_reports: Vec<(String, Vec<String>)> = report_list
+                .into_iter()
+                .filter(|(cat, _)| cat == "vulnerability_reports")
+                .collect();
+
+            if !vuln_reports.is_empty() {
+                let total_reports: usize = vuln_reports.iter().map(|(_, files)| files.len()).sum();
+                let report_keys: Vec<String> = vuln_reports
+                    .iter()
+                    .flat_map(|(cat, files)| files.iter().map(move |f| format!("{}/{}", cat, f)))
+                    .collect();
+
+                let mut total_vulns = 0usize;
+                let mut critical = 0usize;
+                let mut high = 0usize;
+                let mut medium = 0usize;
+                let mut low = 0usize;
+
+                for (cat, files) in &vuln_reports {
+                    for file in files.iter().take(100) {
+                        match self.fetch_raw_report(cat, file).await {
+                            Ok(raw) => {
+                                let (t, c, h, m, l) = self.count_vulnerabilities(&raw);
+                                total_vulns += t;
+                                critical += c;
+                                high += h;
+                                medium += m;
+                                low += l;
+                            }
+                            Err(e) => warn!("Skipping report {}/{}: {}", cat, file, e),
+                        }
+                    }
+                }
+
                 return Ok(SecuritySummary {
-                    total_reports: 0,
-                    total_vulnerabilities: 0,
-                    critical_count: 0,
-                    high_count: 0,
-                    medium_count: 0,
-                    low_count: 0,
-                    reports: vec![],
+                    total_reports,
+                    total_vulnerabilities: total_vulns,
+                    critical_count: critical,
+                    high_count: high,
+                    medium_count: medium,
+                    low_count: low,
+                    reports: report_keys,
                     last_updated: chrono::Utc::now().to_rfc3339(),
                 });
             }
-        };
+        }
 
-        // Only vulnerability_reports have CVE data; other types (sbom, config_audit, rbac…) are skipped
-        let vuln_reports: Vec<(String, Vec<String>)> = report_list
-            .into_iter()
-            .filter(|(cat, _)| cat == "vulnerability_reports")
-            .collect();
+        // Fallback 2: fetch live VulnerabilityReport CRDs directly from Kubernetes API
+        match self.fetch_vulnerability_reports_from_k8s().await {
+            Ok(k8s_reports) if !k8s_reports.is_empty() => {
+                info!("Fetched {} live VulnerabilityReports from Kubernetes", k8s_reports.len());
+                let total_reports = k8s_reports.len();
+                let mut total_vulns = 0usize;
+                let mut critical = 0usize;
+                let mut high = 0usize;
+                let mut medium = 0usize;
+                let mut low = 0usize;
+                let mut report_keys = Vec::new();
 
-        let total_reports: usize = vuln_reports.iter().map(|(_, files)| files.len()).sum();
-        let report_keys: Vec<String> = vuln_reports
-            .iter()
-            .flat_map(|(cat, files)| files.iter().map(move |f| format!("{}/{}", cat, f)))
-            .collect();
-
-        // Fetch each vulnerability report and count
-        let mut total_vulns = 0usize;
-        let mut critical = 0usize;
-        let mut high = 0usize;
-        let mut medium = 0usize;
-        let mut low = 0usize;
-
-        for (cat, files) in &vuln_reports {
-            for file in files.iter().take(100) {
-                match self.fetch_raw_report(cat, file).await {
-                    Ok(raw) => {
-                        let (t, c, h, m, l) = self.count_vulnerabilities(&raw);
-                        total_vulns += t;
-                        critical += c;
-                        high += h;
-                        medium += m;
-                        low += l;
+                for report in &k8s_reports {
+                    let ns = report["metadata"]["namespace"].as_str().unwrap_or("default");
+                    let name = report["metadata"]["name"].as_str().unwrap_or("");
+                    if !name.is_empty() {
+                        report_keys.push(format!("vulnerability_reports/{}/{}", ns, name));
                     }
-                    Err(e) => warn!("Skipping report {}/{}: {}", cat, file, e),
+                    let (t, c, h, m, l) = self.count_vulnerabilities(report);
+                    total_vulns += t;
+                    critical += c;
+                    high += h;
+                    medium += m;
+                    low += l;
                 }
+
+                return Ok(SecuritySummary {
+                    total_reports,
+                    total_vulnerabilities: total_vulns,
+                    critical_count: critical,
+                    high_count: high,
+                    medium_count: medium,
+                    low_count: low,
+                    reports: report_keys,
+                    last_updated: chrono::Utc::now().to_rfc3339(),
+                });
+            }
+            Ok(_) => {
+                debug!("No VulnerabilityReports found in Kubernetes");
+            }
+            Err(e) => {
+                warn!("Failed to fetch VulnerabilityReports from Kubernetes: {}", e);
             }
         }
 
         Ok(SecuritySummary {
-            total_reports,
-            total_vulnerabilities: total_vulns,
-            critical_count: critical,
-            high_count: high,
-            medium_count: medium,
-            low_count: low,
-            reports: report_keys,
+            total_reports: 0,
+            total_vulnerabilities: 0,
+            critical_count: 0,
+            high_count: 0,
+            medium_count: 0,
+            low_count: 0,
+            reports: vec![],
             last_updated: chrono::Utc::now().to_rfc3339(),
         })
     }
@@ -471,26 +567,36 @@ impl SecurityRepository for SecurityRepositoryImpl {
             }
         }
 
-        // Fallback to Trivy server — only vulnerability_reports have CVE data
-        match self.fetch_report_list().await {
-            Ok(report_list) => {
-                let keys: Vec<String> = report_list
-                    .into_iter()
-                    .filter(|(cat, _)| cat == "vulnerability_reports")
-                    .flat_map(|(cat, files)| {
-                        files.into_iter().map(move |f| format!("{}/{}", cat, f))
-                    })
-                    .collect();
-                Ok(keys)
-            }
-            Err(e) => {
-                warn!(
-                    "Trivy server unavailable: {}, returning empty report list",
-                    e
-                );
-                Ok(vec![])
+        // Fallback 1: Trivy server — only vulnerability_reports have CVE data
+        if let Ok(report_list) = self.fetch_report_list().await {
+            let keys: Vec<String> = report_list
+                .into_iter()
+                .filter(|(cat, _)| cat == "vulnerability_reports")
+                .flat_map(|(cat, files)| {
+                    files.into_iter().map(move |f| format!("{}/{}", cat, f))
+                })
+                .collect();
+            if !keys.is_empty() {
+                return Ok(keys);
             }
         }
+
+        // Fallback 2: list directly from Kubernetes
+        if let Ok(k8s_reports) = self.fetch_vulnerability_reports_from_k8s().await {
+            let keys: Vec<String> = k8s_reports
+                .into_iter()
+                .filter_map(|r| {
+                    let ns = r["metadata"]["namespace"].as_str().unwrap_or("default");
+                    let name = r["metadata"]["name"].as_str()?;
+                    Some(format!("vulnerability_reports/{}/{}", ns, name))
+                })
+                .collect();
+            if !keys.is_empty() {
+                return Ok(keys);
+            }
+        }
+
+        Ok(vec![])
     }
 
     async fn get_security_report(&self, category: &str, name: &str) -> Result<SecurityReport> {
@@ -506,15 +612,20 @@ impl SecurityRepository for SecurityRepositoryImpl {
             return Ok(report);
         }
 
-        // Fallback: fetch from Trivy server
+        // Fallback 1: fetch from Trivy server
         let raw_report = match self.fetch_raw_report(category, name).await {
             Ok(report) => report,
             Err(e) => {
-                warn!(
-                    "Failed to fetch report {}/{}: {}, returning empty",
-                    category, name, e
-                );
-                serde_json::json!({})
+                // Fallback 2: fetch from Kubernetes
+                if let Some(k8s_report) = self.fetch_vulnerability_report_from_k8s(category, name).await {
+                    k8s_report
+                } else {
+                    warn!(
+                        "Failed to fetch report {}/{}: {}, returning empty",
+                        category, name, e
+                    );
+                    serde_json::json!({})
+                }
             }
         };
 
