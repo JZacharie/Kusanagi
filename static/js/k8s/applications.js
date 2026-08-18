@@ -1,13 +1,15 @@
 /**
  * Kusanagi - Applications Vue 360° Module
+ * Intégration Trivy Security, Gitleaks, Architecture & Sonde de Mises à Jour
  */
 
 const ApplicationsDashboard = {
     appsData: [],
+    trivyData: null,
     loading: false,
 
     async init() {
-        console.log("🛡️ ApplicationsDashboard: Initializing Vue 360°...");
+        console.log("🛡️ ApplicationsDashboard: Initializing Vue 360° with Trivy integration...");
         await this.fetchApplicationsData();
     },
 
@@ -18,9 +20,23 @@ const ApplicationsDashboard = {
         const grid = document.getElementById("kusanagiAppsGrid");
         if (grid && this.appsData.length === 0) {
             grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--neon-cyan); padding: 3rem;">
-                <div class="loading">Chargement des données 360° des applications...</div>
+                <div class="loading">Chargement des données 360° et analyse Trivy des applications...</div>
             </div>`;
         }
+
+        // Fetch Trivy security vulnerabilities in parallel
+        let trivyReport = null;
+        try {
+            const trivyRes = await fetch('/api/security/vulnerabilities');
+            if (trivyRes.ok) {
+                trivyReport = await trivyRes.json();
+                this.trivyData = trivyReport;
+            }
+        } catch (e) {
+            console.warn("🛡️ /api/security/vulnerabilities fetch error:", e);
+        }
+
+        let rawApps = [];
 
         // 1. Try internal Kusanagi Rust API: /api/applications/360
         try {
@@ -28,66 +44,64 @@ const ApplicationsDashboard = {
             if (res.ok) {
                 const json = await res.json();
                 if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-                    this.appsData = json.data;
-                    this.updateStats();
-                    this.populateProjects();
-                    this.renderApps(this.appsData);
-                    this.loading = false;
-                    return;
+                    rawApps = json.data;
                 }
             }
         } catch (e) {
             console.warn("🛡️ /api/applications/360 not responding:", e);
         }
 
-        // 2. Try fetching from the jo3-status hub
-        try {
-            const res = await fetch('https://jzacharie.github.io/jo3-status/index.html');
-            if (res.ok) {
-                const htmlText = await res.text();
-                const jsonMatch = htmlText.match(/const rawApps = (\[[\s\S]*?\]);/);
-                if (jsonMatch) {
-                    this.appsData = JSON.parse(jsonMatch[1]);
-                    this.updateStats();
-                    this.populateProjects();
-                    this.renderApps(this.appsData);
-                    this.loading = false;
-                    return;
+        // 2. Try fetching from the jo3-status hub if empty
+        if (rawApps.length === 0) {
+            try {
+                const res = await fetch('https://jzacharie.github.io/jo3-status/index.html');
+                if (res.ok) {
+                    const htmlText = await res.text();
+                    const jsonMatch = htmlText.match(/const rawApps = (\[[\s\S]*?\]);/);
+                    if (jsonMatch) {
+                        rawApps = JSON.parse(jsonMatch[1]);
+                    }
                 }
+            } catch (e) {
+                console.warn("🛡️ Public status page fetch error:", e);
             }
-        } catch (e) {
-            console.warn("🛡️ Public status page fetch error:", e);
         }
 
-        // 3. Try fallback to /api/argocd/status
-        try {
-            const res = await fetch('/api/argocd/status');
-            if (res.ok) {
-                const json = await res.json();
-                const rawList = json.applications || (json.data && json.data.applications) || [];
-                if (rawList.length > 0) {
-                    this.appsData = rawList.map(a => ({
-                        name: a.name || a.metadata?.name || 'app',
-                        project: a.spec?.project || a.project || 'default',
-                        namespace: a.spec?.destination?.namespace || a.namespace || '-',
-                        chart: a.spec?.source?.chart || a.spec?.source?.path || a.chart || '-',
-                        status: a.status?.health?.status === 'Healthy' ? 'Active' : 'Active',
-                        badge_class: 'badge-active',
-                        ingress_url: `https://${a.name}.p.zacharie.org`,
-                        icon_url: `https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/${a.name}.png`,
-                        gitleaks_count: 0,
-                        arch: 'amd64 (K8s)',
-                        probe: { current: 'latest', latest: 'latest', status: 'UP_TO_DATE' }
-                    }));
-                    this.updateStats();
-                    this.populateProjects();
-                    this.renderApps(this.appsData);
-                    this.loading = false;
-                    return;
+        // 3. Fallback to /api/argocd/status if still empty
+        if (rawApps.length === 0) {
+            try {
+                const res = await fetch('/api/argocd/status');
+                if (res.ok) {
+                    const json = await res.json();
+                    const rawList = json.applications || (json.data && json.data.applications) || [];
+                    if (rawList.length > 0) {
+                        rawApps = rawList.map(a => ({
+                            name: a.name || a.metadata?.name || 'app',
+                            project: a.spec?.project || a.project || 'default',
+                            namespace: a.spec?.destination?.namespace || a.namespace || '-',
+                            chart: a.spec?.source?.chart || a.spec?.source?.path || a.chart || '-',
+                            status: a.status?.health?.status === 'Healthy' ? 'Active' : 'Active',
+                            badge_class: 'badge-active',
+                            ingress_url: `https://${a.name}.p.zacharie.org`,
+                            icon_url: `https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/${a.name}.png`,
+                            gitleaks_count: 0,
+                            arch: 'amd64 (K8s)',
+                            probe: { current: 'latest', latest: 'latest', status: 'UP_TO_DATE' }
+                        }));
+                    }
                 }
+            } catch (e) {
+                console.warn("🛡️ /api/argocd/status fallback error:", e);
             }
-        } catch (e) {
-            console.warn("🛡️ /api/argocd/status fallback error:", e);
+        }
+
+        if (rawApps.length > 0) {
+            this.appsData = this.enrichWithTrivy(rawApps, trivyReport);
+            this.updateStats();
+            this.populateProjects();
+            this.renderApps(this.appsData);
+            this.loading = false;
+            return;
         }
 
         this.loading = false;
@@ -99,16 +113,69 @@ const ApplicationsDashboard = {
         }
     },
 
+    enrichWithTrivy(apps, trivyReport) {
+        if (!trivyReport) return apps.map(a => ({ ...a, trivy: { critical: 0, high: 0, medium: 0, low: 0, total: 0 } }));
+        
+        const imagesList = trivyReport.images || (trivyReport.data && trivyReport.data.images) || [];
+
+        return apps.map(app => {
+            const appNameClean = (app.name || "").toLowerCase().replace(/^joe3-|^jo3-|-sbx|-dev|-prd|-vs/g, "");
+            const ns = (app.namespace || "").toLowerCase();
+
+            let crit = 0, high = 0, med = 0, low = 0;
+            let matched = [];
+
+            imagesList.forEach(img => {
+                const imgNs = (img.namespace || "").toLowerCase();
+                const imgName = (img.image || "").toLowerCase();
+                const repId = (img.report_id || img.name || "").toLowerCase();
+
+                const nsMatch = (imgNs === ns) || (!ns && imgNs === appNameClean);
+                const nameMatch = imgName.includes(appNameClean) || 
+                                  repId.includes(appNameClean) || 
+                                  (imgNs === ns && imgNs !== "default");
+
+                if (nsMatch && nameMatch) {
+                    crit += (img.critical_count ?? img.critical ?? 0);
+                    high += (img.high_count ?? img.high ?? 0);
+                    med += (img.medium_count ?? img.medium ?? 0);
+                    low += (img.low_count ?? img.low ?? 0);
+                    matched.push(img);
+                }
+            });
+
+            const total = crit + high + med + low;
+            return {
+                ...app,
+                trivy: {
+                    critical: crit,
+                    high: high,
+                    medium: med,
+                    low: low,
+                    total: total,
+                    matchedCount: matched.length
+                }
+            };
+        });
+    },
+
     updateStats() {
         const total = this.appsData.length;
         const active = this.appsData.filter(a => a.status === "Active").length;
         const updates = this.appsData.filter(a => a.probe && a.probe.status === "UPDATE_AVAILABLE").length;
         const gitleaks = this.appsData.reduce((acc, a) => acc + (a.gitleaks_count || 0), 0);
+        
+        // Compute Trivy critical vulnerability count or affected apps
+        const critVulns = this.appsData.reduce((acc, a) => acc + (a.trivy ? a.trivy.critical : 0), 0);
+        const critApps = this.appsData.filter(a => a.trivy && a.trivy.critical > 0).length;
 
         if (document.getElementById("stat-total-apps")) document.getElementById("stat-total-apps").innerText = total;
         if (document.getElementById("stat-active-apps")) document.getElementById("stat-active-apps").innerText = active;
         if (document.getElementById("stat-updates-apps")) document.getElementById("stat-updates-apps").innerText = updates + " disp.";
         if (document.getElementById("stat-gitleaks-apps")) document.getElementById("stat-gitleaks-apps").innerText = gitleaks;
+        if (document.getElementById("stat-trivy-apps")) {
+            document.getElementById("stat-trivy-apps").innerText = critVulns > 0 ? `${critVulns} (${critApps} apps)` : "0";
+        }
     },
 
     populateProjects() {
@@ -195,6 +262,19 @@ const ApplicationsDashboard = {
                 `🚀 ${this.formatVersion(app.probe.current)} ➔ ${this.formatVersion(app.probe.latest)}` :
                 `✅ ${this.formatVersion(app.probe ? app.probe.current : 'latest')}`;
 
+            // Trivy indicator rendering
+            const trivy = app.trivy || { critical: 0, high: 0, medium: 0, low: 0, total: 0 };
+            let trivyBadgeHtml = '';
+            if (trivy.critical > 0) {
+                trivyBadgeHtml = `<span style="font-family: 'JetBrains Mono', monospace; font-weight:700; color: #ef4444;">🔴 ${trivy.critical} Critiques <span style="font-size:0.75rem; color:#9ca3af;">(${trivy.total} total)</span></span>`;
+            } else if (trivy.high > 0) {
+                trivyBadgeHtml = `<span style="font-family: 'JetBrains Mono', monospace; font-weight:600; color: #f59e0b;">🟠 ${trivy.high} High <span style="font-size:0.75rem; color:#9ca3af;">(${trivy.total} total)</span></span>`;
+            } else if (trivy.total > 0) {
+                trivyBadgeHtml = `<span style="font-family: 'JetBrains Mono', monospace; font-weight:500; color: #60a5fa;">🟡 ${trivy.total} Détectées</span>`;
+            } else {
+                trivyBadgeHtml = `<span style="font-family: 'JetBrains Mono', monospace; font-weight:600; color: #10b981;">🛡️ 0 faille (Trivy Clean)</span>`;
+            }
+
             card.innerHTML = `
                 <div>
                     <div style="display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 0.85rem;">
@@ -211,6 +291,10 @@ const ApplicationsDashboard = {
                     </div>
 
                     <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                            <span style="color: #9ca3af;">Failles Trivy :</span>
+                            ${trivyBadgeHtml}
+                        </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                             <span style="color: #9ca3af;">Sonde Image :</span>
                             <span style="font-family: 'JetBrains Mono', monospace; font-weight:600; color: ${app.probe && app.probe.status === 'UPDATE_AVAILABLE' ? '#fbbf24' : '#10b981'};">
@@ -262,6 +346,9 @@ const ApplicationsDashboard = {
             statusFilter.value = "Disabled";
         } else if (type === "Updates") {
             statusFilter.value = "Update";
+        } else if (type === "TrivyCritical") {
+            statusFilter.value = "TrivyCritical";
+            if (searchInput) searchInput.value = "";
         } else if (type === "Gitleaks") {
             statusFilter.value = "Gitleaks";
             if (searchInput) searchInput.value = "";
@@ -291,6 +378,9 @@ const ApplicationsDashboard = {
             if (status === "Active") matchStatus = app.status === "Active";
             else if (status === "Disabled") matchStatus = app.status === "Disabled";
             else if (status === "Update") matchStatus = app.probe && app.probe.status === "UPDATE_AVAILABLE";
+            else if (status === "TrivyCritical") matchStatus = (app.trivy?.critical || 0) > 0;
+            else if (status === "TrivyAny") matchStatus = (app.trivy?.total || 0) > 0;
+            else if (status === "TrivyClean") matchStatus = (app.trivy?.total || 0) === 0;
             else if (status === "Gitleaks") matchStatus = (app.gitleaks_count || 0) > 0;
             else if (status === "Vault") matchStatus = (app.gitleaks_count || 0) === 0;
 
