@@ -223,6 +223,16 @@ const ApplicationsDashboard = {
         wrapper.innerHTML = initials;
     },
 
+    resolveIconUrl(app) {
+        const rawUrl = (app.icon_url || "").trim();
+        // Si l'icône pointe vers un domaine interne (*.zacharie.org) ou relatif protégé par auth, basculer sur l'icône dashboard publique sûre
+        if (!rawUrl || rawUrl.includes(".zacharie.org") || rawUrl.startsWith("/") || !rawUrl.startsWith("http")) {
+            const cleanName = (app.name || "").toLowerCase().replace(/^joe3-|^jo3-|-sbx|-dev|-prd|-vs/g, "");
+            return `https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/${cleanName}.png`;
+        }
+        return rawUrl;
+    },
+
     renderApps(apps) {
         const grid = document.getElementById("kusanagiAppsGrid");
         if (!grid) return;
@@ -281,7 +291,7 @@ const ApplicationsDashboard = {
                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;">
                             <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
                                 <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
-                                    <img src="${app.icon_url}" alt="${app.name}" style="width: 100%; height: 100%; object-fit: contain; padding: 4px;" onerror="ApplicationsDashboard.handleIconError(this, '${app.name}')">
+                                    <img src="${this.resolveIconUrl(app)}" alt="${app.name}" style="width: 100%; height: 100%; object-fit: contain; padding: 4px;" onerror="ApplicationsDashboard.handleIconError(this, '${app.name}')">
                                 </div>
                                 <div style="font-size: 1.15rem; font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${app.name}">${app.name}</div>
                             </div>
