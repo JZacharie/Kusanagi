@@ -56,21 +56,17 @@ pub async fn news() -> impl IntoResponse {
     )
 )]
 pub async fn news_refresh() -> impl IntoResponse {
-    match crate::domain::services::news_service::force_refresh().await {
-        Ok(news) => Json(json!({
-            "status": "success",
-            "message": "News refresh and translation started in background or completed",
-            "items": news["items"],
-            "cached_at": news["cached_at"],
-            "sources": news["sources"]
-        }))
-        .into_response(),
-        Err(e) => Json(json!({
-            "status": "error",
-            "message": e
-        }))
-        .into_response(),
-    }
+    tokio::spawn(async {
+        if let Err(e) = crate::domain::services::news_service::force_refresh().await {
+            tracing::error!("❌ Background news fetch failed: {}", e);
+        }
+    });
+
+    Json(json!({
+        "status": "success",
+        "message": "News refresh and translation started in background"
+    }))
+    .into_response()
 }
 
 /// Promote dev version to production
