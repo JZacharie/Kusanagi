@@ -22,12 +22,17 @@ const BusinessDashboard = {
         this.initialized = true;
         this.refreshData();
 
-        // Refresh every 5 minutes
-        this.updateInterval = setInterval(() => this.refreshData(), 300000);
+        // Refresh every 15 minutes (and only when active)
+        this.updateInterval = setInterval(() => {
+            if (!document.hidden) {
+                this.refreshData();
+            }
+        }, 900000);
     },
 
     async refreshData() {
         if (!document.getElementById('biz-total-users')) return; // Not on page
+        if (document.hidden) return; // Don't fetch if tab is hidden
 
         this.updateTimestamp();
         

@@ -6,10 +6,17 @@ use serde_json::{json, Value};
 use std::env;
 use tracing::{error, info};
 
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
+
 pub struct CloudflareRepositoryImpl {
     account_id: String,
     api_token: String,
     http_client: reqwest::Client,
+    cache: Arc<RwLock<Option<(Instant, BusinessOverview)>>>,
+    cooldown_until: Arc<RwLock<Option<Instant>>>,
+    cache_ttl: Duration,
 }
 
 impl Default for CloudflareRepositoryImpl {
@@ -26,8 +33,13 @@ impl CloudflareRepositoryImpl {
             "cfat_GVE8PTnT6dDAQdyJn4NKgc5J0bt6FIIwbjxdEcwVd3611488".to_string()
         });
 
+        let cache_ttl_secs = env::var("CLOUDFLARE_CACHE_TTL_SECS")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(1800); // 30 minutes default cache
+
         let http_client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(10))
+            .timeout(Duration::from_secs(10))
             .build()
             .expect("Failed to create HTTP client");
 
@@ -35,6 +47,9 @@ impl CloudflareRepositoryImpl {
             account_id,
             api_token,
             http_client,
+            cache: Arc::new(RwLock::new(None)),
+            cooldown_until: Arc::new(RwLock::new(None)),
+            cache_ttl: Duration::from_secs(cache_ttl_secs),
         }
     }
 }
@@ -42,6 +57,42 @@ impl CloudflareRepositoryImpl {
 #[async_trait]
 impl CloudflareRepository for CloudflareRepositoryImpl {
     async fn get_analytics_overview(&self) -> Result<BusinessOverview> {
+        // 1. Check in-memory cache
+        {
+            let cache_read = self.cache.read().await;
+            if let Some((cached_at, ref data)) = *cache_read {
+                if cached_at.elapsed() < self.cache_ttl {
+                    info!(
+                        "Serving Cloudflare analytics from cache (age: {}s)",
+                        cached_at.elapsed().as_secs()
+                    );
+                    return Ok(data.clone());
+                }
+            }
+        }
+
+        // 2. Check if we are in a rate-limit cooldown
+        {
+            let cooldown = self.cooldown_until.read().await;
+            if let Some(until) = *cooldown {
+                if Instant::now() < until {
+                    info!("Cloudflare API is in cooldown after 429/rate-limit, serving cached/default data");
+                    let cache_read = self.cache.read().await;
+                    if let Some((_, ref data)) = *cache_read {
+                        return Ok(data.clone());
+                    }
+                    return Ok(BusinessOverview {
+                        cloudflare: CloudflareAnalytics {
+                            requests: 0,
+                            bandwidth: 0,
+                            threats: 0,
+                            page_views: 0,
+                        },
+                    });
+                }
+            }
+        }
+
         info!(
             "Fetching Cloudflare analytics for account {}",
             if self.account_id.len() > 8 {
@@ -93,19 +144,47 @@ impl CloudflareRepository for CloudflareRepositoryImpl {
             }
         });
 
-        let response = self
+        let response_result = self
             .http_client
             .post(url)
             .header("Authorization", format!("Bearer {}", self.api_token))
             .json(&query)
             .send()
-            .await
-            .map_err(|e| KusanagiError::external_service(format!("Cloudflare API error: {}", e)))?;
+            .await;
+
+        let response = match response_result {
+            Ok(resp) => resp,
+            Err(e) => {
+                error!("Failed to reach Cloudflare API: {}", e);
+                // Return cached data if available
+                let cache_read = self.cache.read().await;
+                if let Some((_, ref data)) = *cache_read {
+                    info!("Serving stale cached analytics after connection error");
+                    return Ok(data.clone());
+                }
+                return Err(KusanagiError::external_service(format!("Cloudflare API error: {}", e)));
+            }
+        };
 
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Cloudflare API error {}: {}", status, text);
+
+            // If 429 Too Many Requests or 5xx, set a 15-minute cooldown to avoid hammering Cloudflare
+            if status == reqwest::StatusCode::TOO_MANY_REQUESTS || status.is_server_error() {
+                let mut cooldown_write = self.cooldown_until.write().await;
+                *cooldown_write = Some(Instant::now() + Duration::from_secs(900));
+                info!("Entering 15-minute Cloudflare cooldown due to HTTP {}", status);
+            }
+
+            // If we have stale cache, serve it gracefully
+            let cache_read = self.cache.read().await;
+            if let Some((_, ref data)) = *cache_read {
+                info!("Serving stale cached analytics after Cloudflare HTTP {}", status);
+                return Ok(data.clone());
+            }
+
             return Err(KusanagiError::external_service(format!(
                 "Cloudflare API error {}: {}",
                 status, text
@@ -138,13 +217,21 @@ impl CloudflareRepository for CloudflareRepositoryImpl {
             .map(|arr| arr.iter().map(|g| g["count"].as_u64().unwrap_or(0)).sum())
             .unwrap_or(0);
 
-        Ok(BusinessOverview {
+        let overview = BusinessOverview {
             cloudflare: CloudflareAnalytics {
                 requests: total_requests,
                 bandwidth: total_bytes,
                 threats: total_threats,
                 page_views: total_page_views,
             },
-        })
+        };
+
+        // Cache the successful result
+        {
+            let mut cache_write = self.cache.write().await;
+            *cache_write = Some((Instant::now(), overview.clone()));
+        }
+
+        Ok(overview)
     }
 }
