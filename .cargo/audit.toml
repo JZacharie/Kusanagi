@@ -1,0 +1,4 @@
+[advisories]
+ignore = [
+    "RUSTSEC-2026-0258", # h2 0.3.27 unbounded empty DATA frames (legacy hyper 0.14 S3 connector)
+]
