@@ -45,7 +45,7 @@ hyper = "1.0" # And the modern hyper.
 tracing-appender = "0.2.4"
 
 # Sprint 5: Robustness & Observability
-utoipa = { version = "5.5.0", features = ["axum_extras", "uuid", "chrono"] }
+utoipa = { version = "6.0.0", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "9", features = ["axum"] }
 tower_governor = "0.8"
 
