@@ -72,6 +72,9 @@ const K8sManager = {
             case 'ingress':
                 if (window.K8sServices) K8sServices.fetchIngress();
                 break;
+            case 'gpu':
+                if (window.GpuDashboard) GpuDashboard.loadData();
+                break;
             default:
                 // For dashboard/overview, fetch minimal data
                 this.fetchClusterOverview();

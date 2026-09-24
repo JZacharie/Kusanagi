@@ -38,7 +38,8 @@ const PageLoader = {
         'docs': 'docs.html',
         'lab': 'lab.html',
         'tailscale': 'tailscale.html',
-        'limits': 'limits.html'
+        'limits': 'limits.html',
+        'gpu': 'gpu.html'
     },
 
     /**
@@ -228,6 +229,11 @@ const PageLoader = {
             case 'limits':
                 if (window.LimitsDashboard) {
                     LimitsDashboard.init();
+                }
+                break;
+            case 'gpu':
+                if (window.GpuDashboard) {
+                    GpuDashboard.init();
                 }
                 break;
         }

@@ -16,6 +16,7 @@ const TabManager = {
         ingress: { interval: 300000, module: 'K8sServices', fetch: 'fetchIngress' },
         storage: { interval: 60000, module: 'K8sStorage', fetch: 'fetchStorageStatus' },
         backups: { interval: 60000, module: 'K8sStorage', fetch: 'fetchBackupsStatus' },
+        gpu: { interval: 15000, module: 'GpuDashboard', fetch: 'loadData' },
 
         // Other tabs
         proxmox: { interval: 30000, module: 'ProxmoxDashboard', fetch: 'loadData' },

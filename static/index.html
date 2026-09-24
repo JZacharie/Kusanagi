@@ -115,6 +115,7 @@
     <script src="/static/js/cilium-network.js?v={{VERSION}}"></script>
     <script src="/static/js/tailscale.js?v={{VERSION}}"></script>
     <script src="/static/js/limits.js?v={{VERSION}}"></script>
+    <script src="/static/js/gpu.js?v={{VERSION}}"></script>
     <script src="/static/js/mqtt.js?v={{VERSION}}"></script>
     <script system src="/static/js/system.js?v={{VERSION}}"></script>
     <script streaming src="/static/js/streaming.js?v={{VERSION}}"></script>
@@ -242,6 +243,12 @@
                         <a class="nav-link" data-page="limits" href="#limits">
                             <i class="mdi mdi-chart-bell-curve"></i>
                             <span class="nav-link-text">Limits</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="gpu" href="#gpu">
+                            <i class="mdi mdi-expansion-card"></i>
+                            <span class="nav-link-text">GPU Nodes</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -800,6 +807,11 @@
             <!-- Limits Section -->
             <section class="argocd-section tab-content" data-tab="limits" style="display: none;">
                 <div class="loading">Loading...</div>
+            </section>
+
+            <!-- GPU Section (loaded dynamically) -->
+            <section class="argocd-section tab-content" data-tab="gpu" style="display: none;">
+                <div class="loading">Loading GPU dashboard...</div>
             </section>
 
             <!-- Calendar Section -->
