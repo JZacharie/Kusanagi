@@ -393,12 +393,13 @@ async fn fetch_dcgm_metrics_by_node(
                                 "vm168".to_string()
                             };
 
-                            let mut entry = NodeGpuMetrics::default();
-                            entry.utilization = gpu_info["utilization"].as_f64().unwrap_or(0.0);
-                            entry.temperature = gpu_info["temperature"].as_f64().unwrap_or(0.0);
-                            entry.power_draw = gpu_info["power_draw"].as_f64().unwrap_or(0.0);
-                            entry.memory_used = gpu_info["memory_used"].as_f64().unwrap_or(0.0);
-                            entry.memory_total = gpu_info["memory_total"].as_f64().unwrap_or(24576.0);
+                            let entry = NodeGpuMetrics {
+                                utilization: gpu_info["utilization"].as_f64().unwrap_or(0.0),
+                                temperature: gpu_info["temperature"].as_f64().unwrap_or(0.0),
+                                power_draw: gpu_info["power_draw"].as_f64().unwrap_or(0.0),
+                                memory_used: gpu_info["memory_used"].as_f64().unwrap_or(0.0),
+                                memory_total: gpu_info["memory_total"].as_f64().unwrap_or(24576.0),
+                            };
                             map.insert(node_key, entry);
                         }
                     }
