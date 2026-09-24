@@ -46,7 +46,7 @@ tracing-appender = "0.2.4"
 
 # Sprint 5: Robustness & Observability
 utoipa = { version = "5.5.0", features = ["axum_extras", "uuid", "chrono"] }
-utoipa-swagger-ui = { version = "9", features = ["axum"] }
+utoipa-swagger-ui = { version = "10", features = ["axum"] }
 tower_governor = "0.8"
 
 # Sprint 6: Monitoring & Tracing
