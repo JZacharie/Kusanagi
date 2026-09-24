@@ -1,7 +1,9 @@
 //! Kubernetes handlers
 
+pub mod gpu_handlers;
 pub mod limits_handlers;
 
+pub use gpu_handlers::*;
 pub use limits_handlers::*;
 
 use axum::extract::{Path, State};

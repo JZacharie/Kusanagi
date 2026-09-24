@@ -123,6 +123,8 @@ pub fn configure_routes(state: AppState) -> Router {
             get(get_namespace_metrics_handler),
         )
         .route("/api/k8s/limits", get(get_limits_handler))
+        .route("/api/k8s/gpu", get(get_gpu_status_handler))
+        .route("/api/k8s/gpu/scale", post(scale_workload_handler))
         .route("/api/k8s/pods/{namespace}/{name}/logs", get(pod_logs))
         .route(
             "/api/pods/delete-error-pods",

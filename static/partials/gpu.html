@@ -1,0 +1,75 @@
+<!-- GPU Management Section -->
+<h2 class="section-title">⚡ GPU Cluster & Workload Management</h2>
+
+<!-- Top GPU Node Telemetry Cards -->
+<div class="gpu-nodes-grid" id="gpu-nodes-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Rendered dynamically -->
+    <div class="loading" style="grid-column: 1 / -1;">Loading GPU nodes telemetry...</div>
+</div>
+
+<!-- On-Demand GPU Workloads Card / Quick Switcher -->
+<div class="gpu-workloads-container" style="background: rgba(0, 255, 249, 0.03); border: 1px solid rgba(0, 255, 249, 0.2); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(0, 255, 249, 0.15); padding-bottom: 0.75rem;">
+        <div>
+            <h3 style="margin: 0; color: var(--neon-cyan); font-family: 'Rajdhani', sans-serif; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="mdi mdi-play-box-multiple-outline"></i> On-Demand GPU Workloads
+            </h3>
+            <span style="font-size: 0.8rem; opacity: 0.7;">Scale GPU workloads on vm168/vm169 (FaceFusion, Llama-cpp, etc.) to free or allocate VRAM</span>
+        </div>
+        <button onclick="GpuDashboard.loadData(true)" class="cyber-btn sm" id="btn-gpu-refresh">
+            <i class="mdi mdi-refresh"></i> Refresh
+        </button>
+    </div>
+
+    <div class="gpu-workload-cards" id="gpu-workloads-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+        <div class="loading">Loading workloads...</div>
+    </div>
+</div>
+
+<!-- GPU Pods Table -->
+<div class="issues-table-container" style="border-color: var(--neon-cyan);">
+    <div class="issues-table-header" style="background: rgba(0, 255, 249, 0.08); border-color: var(--neon-cyan); display: flex; justify-content: space-between; align-items: center;">
+        <span class="issues-table-title" style="color: var(--neon-cyan); display: flex; align-items: center; gap: 0.5rem;">
+            <i class="mdi mdi-hexagon-multiple"></i> Pods on GPU Nodes (vm168 & vm169)
+        </span>
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <span class="issues-count" id="gpu-pods-count" style="background: var(--neon-cyan); color: #000; font-weight: bold;">0</span>
+        </div>
+    </div>
+
+    <!-- Filter and search bar -->
+    <div style="display: flex; gap: 1rem; padding: 0.75rem 1rem; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(0, 255, 249, 0.15); align-items: center; flex-wrap: wrap;">
+        <input type="text" id="gpu-pods-search" placeholder="🔍 Search pod name, namespace, image..." 
+               oninput="GpuDashboard.handleFilter(this.value)"
+               style="flex: 1; min-width: 220px; background: rgba(0,0,0,0.6); color: white; border: 1px solid var(--neon-cyan); border-radius: 4px; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+        <div class="filter-btn-group" style="display: flex; gap: 0.3rem;">
+            <button class="filter-btn active" data-node="all" onclick="GpuDashboard.setNodeFilter(this, 'all')">ALL NODES</button>
+            <button class="filter-btn" data-node="vm168" onclick="GpuDashboard.setNodeFilter(this, 'vm168')">vm168</button>
+            <button class="filter-btn" data-node="vm169" onclick="GpuDashboard.setNodeFilter(this, 'vm169')">vm169</button>
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="issues-table" id="gpu-pods-table">
+            <thead>
+                <tr>
+                    <th>Pod Name</th>
+                    <th>Namespace</th>
+                    <th>Node</th>
+                    <th>Status</th>
+                    <th>Restarts</th>
+                    <th>Age</th>
+                    <th>Images / GPU Env</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="gpu-pods-tbody">
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem;">
+                        <div class="loading">Loading GPU pods...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
