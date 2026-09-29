@@ -2,6 +2,7 @@
 
 pub mod cilium;
 pub mod deepseek;
+pub mod gemini;
 pub mod mqtt;
 pub mod pylos;
 pub mod tailscale_handlers;
@@ -11,6 +12,7 @@ use serde_json::json;
 
 pub use cilium::*;
 pub use deepseek::*;
+pub use gemini::*;
 pub use mqtt::*;
 pub use pylos::*;
 pub use tailscale_handlers::*;
