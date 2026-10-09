@@ -54,7 +54,7 @@ async fn fetch_gemini_all_metrics(
     if let Some(models_array) = models.as_array() {
         let model_summaries: Vec<serde_json::Value> = models_array
             .iter()
-            .filter_map(|m| extract_model_summary(m))
+            .filter_map(extract_model_summary)
             .collect();
 
         result.insert("model_summaries".to_string(), json!(model_summaries));
