@@ -14,7 +14,7 @@ pub struct SteampipeStats {
 
 pub async fn get_compliance_stats() -> Result<SteampipeStats, String> {
     let database_url = env::var("STEAMPIPE_DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://steampipe:1pjVZE4bYBkIGWpNTOgl@steampipe.steampipe-powerpipe.svc:9193/steampipe".to_string());
+        .unwrap_or_else(|_| "ENC[SYM256,salt:M7kjC1o+XSrT7WvGNKZ10A==,iv:gi+tXSvk0EtZvQ+c7nPm+A==,tag:685RBz68ukmsT3otyG4EBS4jdSum3YFS4tTn+tfjqHE=,data:xJasRNS8i82KYbtnUnMEsOwfghYJ9G1sC05b+2ymcewF/e4OYOJzNUGUZ/msT6zNd1pNV8etmpuZfZRBr2JmvuUI7YHcP6bcJkHe2A3edGQ=]/steampipe".to_string());
 
     let config: Config = database_url
         .parse()
