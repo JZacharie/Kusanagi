@@ -34,7 +34,7 @@ impl SystemService {
 
         let start_time_str = START_TIME_STR.get_or_init(|| chrono::Utc::now().to_rfc3339());
 
-        let mut sys = System::new_all();
+        let mut sys = System::new_all().expect("failed to initialize sysinfo");
         sys.refresh_all();
 
         let cpu_usage = sys.global_cpu_usage();

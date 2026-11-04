@@ -285,7 +285,7 @@ impl DiagnosticService {
         let start = Instant::now();
 
         use sysinfo::System;
-        let mut sys = System::new_all();
+        let mut sys = System::new_all().expect("failed to initialize sysinfo");
         sys.refresh_all();
         let used_mb = sys.used_memory() / 1024;
         let total_mb = sys.total_memory() / 1024;

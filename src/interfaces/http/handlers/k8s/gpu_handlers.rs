@@ -213,7 +213,7 @@ pub async fn get_gpu_status_handler(
         let deployments: Api<Deployment> = Api::namespaced(kube_client.clone(), ns);
         let (replicas, available_replicas, exists) = match deployments.get(name).await {
             Ok(dep) => {
-                let spec_replicas = dep.spec.and_then(|s| s.replicas).unwrap_or(0);
+                let spec_replicas = dep.spec.replicas.unwrap_or(0);
                 let status_replicas = dep.status.and_then(|s| s.available_replicas).unwrap_or(0);
                 (spec_replicas, status_replicas, true)
             }
