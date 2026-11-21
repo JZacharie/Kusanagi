@@ -83,7 +83,7 @@ jobs:
   # Optimisation : On compile le binaire hors de Docker pour profiter du cache GitHub Actions
   # ============================================================================
   build-rust:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -106,7 +106,9 @@ jobs:
           cargo build --release --bin kusanagi
           ls -lh target/release/kusanagi
         env:
-          RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
+          RUSTFLAGS: "-C target-cpu=x86-64 -C link-arg=-fuse-ld=mold"
+          CFLAGS: "-march=x86-64"
+          CXXFLAGS: "-march=x86-64"
 
       # Sauvegarde le binaire compilé pour qu'il soit utilisé par le job Docker
       - name: Upload binary artifact
